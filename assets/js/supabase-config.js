@@ -1,8 +1,8 @@
-// ضع بيانات مشروع Supabase هنا بعد إنشائه.
-// لا تستخدم Service Role Key داخل GitHub Pages نهائياً. استخدم publishable / anon key فقط.
+// Supabase client configuration for Warehouse Audit System.
+// Publishable key only. Never put service_role key in frontend code.
 window.WAREHOUSE_SUPABASE_CONFIG = {
-  url: 'https://YOUR_PROJECT_ID.supabase.co',
-  anonKey: 'YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY'
+  url: 'https://myeltyygvyxbopskescg.supabase.co',
+  anonKey: 'sb_publishable_b-YcrSrysujEOBAdd_hy6Q_R7sYRMZC'
 };
 
 window.WarehouseDB = (() => {
@@ -20,5 +20,20 @@ window.WarehouseDB = (() => {
     return client.from(tableName).insert(payload).select();
   }
 
-  return { client, ready, list, insert };
+  async function signIn(email, password) {
+    if (!client) return { data: null, error: new Error('Supabase config is not ready') };
+    return client.auth.signInWithPassword({ email, password });
+  }
+
+  async function signOut() {
+    if (!client) return { error: new Error('Supabase config is not ready') };
+    return client.auth.signOut();
+  }
+
+  async function getUser() {
+    if (!client) return { data: { user: null }, error: new Error('Supabase config is not ready') };
+    return client.auth.getUser();
+  }
+
+  return { client, ready, list, insert, signIn, signOut, getUser };
 })();

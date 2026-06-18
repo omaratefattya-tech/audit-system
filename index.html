@@ -80,11 +80,44 @@
       </section>
 
       <section id="upload" class="section">
-        <article class="panel glass"><h2>رفع التقارير</h2><p class="hint">القوالب الثابتة حسب وصف البرنامج: تقرير المبيعات والتحويلات، وتقرير الوارد من MB51.</p><div class="upload-tabs"><button class="primary">رفع تقرير مراجعة مبيعات المنتج التام والتحويلات المخزنية</button><button class="primary">رفع تقرير الوارد من MB51</button></div><div class="drop-zone">اسحب ملف Excel هنا أو اضغط لاختيار الملف<br><small>سيتم ربط الرفع بجدول Supabase: audit_uploads / audit_transactions</small></div></article>
+        <article class="panel glass">
+          <h2>رفع التقارير</h2>
+          <p class="hint">ارفع ملف Excel الخاص بمراجعة مبيعات المنتج التام والتحويلات المخزنية بنفس رؤوس الأعمدة المعتمدة.</p>
+
+          <div class="auth-box" id="authBox">
+            <h3>تسجيل الدخول إلى Supabase</h3>
+            <div class="auth-row">
+              <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" autocomplete="username" />
+              <input type="password" id="loginPassword" placeholder="كلمة المرور" autocomplete="current-password" />
+              <button class="primary" id="loginBtn" type="button">تسجيل الدخول</button>
+              <button class="secondary" id="logoutBtn" type="button">خروج</button>
+            </div>
+            <small id="authStatus">لم يتم تسجيل الدخول بعد.</small>
+          </div>
+
+          <div class="upload-tabs">
+            <button class="primary" id="pickSalesFileBtn" type="button">رفع تقرير مراجعة مبيعات المنتج التام والتحويلات المخزنية</button>
+            <button class="primary" type="button" disabled>رفع تقرير الوارد من MB51 - لاحقًا</button>
+          </div>
+          <input type="file" id="salesExcelInput" accept=".xlsx,.xls,.csv" hidden />
+          <div class="drop-zone" id="salesDropZone">
+            اختر ملف Excel للمبيعات أو اسحبه هنا
+            <br>
+            <small>سيتم حفظ البيانات الخام في sales_raw_transactions ثم يظهر التقرير من sales_audit_report</small>
+          </div>
+          <div class="upload-status" id="salesUploadStatus"></div>
+        </article>
       </section>
       <section id="plants" class="section"><article class="panel glass"><h2>مصانع ومخازن</h2><div id="plantsFull" class="plants-full"></div></article></section>
       <section id="movements" class="section"><article class="panel glass"><h2>الحركات المخزنية</h2><p class="hint">تعريفات أكواد SAP المستخدمة في مراجعة المخازن.</p><div class="table-wrap"><table id="movementsTable"></table></div></article></section>
-      <section id="sales" class="section"><article class="panel glass"><h2>مراجعة البيع والتحويلات</h2><div id="salesTabs" class="subtabs"></div><div class="table-wrap"><table id="salesTable"></table></div></article></section>
+      <section id="sales" class="section">
+        <article class="panel glass">
+          <h2>مراجعة البيع والتحويلات</h2>
+          <p class="hint">اختر مخزن بيع لعرض التقرير المجمع: كمية البيع، الإنتاج، التحويلات الصادرة، التحويلات الواردة، وإجمالي التحميل.</p>
+          <div id="salesTabs" class="subtabs"></div>
+          <div class="table-wrap"><table id="salesTable"></table></div>
+        </article>
+      </section>
       <section id="inbound" class="section"><article class="panel glass"><h2>مراجعة الوارد</h2><div id="inboundTabs" class="subtabs"></div><div class="table-wrap"><table id="inboundTable"></table></div></article></section>
       <section id="reports" class="section"><article class="panel glass"><h2>التقارير</h2><div class="report-actions"><button class="primary">تقرير الحركات</button><button class="primary">تقرير التسويات</button><button class="primary">تقرير الوارد</button><button class="primary">تقرير البيع</button></div></article></section>
       <section id="settings" class="section"><article class="panel glass"><h2>الإعدادات</h2><p>تم تجهيز المشروع للعمل على GitHub Pages مع طبقة Supabase. عدّل ملف <b>assets/js/supabase-config.js</b> بمفاتيح مشروعك.</p><pre class="code-box">SUPABASE_URL = https://YOUR_PROJECT.supabase.co
@@ -94,6 +127,7 @@ SUPABASE_ANON_KEY = your_publishable_or_anon_key</pre></article></section>
     </main>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js"></script>
