@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#003c2d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="مراجعة المخازن" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>برنامج مراجعة المخازن</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <img class="brand-logo" src="assets/img/logo.png" alt="شعار المصانع" />
+        <div>
+          <h2>الإيمان للأعلاف</h2>
+          <p>WAREHOUSE AUDIT SYSTEM</p>
+        </div>
+      </div>
+      <nav class="nav" aria-label="القائمة الرئيسية">
+        <button class="nav-item active" data-section="dashboard">الرئيسية <span>⌂</span></button>
+        <button class="nav-item" data-section="upload">رفع التقارير <span>⇧</span></button>
+        <button class="nav-item" data-section="plants">مصانع ومخازن <span>▦</span></button>
+        <button class="nav-item" data-section="movements">الحركات المخزنية <span>⇄</span></button>
+        <button class="nav-item" data-section="sales">مراجعة البيع <span>🛒</span></button>
+        <button class="nav-item" data-section="inbound">مراجعة الوارد <span>⇩</span></button>
+        <button class="nav-item" data-section="reports">التقارير <span>▥</span></button>
+        <button class="nav-item" data-section="settings">الإعدادات <span>⚙</span></button>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="user-card">
+          <div class="avatar">أ</div>
+          <div><strong>أحمد علاء</strong><small>مدير النظام</small></div>
+          <div class="clock" aria-live="polite"><b id="cairoTime">--:--</b><small id="cairoDate">توقيت القاهرة</small></div>
+        </div>
+        <div class="page-title">
+          <img src="assets/img/logo.png" alt="شعار البرنامج" />
+          <div>
+            <h1>برنامج مراجعة المخازن</h1>
+            <p>مراجعة حركات المنتج التام والخامات في مصانع الأعلاف</p>
+          </div>
+        </div>
+      </header>
+
+      <section class="filters glass">
+        <label>المصنع<select id="plantFilter"><option value="all">الكل</option></select></label>
+        <label>المخزن<select id="warehouseFilter"><option value="all">الكل</option></select></label>
+        <label>نوع المخزن<select id="warehouseTypeFilter"><option value="all">الكل</option><option value="finished">منتج تام</option><option value="raw">خامات/تصنيع</option></select></label>
+        <label>نوع الحركة<select id="movementFilter"><option value="all">الكل</option><option value="sales">مراجعة البيع</option><option value="inbound">مراجعة الوارد</option><option value="transfer">تحويلات</option><option value="adjustment">تسويات</option></select></label>
+        <label>من<input type="date" id="fromDate"></label>
+        <label>إلى<input type="date" id="toDate"></label>
+        <button class="primary" id="searchBtn">بحث 🔍</button>
+        <button class="secondary" id="resetBtn">إعادة تعيين ↻</button>
+      </section>
+
+      <section id="dashboard" class="section active-section">
+        <div class="cards" id="kpiCards"></div>
+        <div class="grid-3">
+          <article class="panel glass"><h3>إجمالي الحركات حسب نوع الحركة</h3><canvas id="donutChart" width="340" height="240"></canvas><div id="movementLegend" class="legend"></div><button class="small-btn">عرض التقرير ▥</button></article>
+          <article class="panel glass warehouse-summary"><h3>ملخص كميات المخازن</h3><div class="warehouse-hero">▰</div><div id="stockSummary"></div><button class="small-btn">عرض التقرير ▥</button></article>
+          <article class="panel glass"><h3>الحركات خلال الفترة</h3><canvas id="lineChart" width="430" height="250"></canvas><button class="small-btn">عرض التقرير ▥</button></article>
+        </div>
+        <div class="bottom-grid">
+          <article class="panel glass"><h3>المصانع</h3><div id="plantsCards" class="plants-cards"></div></article>
+          <article class="panel glass wide"><h3>أحدث الحركات</h3><div class="table-wrap"><table id="latestTable"></table></div><button class="small-btn">عرض جميع الحركات ▦</button></article>
+          <article class="panel glass"><h3>تنبيهات</h3><div class="alerts" id="alertsBox"></div><button class="small-btn">عرض جميع التنبيهات 🔔</button></article>
+        </div>
+      </section>
+
+      <section id="upload" class="section">
+        <article class="panel glass"><h2>رفع التقارير</h2><p class="hint">القوالب الثابتة حسب وصف البرنامج: تقرير المبيعات والتحويلات، وتقرير الوارد من MB51.</p><div class="upload-tabs"><button class="primary">رفع تقرير مراجعة مبيعات المنتج التام والتحويلات المخزنية</button><button class="primary">رفع تقرير الوارد من MB51</button></div><div class="drop-zone">اسحب ملف Excel هنا أو اضغط لاختيار الملف<br><small>سيتم ربط الرفع بجدول Supabase: audit_uploads / audit_transactions</small></div></article>
+      </section>
+      <section id="plants" class="section"><article class="panel glass"><h2>مصانع ومخازن</h2><div id="plantsFull" class="plants-full"></div></article></section>
+      <section id="movements" class="section"><article class="panel glass"><h2>الحركات المخزنية</h2><p class="hint">تعريفات أكواد SAP المستخدمة في مراجعة المخازن.</p><div class="table-wrap"><table id="movementsTable"></table></div></article></section>
+      <section id="sales" class="section"><article class="panel glass"><h2>مراجعة البيع والتحويلات</h2><div id="salesTabs" class="subtabs"></div><div class="table-wrap"><table id="salesTable"></table></div></article></section>
+      <section id="inbound" class="section"><article class="panel glass"><h2>مراجعة الوارد</h2><div id="inboundTabs" class="subtabs"></div><div class="table-wrap"><table id="inboundTable"></table></div></article></section>
+      <section id="reports" class="section"><article class="panel glass"><h2>التقارير</h2><div class="report-actions"><button class="primary">تقرير الحركات</button><button class="primary">تقرير التسويات</button><button class="primary">تقرير الوارد</button><button class="primary">تقرير البيع</button></div></article></section>
+      <section id="settings" class="section"><article class="panel glass"><h2>الإعدادات</h2><p>تم تجهيز المشروع للعمل على GitHub Pages مع طبقة Supabase. عدّل ملف <b>assets/js/supabase-config.js</b> بمفاتيح مشروعك.</p><pre class="code-box">SUPABASE_URL = https://YOUR_PROJECT.supabase.co
+SUPABASE_ANON_KEY = your_publishable_or_anon_key</pre></article></section>
+
+      <div id="footerMount"></div>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/supabase-config.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/footer.js"></script>
+</body>
+</html>
