@@ -175,3 +175,90 @@ renderTables = function(){
   table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample);
 };
 document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initSalesUploader();setTimeout(()=>loadSalesReport(activeSalesWarehouse),300);});
+
+// === Main Program Login Gate ===
+async function fetchCurrentAppProfile(user){
+  const fallback={full_name:user?.email || 'مستخدم', role:'authenticated'};
+  if(!window.WarehouseDB?.ready || !user?.id) return fallback;
+  try{
+    const {data,error}=await WarehouseDB.client
+      .from('app_users')
+      .select('full_name, role, is_active')
+      .eq('id',user.id)
+      .maybeSingle();
+    if(error || !data) return fallback;
+    if(data.is_active === false) return {...fallback, inactive:true};
+    return {full_name:data.full_name || fallback.full_name, role:data.role || fallback.role};
+  }catch(_){ return fallback; }
+}
+function setMainAuthMessage(message,type=''){
+  const el=$('#mainLoginStatus');
+  if(!el) return;
+  el.textContent=message;
+  el.className='login-status '+(type||'');
+}
+function showLoginScreen(){
+  $('#loginScreen')?.classList.remove('login-hidden');
+  $('#appShell')?.classList.add('app-hidden');
+}
+async function showApplication(user){
+  const profile=await fetchCurrentAppProfile(user);
+  if(profile.inactive){
+    await WarehouseDB.signOut();
+    showLoginScreen();
+    setMainAuthMessage('هذا المستخدم غير مفعل. راجع مدير النظام.','err');
+    return;
+  }
+  $('#loginScreen')?.classList.add('login-hidden');
+  $('#appShell')?.classList.remove('app-hidden');
+  const name=profile.full_name || user.email || 'مستخدم';
+  const role=profile.role || 'authenticated';
+  const initials=(name.trim()[0] || 'م').toUpperCase();
+  if($('#currentUserName')) $('#currentUserName').textContent=name;
+  if($('#currentUserRole')) $('#currentUserRole').textContent=role;
+  if($('#currentUserAvatar')) $('#currentUserAvatar').textContent=initials;
+  setTimeout(()=>loadSalesReport(activeSalesWarehouse),250);
+}
+async function checkMainSession(){
+  if(!window.WarehouseDB?.ready){
+    showLoginScreen();
+    setMainAuthMessage('Supabase غير متصل. راجع إعدادات supabase-config.js','err');
+    return;
+  }
+  const {data}=await WarehouseDB.getUser();
+  if(data?.user) await showApplication(data.user); else showLoginScreen();
+}
+function initMainLoginGate(){
+  const loginBtn=$('#mainLoginBtn');
+  const emailInput=$('#mainLoginEmail');
+  const passInput=$('#mainLoginPassword');
+  const logoutBtn=$('#topLogoutBtn');
+  if(loginBtn){
+    loginBtn.onclick=async()=>{
+      const email=(emailInput?.value||'').trim();
+      const password=passInput?.value||'';
+      if(!email || !password){ setMainAuthMessage('اكتب البريد الإلكتروني وكلمة المرور.','err'); return; }
+      setMainAuthMessage('جاري تسجيل الدخول...');
+      const {data,error}=await WarehouseDB.signIn(email,password);
+      if(error){ setMainAuthMessage('خطأ في تسجيل الدخول: '+error.message,'err'); return; }
+      setMainAuthMessage('تم تسجيل الدخول بنجاح.','ok');
+      await showApplication(data.user);
+    };
+    [emailInput,passInput].forEach(inp=>{ if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter') loginBtn.click(); }); });
+  }
+  if(logoutBtn){
+    logoutBtn.onclick=async()=>{
+      await WarehouseDB.signOut();
+      showLoginScreen();
+      setMainAuthMessage('تم تسجيل الخروج.','ok');
+    };
+  }
+  if(WarehouseDB?.client?.auth){
+    WarehouseDB.client.auth.onAuthStateChange((_event,session)=>{
+      if(session?.user) showApplication(session.user);
+      else showLoginScreen();
+    });
+  }
+  checkMainSession();
+}
+document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();});
