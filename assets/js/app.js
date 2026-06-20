@@ -582,3 +582,19 @@ function initMainLoginGate(){
   checkMainSession();
 }
 document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();});
+
+// Upload reports tabs controller
+function initUploadReportTabs(){
+  const tabs=document.querySelectorAll('[data-upload-tab]');
+  const panels=document.querySelectorAll('[data-upload-panel]');
+  if(!tabs.length) return;
+  tabs.forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      if(tab.disabled) return;
+      const key=tab.dataset.uploadTab;
+      tabs.forEach(t=>t.classList.toggle('active',t===tab));
+      panels.forEach(p=>p.classList.toggle('active',p.dataset.uploadPanel===key));
+    });
+  });
+}
+document.addEventListener('DOMContentLoaded',initUploadReportTabs);
