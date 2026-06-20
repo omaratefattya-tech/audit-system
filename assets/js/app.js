@@ -177,19 +177,67 @@ renderTables = function(){
 document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initSalesUploader();setTimeout(()=>loadSalesReport(activeSalesWarehouse),300);});
 
 // === Main Program Login Gate ===
+let CURRENT_AUTH_USER=null;
+let CURRENT_APP_PROFILE=null;
+
 async function fetchCurrentAppProfile(user){
-  const fallback={full_name:user?.email || 'مستخدم', role:'authenticated'};
+  const fallback={
+    full_name:user?.email || 'مستخدم',
+    role:'authenticated',
+    job_title:'',
+    phone:'',
+    avatar_url:'',
+    email:user?.email || ''
+  };
   if(!window.WarehouseDB?.ready || !user?.id) return fallback;
   try{
     const {data,error}=await WarehouseDB.client
       .from('app_users')
-      .select('full_name, role, is_active')
+      .select('full_name, role, is_active, job_title, phone, avatar_url')
       .eq('id',user.id)
       .maybeSingle();
     if(error || !data) return fallback;
     if(data.is_active === false) return {...fallback, inactive:true};
-    return {full_name:data.full_name || fallback.full_name, role:data.role || fallback.role};
+    return {
+      full_name:data.full_name || fallback.full_name,
+      role:data.role || fallback.role,
+      job_title:data.job_title || '',
+      phone:data.phone || '',
+      avatar_url:data.avatar_url || '',
+      email:user?.email || ''
+    };
   }catch(_){ return fallback; }
+}
+function paintAvatar(el, profile){
+  if(!el) return;
+  el.textContent='';
+  el.style.backgroundImage='';
+  el.classList.toggle('has-image', !!profile?.avatar_url);
+  if(profile?.avatar_url){
+    const img=document.createElement('img');
+    img.src=profile.avatar_url;
+    img.alt='الصورة الشخصية';
+    el.appendChild(img);
+    return;
+  }
+  const name=profile?.full_name || profile?.email || 'مستخدم';
+  el.textContent=(name.trim()[0] || 'م').toUpperCase();
+}
+function applyProfileToHeader(profile){
+  const name=profile?.full_name || profile?.email || 'مستخدم';
+  const job=profile?.job_title || profile?.role || 'مستخدم';
+  if($('#currentUserName')) $('#currentUserName').textContent=name;
+  if($('#currentUserRole')) $('#currentUserRole').textContent=job;
+  paintAvatar($('#currentUserAvatar'), profile);
+}
+function fillProfileForm(profile,user){
+  if($('#profileFullName')) $('#profileFullName').value=profile?.full_name || '';
+  if($('#profileJobTitle')) $('#profileJobTitle').value=profile?.job_title || '';
+  if($('#profilePhone')) $('#profilePhone').value=profile?.phone || '';
+  if($('#profilePreviewName')) $('#profilePreviewName').textContent=profile?.full_name || user?.email || '--';
+  if($('#profilePreviewJob')) $('#profilePreviewJob').textContent=profile?.job_title || profile?.role || '--';
+  if($('#profilePreviewEmail')) $('#profilePreviewEmail').textContent=user?.email || '';
+  paintAvatar($('#profilePreviewAvatar'), profile);
 }
 function setMainAuthMessage(message,type=''){
   const el=$('#mainLoginStatus');
@@ -202,6 +250,7 @@ function showLoginScreen(){
   $('#appShell')?.classList.add('app-hidden');
 }
 async function showApplication(user){
+  CURRENT_AUTH_USER=user;
   const profile=await fetchCurrentAppProfile(user);
   if(profile.inactive){
     await WarehouseDB.signOut();
@@ -209,14 +258,11 @@ async function showApplication(user){
     setMainAuthMessage('هذا المستخدم غير مفعل. راجع مدير النظام.','err');
     return;
   }
+  CURRENT_APP_PROFILE=profile;
   $('#loginScreen')?.classList.add('login-hidden');
   $('#appShell')?.classList.remove('app-hidden');
-  const name=profile.full_name || user.email || 'مستخدم';
-  const role=profile.role || 'authenticated';
-  const initials=(name.trim()[0] || 'م').toUpperCase();
-  if($('#currentUserName')) $('#currentUserName').textContent=name;
-  if($('#currentUserRole')) $('#currentUserRole').textContent=role;
-  if($('#currentUserAvatar')) $('#currentUserAvatar').textContent=initials;
+  applyProfileToHeader(profile);
+  fillProfileForm(profile,user);
   setTimeout(()=>loadSalesReport(activeSalesWarehouse),250);
 }
 async function checkMainSession(){
@@ -228,6 +274,75 @@ async function checkMainSession(){
   const {data}=await WarehouseDB.getUser();
   if(data?.user) await showApplication(data.user); else showLoginScreen();
 }
+function fileToDataUrl(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function saveCurrentProfile(){
+  const status=$('#profileSaveStatus');
+  if(status){ status.className='upload-status'; status.textContent='جاري حفظ البيانات...'; }
+  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){
+    if(status){ status.className='upload-status err'; status.textContent='سجل الدخول أولاً.'; }
+    return;
+  }
+  try{
+    let avatarUrl=CURRENT_APP_PROFILE?.avatar_url || '';
+    const file=$('#profileAvatarInput')?.files?.[0];
+    if(file){
+      if(file.size > 600 * 1024) throw new Error('حجم الصورة كبير. استخدم صورة أقل من 600KB.');
+      avatarUrl=await fileToDataUrl(file);
+    }
+    const payload={
+      id: CURRENT_AUTH_USER.id,
+      full_name: ($('#profileFullName')?.value || CURRENT_AUTH_USER.email || '').trim(),
+      job_title: ($('#profileJobTitle')?.value || '').trim(),
+      phone: ($('#profilePhone')?.value || '').trim(),
+      avatar_url: avatarUrl,
+      role: CURRENT_APP_PROFILE?.role && CURRENT_APP_PROFILE.role !== 'authenticated' ? CURRENT_APP_PROFILE.role : 'viewer',
+      is_active: true
+    };
+    if(!payload.full_name) throw new Error('الإسم مطلوب.');
+    const {data,error}=await WarehouseDB.client
+      .from('app_users')
+      .upsert(payload,{onConflict:'id'})
+      .select('full_name, role, is_active, job_title, phone, avatar_url')
+      .single();
+    if(error) throw error;
+    CURRENT_APP_PROFILE={...data,email:CURRENT_AUTH_USER.email};
+    applyProfileToHeader(CURRENT_APP_PROFILE);
+    fillProfileForm(CURRENT_APP_PROFILE,CURRENT_AUTH_USER);
+    if(status){ status.className='upload-status ok'; status.textContent='تم حفظ بيانات الحساب بنجاح.'; }
+  }catch(err){
+    if(status){ status.className='upload-status err'; status.textContent='خطأ أثناء الحفظ: '+(err.message || err); }
+  }
+}
+function initProfileSettings(){
+  const form=$('#profileForm');
+  const avatarInput=$('#profileAvatarInput');
+  if(form){
+    form.addEventListener('submit',e=>{e.preventDefault();saveCurrentProfile();});
+  }
+  if(avatarInput){
+    avatarInput.addEventListener('change',async()=>{
+      const file=avatarInput.files?.[0];
+      if(!file) return;
+      try{
+        if(file.size > 600 * 1024) throw new Error('حجم الصورة كبير. استخدم صورة أقل من 600KB.');
+        const dataUrl=await fileToDataUrl(file);
+        const preview={...(CURRENT_APP_PROFILE||{}), avatar_url:dataUrl, full_name:$('#profileFullName')?.value || CURRENT_APP_PROFILE?.full_name};
+        paintAvatar($('#profilePreviewAvatar'), preview);
+      }catch(err){
+        const status=$('#profileSaveStatus');
+        if(status){ status.className='upload-status err'; status.textContent=err.message || String(err); }
+      }
+    });
+  }
+}
+
 function initMainLoginGate(){
   const loginBtn=$('#mainLoginBtn');
   const emailInput=$('#mainLoginEmail');
@@ -261,4 +376,4 @@ function initMainLoginGate(){
   }
   checkMainSession();
 }
-document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();});
+document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();});

@@ -126,8 +126,36 @@
       </section>
       <section id="inbound" class="section"><article class="panel glass"><h2>مراجعة الوارد</h2><div id="inboundTabs" class="subtabs"></div><div class="table-wrap"><table id="inboundTable"></table></div></article></section>
       <section id="reports" class="section"><article class="panel glass"><h2>التقارير</h2><div class="report-actions"><button class="primary">تقرير الحركات</button><button class="primary">تقرير التسويات</button><button class="primary">تقرير الوارد</button><button class="primary">تقرير البيع</button></div></article></section>
-      <section id="settings" class="section"><article class="panel glass"><h2>الإعدادات</h2><p>تم تجهيز المشروع للعمل على GitHub Pages مع طبقة Supabase. عدّل ملف <b>assets/js/supabase-config.js</b> بمفاتيح مشروعك.</p><pre class="code-box">SUPABASE_URL = https://YOUR_PROJECT.supabase.co
-SUPABASE_ANON_KEY = your_publishable_or_anon_key</pre></article></section>
+      <section id="settings" class="section">
+        <article class="panel glass">
+          <h2>الإعدادات</h2>
+          <p class="hint">بيانات صاحب الحساب تظهر في الهيدر ويتم حفظها في Supabase لتظهر على أي جهاز.</p>
+          <div class="profile-settings">
+            <div class="profile-preview-card">
+              <div class="avatar profile-preview-avatar" id="profilePreviewAvatar">أ</div>
+              <strong id="profilePreviewName">--</strong>
+              <small id="profilePreviewJob">--</small>
+              <small id="profilePreviewEmail">--</small>
+            </div>
+            <form id="profileForm" class="profile-form">
+              <label>الإسم
+                <input type="text" id="profileFullName" placeholder="اكتب الاسم" />
+              </label>
+              <label>الوظيفة
+                <input type="text" id="profileJobTitle" placeholder="مثال: مدير النظام" />
+              </label>
+              <label>رقم التليفون
+                <input type="tel" id="profilePhone" placeholder="مثال: 01094938005" />
+              </label>
+              <label>الصورة الشخصية
+                <input type="file" id="profileAvatarInput" accept="image/*" />
+              </label>
+              <button class="primary" id="saveProfileBtn" type="submit">حفظ بيانات الحساب</button>
+              <div class="upload-status" id="profileSaveStatus"></div>
+            </form>
+          </div>
+        </article>
+      </section>
 
       <div id="footerMount"></div>
     </main>
