@@ -165,3 +165,24 @@ table{display:block;overflow-x:auto;white-space:nowrap}
     padding-left:0;
   }
 }
+
+/* Header same-row top alignment fix - 2026-06-20 */
+@media (min-width:1201px){
+  .topbar{
+    align-items:start !important;
+  }
+  .topbar .page-title,
+  .topbar .user-card{
+    grid-row:1 !important;
+    align-self:start !important;
+  }
+  .topbar .page-title{
+    grid-column:1 !important;
+    justify-content:flex-start !important;
+    margin-top:0 !important;
+    padding-top:0 !important;
+  }
+  .topbar .user-card{
+    grid-column:2 !important;
+  }
+}
