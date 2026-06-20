@@ -10,7 +10,66 @@ function drawDonut(){const ctx=$('#donutChart').getContext('2d'),vals=[2985,2243
 function drawLine(){const ctx=$('#lineChart').getContext('2d');ctx.clearRect(0,0,430,250);const inV=[900,1400,1300,1500,1950,1450,1350,1500,1600,2000,1500,1750,1850,1800,1600,1650,1900,2200,1800,2000,1700,1900,2150,2000,2250,1900],outV=[600,780,820,1000,1260,1100,980,1070,1020,1350,1150,1200,1300,1100,1300,1450,1350,1500,1600,1200,1350,1300,1500,1450,1550,1200];function axes(){ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;for(let i=0;i<6;i++){let y=215-i*34;ctx.beginPath();ctx.moveTo(35,y);ctx.lineTo(410,y);ctx.stroke()}ctx.fillStyle='#d6ead1';ctx.font='12px Cairo';ctx.fillText('2.5K',2,45);ctx.fillText('0',18,218);ctx.fillText('01/05',30,235);ctx.fillText('31/05',376,235)}function line(arr,c){ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();arr.forEach((v,i)=>{let x=45+i*(350/(arr.length-1)),y=215-(v/2500)*170;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();arr.forEach((v,i)=>{let x=45+i*(350/(arr.length-1)),y=215-(v/2500)*170;ctx.beginPath();ctx.arc(x,y,3,0,7);ctx.fillStyle=c;ctx.fill()})}axes();line(inV,'#74c54a');line(outV,'#f1bb30');ctx.fillStyle='#74c54a';ctx.fillRect(200,18,10,10);ctx.fillStyle='#fff';ctx.fillText('حركات داخلة',215,28);ctx.fillStyle='#f1bb30';ctx.fillRect(295,18,10,10);ctx.fillStyle='#fff';ctx.fillText('حركات خارجة',310,28)}
 function renderStock(){$('#stockSummary').innerHTML=[['إجمالي المخزون الحالي','125,430.600 طن'],['منتج تام (صب)','68,245.300 طن'],['منتج تام (معبأ)','32,187.150 طن'],['خامات','24,998.150 طن']].map(r=>`<div class="stock-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}
 function renderPlants(){const cards=APP_DATA.plants.map(p=>`<div class="plant-card"><div class="plant-icon"><img src="assets/img/logo.png" alt=""></div><strong>${p.name}</strong><br><span class="plant-code">${p.code}</span><br><small>${p.warehouses.length} مخزن</small></div>`).join('');$('#plantsCards').innerHTML=cards;$('#plantsFull').innerHTML=APP_DATA.plants.map(p=>`<div class="plant-card"><div class="plant-icon"><img src="assets/img/logo.png" alt=""></div><h3>${p.name}</h3><span class="plant-code">${p.code}</span><ul class="warehouse-list">${p.warehouses.map(w=>`<li><b>${w[0]}</b> - ${w[1]}</li>`).join('')}</ul></div>`).join('')}
-function table(el,heads,rows){$(el).innerHTML=`<thead><tr>${heads.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody>`}
+const TABLE_STATE={};
+function escapeHtml(v){return String(v??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));}
+function stripHtml(v){const tmp=document.createElement('div');tmp.innerHTML=String(v??'');return (tmp.textContent||tmp.innerText||'').trim();}
+function normalizeArabicDigits(v){return String(v??'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));}
+function comparableValue(v){
+  const txt=normalizeArabicDigits(stripHtml(v)).replace(/\s+/g,' ').trim();
+  const numeric=Number(txt.replace(/,/g,'').replace(/[^0-9.\-]/g,''));
+  if(txt && Number.isFinite(numeric) && /\d/.test(txt)) return {type:'number',value:numeric};
+  const iso=txt.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  const dmy=txt.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if(iso){return {type:'date',value:new Date(`${iso[1]}-${iso[2].padStart(2,'0')}-${iso[3].padStart(2,'0')}`).getTime()};}
+  if(dmy){return {type:'date',value:new Date(`${dmy[3]}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`).getTime()};}
+  return {type:'text',value:txt.toLowerCase()};
+}
+function table(el,heads,rows){
+  const node=$(el); if(!node) return;
+  const key=node.id||el;
+  if(!TABLE_STATE[key]) TABLE_STATE[key]={filters:Array(heads.length).fill(''),sortIndex:null,sortDir:'asc'};
+  const state=TABLE_STATE[key];
+  if(!Array.isArray(state.filters) || state.filters.length!==heads.length) state.filters=Array(heads.length).fill('');
+  let visible=[...(rows||[])];
+  visible=visible.filter(row=>state.filters.every((f,i)=>!f || stripHtml(row[i]).toLowerCase().includes(String(f).toLowerCase())));
+  if(state.sortIndex!==null){
+    const idx=state.sortIndex, dir=state.sortDir==='desc'?-1:1;
+    visible.sort((a,b)=>{
+      const av=comparableValue(a[idx]);
+      const bv=comparableValue(b[idx]);
+      if(av.type===bv.type && av.value<bv.value) return -1*dir;
+      if(av.type===bv.type && av.value>bv.value) return 1*dir;
+      return String(av.value).localeCompare(String(bv.value),'ar')*dir;
+    });
+  }
+  const headHtml=heads.map((h,i)=>{
+    const arrow=state.sortIndex===i?(state.sortDir==='asc'?'▲':'▼'):'↕';
+    return `<th class="sortable-th"><button type="button" class="sort-btn" data-col="${i}">${escapeHtml(h)} <span>${arrow}</span></button></th>`;
+  }).join('');
+  const filterHtml=heads.map((h,i)=>`<th><input class="col-filter" data-col="${i}" value="${escapeHtml(state.filters[i]||'')}" placeholder="بحث ${escapeHtml(h)}" /></th>`).join('');
+  const bodyHtml=visible.length
+    ? visible.map(r=>`<tr>${heads.map((_,i)=>`<td>${r[i]??''}</td>`).join('')}</tr>`).join('')
+    : `<tr><td colspan="${heads.length}" class="empty-row">لا توجد بيانات مطابقة</td></tr>`;
+  node.innerHTML=`<thead><tr>${headHtml}</tr><tr class="column-filter-row">${filterHtml}</tr></thead><tbody>${bodyHtml}</tbody>`;
+  node.querySelectorAll('.sort-btn').forEach(btn=>{
+    btn.onclick=()=>{
+      const col=Number(btn.dataset.col);
+      if(state.sortIndex===col) state.sortDir=state.sortDir==='asc'?'desc':'asc';
+      else {state.sortIndex=col;state.sortDir='asc';}
+      table(el,heads,rows);
+    };
+  });
+  node.querySelectorAll('.col-filter').forEach(input=>{
+    input.oninput=()=>{
+      const col=Number(input.dataset.col);
+      state.filters[col]=input.value;
+      const pos=input.selectionStart;
+      table(el,heads,rows);
+      const next=node.querySelector(`.col-filter[data-col="${col}"]`);
+      if(next){ next.focus(); try{next.setSelectionRange(pos,pos);}catch(_){}}
+    };
+  });
+}
 function renderTables(){table('#latestTable',['التاريخ','رقم الحركة','كود الحركة','وصف الحركة','من مخزن','إلى مخزن','الكمية','الوحدة'],APP_DATA.latest);table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']));table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحويل'],APP_DATA.salesReviewSample);table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample)}
 function renderTabs(){const salesWh=APP_DATA.plants.flatMap(p=>p.warehouses.filter(w=>['W401','W402','N401','N402','N411','N412','E401','E402'].includes(w[0])).map(w=>w[0]));$('#salesTabs').innerHTML=salesWh.map((w,i)=>`<button class="${i===0?'active':''}">${w}</button>`).join('');$('#inboundTabs').innerHTML=APP_DATA.plants.map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('')}
 function renderAlerts(){$('#alertsBox').innerHTML=[['⚠','حركات لم يتم تسويتها','يوجد 28 حركة تحتاج إلى تسوية'],['!','فروق جرد','يوجد 12 مخزن به فروق جرد'],['ℹ','حركات ملغاة','يوجد 15 حركة ملغاة خلال الفترة']].map(a=>`<div class="alert"><span>${a[0]}</span><div><b>${a[1]}</b><small>${a[2]}</small></div></div>`).join('')}
@@ -243,31 +302,35 @@ async function loadSalesBatches(){
      <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">حذف</button>`
   ]);
   table('#salesBatchesTable',['تاريخ التقرير','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الإجراءات'],rows);
-  $$('#salesBatchesTable [data-action]').forEach(btn=>{
-    btn.onclick=async()=>{
-      const action=btn.dataset.action;
-      const date=btn.dataset.date || '';
-      if(action==='view'){
-        activeSalesReportDate=date;
-        await refreshSalesReportDates(date);
-        switchSection('sales');
-        await loadSalesReport(activeSalesWarehouse);
-      }
-      if(action==='replace'){
-        if($('#salesReportDateInput')) $('#salesReportDateInput').value=date;
-        $('#salesExcelInput')?.click();
-      }
-      if(action==='delete'){
-        if(!confirm(`سيتم حذف تقرير المبيعات بتاريخ ${date} وكل بياناته الخام. هل أنت متأكد؟`)) return;
-        const {error:delError}=await WarehouseDB.client.from('sales_upload_batches').delete().eq('id',btn.dataset.id);
-        if(delError){ alert('خطأ أثناء الحذف: '+delError.message); return; }
-        await loadSalesBatches();
-        await refreshSalesReportDates();
-        await loadSalesReport(activeSalesWarehouse);
-      }
-    };
-  });
 }
+async function handleSalesBatchAction(btn){
+  const action=btn.dataset.action;
+  const date=btn.dataset.date || '';
+  if(action==='view'){
+    activeSalesReportDate=date;
+    await refreshSalesReportDates(date);
+    switchSection('sales');
+    await loadSalesReport(activeSalesWarehouse);
+  }
+  if(action==='replace'){
+    if($('#salesReportDateInput')) $('#salesReportDateInput').value=date;
+    $('#salesExcelInput')?.click();
+  }
+  if(action==='delete'){
+    if(!confirm(`سيتم حذف تقرير المبيعات بتاريخ ${date} وكل بياناته الخام. هل أنت متأكد؟`)) return;
+    const {error:delError}=await WarehouseDB.client.from('sales_upload_batches').delete().eq('id',btn.dataset.id);
+    if(delError){ alert('خطأ أثناء الحذف: '+delError.message); return; }
+    await loadSalesBatches();
+    await refreshSalesReportDates();
+    await loadSalesReport(activeSalesWarehouse);
+  }
+}
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('#salesBatchesTable [data-action]');
+  if(!btn) return;
+  e.preventDefault();
+  handleSalesBatchAction(btn);
+});
 function initSalesUploader(){
   const input=$('#salesExcelInput'), btn=$('#pickSalesFileBtn'), dz=$('#salesDropZone'), dateInput=$('#salesReportDateInput');
   if(dateInput && !dateInput.value) dateInput.value=todayISO();

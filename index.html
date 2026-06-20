@@ -101,31 +101,17 @@
           <p class="hint">ارفع ملف Excel الخاص بمراجعة مبيعات المنتج التام والتحويلات المخزنية بنفس رؤوس الأعمدة المعتمدة.</p>
 
 
-          <div class="upload-report-tabs" role="tablist" aria-label="أنواع التقارير">
-            <button class="upload-report-tab active" id="salesUploadTab" type="button">مراجعة مبيعات المنتج التام والتحويلات المخزنية</button>
-            <button class="upload-report-tab" type="button" disabled>الوارد من MB51 - لاحقًا</button>
+          <div class="upload-tabs">
+            <button class="primary" id="pickSalesFileBtn" type="button">رفع تقرير مراجعة مبيعات المنتج التام والتحويلات المخزنية</button>
+            <button class="primary" type="button" disabled>رفع تقرير الوارد من MB51 - لاحقًا</button>
           </div>
-
-          <div class="daily-upload-box">
-            <label class="report-date-field">تاريخ التقرير
-              <input type="date" id="salesReportDateInput" />
-            </label>
-            <button class="primary" id="pickSalesFileBtn" type="button">اختيار ورفع ملف المبيعات</button>
-            <input type="file" id="salesExcelInput" accept=".xlsx,.xls,.csv" hidden />
-          </div>
-
+          <input type="file" id="salesExcelInput" accept=".xlsx,.xls,.csv" hidden />
           <div class="drop-zone" id="salesDropZone">
             اختر ملف Excel للمبيعات أو اسحبه هنا
             <br>
-            <small>سيتم حفظ نسخة يومية مرتبطة بتاريخ التقرير ويمكن حذفها أو استبدالها لاحقًا</small>
+            <small>سيتم حفظ البيانات الخام في sales_raw_transactions ثم يظهر التقرير من sales_audit_report</small>
           </div>
           <div class="upload-status" id="salesUploadStatus"></div>
-
-          <div class="history-panel">
-            <h3>سجل نسخ تقارير المبيعات المرفوعة</h3>
-            <p class="hint">كل نسخة مرتبطة بتاريخ تقرير مستقل. عند الاستبدال يتم حذف بيانات نفس اليوم ورفع النسخة الجديدة.</p>
-            <div class="table-wrap"><table id="salesBatchesTable"></table></div>
-          </div>
         </article>
       </section>
       <section id="plants" class="section"><article class="panel glass"><h2>مصانع ومخازن</h2><div id="plantsFull" class="plants-full"></div></article></section>
@@ -133,12 +119,7 @@
       <section id="sales" class="section">
         <article class="panel glass">
           <h2>مراجعة البيع والتحويلات</h2>
-          <p class="hint">اختر تاريخ التقرير ومخزن البيع لعرض التقرير المجمع: كمية البيع، الإنتاج، التحويلات الصادرة، التحويلات الواردة، وإجمالي التحميل.</p>
-          <div class="sales-report-date-bar">
-            <label>تاريخ التقرير
-              <select id="salesReportDateSelect"><option value="">كل النسخ المتاحة</option></select>
-            </label>
-          </div>
+          <p class="hint">اختر مخزن بيع لعرض التقرير المجمع: كمية البيع، الإنتاج، التحويلات الصادرة، التحويلات الواردة، وإجمالي التحميل.</p>
           <div id="salesTabs" class="subtabs"></div>
           <div class="table-wrap"><table id="salesTable"></table></div>
         </article>
