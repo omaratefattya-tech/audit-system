@@ -40,6 +40,10 @@ document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoCl
 // === Supabase Sales Upload + Dynamic Sales Report ===
 const SALES_WAREHOUSES = ['W401','W402','N401','N402','N411','N412','E401','E402'];
 let activeSalesWarehouse = SALES_WAREHOUSES[0];
+let activeSalesReportDate = '';
+function todayISO(){const d=new Date();const c=new Date(d.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));return `${c.getFullYear()}-${String(c.getMonth()+1).padStart(2,'0')}-${String(c.getDate()).padStart(2,'0')}`;}
+function normalizeDateISO(v){return v ? String(v).slice(0,10) : '';}
+function currentUploaderName(userData){return CURRENT_APP_PROFILE?.full_name || userData?.user?.email || 'مستخدم';}
 
 function normalizeHeader(v){return String(v||'').replace(/\s+/g,' ').trim();}
 function parseArabicNumber(v){
@@ -129,8 +133,10 @@ async function insertChunks(tableName, rows, chunkSize=500){
 }
 async function handleSalesFile(file){
   const status=$('#salesUploadStatus');
+  const reportDate=normalizeDateISO($('#salesReportDateInput')?.value);
   status.className='upload-status';
   status.textContent='جاري قراءة الملف...';
+  if(!reportDate){ status.textContent='اختار تاريخ التقرير أولاً.'; status.className='upload-status err'; return; }
   if(!WarehouseDB?.ready){ status.textContent='Supabase غير متصل. راجع ملف supabase-config.js'; status.className='upload-status err'; return; }
   const {data:userData}=await WarehouseDB.getUser();
   if(!userData?.user){ status.textContent='سجل الدخول أولًا قبل رفع الملف.'; status.className='upload-status err'; return; }
@@ -139,36 +145,149 @@ async function handleSalesFile(file){
     const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
     const sourceRows=rowsFromWorkbook(workbook);
     if(!sourceRows.length) throw new Error('الملف لا يحتوي على بيانات.');
-    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء دفعة الرفع...`;
-    const {data:batch,error:batchError}=await WarehouseDB.client.from('sales_upload_batches').insert({file_name:file.name,uploaded_by:userData.user.id,notes:'مراجعة مبيعات المنتج التام والتحويلات المخزنية'}).select('id').single();
+    const payloadPreview=mapSalesRows(sourceRows,'00000000-0000-0000-0000-000000000000');
+    if(!payloadPreview.length) throw new Error('لم يتم العثور على صفوف صالحة. راجع رؤوس الأعمدة.');
+
+    const {data:existing,error:existingError}=await WarehouseDB.client
+      .from('sales_upload_batches')
+      .select('id,file_name,report_date')
+      .eq('report_type','sales')
+      .eq('report_date',reportDate)
+      .eq('status','active');
+    if(existingError) throw existingError;
+    if(existing?.length){
+      const ok=confirm(`يوجد تقرير مبيعات مرفوع بالفعل بتاريخ ${reportDate}.
+هل تريد استبداله بالملف الجديد؟`);
+      if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
+      status.textContent='جاري حذف النسخة القديمة لنفس التاريخ...';
+      const ids=existing.map(x=>x.id);
+      const {error:deleteError}=await WarehouseDB.client.from('sales_upload_batches').delete().in('id',ids);
+      if(deleteError) throw deleteError;
+    }
+
+    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء نسخة يومية بتاريخ ${reportDate}...`;
+    const {data:batch,error:batchError}=await WarehouseDB.client.from('sales_upload_batches').insert({
+      file_name:file.name,
+      uploaded_by:userData.user.id,
+      uploaded_by_name:currentUploaderName(userData),
+      notes:'مراجعة مبيعات المنتج التام والتحويلات المخزنية',
+      report_type:'sales',
+      report_date:reportDate,
+      row_count:payloadPreview.length,
+      file_size_bytes:file.size || 0,
+      status:'active'
+    }).select('id').single();
     if(batchError) throw batchError;
-    const payload=mapSalesRows(sourceRows,batch.id);
-    if(!payload.length) throw new Error('لم يتم العثور على صفوف صالحة. راجع رؤوس الأعمدة.');
+    const payload=payloadPreview.map(r=>({...r,batch_id:batch.id}));
     status.textContent=`جاري رفع ${payload.length} سطر إلى Supabase...`;
     await insertChunks('sales_raw_transactions',payload,400);
-    status.textContent=`تم رفع ${payload.length} سطر بنجاح. افتح شاشة مراجعة البيع لمشاهدة التقرير.`;
+    activeSalesReportDate=reportDate;
+    status.textContent=`تم رفع ${payload.length} سطر بنجاح لتاريخ ${reportDate}.`;
     status.className='upload-status ok';
+    await loadSalesBatches();
+    await refreshSalesReportDates(reportDate);
     await loadSalesReport(activeSalesWarehouse);
   }catch(err){
     status.textContent=`خطأ أثناء الرفع: ${err.message || err}`;
     status.className='upload-status err';
   }
 }
+async function refreshSalesReportDates(preferredDate=''){
+  const select=$('#salesReportDateSelect');
+  if(!select || !WarehouseDB?.ready) return;
+  const {data,error}=await WarehouseDB.client
+    .from('sales_upload_batches')
+    .select('report_date')
+    .eq('report_type','sales')
+    .eq('status','active')
+    .not('report_date','is',null)
+    .order('report_date',{ascending:false});
+  if(error){ console.error(error); return; }
+  const dates=[...new Set((data||[]).map(x=>normalizeDateISO(x.report_date)).filter(Boolean))];
+  const current=preferredDate || activeSalesReportDate || select.value || dates[0] || '';
+  select.innerHTML='<option value="">كل النسخ المتاحة</option>'+dates.map(d=>`<option value="${d}">${d}</option>`).join('');
+  if(current && dates.includes(current)) select.value=current;
+  else select.value='';
+  activeSalesReportDate=select.value;
+  select.onchange=()=>{ activeSalesReportDate=select.value; loadSalesReport(activeSalesWarehouse); };
+}
+function formatFileSize(bytes){
+  const n=Number(bytes||0);
+  if(!n) return '-';
+  if(n<1024) return `${n} B`;
+  if(n<1024*1024) return `${(n/1024).toFixed(1)} KB`;
+  return `${(n/1024/1024).toFixed(2)} MB`;
+}
+async function loadSalesBatches(){
+  const tbl=$('#salesBatchesTable');
+  if(!tbl || !WarehouseDB?.ready){ return; }
+  const {data,error}=await WarehouseDB.client
+    .from('sales_upload_batches')
+    .select('id,file_name,upload_date,uploaded_by,uploaded_by_name,report_date,row_count,file_size_bytes,status')
+    .eq('report_type','sales')
+    .eq('status','active')
+    .order('report_date',{ascending:false});
+  if(error){
+    tbl.innerHTML=`<tbody><tr><td>خطأ تحميل السجل: ${error.message}</td></tr></tbody>`;
+    return;
+  }
+  const rows=(data||[]).map(b=>[
+    normalizeDateISO(b.report_date) || '-',
+    b.file_name || '-',
+    Number(b.row_count||0).toLocaleString('en-US'),
+    formatFileSize(b.file_size_bytes),
+    b.uploaded_by_name || b.uploaded_by || '-',
+    b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
+    `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض</button>
+     <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
+     <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">حذف</button>`
+  ]);
+  table('#salesBatchesTable',['تاريخ التقرير','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الإجراءات'],rows);
+  $$('#salesBatchesTable [data-action]').forEach(btn=>{
+    btn.onclick=async()=>{
+      const action=btn.dataset.action;
+      const date=btn.dataset.date || '';
+      if(action==='view'){
+        activeSalesReportDate=date;
+        await refreshSalesReportDates(date);
+        switchSection('sales');
+        await loadSalesReport(activeSalesWarehouse);
+      }
+      if(action==='replace'){
+        if($('#salesReportDateInput')) $('#salesReportDateInput').value=date;
+        $('#salesExcelInput')?.click();
+      }
+      if(action==='delete'){
+        if(!confirm(`سيتم حذف تقرير المبيعات بتاريخ ${date} وكل بياناته الخام. هل أنت متأكد؟`)) return;
+        const {error:delError}=await WarehouseDB.client.from('sales_upload_batches').delete().eq('id',btn.dataset.id);
+        if(delError){ alert('خطأ أثناء الحذف: '+delError.message); return; }
+        await loadSalesBatches();
+        await refreshSalesReportDates();
+        await loadSalesReport(activeSalesWarehouse);
+      }
+    };
+  });
+}
 function initSalesUploader(){
-  const input=$('#salesExcelInput'), btn=$('#pickSalesFileBtn'), dz=$('#salesDropZone');
+  const input=$('#salesExcelInput'), btn=$('#pickSalesFileBtn'), dz=$('#salesDropZone'), dateInput=$('#salesReportDateInput');
+  if(dateInput && !dateInput.value) dateInput.value=todayISO();
   if(!input || !btn) return;
   btn.onclick=()=>input.click();
-  input.onchange=()=>{ if(input.files?.[0]) handleSalesFile(input.files[0]); };
+  input.onchange=()=>{ if(input.files?.[0]) handleSalesFile(input.files[0]); input.value=''; };
   if(dz){
     dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag')};
     dz.ondragleave=()=>dz.classList.remove('drag');
     dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files?.[0];if(f)handleSalesFile(f)};
   }
+  loadSalesBatches();
+  refreshSalesReportDates();
 }
 async function loadSalesReport(warehouseCode){
   activeSalesWarehouse=warehouseCode;
   if(!WarehouseDB?.ready){ return; }
-  const {data,error}=await WarehouseDB.client.from('sales_audit_report').select('*').eq('warehouse_code',warehouseCode).order('material_code');
+  let query=WarehouseDB.client.from('sales_audit_report').select('*').eq('warehouse_code',warehouseCode);
+  if(activeSalesReportDate) query=query.eq('report_date',activeSalesReportDate);
+  const {data,error}=await query.order('material_code');
   if(error){ console.error(error); return; }
   const rows=(data||[]).map(r=>[
     r.material_code,
@@ -282,7 +401,11 @@ async function showApplication(user){
   $('#appShell')?.classList.remove('app-hidden');
   applyProfileToHeader(profile);
   fillProfileForm(profile,user);
-  setTimeout(()=>loadSalesReport(activeSalesWarehouse),250);
+  setTimeout(()=>{
+    loadSalesBatches();
+    refreshSalesReportDates();
+    loadSalesReport(activeSalesWarehouse);
+  },250);
 }
 async function checkMainSession(){
   if(!window.WarehouseDB?.ready){
