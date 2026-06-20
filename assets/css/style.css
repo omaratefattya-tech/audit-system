@@ -187,33 +187,4 @@ table{display:block;overflow-x:auto;white-space:nowrap}
   }
 }
 
-/* Final header position fix - keep program title at far-left of header */
-@media (min-width:1201px){
-  .topbar{
-    direction:ltr !important;
-    grid-template-columns:minmax(560px,1fr) minmax(540px,620px) !important;
-    align-items:start !important;
-  }
-  .topbar .page-title{
-    grid-column:1 !important;
-    grid-row:1 !important;
-    width:100% !important;
-    max-width:none !important;
-    direction:rtl !important;
-    justify-content:flex-end !important;
-    justify-self:stretch !important;
-    align-self:start !important;
-    margin:0 !important;
-    padding:0 !important;
-    transform:none !important;
-  }
-  .topbar .page-title > div{
-    text-align:right !important;
-  }
-  .topbar .user-card{
-    grid-column:2 !important;
-    grid-row:1 !important;
-    align-self:start !important;
-    justify-self:stretch !important;
-  }
-}
+.filters-hidden{display:none!important}

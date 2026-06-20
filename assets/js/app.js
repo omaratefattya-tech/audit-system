@@ -14,7 +14,26 @@ function table(el,heads,rows){$(el).innerHTML=`<thead><tr>${heads.map(h=>`<th>${
 function renderTables(){table('#latestTable',['التاريخ','رقم الحركة','كود الحركة','وصف الحركة','من مخزن','إلى مخزن','الكمية','الوحدة'],APP_DATA.latest);table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']));table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحويل'],APP_DATA.salesReviewSample);table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample)}
 function renderTabs(){const salesWh=APP_DATA.plants.flatMap(p=>p.warehouses.filter(w=>['W401','W402','N401','N402','N411','N412','E401','E402'].includes(w[0])).map(w=>w[0]));$('#salesTabs').innerHTML=salesWh.map((w,i)=>`<button class="${i===0?'active':''}">${w}</button>`).join('');$('#inboundTabs').innerHTML=APP_DATA.plants.map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('')}
 function renderAlerts(){$('#alertsBox').innerHTML=[['⚠','حركات لم يتم تسويتها','يوجد 28 حركة تحتاج إلى تسوية'],['!','فروق جرد','يوجد 12 مخزن به فروق جرد'],['ℹ','حركات ملغاة','يوجد 15 حركة ملغاة خلال الفترة']].map(a=>`<div class="alert"><span>${a[0]}</span><div><b>${a[1]}</b><small>${a[2]}</small></div></div>`).join('')}
-function nav(){ $$('.nav-item').forEach(b=>b.onclick=()=>{$$('.nav-item').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.section').forEach(s=>s.classList.remove('active-section'));$('#'+b.dataset.section).classList.add('active-section')})}
+function updateFiltersVisibility(section){
+  const filters=$('#globalFilters');
+  if(!filters) return;
+  const visibleSections=['sales','inbound','reports'];
+  const shouldShow=visibleSections.includes(section);
+  filters.classList.toggle('filters-hidden',!shouldShow);
+  filters.setAttribute('aria-hidden',shouldShow?'false':'true');
+}
+function switchSection(section){
+  $$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.section===section));
+  $$('.section').forEach(s=>s.classList.remove('active-section'));
+  const target=$('#'+section);
+  if(target) target.classList.add('active-section');
+  updateFiltersVisibility(section);
+}
+function nav(){
+  $$('.nav-item').forEach(b=>b.onclick=()=>switchSection(b.dataset.section));
+  const active=$('.nav-item.active')?.dataset.section || 'dashboard';
+  updateFiltersVisibility(active);
+}
 function renderAll(){renderKPIs();drawDonut();drawLine();renderStock();renderPlants();renderTables();renderTabs();renderAlerts()}
 document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();nav();renderAll()});
 
