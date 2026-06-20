@@ -17,7 +17,23 @@
   <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
-  <div class="app-shell">
+  <section id="loginScreen" class="login-screen">
+    <div class="login-card glass">
+      <img class="login-logo" src="assets/img/logo.png" alt="شعار البرنامج" />
+      <h1>برنامج مراجعة المخازن</h1>
+      <p>سجل الدخول للمتابعة إلى نظام مراجعة المخازن</p>
+      <label>البريد الإلكتروني
+        <input type="email" id="mainLoginEmail" placeholder="example@company.com" autocomplete="username" />
+      </label>
+      <label>كلمة المرور
+        <input type="password" id="mainLoginPassword" placeholder="كلمة المرور" autocomplete="current-password" />
+      </label>
+      <button class="primary login-submit" id="mainLoginBtn" type="button">تسجيل الدخول</button>
+      <div class="login-status" id="mainLoginStatus">يرجى تسجيل الدخول أولاً.</div>
+      <small class="login-note">Supabase Authentication</small>
+    </div>
+  </section>
+  <div class="app-shell app-hidden" id="appShell">
     <aside class="sidebar">
       <div class="brand">
         <img class="brand-logo" src="assets/img/logo.png" alt="شعار المصانع" />
@@ -41,9 +57,9 @@
     <main class="main">
       <header class="topbar">
         <div class="user-card">
-          <div class="avatar">أ</div>
-          <div><strong>أحمد علاء</strong><small>مدير النظام</small></div>
-          <div class="clock" aria-live="polite"><b id="cairoTime">--:--</b><small id="cairoDate">توقيت القاهرة</small></div>
+          <div class="avatar" id="currentUserAvatar">أ</div>
+          <div><strong id="currentUserName">--</strong><small id="currentUserRole">--</small></div>
+          <div class="clock" aria-live="polite"><b id="cairoTime">--:--</b><small id="cairoDate">توقيت القاهرة</small></div><button class="top-logout" id="topLogoutBtn" type="button" title="تسجيل الخروج">خروج</button>
         </div>
         <div class="page-title">
           <img src="assets/img/logo.png" alt="شعار البرنامج" />
@@ -54,7 +70,7 @@
         </div>
       </header>
 
-      <section class="filters glass">
+      <section id="globalFilters" class="filters glass filters-hidden" aria-hidden="true">
         <label>المصنع<select id="plantFilter"><option value="all">الكل</option></select></label>
         <label>المخزن<select id="warehouseFilter"><option value="all">الكل</option></select></label>
         <label>نوع المخزن<select id="warehouseTypeFilter"><option value="all">الكل</option><option value="finished">منتج تام</option><option value="raw">خامات/تصنيع</option></select></label>
@@ -80,55 +96,22 @@
       </section>
 
       <section id="upload" class="section">
-        <article class="panel glass reports-upload-panel">
+        <article class="panel glass">
           <h2>رفع التقارير</h2>
-          <p class="hint">ارفع كل تقرير بتاريخ المراجعة الخاص به. ستظل النسخ المرفوعة محفوظة في السجل مع إمكانية العرض أو الاستبدال أو الحذف.</p>
+          <p class="hint">ارفع ملف Excel الخاص بمراجعة مبيعات المنتج التام والتحويلات المخزنية بنفس رؤوس الأعمدة المعتمدة.</p>
 
-          <div class="upload-tabs report-type-tabs" role="tablist" aria-label="نوع التقرير">
-            <button class="primary active" id="salesReportTab" type="button" data-upload-tab="sales">مراجعة مبيعات المنتج التام والتحويلات المخزنية</button>
-            <button class="secondary" id="incomingReportTab" type="button" data-upload-tab="incoming">الوارد من MB51</button>
+
+          <div class="upload-tabs">
+            <button class="primary" id="pickSalesFileBtn" type="button">رفع تقرير مراجعة مبيعات المنتج التام والتحويلات المخزنية</button>
+            <button class="primary" type="button" disabled>رفع تقرير الوارد من MB51 - لاحقًا</button>
           </div>
-
-          <div class="daily-upload-card">
-            <label class="report-date-field">تاريخ التقرير
-              <input type="date" id="reportDateInput" />
-            </label>
-            <div class="file-picker-field">
-              <span>ملف Excel</span>
-              <button class="secondary" id="chooseReportFileBtn" type="button">اختيار ملف</button>
-              <small id="selectedReportFileName">لم يتم اختيار ملف</small>
-            </div>
-            <button class="primary" id="uploadReportBtn" type="button">رفع التقرير</button>
-          </div>
-
           <input type="file" id="salesExcelInput" accept=".xlsx,.xls,.csv" hidden />
           <div class="drop-zone" id="salesDropZone">
-            اختر ملف Excel أو اسحبه هنا
+            اختر ملف Excel للمبيعات أو اسحبه هنا
             <br>
-            <small id="dropZoneHint">سيتم حفظ بيانات مبيعات المنتج التام والتحويلات حسب تاريخ التقرير، ثم عرضها من sales_audit_report.</small>
+            <small>سيتم حفظ البيانات الخام في sales_raw_transactions ثم يظهر التقرير من sales_audit_report</small>
           </div>
           <div class="upload-status" id="salesUploadStatus"></div>
-
-          <div class="history-header">
-            <h3 id="historyTitle">سجل نسخ تقارير المبيعات المرفوعة</h3>
-            <button class="secondary" id="refreshHistoryBtn" type="button">تحديث السجل ↻</button>
-          </div>
-          <div class="table-wrap upload-history-wrap">
-            <table id="uploadHistoryTable">
-              <thead>
-                <tr>
-                  <th>تاريخ التقرير</th>
-                  <th>اسم الملف</th>
-                  <th>عدد السطور</th>
-                  <th>تاريخ الرفع</th>
-                  <th>الرافع</th>
-                  <th>الحالة</th>
-                  <th>الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody id="uploadHistoryBody"></tbody>
-            </table>
-          </div>
         </article>
       </section>
       <section id="plants" class="section"><article class="panel glass"><h2>مصانع ومخازن</h2><div id="plantsFull" class="plants-full"></div></article></section>
@@ -137,19 +120,42 @@
         <article class="panel glass">
           <h2>مراجعة البيع والتحويلات</h2>
           <p class="hint">اختر مخزن بيع لعرض التقرير المجمع: كمية البيع، الإنتاج، التحويلات الصادرة، التحويلات الواردة، وإجمالي التحميل.</p>
-          <div class="daily-report-selector">
-            <label>تاريخ التقرير
-              <select id="salesReportDateSelect"><option value="">لا توجد تقارير مرفوعة</option></select>
-            </label>
-          </div>
           <div id="salesTabs" class="subtabs"></div>
           <div class="table-wrap"><table id="salesTable"></table></div>
         </article>
       </section>
       <section id="inbound" class="section"><article class="panel glass"><h2>مراجعة الوارد</h2><div id="inboundTabs" class="subtabs"></div><div class="table-wrap"><table id="inboundTable"></table></div></article></section>
       <section id="reports" class="section"><article class="panel glass"><h2>التقارير</h2><div class="report-actions"><button class="primary">تقرير الحركات</button><button class="primary">تقرير التسويات</button><button class="primary">تقرير الوارد</button><button class="primary">تقرير البيع</button></div></article></section>
-      <section id="settings" class="section"><article class="panel glass"><h2>الإعدادات</h2><p>تم تجهيز المشروع للعمل على GitHub Pages مع طبقة Supabase. عدّل ملف <b>assets/js/supabase-config.js</b> بمفاتيح مشروعك.</p><pre class="code-box">SUPABASE_URL = https://YOUR_PROJECT.supabase.co
-SUPABASE_ANON_KEY = your_publishable_or_anon_key</pre></article></section>
+      <section id="settings" class="section">
+        <article class="panel glass">
+          <h2>الإعدادات</h2>
+          <p class="hint">بيانات صاحب الحساب تظهر في الهيدر ويتم حفظها في Supabase لتظهر على أي جهاز.</p>
+          <div class="profile-settings">
+            <div class="profile-preview-card">
+              <div class="avatar profile-preview-avatar" id="profilePreviewAvatar">أ</div>
+              <strong id="profilePreviewName">--</strong>
+              <small id="profilePreviewJob">--</small>
+              <small id="profilePreviewEmail">--</small>
+            </div>
+            <form id="profileForm" class="profile-form">
+              <label>الإسم
+                <input type="text" id="profileFullName" placeholder="اكتب الاسم" />
+              </label>
+              <label>الوظيفة
+                <input type="text" id="profileJobTitle" placeholder="مثال: مدير النظام" />
+              </label>
+              <label>رقم التليفون
+                <input type="tel" id="profilePhone" placeholder="مثال: 01094938005" />
+              </label>
+              <label>الصورة الشخصية
+                <input type="file" id="profileAvatarInput" accept="image/*" />
+              </label>
+              <button class="primary" id="saveProfileBtn" type="submit">حفظ بيانات الحساب</button>
+              <div class="upload-status" id="profileSaveStatus"></div>
+            </form>
+          </div>
+        </article>
+      </section>
 
       <div id="footerMount"></div>
     </main>

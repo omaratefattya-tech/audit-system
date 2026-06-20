@@ -14,7 +14,26 @@ function table(el,heads,rows){$(el).innerHTML=`<thead><tr>${heads.map(h=>`<th>${
 function renderTables(){table('#latestTable',['التاريخ','رقم الحركة','كود الحركة','وصف الحركة','من مخزن','إلى مخزن','الكمية','الوحدة'],APP_DATA.latest);table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']));table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحويل'],APP_DATA.salesReviewSample);table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample)}
 function renderTabs(){const salesWh=APP_DATA.plants.flatMap(p=>p.warehouses.filter(w=>['W401','W402','N401','N402','N411','N412','E401','E402'].includes(w[0])).map(w=>w[0]));$('#salesTabs').innerHTML=salesWh.map((w,i)=>`<button class="${i===0?'active':''}">${w}</button>`).join('');$('#inboundTabs').innerHTML=APP_DATA.plants.map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('')}
 function renderAlerts(){$('#alertsBox').innerHTML=[['⚠','حركات لم يتم تسويتها','يوجد 28 حركة تحتاج إلى تسوية'],['!','فروق جرد','يوجد 12 مخزن به فروق جرد'],['ℹ','حركات ملغاة','يوجد 15 حركة ملغاة خلال الفترة']].map(a=>`<div class="alert"><span>${a[0]}</span><div><b>${a[1]}</b><small>${a[2]}</small></div></div>`).join('')}
-function nav(){ $$('.nav-item').forEach(b=>b.onclick=()=>{$$('.nav-item').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.section').forEach(s=>s.classList.remove('active-section'));$('#'+b.dataset.section).classList.add('active-section')})}
+function updateFiltersVisibility(section){
+  const filters=$('#globalFilters');
+  if(!filters) return;
+  const visibleSections=['sales','inbound','reports'];
+  const shouldShow=visibleSections.includes(section);
+  filters.classList.toggle('filters-hidden',!shouldShow);
+  filters.setAttribute('aria-hidden',shouldShow?'false':'true');
+}
+function switchSection(section){
+  $$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.section===section));
+  $$('.section').forEach(s=>s.classList.remove('active-section'));
+  const target=$('#'+section);
+  if(target) target.classList.add('active-section');
+  updateFiltersVisibility(section);
+}
+function nav(){
+  $$('.nav-item').forEach(b=>b.onclick=()=>switchSection(b.dataset.section));
+  const active=$('.nav-item.active')?.dataset.section || 'dashboard';
+  updateFiltersVisibility(active);
+}
 function renderAll(){renderKPIs();drawDonut();drawLine();renderStock();renderPlants();renderTables();renderTabs();renderAlerts()}
 document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();nav();renderAll()});
 
@@ -176,278 +195,204 @@ renderTables = function(){
 };
 document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initSalesUploader();setTimeout(()=>loadSalesReport(activeSalesWarehouse),300);});
 
-// === Daily Reports History / Versioned Uploads ===
-const REPORT_TYPES = {
-  sales: {
-    title: 'سجل نسخ تقارير المبيعات المرفوعة',
-    note: 'سيتم حفظ بيانات مبيعات المنتج التام والتحويلات حسب تاريخ التقرير، ثم عرضها من sales_audit_report.',
-    fileNote: 'مراجعة مبيعات المنتج التام والتحويلات المخزنية'
-  },
-  incoming: {
-    title: 'سجل نسخ تقارير الوارد MB51 المرفوعة',
-    note: 'تجهيز سجل الوارد. سيتم تفعيل رفع الوارد بعد اعتماد قالب MB51.',
-    fileNote: 'الوارد من MB51'
-  }
-};
-let activeUploadType='sales';
-let selectedReportFile=null;
-let pendingReplaceBatch=null;
-let selectedSalesReportDate=null;
+// === Main Program Login Gate ===
+let CURRENT_AUTH_USER=null;
+let CURRENT_APP_PROFILE=null;
 
-function todayISO(){const d=new Date();const c=new Date(d.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));return `${c.getFullYear()}-${String(c.getMonth()+1).padStart(2,'0')}-${String(c.getDate()).padStart(2,'0')}`;}
-function formatDateOnly(v){if(!v)return '--';const d=new Date(v+'T00:00:00');if(!isNaN(d))return new Intl.DateTimeFormat('ar-EG',{year:'numeric',month:'2-digit',day:'2-digit'}).format(d);return v;}
-function formatDateTime(v){if(!v)return '--';const d=new Date(v);if(isNaN(d))return v;return new Intl.DateTimeFormat('ar-EG',{dateStyle:'short',timeStyle:'short',timeZone:'Africa/Cairo'}).format(d);}
-function currentUploaderName(){return (window.CURRENT_APP_PROFILE?.full_name || CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'مستخدم');}
-function statusLabel(status){const s=status||'active';const map={active:'نشط',replaced:'مستبدل',deleted:'محذوف'};return `<span class="status-pill status-${s}">${map[s]||s}</span>`;}
-
-async function loadUploadHistory(type=activeUploadType){
-  const body=$('#uploadHistoryBody');
-  if(!body) return;
-  body.innerHTML='<tr><td colspan="7" class="empty-history">جاري تحميل السجل...</td></tr>';
-  if(!WarehouseDB?.ready){body.innerHTML='<tr><td colspan="7" class="empty-history">Supabase غير متصل.</td></tr>';return;}
-  const {data,error}=await WarehouseDB.client
-    .from('sales_upload_batches')
-    .select('id,report_type,report_date,file_name,row_count,uploaded_at,uploaded_by_name,status,file_size_bytes')
-    .eq('report_type',type)
-    .order('report_date',{ascending:false})
-    .order('uploaded_at',{ascending:false});
-  if(error){body.innerHTML=`<tr><td colspan="7" class="empty-history">خطأ في تحميل السجل: ${error.message}</td></tr>`;return;}
-  const rows=data||[];
-  if(!rows.length){body.innerHTML='<tr><td colspan="7" class="empty-history">لا توجد تقارير مرفوعة لهذا النوع حتى الآن.</td></tr>';return;}
-  body.innerHTML=rows.map(b=>`
-    <tr data-batch-id="${b.id}" data-report-date="${b.report_date||''}" data-status="${b.status||'active'}">
-      <td>${formatDateOnly(b.report_date)}</td>
-      <td>${b.file_name||'--'}</td>
-      <td>${fmt(b.row_count||0)}</td>
-      <td>${formatDateTime(b.uploaded_at)}</td>
-      <td>${b.uploaded_by_name||'--'}</td>
-      <td>${statusLabel(b.status)}</td>
-      <td>
-        <div class="history-actions">
-          <button type="button" data-action="view">عرض</button>
-          <button type="button" class="replace" data-action="replace">استبدال</button>
-          <button type="button" class="danger" data-action="delete">حذف</button>
-        </div>
-      </td>
-    </tr>`).join('');
-  body.querySelectorAll('button[data-action]').forEach(btn=>btn.onclick=()=>handleHistoryAction(btn));
-}
-
-async function refreshSalesReportDates(preferDate){
-  const sel=$('#salesReportDateSelect');
-  if(!sel || !WarehouseDB?.ready) return;
-  const {data,error}=await WarehouseDB.client
-    .from('sales_upload_batches')
-    .select('report_date')
-    .eq('report_type','sales')
-    .eq('status','active')
-    .order('report_date',{ascending:false});
-  if(error || !(data||[]).length){
-    sel.innerHTML='<option value="">لا توجد تقارير مرفوعة</option>';
-    selectedSalesReportDate=null;
-    return;
-  }
-  const dates=[...new Set(data.map(x=>x.report_date).filter(Boolean))];
-  sel.innerHTML=dates.map(d=>`<option value="${d}">${formatDateOnly(d)}</option>`).join('');
-  selectedSalesReportDate = preferDate && dates.includes(preferDate) ? preferDate : (selectedSalesReportDate && dates.includes(selectedSalesReportDate) ? selectedSalesReportDate : dates[0]);
-  sel.value=selectedSalesReportDate;
-  sel.onchange=()=>{selectedSalesReportDate=sel.value;loadSalesReport(activeSalesWarehouse);};
-}
-
-function switchUploadType(type){
-  activeUploadType=type;
-  pendingReplaceBatch=null;
-  selectedReportFile=null;
-  $$('#upload .report-type-tabs button').forEach(b=>b.classList.toggle('active',b.dataset.uploadTab===type));
-  if($('#historyTitle')) $('#historyTitle').textContent=REPORT_TYPES[type].title;
-  if($('#dropZoneHint')) $('#dropZoneHint').textContent=REPORT_TYPES[type].note;
-  if($('#selectedReportFileName')) $('#selectedReportFileName').textContent='لم يتم اختيار ملف';
-  const status=$('#salesUploadStatus'); if(status){status.className='upload-status';status.textContent= type==='incoming' ? 'رفع الوارد سيتم تفعيله بعد اعتماد قالب MB51.' : '';}
-  loadUploadHistory(type);
-}
-
-function handleHistoryAction(btn){
-  const tr=btn.closest('tr');
-  const id=tr?.dataset.batchId;
-  const reportDate=tr?.dataset.reportDate;
-  const status=tr?.dataset.status;
-  const action=btn.dataset.action;
-  if(!id) return;
-  if(action==='view'){
-    if(activeUploadType==='sales'){
-      selectedSalesReportDate=reportDate;
-      switchSection('sales');
-      refreshSalesReportDates(reportDate).then(()=>loadSalesReport(activeSalesWarehouse));
-    }else{
-      alert('عرض الوارد سيتم تفعيله مع مرحلة MB51.');
-    }
-    return;
-  }
-  if(status==='deleted') { alert('هذه النسخة محذوفة بالفعل.'); return; }
-  if(action==='replace'){
-    pendingReplaceBatch={id, reportDate, reportType:activeUploadType};
-    if($('#reportDateInput')) $('#reportDateInput').value=reportDate;
-    $('#salesExcelInput')?.click();
-    return;
-  }
-  if(action==='delete') deleteReportBatch(id,reportDate,activeUploadType);
-}
-
-async function deleteReportBatch(batchId,reportDate,type){
-  if(!confirm(`سيتم حذف بيانات تقرير ${formatDateOnly(reportDate)} المرتبطة بهذه النسخة فقط. هل تريد المتابعة؟`)) return;
-  const status=$('#salesUploadStatus');
-  if(status){status.className='upload-status';status.textContent='جاري حذف التقرير...';}
+async function fetchCurrentAppProfile(user){
+  const fallback={
+    full_name:user?.email || 'مستخدم',
+    role:'authenticated',
+    job_title:'',
+    phone:'',
+    avatar_url:'',
+    email:user?.email || ''
+  };
+  if(!window.WarehouseDB?.ready || !user?.id) return fallback;
   try{
-    if(type==='sales'){
-      const {error:rawErr}=await WarehouseDB.client.from('sales_raw_transactions').delete().eq('batch_id',batchId);
-      if(rawErr) throw rawErr;
-    }
-    const {error:upErr}=await WarehouseDB.client.from('sales_upload_batches').update({status:'deleted',deleted_at:new Date().toISOString()}).eq('id',batchId);
-    if(upErr) throw upErr;
-    if(status){status.className='upload-status ok';status.textContent='تم حذف التقرير وبياناته المرتبطة.';}
-    await loadUploadHistory(type);
-    await refreshSalesReportDates();
-    if(type==='sales') await loadSalesReport(activeSalesWarehouse);
-  }catch(err){if(status){status.className='upload-status err';status.textContent='خطأ أثناء الحذف: '+(err.message||err);}}
-}
-
-async function replaceOldActiveBatchIfNeeded(reportType,reportDate,explicitBatchId){
-  let oldId=explicitBatchId||null;
-  if(!oldId){
-    const {data,error}=await WarehouseDB.client.from('sales_upload_batches')
-      .select('id,file_name')
-      .eq('report_type',reportType)
-      .eq('report_date',reportDate)
-      .eq('status','active')
+    const {data,error}=await WarehouseDB.client
+      .from('app_users')
+      .select('full_name, role, is_active, job_title, phone, avatar_url')
+      .eq('id',user.id)
       .maybeSingle();
-    if(error) throw error;
-    if(data?.id){
-      const ok=confirm(`يوجد تقرير نشط مرفوع لنفس التاريخ (${formatDateOnly(reportDate)}). هل تريد استبداله؟`);
-      if(!ok) throw new Error('تم إلغاء الرفع لأن هناك تقريرًا موجودًا لنفس التاريخ.');
-      oldId=data.id;
-    }
-  }
-  if(oldId){
-    if(reportType==='sales'){
-      const {error:delErr}=await WarehouseDB.client.from('sales_raw_transactions').delete().eq('batch_id',oldId);
-      if(delErr) throw delErr;
-    }
-    const {error:repErr}=await WarehouseDB.client.from('sales_upload_batches').update({status:'replaced',replaced_at:new Date().toISOString()}).eq('id',oldId);
-    if(repErr) throw repErr;
-  }
-}
-
-async function handleSalesFile(file){
-  selectedReportFile=file;
-  if($('#selectedReportFileName')) $('#selectedReportFileName').textContent=file?.name || 'لم يتم اختيار ملف';
-  const status=$('#salesUploadStatus');
-  if(status){status.className='upload-status';status.textContent='';}
-  if(activeUploadType==='incoming'){
-    if(status){status.className='upload-status err';status.textContent='رفع الوارد من MB51 سيتم تفعيله في المرحلة التالية بعد اعتماد القالب.';}
-    return;
-  }
-  const reportDate=$('#reportDateInput')?.value;
-  if(!reportDate){if(status){status.className='upload-status err';status.textContent='اختر تاريخ التقرير أولاً.';}return;}
-  if(!WarehouseDB?.ready){if(status){status.className='upload-status err';status.textContent='Supabase غير متصل. راجع ملف supabase-config.js';}return;}
-  const {data:userData}=await WarehouseDB.getUser();
-  if(!userData?.user){if(status){status.className='upload-status err';status.textContent='سجل الدخول أولًا قبل رفع الملف.';}return;}
-  try{
-    if(status) status.textContent='جاري قراءة الملف...';
-    const arrayBuffer=await file.arrayBuffer();
-    const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
-    const sourceRows=rowsFromWorkbook(workbook);
-    if(!sourceRows.length) throw new Error('الملف لا يحتوي على بيانات.');
-    const tempBatchId='00000000-0000-0000-0000-000000000000';
-    const payloadPreview=mapSalesRows(sourceRows,tempBatchId);
-    if(!payloadPreview.length) throw new Error('لم يتم العثور على صفوف صالحة. راجع رؤوس الأعمدة.');
-    if(status) status.textContent='جاري تجهيز نسخة الرفع اليومية...';
-    await replaceOldActiveBatchIfNeeded('sales',reportDate,pendingReplaceBatch?.id||null);
-    const batchPayload={
-      report_type:'sales',
-      report_date:reportDate,
-      file_name:file.name,
-      file_size_bytes:file.size||0,
-      row_count:payloadPreview.length,
-      uploaded_by:userData.user.id,
-      uploaded_by_name:currentUploaderName(),
-      status:'active',
-      notes:REPORT_TYPES.sales.fileNote
+    if(error || !data) return fallback;
+    if(data.is_active === false) return {...fallback, inactive:true};
+    return {
+      full_name:data.full_name || fallback.full_name,
+      role:data.role || fallback.role,
+      job_title:data.job_title || '',
+      phone:data.phone || '',
+      avatar_url:data.avatar_url || '',
+      email:user?.email || ''
     };
-    const {data:batch,error:batchError}=await WarehouseDB.client.from('sales_upload_batches').insert(batchPayload).select('id').single();
-    if(batchError) throw batchError;
-    const payload=payloadPreview.map(r=>({...r,batch_id:batch.id}));
-    if(status) status.textContent=`جاري رفع ${payload.length} سطر إلى Supabase...`;
-    await insertChunks('sales_raw_transactions',payload,400);
-    pendingReplaceBatch=null;
-    selectedReportFile=null;
-    if($('#selectedReportFileName')) $('#selectedReportFileName').textContent='لم يتم اختيار ملف';
-    if(status){status.className='upload-status ok';status.textContent=`تم رفع تقرير ${formatDateOnly(reportDate)} بعدد ${payload.length} سطر بنجاح.`;}
-    selectedSalesReportDate=reportDate;
-    await loadUploadHistory('sales');
-    await refreshSalesReportDates(reportDate);
-    await loadSalesReport(activeSalesWarehouse);
-  }catch(err){
-    pendingReplaceBatch=null;
-    if(status){status.className='upload-status err';status.textContent=`خطأ أثناء الرفع: ${err.message || err}`;}
-  }
+  }catch(_){ return fallback; }
 }
-
-function initSalesUploader(){
-  const input=$('#salesExcelInput'), chooseBtn=$('#chooseReportFileBtn'), uploadBtn=$('#uploadReportBtn'), dz=$('#salesDropZone');
-  if($('#reportDateInput') && !$('#reportDateInput').value) $('#reportDateInput').value=todayISO();
-  $$('#upload .report-type-tabs button').forEach(btn=>btn.onclick=()=>switchUploadType(btn.dataset.uploadTab));
-  if($('#refreshHistoryBtn')) $('#refreshHistoryBtn').onclick=()=>loadUploadHistory(activeUploadType);
-  if(!input) return;
-  if(chooseBtn) chooseBtn.onclick=()=>input.click();
-  if(uploadBtn) uploadBtn.onclick=()=>{
-    if(!selectedReportFile){input.click();return;}
-    handleSalesFile(selectedReportFile);
-  };
-  input.onchange=()=>{
-    selectedReportFile=input.files?.[0] || null;
-    if($('#selectedReportFileName')) $('#selectedReportFileName').textContent=selectedReportFile?.name || 'لم يتم اختيار ملف';
-    if(selectedReportFile) handleSalesFile(selectedReportFile);
-    input.value='';
-  };
-  if(dz){
-    dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag')};
-    dz.ondragleave=()=>dz.classList.remove('drag');
-    dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files?.[0];if(f){selectedReportFile=f;handleSalesFile(f);}};
-  }
-  switchUploadType(activeUploadType);
-}
-
-async function loadSalesReport(warehouseCode){
-  activeSalesWarehouse=warehouseCode;
-  if(!WarehouseDB?.ready){ return; }
-  if(!selectedSalesReportDate){await refreshSalesReportDates();}
-  if(!selectedSalesReportDate){
-    table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحميل'],[]);
+function paintAvatar(el, profile){
+  if(!el) return;
+  el.textContent='';
+  el.style.backgroundImage='';
+  el.classList.toggle('has-image', !!profile?.avatar_url);
+  if(profile?.avatar_url){
+    const img=document.createElement('img');
+    img.src=profile.avatar_url;
+    img.alt='الصورة الشخصية';
+    el.appendChild(img);
     return;
   }
-  const {data,error}=await WarehouseDB.client.from('sales_audit_report').select('*').eq('warehouse_code',warehouseCode).eq('report_date',selectedSalesReportDate).order('material_code');
-  if(error){ console.error(error); return; }
-  const rows=(data||[]).map(r=>[
-    r.material_code,
-    r.material_name,
-    r.uom,
-    fmt(r.sales_quantity),
-    fmt(r.production_quantity),
-    fmt(r.outgoing_transfer_quantity),
-    fmt(r.incoming_transfer_quantity),
-    fmt(r.total_loading_quantity)
-  ]);
-  table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحميل'],rows);
+  const name=profile?.full_name || profile?.email || 'مستخدم';
+  el.textContent=(name.trim()[0] || 'م').toUpperCase();
+}
+function applyProfileToHeader(profile){
+  const name=profile?.full_name || profile?.email || 'مستخدم';
+  const job=profile?.job_title || profile?.role || 'مستخدم';
+  if($('#currentUserName')) $('#currentUserName').textContent=name;
+  if($('#currentUserRole')) $('#currentUserRole').textContent=job;
+  paintAvatar($('#currentUserAvatar'), profile);
+}
+function fillProfileForm(profile,user){
+  if($('#profileFullName')) $('#profileFullName').value=profile?.full_name || '';
+  if($('#profileJobTitle')) $('#profileJobTitle').value=profile?.job_title || '';
+  if($('#profilePhone')) $('#profilePhone').value=profile?.phone || '';
+  if($('#profilePreviewName')) $('#profilePreviewName').textContent=profile?.full_name || user?.email || '--';
+  if($('#profilePreviewJob')) $('#profilePreviewJob').textContent=profile?.job_title || profile?.role || '--';
+  if($('#profilePreviewEmail')) $('#profilePreviewEmail').textContent=user?.email || '';
+  paintAvatar($('#profilePreviewAvatar'), profile);
+}
+function setMainAuthMessage(message,type=''){
+  const el=$('#mainLoginStatus');
+  if(!el) return;
+  el.textContent=message;
+  el.className='login-status '+(type||'');
+}
+function showLoginScreen(){
+  $('#loginScreen')?.classList.remove('login-hidden');
+  $('#appShell')?.classList.add('app-hidden');
+}
+async function showApplication(user){
+  CURRENT_AUTH_USER=user;
+  const profile=await fetchCurrentAppProfile(user);
+  if(profile.inactive){
+    await WarehouseDB.signOut();
+    showLoginScreen();
+    setMainAuthMessage('هذا المستخدم غير مفعل. راجع مدير النظام.','err');
+    return;
+  }
+  CURRENT_APP_PROFILE=profile;
+  $('#loginScreen')?.classList.add('login-hidden');
+  $('#appShell')?.classList.remove('app-hidden');
+  applyProfileToHeader(profile);
+  fillProfileForm(profile,user);
+  setTimeout(()=>loadSalesReport(activeSalesWarehouse),250);
+}
+async function checkMainSession(){
+  if(!window.WarehouseDB?.ready){
+    showLoginScreen();
+    setMainAuthMessage('Supabase غير متصل. راجع إعدادات supabase-config.js','err');
+    return;
+  }
+  const {data}=await WarehouseDB.getUser();
+  if(data?.user) await showApplication(data.user); else showLoginScreen();
+}
+function fileToDataUrl(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function saveCurrentProfile(){
+  const status=$('#profileSaveStatus');
+  if(status){ status.className='upload-status'; status.textContent='جاري حفظ البيانات...'; }
+  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){
+    if(status){ status.className='upload-status err'; status.textContent='سجل الدخول أولاً.'; }
+    return;
+  }
+  try{
+    let avatarUrl=CURRENT_APP_PROFILE?.avatar_url || '';
+    const file=$('#profileAvatarInput')?.files?.[0];
+    if(file){
+      if(file.size > 600 * 1024) throw new Error('حجم الصورة كبير. استخدم صورة أقل من 600KB.');
+      avatarUrl=await fileToDataUrl(file);
+    }
+    const payload={
+      id: CURRENT_AUTH_USER.id,
+      full_name: ($('#profileFullName')?.value || CURRENT_AUTH_USER.email || '').trim(),
+      job_title: ($('#profileJobTitle')?.value || '').trim(),
+      phone: ($('#profilePhone')?.value || '').trim(),
+      avatar_url: avatarUrl,
+      role: CURRENT_APP_PROFILE?.role && CURRENT_APP_PROFILE.role !== 'authenticated' ? CURRENT_APP_PROFILE.role : 'viewer',
+      is_active: true
+    };
+    if(!payload.full_name) throw new Error('الإسم مطلوب.');
+    const {data,error}=await WarehouseDB.client
+      .from('app_users')
+      .upsert(payload,{onConflict:'id'})
+      .select('full_name, role, is_active, job_title, phone, avatar_url')
+      .single();
+    if(error) throw error;
+    CURRENT_APP_PROFILE={...data,email:CURRENT_AUTH_USER.email};
+    applyProfileToHeader(CURRENT_APP_PROFILE);
+    fillProfileForm(CURRENT_APP_PROFILE,CURRENT_AUTH_USER);
+    if(status){ status.className='upload-status ok'; status.textContent='تم حفظ بيانات الحساب بنجاح.'; }
+  }catch(err){
+    if(status){ status.className='upload-status err'; status.textContent='خطأ أثناء الحفظ: '+(err.message || err); }
+  }
+}
+function initProfileSettings(){
+  const form=$('#profileForm');
+  const avatarInput=$('#profileAvatarInput');
+  if(form){
+    form.addEventListener('submit',e=>{e.preventDefault();saveCurrentProfile();});
+  }
+  if(avatarInput){
+    avatarInput.addEventListener('change',async()=>{
+      const file=avatarInput.files?.[0];
+      if(!file) return;
+      try{
+        if(file.size > 600 * 1024) throw new Error('حجم الصورة كبير. استخدم صورة أقل من 600KB.');
+        const dataUrl=await fileToDataUrl(file);
+        const preview={...(CURRENT_APP_PROFILE||{}), avatar_url:dataUrl, full_name:$('#profileFullName')?.value || CURRENT_APP_PROFILE?.full_name};
+        paintAvatar($('#profilePreviewAvatar'), preview);
+      }catch(err){
+        const status=$('#profileSaveStatus');
+        if(status){ status.className='upload-status err'; status.textContent=err.message || String(err); }
+      }
+    });
+  }
 }
 
-function switchSection(section){
-  $$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.section===section));
-  $$('.section').forEach(s=>s.classList.remove('active-section'));
-  const target=$('#'+section);
-  if(target) target.classList.add('active-section');
-  updateFiltersVisibility(section);
-  if(section==='upload') loadUploadHistory(activeUploadType);
-  if(section==='sales') refreshSalesReportDates().then(()=>loadSalesReport(activeSalesWarehouse));
+function initMainLoginGate(){
+  const loginBtn=$('#mainLoginBtn');
+  const emailInput=$('#mainLoginEmail');
+  const passInput=$('#mainLoginPassword');
+  const logoutBtn=$('#topLogoutBtn');
+  if(loginBtn){
+    loginBtn.onclick=async()=>{
+      const email=(emailInput?.value||'').trim();
+      const password=passInput?.value||'';
+      if(!email || !password){ setMainAuthMessage('اكتب البريد الإلكتروني وكلمة المرور.','err'); return; }
+      setMainAuthMessage('جاري تسجيل الدخول...');
+      const {data,error}=await WarehouseDB.signIn(email,password);
+      if(error){ setMainAuthMessage('خطأ في تسجيل الدخول: '+error.message,'err'); return; }
+      setMainAuthMessage('تم تسجيل الدخول بنجاح.','ok');
+      await showApplication(data.user);
+    };
+    [emailInput,passInput].forEach(inp=>{ if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter') loginBtn.click(); }); });
+  }
+  if(logoutBtn){
+    logoutBtn.onclick=async()=>{
+      await WarehouseDB.signOut();
+      showLoginScreen();
+      setMainAuthMessage('تم تسجيل الخروج.','ok');
+    };
+  }
+  if(WarehouseDB?.client?.auth){
+    WarehouseDB.client.auth.onAuthStateChange((_event,session)=>{
+      if(session?.user) showApplication(session.user);
+      else showLoginScreen();
+    });
+  }
+  checkMainSession();
 }
-
-document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{initSalesUploader();refreshSalesReportDates();},500);});
+document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();});
