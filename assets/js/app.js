@@ -258,9 +258,58 @@ async function fetchAllRows(tableName, select='*', buildQuery){
   return all;
 }
 function auditStatusCell(value,status){
-  const map={green:'#0f5f35',red:'#7a1f1f',yellow:'#7a6a1f',neutral:'transparent'};
+  const map={green:'#0f5f35',red:'#7a1f1f',yellow:'#7a6a1f',gold:'#b98612',neutral:'transparent'};
   const color=map[status]||map.neutral;
-  return `<span style="display:block;padding:6px 8px;border-radius:8px;background:${color};color:#fff">${value ?? '-'}</span>`;
+  const glow=status==='gold' ? 'box-shadow:0 0 12px rgba(241,191,48,.85);border:1px solid rgba(255,225,120,.9);font-weight:800;' : '';
+  return `<span style="display:block;padding:6px 8px;border-radius:8px;background:${color};color:#fff;${glow}">${value ?? '-'}</span>`;
+}
+function normalizePlantCodeForAudit(value, warehouseCode=''){
+  const v=normKey(value);
+  const wh=normKey(warehouseCode).toUpperCase();
+  if(['wf01','w'].includes(v) || v.includes('الواحة') || v.includes('واحه')) return 'WF01';
+  if(['el01','n'].includes(v) || v.includes('السواقي') || v.includes('الايمان') || v.includes('الإيمان')) return 'EL01';
+  if(['el02','e'].includes(v) || v.includes('العامرية') || v.includes('عامريه')) return 'EL02';
+  if(wh.startsWith('W')) return 'WF01';
+  if(wh.startsWith('N')) return 'EL01';
+  if(wh.startsWith('E')) return 'EL02';
+  return String(value||'').trim();
+}
+function normalizeVehicleClass(value){
+  const v=normText(value);
+  const checks=['قاطرة','قاطره','تريلا','وش','جامبو','دبابة','دبابه'];
+  return checks.find(x=>v.includes(x)) || v;
+}
+function normalizeGoodsTypeForFreight(value){
+  const v=normText(value);
+  if(!v) return '';
+  if(v.includes('سولار')) return 'سولار';
+  if(v.includes('ذره') || v.includes('ذرة')) return 'ذره';
+  if(v.includes('صويا')) return 'صويا';
+  return v;
+}
+function freightKey(parts){return parts.map(normKey).join('|');}
+function findFreightReference(freightRows,r){
+  const plant=normalizePlantCodeForAudit(r.plant_code || r.plant_name,r.warehouse_code);
+  const vehicleClass=normalizeVehicleClass(r.vehicle_description);
+  const freightDesc=normKey(r.freight_description);
+  const exactGoods=normKey(r.goods_type || r.material_name);
+  const normalizedGoods=normKey(normalizeGoodsTypeForFreight(r.goods_type || r.material_name));
+  const candidates=(freightRows||[]).filter(f=>
+    normKey(normalizePlantCodeForAudit(f.plant_code))===normKey(plant) &&
+    normKey(normalizeVehicleClass(f.vehicle_description))===normKey(vehicleClass) &&
+    normKey(f.freight_description)===freightDesc
+  );
+  return candidates.find(f=>normKey(f.goods_type)===exactGoods)
+      || candidates.find(f=>normKey(f.goods_type)===normalizedGoods)
+      || candidates.find(f=>normKey(f.goods_type).includes('باقي الأصناف'))
+      || candidates[0] || null;
+}
+function movementCellStatusFromGroup(movementType,group){
+  const mt=normKey(movementType).toUpperCase();
+  if(!group?.has102) return 'neutral';
+  if(mt==='101' || mt==='102') return 'red';
+  if(mt==='Z13') return 'gold';
+  return 'neutral';
 }
 async function tryBuildIncomingAudit(reportDate, targetStatus){
   reportDate=normalizeDateISO(reportDate);
@@ -290,10 +339,15 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
     if(!scaleIndex.has(key)) scaleIndex.set(key,[]);
     scaleIndex.get(key).push(s);
   });
-  const freightIndex=new Map();
-  freightRows.forEach(f=>{
-    const key=[f.plant_code,f.vehicle_description,f.goods_type,f.freight_description].map(normKey).join('|');
-    freightIndex.set(key,f);
+  const movementGroupIndex=new Map();
+  incomingRows.forEach(row=>{
+    const key=[row.material_code,row.purchase_order,row.vehicle_number].map(normKey).join('|');
+    if(!movementGroupIndex.has(key)) movementGroupIndex.set(key,{has101:false,has102:false,hasZ13:false});
+    const group=movementGroupIndex.get(key);
+    const mt=normKey(row.movement_type).toUpperCase();
+    if(mt==='101') group.has101=true;
+    if(mt==='102') group.has102=true;
+    if(mt==='Z13') group.hasZ13=true;
   });
   await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',reportDate);
   const results=incomingRows.map(r=>{
@@ -301,6 +355,8 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
     const matches=scaleIndex.get(key)||[];
     const scale=matches.length===1?matches[0]:null;
     const quantityTo=String(r.uom||'').toUpperCase()==='KG' ? Number(r.quantity||0)/1000 : Number(r.quantity_to ?? r.quantity ?? 0);
+    const movementGroup=movementGroupIndex.get(key)||{};
+    const movementCellStatus=movementCellStatusFromGroup(r.movement_type,movementGroup);
     const incomingType=incomingTypeFromVehicle(r.vehicle_number,r.vehicle_description);
     let scaleMatchStatus='not_cleared',scaleCellStatus='red',rowStatus='error',rowColor='red',warning='';
     let weightDiffTo=null,weightDiffPercent=null,weightDiffStatus='not_applicable';
@@ -323,8 +379,7 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
     if(incomingType==='وصّال'){
       freightStatus=(!normText(r.freight_description) && isRateEqual(r.freight_rate_per_ton,0.01))?'supplier_vehicle_ok':'supplier_vehicle_mismatch';
     }else{
-      const fkey=[r.plant_code,r.vehicle_description,r.goods_type || r.material_name,r.freight_description].map(normKey).join('|');
-      const ref=freightIndex.get(fkey);
+      const ref=findFreightReference(freightRows,r);
       if(ref){
         refFreightDesc=ref.freight_description; refRate=Number(ref.rate_per_ton||0);
         freightStatus=isRateEqual(r.freight_rate_per_ton,refRate)?'matched':'mismatch';
@@ -343,6 +398,9 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
       material_name: r.material_name,
       uom: r.uom,
       quantity_to: quantityTo,
+      incoming_movement_type: r.movement_type || '',
+      incoming_movement_text: r.movement_text || '',
+      movement_cell_status: movementCellStatus,
       scale_net_weight_to: scale ? Number(scale.net_weight_to ?? (Number(scale.net_weight_kg||0)/1000)) : null,
       scale_match_status: scaleMatchStatus,
       scale_cell_status: scaleCellStatus,
@@ -366,7 +424,7 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
       row_status: rowStatus,
       row_color: rowColor,
       warning_message: warning,
-      raw_result: {scale_matches:matches.length}
+      raw_result: {scale_matches:matches.length,movement_group:movementGroup,plant_used_for_freight:normalizePlantCodeForAudit(r.plant_code || r.plant_name,r.warehouse_code),vehicle_class_used_for_freight:normalizeVehicleClass(r.vehicle_description)}
     };
   });
   if(results.length) await insertChunks('incoming_audit_results',results,300);
@@ -785,8 +843,9 @@ async function loadInboundAuditReport(date=''){
   const tbl=$('#inboundTable');
   if(!tbl || !WarehouseDB?.ready) return;
   const selected=normalizeDateISO(date || $('#inboundReportDateSelect')?.value || '');
+  const heads=['المادة','وصف المادة','وحدة القياس','الكمية','صافي الميزان','فرق الوزن %','نوع الحركة','مخزن MB51','مخزن الميزان','أمر الشراء MB51','أمر الشراء الميزان','رقم العربية','نوع الوارد','وصف العربية','وصف النولون','قيمة النولون للطن'];
   if(!selected){
-    table('#inboundTable',['المادة','وصف المادة','وحدة القياس','الكمية','صافي الميزان','فرق الوزن %','مخزن MB51','مخزن الميزان','أمر الشراء MB51','أمر الشراء الميزان','رقم العربية','نوع الوارد','وصف العربية','وصف النولون','قيمة النولون للطن'],[]);
+    table('#inboundTable',heads,[]);
     return;
   }
   const {data,error}=await WarehouseDB.client
@@ -801,6 +860,8 @@ async function loadInboundAuditReport(date=''){
     const whStatus=r.warehouse_match_status==='matched'?'green':(r.warehouse_match_status==='not_applicable'?'yellow':'red');
     const poStatus=r.purchase_order_match_status==='matched'?'green':(r.purchase_order_match_status==='not_cleared'?'yellow':'red');
     const freightStatus=['matched','supplier_vehicle_ok'].includes(r.freight_match_status)?'green':(r.freight_match_status==='not_applicable'?'yellow':'red');
+    const movementStatus=r.movement_cell_status || r.raw_result?.movement_cell_status || 'neutral';
+    const movementValue=(r.incoming_movement_type || r.raw_result?.movement_type || '-') + (r.incoming_movement_text ? ' - '+r.incoming_movement_text : '');
     return [
       r.material_code || '-',
       r.material_name || '-',
@@ -808,6 +869,7 @@ async function loadInboundAuditReport(date=''){
       fmt(r.quantity_to || 0),
       auditStatusCell(r.scale_net_weight_to==null ? (r.warning_message || 'لم يتم التصفية في تاريخه') : fmt(r.scale_net_weight_to), scaleStatus),
       auditStatusCell(r.weight_diff_percent==null ? '-' : fmt(r.weight_diff_percent)+'%', weightStatus),
+      auditStatusCell(movementValue, movementStatus),
       auditStatusCell(r.mb51_warehouse_code || '-', whStatus),
       auditStatusCell(r.scale_warehouse_code || 'لم يتم التصفية في تاريخه', whStatus),
       auditStatusCell(r.mb51_purchase_order || '-', poStatus),
@@ -819,7 +881,7 @@ async function loadInboundAuditReport(date=''){
       auditStatusCell(r.mb51_freight_rate_per_ton==null ? '-' : fmt(r.mb51_freight_rate_per_ton), freightStatus)
     ];
   });
-  table('#inboundTable',['المادة','وصف المادة','وحدة القياس','الكمية','صافي الميزان','فرق الوزن %','مخزن MB51','مخزن الميزان','أمر الشراء MB51','أمر الشراء الميزان','رقم العربية','نوع الوارد','وصف العربية','وصف النولون','قيمة النولون للطن'],rows);
+  table('#inboundTable',heads,rows);
 }
 
 function initIncomingUploader(){
