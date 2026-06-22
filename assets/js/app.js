@@ -183,6 +183,27 @@ function mapSalesRows(rows,batchId){
     return r;
   }).filter(r=>r.material_code && r.material_name && r.movement_type && r.movement_text && r.warehouse_code && r.plant_code);
 }
+
+function mapIncomingRows(rows,batchId){
+  return rows.map((row,idx)=>{
+    const normalized={};
+    Object.entries(row).forEach(([k,v])=>normalized[normalizeHeader(k)]=v);
+    const trxDateValue=getRowValue(normalized,['التاريخ','تاريخ الترحيل','Posting Date','Document Date','Date']);
+    return {
+      batch_id: batchId,
+      material_code: String(getRowValue(normalized,['كود المادة','المادة','Material','Material Code'])).trim(),
+      material_name: String(getRowValue(normalized,['وصف المادة','وصف الصنف','Material Description','Short Text'])).trim(),
+      quantity: parseArabicNumber(getRowValue(normalized,['الكمية','كمية','Quantity','Qty in Un. of Entry'])),
+      uom: String(getRowValue(normalized,['وحدة القياس','الوحدة','UOM','Base Unit of Measure','Unit of Entry'])).trim().toUpperCase() || 'TO',
+      movement_type: String(getRowValue(normalized,['نوع الحركة','كود الحركة','Movement Type','MvT'])).trim(),
+      movement_text: String(getRowValue(normalized,['وصف نوع الحركة','وصف الحركة','Movement Text','Movement Type Text'])).trim(),
+      warehouse_code: String(getRowValue(normalized,['المخزن','كود المخزن','Storage Location','SLoc'])).trim(),
+      plant_code: String(getRowValue(normalized,['المصنع','تلمصنع','Plant'])).trim(),
+      plant_name: String(getRowValue(normalized,['إسم المصنع','اسم المصنع','Plant Name'])).trim(),
+      transaction_date: typeof trxDateValue === 'number' ? excelDateToISO(trxDateValue) : excelDateToISO(trxDateValue)
+    };
+  }).filter(r=>r.material_code && r.material_name && r.movement_type && r.movement_text && r.warehouse_code && r.plant_code);
+}
 async function insertChunks(tableName, rows, chunkSize=500){
   for(let i=0;i<rows.length;i+=chunkSize){
     const chunk=rows.slice(i,i+chunkSize);
@@ -331,6 +352,133 @@ document.addEventListener('click',e=>{
   e.preventDefault();
   handleSalesBatchAction(btn);
 });
+
+async function handleIncomingFile(file){
+  const status=$('#incomingUploadStatus');
+  const reportDate=normalizeDateISO($('#incomingReportDateInput')?.value);
+  if(!status) return;
+  status.className='upload-status';
+  status.textContent='جاري قراءة الملف...';
+  if(!reportDate){ status.textContent='اختار تاريخ التقرير أولاً.'; status.className='upload-status err'; return; }
+  if(!WarehouseDB?.ready){ status.textContent='Supabase غير متصل. راجع ملف supabase-config.js'; status.className='upload-status err'; return; }
+  const {data:userData}=await WarehouseDB.getUser();
+  if(!userData?.user){ status.textContent='سجل الدخول أولًا قبل رفع الملف.'; status.className='upload-status err'; return; }
+  try{
+    const arrayBuffer=await file.arrayBuffer();
+    const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
+    const sourceRows=rowsFromWorkbook(workbook);
+    if(!sourceRows.length) throw new Error('الملف لا يحتوي على بيانات.');
+    const payloadPreview=mapIncomingRows(sourceRows,'00000000-0000-0000-0000-000000000000');
+    if(!payloadPreview.length) throw new Error('لم يتم العثور على صفوف وارد صالحة. راجع رؤوس الأعمدة.');
+
+    const {data:existing,error:existingError}=await WarehouseDB.client
+      .from('incoming_upload_batches')
+      .select('id,file_name,report_date')
+      .eq('report_type','incoming')
+      .eq('report_date',reportDate)
+      .eq('status','active');
+    if(existingError) throw existingError;
+    if(existing?.length){
+      const ok=confirm(`يوجد تقرير وارد MB51 مرفوع بالفعل بتاريخ ${reportDate}.
+هل تريد استبداله بالملف الجديد؟`);
+      if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
+      status.textContent='جاري حذف النسخة القديمة لنفس التاريخ...';
+      const ids=existing.map(x=>x.id);
+      const {error:rawDeleteError}=await WarehouseDB.client.from('incoming_raw_transactions').delete().in('batch_id',ids);
+      if(rawDeleteError) throw rawDeleteError;
+      const {error:deleteError}=await WarehouseDB.client.from('incoming_upload_batches').delete().in('id',ids);
+      if(deleteError) throw deleteError;
+    }
+
+    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء نسخة وارد بتاريخ ${reportDate}...`;
+    const {data:batch,error:batchError}=await WarehouseDB.client.from('incoming_upload_batches').insert({
+      file_name:file.name,
+      uploaded_by:userData.user.id,
+      uploaded_by_name:currentUploaderName(userData),
+      notes:'الوارد من MB51',
+      report_type:'incoming',
+      report_date:reportDate,
+      row_count:payloadPreview.length,
+      file_size_bytes:file.size || 0,
+      status:'active'
+    }).select('id').single();
+    if(batchError) throw batchError;
+    const payload=payloadPreview.map(r=>({...r,batch_id:batch.id}));
+    status.textContent=`جاري رفع ${payload.length} سطر وارد إلى Supabase...`;
+    await insertChunks('incoming_raw_transactions',payload,400);
+    status.textContent=`تم رفع ${payload.length} سطر وارد بنجاح لتاريخ ${reportDate}.`;
+    status.className='upload-status ok';
+    await loadIncomingBatches();
+  }catch(err){
+    status.textContent=`خطأ أثناء رفع الوارد: ${err.message || err}`;
+    status.className='upload-status err';
+  }
+}
+async function loadIncomingBatches(){
+  const tbl=$('#incomingBatchesTable');
+  if(!tbl || !WarehouseDB?.ready){ return; }
+  const {data,error}=await WarehouseDB.client
+    .from('incoming_upload_batches')
+    .select('id,file_name,upload_date,uploaded_by,uploaded_by_name,report_date,row_count,file_size_bytes,status')
+    .eq('report_type','incoming')
+    .eq('status','active')
+    .order('report_date',{ascending:false});
+  if(error){
+    tbl.innerHTML=`<tbody><tr><td>خطأ تحميل سجل الوارد: ${error.message}</td></tr></tbody>`;
+    return;
+  }
+  const rows=(data||[]).map(b=>[
+    normalizeDateISO(b.report_date) || '-',
+    b.file_name || '-',
+    Number(b.row_count||0).toLocaleString('en-US'),
+    formatFileSize(b.file_size_bytes),
+    b.uploaded_by_name || b.uploaded_by || '-',
+    b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
+    `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض</button>
+     <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
+     <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">حذف</button>`
+  ]);
+  table('#incomingBatchesTable',['تاريخ التقرير','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الإجراءات'],rows);
+}
+async function handleIncomingBatchAction(btn){
+  const action=btn.dataset.action;
+  const date=btn.dataset.date || '';
+  if(action==='view'){
+    switchSection('inbound');
+    alert(`تم اختيار نسخة الوارد بتاريخ ${date}. ربط شاشة مراجعة الوارد التفصيلية سيتم في مرحلة عرض الوارد بعد اعتماد المعادلات.`);
+  }
+  if(action==='replace'){
+    if($('#incomingReportDateInput')) $('#incomingReportDateInput').value=date;
+    $('#incomingExcelInput')?.click();
+  }
+  if(action==='delete'){
+    if(!confirm(`سيتم حذف تقرير الوارد بتاريخ ${date} وكل بياناته الخام. هل أنت متأكد؟`)) return;
+    const {error:rawDeleteError}=await WarehouseDB.client.from('incoming_raw_transactions').delete().eq('batch_id',btn.dataset.id);
+    if(rawDeleteError){ alert('خطأ أثناء حذف بيانات الوارد: '+rawDeleteError.message); return; }
+    const {error:delError}=await WarehouseDB.client.from('incoming_upload_batches').delete().eq('id',btn.dataset.id);
+    if(delError){ alert('خطأ أثناء حذف نسخة الوارد: '+delError.message); return; }
+    await loadIncomingBatches();
+  }
+}
+function initIncomingUploader(){
+  const input=$('#incomingExcelInput'), btn=$('#pickIncomingFileBtn'), dz=$('#incomingDropZone'), dateInput=$('#incomingReportDateInput');
+  if(dateInput && !dateInput.value) dateInput.value=todayISO();
+  if(!input || !btn) return;
+  btn.onclick=()=>input.click();
+  input.onchange=()=>{ if(input.files?.[0]) handleIncomingFile(input.files[0]); input.value=''; };
+  if(dz){
+    dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag')};
+    dz.ondragleave=()=>dz.classList.remove('drag');
+    dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files?.[0];if(f)handleIncomingFile(f)};
+  }
+  loadIncomingBatches();
+}
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('#incomingBatchesTable [data-action]');
+  if(!btn) return;
+  e.preventDefault();
+  handleIncomingBatchAction(btn);
+});
 function initSalesUploader(){
   const input=$('#salesExcelInput'), btn=$('#pickSalesFileBtn'), dz=$('#salesDropZone'), dateInput=$('#salesReportDateInput');
   if(dateInput && !dateInput.value) dateInput.value=todayISO();
@@ -375,7 +523,7 @@ renderTables = function(){
   table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحميل'],[]);
   table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample);
 };
-document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initSalesUploader();setTimeout(()=>loadSalesReport(activeSalesWarehouse),300);});
+document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initSalesUploader();initIncomingUploader();setTimeout(()=>loadSalesReport(activeSalesWarehouse),300);});
 
 // === Main Program Login Gate ===
 let CURRENT_AUTH_USER=null;

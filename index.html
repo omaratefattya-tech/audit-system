@@ -102,7 +102,7 @@
 
           <div class="upload-report-tabs" role="tablist" aria-label="أنواع التقارير">
             <button class="upload-report-tab active" type="button" data-upload-tab="sales">مراجعة مبيعات المنتج التام والتحويلات المخزنية</button>
-            <button class="upload-report-tab" type="button" data-upload-tab="incoming" disabled>الوارد من MB51 - لاحقًا</button>
+            <button class="upload-report-tab" type="button" data-upload-tab="incoming">الوارد من MB51</button>
           </div>
 
           <div class="upload-tab-panel active" id="salesUploadPanel" data-upload-panel="sales">
@@ -129,7 +129,26 @@
           </div>
 
           <div class="upload-tab-panel" id="incomingUploadPanel" data-upload-panel="incoming">
-            <p class="hint">سيتم تفعيل رفع الوارد من MB51 بعد اعتماد قالب الوارد.</p>
+            <div class="daily-upload-box">
+              <label class="report-date-field">
+                تاريخ التقرير
+                <input type="date" id="incomingReportDateInput" />
+              </label>
+              <button class="primary" id="pickIncomingFileBtn" type="button">اختيار ورفع ملف الوارد MB51</button>
+            </div>
+            <input type="file" id="incomingExcelInput" accept=".xlsx,.xls,.csv" hidden />
+            <div class="drop-zone" id="incomingDropZone">
+              اختر ملف Excel للوارد من MB51 أو اسحبه هنا
+              <br>
+              <small>سيتم حفظ البيانات الخام في incoming_raw_transactions وربطها بتاريخ التقرير المختار.</small>
+            </div>
+            <div class="upload-status" id="incomingUploadStatus"></div>
+
+            <div class="history-panel">
+              <h3>سجل نسخ الوارد المرفوعة</h3>
+              <p class="hint">يمكنك البحث والترتيب من رأس كل عمود، وعرض أو استبدال أو حذف أي نسخة.</p>
+              <div class="table-wrap"><table id="incomingBatchesTable"></table></div>
+            </div>
           </div>
         </article>
       </section>
