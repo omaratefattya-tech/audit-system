@@ -915,24 +915,32 @@ async function loadInboundAuditReport(date=''){
     const freightStatus=['matched','supplier_vehicle_ok'].includes(r.freight_match_status)?'green':(r.freight_match_status==='not_applicable'?'yellow':'red');
     const movementStatus=r.movement_cell_status || r.raw_result?.movement_cell_status || 'neutral';
     const movementValue=(r.incoming_movement_type || r.raw_result?.movement_type || '-') + (r.incoming_movement_text ? ' - '+r.incoming_movement_text : '');
-    return [
+    const values=[
       r.material_code || '-',
       r.material_name || '-',
       r.uom || '-',
       fmt(r.quantity_to || 0),
-      auditStatusCell(r.scale_net_weight_to==null ? (r.warning_message || 'لم يتم التصفية في تاريخه') : fmt(r.scale_net_weight_to), scaleStatus),
-      auditStatusCell(r.weight_diff_percent==null ? '-' : fmt(r.weight_diff_percent)+'%', weightStatus),
-      auditStatusCell(movementValue, movementStatus),
-      auditStatusCell(r.mb51_warehouse_code || '-', whStatus),
-      auditStatusCell(r.scale_warehouse_code || 'لم يتم التصفية في تاريخه', whStatus),
-      auditStatusCell(r.mb51_purchase_order || '-', poStatus),
-      auditStatusCell(r.scale_purchase_order || 'لم يتم التصفية في تاريخه', poStatus),
+      r.scale_net_weight_to==null ? (r.warning_message || 'لم يتم التصفية في تاريخه') : fmt(r.scale_net_weight_to),
+      r.weight_diff_percent==null ? '-' : fmt(r.weight_diff_percent)+'%',
+      movementValue,
+      r.mb51_warehouse_code || '-',
+      r.scale_warehouse_code || 'لم يتم التصفية في تاريخه',
+      r.mb51_purchase_order || '-',
+      r.scale_purchase_order || 'لم يتم التصفية في تاريخه',
       r.vehicle_number || '-',
       r.incoming_type || '-',
       r.vehicle_description || '-',
-      auditStatusCell(r.mb51_freight_description || '-', freightStatus),
-      auditStatusCell(r.mb51_freight_rate_per_ton==null ? '-' : fmt(r.mb51_freight_rate_per_ton), freightStatus)
+      r.mb51_freight_description || '-',
+      r.mb51_freight_rate_per_ton==null ? '-' : fmt(r.mb51_freight_rate_per_ton)
     ];
+    const normalStatuses=['neutral','neutral','neutral','neutral',scaleStatus,weightStatus,movementStatus,whStatus,whStatus,poStatus,poStatus,'neutral','neutral','neutral',freightStatus,freightStatus];
+    let statuses=normalStatuses;
+    if(movementStatus==='red'){
+      statuses=values.map(()=> 'red');
+    }else if(movementStatus==='gold'){
+      statuses=values.map((_,i)=> i>=values.length-2 ? freightStatus : 'gold');
+    }
+    return values.map((v,i)=>statuses[i]==='neutral' ? v : auditStatusCell(v,statuses[i]));
   });
   table('#inboundTable',heads,rows);
 }
