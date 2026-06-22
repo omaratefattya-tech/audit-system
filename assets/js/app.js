@@ -324,21 +324,35 @@ function normalizeGoodsTypeForFreight(value){
   return v;
 }
 function freightKey(parts){return parts.map(normKey).join('|');}
-function findFreightReference(freightRows,r){
+function analyzeFreightReference(freightRows,r){
   const plant=normalizePlantCodeForAudit(r.plant_code || r.plant_name,r.warehouse_code);
   const vehicleClass=normalizeVehicleClass(r.vehicle_description);
   const freightDesc=normKey(r.freight_description);
   const exactGoods=normKey(r.goods_type || r.material_name);
   const normalizedGoods=normKey(normalizeGoodsTypeForFreight(r.goods_type || r.material_name));
-  const candidates=(freightRows||[]).filter(f=>
-    normKey(normalizePlantCodeForAudit(f.plant_code))===normKey(plant) &&
-    normKey(normalizeVehicleClass(f.vehicle_description))===normKey(vehicleClass) &&
-    normKey(f.freight_description)===freightDesc
-  );
-  return candidates.find(f=>normKey(f.goods_type)===exactGoods)
-      || candidates.find(f=>normKey(f.goods_type)===normalizedGoods)
-      || candidates.find(f=>normKey(f.goods_type).includes('باقي الأصناف'))
-      || candidates[0] || null;
+  const active=freightRows||[];
+  const byPlant=active.filter(f=>normKey(normalizePlantCodeForAudit(f.plant_code))===normKey(plant));
+  if(!byPlant.length){
+    return {ref:null,reason:'لا يوجد مصنع مطابق في مرجع النولون'};
+  }
+  const byVehicle=byPlant.filter(f=>normKey(normalizeVehicleClass(f.vehicle_description))===normKey(vehicleClass));
+  if(!byVehicle.length){
+    return {ref:null,reason:'وصف العربية غير مطابق مع مرجع النولون'};
+  }
+  const byFreight=byVehicle.filter(f=>normKey(f.freight_description)===freightDesc);
+  if(!byFreight.length){
+    return {ref:null,reason:'وصف النولون غير مطابق مع مرجع النولون'};
+  }
+  const ref=byFreight.find(f=>normKey(f.goods_type)===exactGoods)
+      || byFreight.find(f=>normKey(f.goods_type)===normalizedGoods)
+      || byFreight.find(f=>normKey(f.goods_type).includes('باقي الأصناف'));
+  if(!ref){
+    return {ref:null,reason:'نوع البضاعة / وصف المادة غير مطابق مع مرجع النولون'};
+  }
+  return {ref,reason:'تم العثور على سطر نولون مرجعي مطابق'};
+}
+function findFreightReference(freightRows,r){
+  return analyzeFreightReference(freightRows,r).ref;
 }
 function movementCellStatusFromGroup(movementType,group){
   const mt=normKey(movementType).toUpperCase();
@@ -413,14 +427,18 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
       warning='لم يتم التصفية في تاريخه';
       rowStatus='warning'; rowColor='yellow';
     }
-    let freightStatus='not_applicable',refFreightDesc='',refRate=null;
+    let freightStatus='not_applicable',refFreightDesc='',refRate=null,freightDiagnosis='غير مطبق';
     if(incomingType==='وصّال'){
       freightStatus=(!normText(r.freight_description) && isRateEqual(r.freight_rate_per_ton,0.01))?'supplier_vehicle_ok':'supplier_vehicle_mismatch';
+      freightDiagnosis=freightStatus==='supplier_vehicle_ok' ? 'وصّال: وصف النولون فارغ والقيمة 0.01' : 'وصّال: قيمة النولون أو وصف النولون غير مطابق';
     }else{
-      const ref=findFreightReference(freightRows,r);
+      const freightAnalysis=analyzeFreightReference(freightRows,r);
+      const ref=freightAnalysis.ref;
+      freightDiagnosis=freightAnalysis.reason;
       if(ref){
         refFreightDesc=ref.freight_description; refRate=Number(ref.rate_per_ton||0);
         freightStatus=isRateEqual(r.freight_rate_per_ton,refRate)?'matched':'mismatch';
+        freightDiagnosis=freightStatus==='matched' ? 'مطابق: المصنع + وصف المادة + وصف العربية + وصف النولون + القيمة' : `قيمة النولون غير مطابقة: MB51=${r.freight_rate_per_ton ?? '-'} / المرجع=${refRate}`;
       }else{
         freightStatus='mismatch';
       }
@@ -462,7 +480,7 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
       row_status: rowStatus,
       row_color: rowColor,
       warning_message: warning,
-      raw_result: {scale_matches:matches.length,movement_group:movementGroup,movement_type:incomingMovementType,movement_text:incomingMovementText,plant_used_for_freight:normalizePlantCodeForAudit(r.plant_code || r.plant_name,r.warehouse_code),vehicle_class_used_for_freight:normalizeVehicleClass(r.vehicle_description)}
+      raw_result: {scale_matches:matches.length,movement_group:movementGroup,movement_type:incomingMovementType,movement_text:incomingMovementText,plant_used_for_freight:normalizePlantCodeForAudit(r.plant_code || r.plant_name,r.warehouse_code),goods_used_for_freight:normalizeGoodsTypeForFreight(r.goods_type || r.material_name),vehicle_class_used_for_freight:normalizeVehicleClass(r.vehicle_description),freight_diagnosis:freightDiagnosis}
     };
   });
   if(results.length) await insertChunks('incoming_audit_results',results,300);
@@ -889,7 +907,7 @@ async function loadInboundAuditReport(date=''){
   const tbl=$('#inboundTable');
   if(!tbl || !WarehouseDB?.ready) return;
   const selected=normalizeDateISO(date || $('#inboundReportDateSelect')?.value || '');
-  const heads=['المادة','وصف المادة','وحدة القياس','الكمية','صافي الميزان','فرق الوزن %','نوع الحركة','مخزن MB51','مخزن الميزان','أمر الشراء MB51','أمر الشراء الميزان','رقم العربية','نوع الوارد','وصف العربية','وصف النولون','قيمة النولون للطن'];
+  const heads=['المادة','وصف المادة','وحدة القياس','الكمية','صافي الميزان','فرق الوزن %','نوع الحركة','مخزن MB51','مخزن الميزان','أمر الشراء MB51','أمر الشراء الميزان','رقم العربية','نوع الوارد','وصف العربية','وصف النولون','قيمة النولون للطن','سبب مطابقة النولون'];
   if(!selected){
     table('#inboundTable',heads,[]);
     return;
@@ -900,12 +918,12 @@ async function loadInboundAuditReport(date=''){
     .eq('report_date',selected)
     .order('material_code',{ascending:true});
   if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل مراجعة الوارد: ${error.message}</td></tr></tbody>`; return; }
-  if((data||[]).some(r=>!r.incoming_movement_type) && !window.__incomingMovementRebuildOnce){
+  if((data||[]).some(r=>!r.incoming_movement_type || !r.raw_result?.freight_diagnosis) && !window.__incomingMovementRebuildOnce){
     window.__incomingMovementRebuildOnce=true;
     try{
       await tryBuildIncomingAudit(selected);
       return loadInboundAuditReport(selected);
-    }catch(e){ console.warn('incoming movement rebuild skipped',e); }
+    }catch(e){ console.warn('incoming audit rebuild skipped',e); }
   }
   const rows=(data||[]).map(r=>{
     const scaleStatus=r.scale_cell_status || (r.scale_match_status==='matched'?'green':r.row_color);
@@ -931,14 +949,15 @@ async function loadInboundAuditReport(date=''){
       r.incoming_type || '-',
       r.vehicle_description || '-',
       r.mb51_freight_description || '-',
-      r.mb51_freight_rate_per_ton==null ? '-' : fmt(r.mb51_freight_rate_per_ton)
+      r.mb51_freight_rate_per_ton==null ? '-' : fmt(r.mb51_freight_rate_per_ton),
+      r.raw_result?.freight_diagnosis || '-'
     ];
-    const normalStatuses=['neutral','neutral','neutral','neutral',scaleStatus,weightStatus,movementStatus,whStatus,whStatus,poStatus,poStatus,'neutral','neutral','neutral',freightStatus,freightStatus];
+    const normalStatuses=['neutral','neutral','neutral','neutral',scaleStatus,weightStatus,movementStatus,whStatus,whStatus,poStatus,poStatus,'neutral','neutral','neutral',freightStatus,freightStatus,freightStatus];
     let statuses=normalStatuses;
     if(movementStatus==='red'){
       statuses=values.map(()=> 'red');
     }else if(movementStatus==='gold'){
-      statuses=values.map((_,i)=> i>=values.length-2 ? freightStatus : 'gold');
+      statuses=values.map((_,i)=> i>=values.length-3 ? freightStatus : 'gold');
     }
     return values.map((v,i)=>statuses[i]==='neutral' ? v : auditStatusCell(v,statuses[i]));
   });
