@@ -104,6 +104,7 @@
             <button class="upload-report-tab active" type="button" data-upload-tab="sales">مراجعة مبيعات المنتج التام والتحويلات المخزنية</button>
             <button class="upload-report-tab" type="button" data-upload-tab="incoming">الوارد من MB51</button>
             <button class="upload-report-tab" type="button" data-upload-tab="scale">تقرير الميزان</button>
+            <button class="upload-report-tab" type="button" data-upload-tab="freight">نولون الوارد</button>
           </div>
 
           <div class="upload-tab-panel active" id="salesUploadPanel" data-upload-panel="sales">
@@ -173,6 +174,36 @@
               <p class="hint">يمكنك البحث والترتيب من رأس كل عمود، وعرض المراجعة أو استبدال أو حذف أي نسخة.</p>
               <div class="table-wrap"><table id="scaleBatchesTable"></table></div>
             </div>
+
+
+          <div class="upload-tab-panel" id="freightUploadPanel" data-upload-panel="freight">
+            <div class="daily-upload-box">
+              <label class="report-date-field">
+                تاريخ تحديث المرجع
+                <input type="date" id="freightReferenceDateInput" />
+              </label>
+              <button class="primary" id="pickFreightFileBtn" type="button">اختيار ورفع ملف نولون الوارد</button>
+            </div>
+            <input type="file" id="freightExcelInput" accept=".xlsx,.xls,.csv" hidden />
+            <div class="drop-zone" id="freightDropZone">
+              اختر ملف Excel لنولون الوارد أو اسحبه هنا
+              <br>
+              <small>سيتم تحديث جدول incoming_freight_rates كمرجع ثابت لمطابقة النولون في مراجعة الوارد.</small>
+            </div>
+            <div class="upload-status" id="freightUploadStatus"></div>
+
+            <div class="history-panel">
+              <h3>سجل تحديثات نولون الوارد</h3>
+              <p class="hint">يمكنك البحث والترتيب من رأس كل عمود، وعرض المرجع الحالي أو حذف تحديث سابق.</p>
+              <div class="table-wrap"><table id="freightBatchesTable"></table></div>
+            </div>
+
+            <div class="history-panel">
+              <h3>المرجع الحالي لنولون الوارد</h3>
+              <p class="hint">الصفوف النشطة المستخدمة حالياً في مطابقة النولون.</p>
+              <div class="table-wrap"><table id="freightRatesTable"></table></div>
+            </div>
+          </div>
           </div>
         </article>
       </section>

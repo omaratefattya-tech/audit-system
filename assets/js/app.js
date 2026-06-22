@@ -234,6 +234,26 @@ function mapScaleRows(rows,batchId){
     };
   }).filter(r=>r.material_code && r.net_weight_kg && r.plant_code && r.warehouse_code && r.purchase_order && r.vehicle_number);
 }
+
+function mapFreightRows(rows,batchId){
+  return rows.map((row,idx)=>{
+    const normalized={};
+    Object.entries(row).forEach(([k,v])=>normalized[normalizeHeader(k)]=v);
+    const plantRaw=String(getRowValue(normalized,['المصنع','كود المصنع','Plant','Plant Code'])).trim();
+    return {
+      batch_id: batchId,
+      freight_description: String(getRowValue(normalized,['وصف النولون','نولون','Freight Description'])).trim(),
+      goods_type: String(getRowValue(normalized,['نوع البضاعه','نوع البضاعة','نوع البضاعة ','وصف المادة','Goods Type','Material Description'])).trim(),
+      plant_code: normalizePlantCodeForAudit(plantRaw),
+      vehicle_description: String(getRowValue(normalized,['وصف العربية','وصف السياره','وصف السيارة','Vehicle Description','Truck Description'])).trim(),
+      rate_per_ton: parseArabicNumber(getRowValue(normalized,['قيمة النولون للطن','قيمة النولون','نولون الطن','Freight Rate','Rate Per Ton'])),
+      is_active: true,
+      source_row_number: idx+2,
+      raw_row: normalized
+    };
+  }).filter(r=>r.freight_description && r.goods_type && r.plant_code && r.vehicle_description && Number.isFinite(Number(r.rate_per_ton)));
+}
+
 function normText(v){return String(v||'').replace(/\s+/g,' ').trim();}
 function normKey(v){return normText(v).toLowerCase();}
 function isSupplierVehicle(vehicleNumber, vehicleDescription){
@@ -438,6 +458,14 @@ async function insertChunks(tableName, rows, chunkSize=500){
   for(let i=0;i<rows.length;i+=chunkSize){
     const chunk=rows.slice(i,i+chunkSize);
     const {error}=await WarehouseDB.client.from(tableName).insert(chunk);
+    if(error) throw error;
+  }
+}
+async function upsertChunks(tableName, rows, chunkSize=500, onConflict=''){
+  for(let i=0;i<rows.length;i+=chunkSize){
+    const chunk=rows.slice(i,i+chunkSize);
+    let q=WarehouseDB.client.from(tableName).upsert(chunk, onConflict ? {onConflict} : undefined);
+    const {error}=await q;
     if(error) throw error;
   }
 }
@@ -884,6 +912,133 @@ async function loadInboundAuditReport(date=''){
   table('#inboundTable',heads,rows);
 }
 
+
+async function handleFreightFile(file){
+  const status=$('#freightUploadStatus');
+  const referenceDate=normalizeDateISO($('#freightReferenceDateInput')?.value) || todayISO();
+  if(!status) return;
+  status.className='upload-status';
+  status.textContent='جاري قراءة ملف نولون الوارد...';
+  if(!WarehouseDB?.ready){ status.textContent='Supabase غير متصل. راجع ملف supabase-config.js'; status.className='upload-status err'; return; }
+  const {data:userData}=await WarehouseDB.getUser();
+  if(!userData?.user){ status.textContent='سجل الدخول أولًا قبل رفع الملف.'; status.className='upload-status err'; return; }
+  try{
+    const arrayBuffer=await file.arrayBuffer();
+    const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
+    const sourceRows=rowsFromWorkbook(workbook);
+    if(!sourceRows.length) throw new Error('الملف لا يحتوي على بيانات.');
+    const payloadPreview=mapFreightRows(sourceRows,'00000000-0000-0000-0000-000000000000');
+    if(!payloadPreview.length) throw new Error('لم يتم العثور على صفوف نولون صالحة. راجع رؤوس الأعمدة.');
+    const ok=confirm(`سيتم تحديث مرجع نولون الوارد بالكامل بعدد ${payloadPreview.length} صف.
+سيتم تعطيل الصفوف القديمة غير الموجودة في الملف الجديد.
+هل تريد المتابعة؟`);
+    if(!ok){ status.textContent='تم إلغاء رفع مرجع النولون بدون تغيير البيانات.'; return; }
+    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء سجل تحديث مرجع النولون...`;
+    const {data:batch,error:batchError}=await WarehouseDB.client.from('freight_upload_batches').insert({
+      file_name:file.name,
+      reference_date:referenceDate,
+      uploaded_by:userData.user.id,
+      uploaded_by_name:currentUploaderName(userData),
+      row_count:payloadPreview.length,
+      file_size_bytes:file.size || 0,
+      status:'active'
+    }).select('id').single();
+    if(batchError) throw batchError;
+    status.textContent='جاري تعطيل مرجع النولون القديم...';
+    const {error:disableError}=await WarehouseDB.client.from('incoming_freight_rates').update({is_active:false}).eq('is_active',true);
+    if(disableError) throw disableError;
+    const payload=payloadPreview.map(r=>({...r,batch_id:batch.id}));
+    status.textContent=`جاري رفع ${payload.length} صف نولون إلى Supabase...`;
+    await upsertChunks('incoming_freight_rates',payload,400,'freight_description,goods_type,plant_code,vehicle_description');
+    status.textContent=`تم تحديث مرجع نولون الوارد بنجاح بعدد ${payload.length} صف.`;
+    status.className='upload-status ok';
+    await loadFreightBatches();
+    await loadFreightRates();
+  }catch(err){
+    status.textContent=`خطأ أثناء رفع نولون الوارد: ${err.message || err}`;
+    status.className='upload-status err';
+  }
+}
+async function loadFreightBatches(){
+  const tbl=$('#freightBatchesTable');
+  if(!tbl || !WarehouseDB?.ready) return;
+  const {data,error}=await WarehouseDB.client
+    .from('freight_upload_batches')
+    .select('id,file_name,reference_date,upload_date,uploaded_by,uploaded_by_name,row_count,file_size_bytes,status')
+    .neq('status','deleted')
+    .order('upload_date',{ascending:false});
+  if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل سجل نولون الوارد: ${error.message}</td></tr></tbody>`; return; }
+  const rows=(data||[]).map(b=>[
+    normalizeDateISO(b.reference_date) || '-',
+    b.file_name || '-',
+    Number(b.row_count||0).toLocaleString('en-US'),
+    formatFileSize(b.file_size_bytes),
+    b.uploaded_by_name || b.uploaded_by || '-',
+    b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
+    b.status || '-',
+    `<button class="small-action view" data-action="view">عرض المرجع الحالي</button>
+     <button class="small-action delete" data-action="delete" data-id="${b.id}">حذف</button>`
+  ]);
+  table('#freightBatchesTable',['تاريخ المرجع','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الحالة','الإجراءات'],rows);
+}
+async function loadFreightRates(){
+  const tbl=$('#freightRatesTable');
+  if(!tbl || !WarehouseDB?.ready) return;
+  const {data,error}=await WarehouseDB.client
+    .from('incoming_freight_rates')
+    .select('freight_description,goods_type,plant_code,vehicle_description,rate_per_ton,is_active,updated_at')
+    .eq('is_active',true)
+    .order('plant_code',{ascending:true})
+    .order('freight_description',{ascending:true});
+  if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل مرجع النولون: ${error.message}</td></tr></tbody>`; return; }
+  const rows=(data||[]).map(r=>[
+    r.freight_description || '-',
+    r.goods_type || '-',
+    r.plant_code || '-',
+    r.vehicle_description || '-',
+    fmt(r.rate_per_ton || 0),
+    r.is_active ? 'نشط' : 'غير نشط',
+    r.updated_at ? new Date(r.updated_at).toLocaleString('ar-EG') : '-'
+  ]);
+  table('#freightRatesTable',['وصف النولون','نوع البضاعة','المصنع','وصف العربية','قيمة النولون للطن','الحالة','آخر تحديث'],rows);
+}
+async function handleFreightBatchAction(btn){
+  const action=btn.dataset.action;
+  if(action==='view'){
+    await loadFreightRates();
+  }
+  if(action==='delete'){
+    if(!confirm('سيتم حذف هذا التحديث وتعطيل الصفوف المرتبطة به. هل أنت متأكد؟')) return;
+    const id=btn.dataset.id;
+    const {error:disableError}=await WarehouseDB.client.from('incoming_freight_rates').update({is_active:false}).eq('batch_id',id);
+    if(disableError){ alert('خطأ أثناء تعطيل صفوف النولون: '+disableError.message); return; }
+    const {error:batchError}=await WarehouseDB.client.from('freight_upload_batches').update({status:'deleted'}).eq('id',id);
+    if(batchError){ alert('خطأ أثناء حذف سجل التحديث: '+batchError.message); return; }
+    await loadFreightBatches();
+    await loadFreightRates();
+  }
+}
+function initFreightUploader(){
+  const input=$('#freightExcelInput'), btn=$('#pickFreightFileBtn'), dz=$('#freightDropZone'), dateInput=$('#freightReferenceDateInput');
+  if(dateInput && !dateInput.value) dateInput.value=todayISO();
+  if(!input || !btn) return;
+  btn.onclick=()=>input.click();
+  input.onchange=()=>{ if(input.files?.[0]) handleFreightFile(input.files[0]); input.value=''; };
+  if(dz){
+    dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag')};
+    dz.ondragleave=()=>dz.classList.remove('drag');
+    dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files?.[0];if(f)handleFreightFile(f)};
+  }
+  loadFreightBatches();
+  loadFreightRates();
+}
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('#freightBatchesTable [data-action]');
+  if(!btn) return;
+  e.preventDefault();
+  handleFreightBatchAction(btn);
+});
+
 function initIncomingUploader(){
   const input=$('#incomingExcelInput'), btn=$('#pickIncomingFileBtn'), dz=$('#incomingDropZone'), dateInput=$('#incomingReportDateInput');
   if(dateInput && !dateInput.value) dateInput.value=todayISO();
@@ -947,7 +1102,7 @@ renderTables = function(){
   table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحميل'],[]);
   table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample);
 };
-document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initSalesUploader();initIncomingUploader();initScaleUploader();refreshInboundReportDates();setTimeout(()=>{loadSalesReport(activeSalesWarehouse);loadInboundAuditReport();},300);});
+document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initSalesUploader();initIncomingUploader();initScaleUploader();initFreightUploader();refreshInboundReportDates();setTimeout(()=>{loadSalesReport(activeSalesWarehouse);loadInboundAuditReport();},300);});
 
 // === Main Program Login Gate ===
 let CURRENT_AUTH_USER=null;
