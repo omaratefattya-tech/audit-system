@@ -103,7 +103,6 @@
           <div class="upload-report-tabs" role="tablist" aria-label="أنواع التقارير">
             <button class="upload-report-tab active" type="button" data-upload-tab="sales">مراجعة مبيعات المنتج التام والتحويلات المخزنية</button>
             <button class="upload-report-tab" type="button" data-upload-tab="incoming">الوارد من MB51</button>
-            <button class="upload-report-tab" type="button" data-upload-tab="scale">تقرير الميزان</button>
           </div>
 
           <div class="upload-tab-panel active" id="salesUploadPanel" data-upload-panel="sales">
@@ -151,29 +150,6 @@
               <div class="table-wrap"><table id="incomingBatchesTable"></table></div>
             </div>
           </div>
-
-          <div class="upload-tab-panel" id="scaleUploadPanel" data-upload-panel="scale">
-            <div class="daily-upload-box">
-              <label class="report-date-field">
-                تاريخ التقرير
-                <input type="date" id="scaleReportDateInput" />
-              </label>
-              <button class="primary" id="pickScaleFileBtn" type="button">اختيار ورفع ملف الميزان</button>
-            </div>
-            <input type="file" id="scaleExcelInput" accept=".xlsx,.xls,.csv" hidden />
-            <div class="drop-zone" id="scaleDropZone">
-              اختر ملف Excel لتقرير الميزان أو اسحبه هنا
-              <br>
-              <small>سيتم حفظ البيانات الخام في scale_raw_transactions وربطها بتاريخ التقرير المختار. عند توفر MB51 والميزان لنفس التاريخ يتم إنشاء مراجعة الوارد تلقائياً.</small>
-            </div>
-            <div class="upload-status" id="scaleUploadStatus"></div>
-
-            <div class="history-panel">
-              <h3>سجل نسخ الميزان المرفوعة</h3>
-              <p class="hint">يمكنك البحث والترتيب من رأس كل عمود، وعرض المراجعة أو استبدال أو حذف أي نسخة.</p>
-              <div class="table-wrap"><table id="scaleBatchesTable"></table></div>
-            </div>
-          </div>
         </article>
       </section>
       <section id="plants" class="section"><article class="panel glass"><h2>مصانع ومخازن</h2><div id="plantsFull" class="plants-full"></div></article></section>
@@ -192,19 +168,7 @@
           <div class="table-wrap"><table id="salesTable"></table></div>
         </article>
       </section>
-      <section id="inbound" class="section">
-        <article class="panel glass">
-          <h2>مراجعة الوارد</h2>
-          <p class="hint">يتم إنشاء نتائج المراجعة تلقائياً عند توفر تقرير الوارد MB51 وتقرير الميزان لنفس تاريخ التقرير.</p>
-          <div class="sales-report-date-bar">
-            <label>
-              تاريخ المراجعة
-              <select id="inboundReportDateSelect"><option value="">اختر تاريخ المراجعة</option></select>
-            </label>
-          </div>
-          <div class="table-wrap"><table id="inboundTable"></table></div>
-        </article>
-      </section>
+      <section id="inbound" class="section"><article class="panel glass"><h2>مراجعة الوارد</h2><div id="inboundTabs" class="subtabs"></div><div class="table-wrap"><table id="inboundTable"></table></div></article></section>
       <section id="reports" class="section"><article class="panel glass"><h2>التقارير</h2><div class="report-actions"><button class="primary">تقرير الحركات</button><button class="primary">تقرير التسويات</button><button class="primary">تقرير الوارد</button><button class="primary">تقرير البيع</button></div></article></section>
       <section id="settings" class="section">
         <article class="panel glass">

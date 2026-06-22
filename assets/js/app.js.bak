@@ -189,193 +189,21 @@ function mapIncomingRows(rows,batchId){
     const normalized={};
     Object.entries(row).forEach(([k,v])=>normalized[normalizeHeader(k)]=v);
     const trxDateValue=getRowValue(normalized,['التاريخ','تاريخ الترحيل','Posting Date','Document Date','Date']);
-    const materialName=String(getRowValue(normalized,['وصف المادة','وصف الصنف','Material Description','Short Text'])).trim();
-    const uom=String(getRowValue(normalized,['وحدة القياس','الوحدة','UOM','Base Unit of Measure','Unit of Entry'])).trim().toUpperCase() || 'TO';
     return {
       batch_id: batchId,
       material_code: String(getRowValue(normalized,['كود المادة','المادة','Material','Material Code'])).trim(),
-      material_name: materialName,
+      material_name: String(getRowValue(normalized,['وصف المادة','وصف الصنف','Material Description','Short Text'])).trim(),
       quantity: parseArabicNumber(getRowValue(normalized,['الكمية','كمية','Quantity','Qty in Un. of Entry'])),
-      uom,
+      uom: String(getRowValue(normalized,['وحدة القياس','الوحدة','UOM','Base Unit of Measure','Unit of Entry'])).trim().toUpperCase() || 'TO',
       movement_type: String(getRowValue(normalized,['نوع الحركة','كود الحركة','Movement Type','MvT'])).trim(),
       movement_text: String(getRowValue(normalized,['وصف نوع الحركة','وصف الحركة','Movement Text','Movement Type Text'])).trim(),
       warehouse_code: String(getRowValue(normalized,['المخزن','كود المخزن','Storage Location','SLoc'])).trim(),
       plant_code: String(getRowValue(normalized,['المصنع','تلمصنع','Plant'])).trim(),
       plant_name: String(getRowValue(normalized,['إسم المصنع','اسم المصنع','Plant Name'])).trim(),
-      transaction_date: typeof trxDateValue === 'number' ? excelDateToISO(trxDateValue) : excelDateToISO(trxDateValue),
-      purchase_order: String(getRowValue(normalized,['أمر الشراء','رقم أمر الشراء','Purchase Order','Purchasing Document','PO'])).trim(),
-      vehicle_number: String(getRowValue(normalized,['رقم العربية','رقم السياره','رقم السيارة','Vehicle Number','Truck No'])).trim(),
-      vehicle_description: String(getRowValue(normalized,['وصف العربية','وصف السياره','وصف السيارة','Vehicle Description','Truck Description'])).trim(),
-      freight_description: String(getRowValue(normalized,['وصف النولون','نولون','Freight Description'])).trim(),
-      freight_rate_per_ton: parseArabicNumber(getRowValue(normalized,['قيمة النولون للطن','قيمة النولون','نولون الطن','Freight Rate','Rate Per Ton'])),
-      goods_type: materialName,
-      raw_row: normalized
+      transaction_date: typeof trxDateValue === 'number' ? excelDateToISO(trxDateValue) : excelDateToISO(trxDateValue)
     };
-  }).filter(r=>r.material_code && r.material_name && r.warehouse_code && r.plant_code);
+  }).filter(r=>r.material_code && r.material_name && r.movement_type && r.movement_text && r.warehouse_code && r.plant_code);
 }
-
-function mapScaleRows(rows,batchId){
-  return rows.map(row=>{
-    const normalized={};
-    Object.entries(row).forEach(([k,v])=>normalized[normalizeHeader(k)]=v);
-    const trxDateValue=getRowValue(normalized,['التاريخ','تاريخ','Date']);
-    return {
-      batch_id: batchId,
-      material_code: String(getRowValue(normalized,['المادة','كود المادة','Material','Material Code'])).trim(),
-      material_name: String(getRowValue(normalized,['وصف المادة','وصف الصنف','Material Description'])).trim(),
-      net_weight_kg: parseArabicNumber(getRowValue(normalized,['صافي الميزان','صافى الميزان','صافي الوزن','Net Weight'])),
-      plant_code: String(getRowValue(normalized,['المصنع','Plant'])).trim(),
-      warehouse_code: String(getRowValue(normalized,['المخزن','Storage Location','SLoc'])).trim(),
-      purchase_order: String(getRowValue(normalized,['أمر الشراء','رقم أمر الشراء','Purchase Order','PO'])).trim(),
-      transaction_date: typeof trxDateValue === 'number' ? excelDateToISO(trxDateValue) : excelDateToISO(trxDateValue),
-      vehicle_number: String(getRowValue(normalized,['رقم العربية','رقم السياره','رقم السيارة','Vehicle Number','Truck No'])).trim(),
-      vehicle_description: String(getRowValue(normalized,['وصف العربية','وصف السياره','وصف السيارة','Vehicle Description'])).trim(),
-      raw_row: normalized
-    };
-  }).filter(r=>r.material_code && r.net_weight_kg && r.plant_code && r.warehouse_code && r.purchase_order && r.vehicle_number);
-}
-function normText(v){return String(v||'').replace(/\s+/g,' ').trim();}
-function normKey(v){return normText(v).toLowerCase();}
-function isSupplierVehicle(vehicleNumber, vehicleDescription){
-  const no=normText(vehicleNumber);
-  const desc=normText(vehicleDescription);
-  return !desc || no.includes('س') || (!no.startsWith('300') && !desc);
-}
-function incomingTypeFromVehicle(vehicleNumber, vehicleDescription){
-  return isSupplierVehicle(vehicleNumber, vehicleDescription) ? 'وصّال' : 'أرضة';
-}
-function isRateEqual(a,b){return Math.abs(Number(a||0)-Number(b||0)) < 0.005;}
-async function fetchAllRows(tableName, select='*', buildQuery){
-  let all=[];
-  for(let from=0;;from+=1000){
-    let q=WarehouseDB.client.from(tableName).select(select).range(from,from+999);
-    if(buildQuery) q=buildQuery(q);
-    const {data,error}=await q;
-    if(error) throw error;
-    all=all.concat(data||[]);
-    if(!data || data.length<1000) break;
-  }
-  return all;
-}
-function auditStatusCell(value,status){
-  const map={green:'#0f5f35',red:'#7a1f1f',yellow:'#7a6a1f',neutral:'transparent'};
-  const color=map[status]||map.neutral;
-  return `<span style="display:block;padding:6px 8px;border-radius:8px;background:${color};color:#fff">${value ?? '-'}</span>`;
-}
-async function tryBuildIncomingAudit(reportDate, targetStatus){
-  reportDate=normalizeDateISO(reportDate);
-  if(!reportDate || !WarehouseDB?.ready) return {built:false,message:'لم يتم تحديد تاريخ التقرير.'};
-  if(targetStatus) targetStatus.textContent='جاري فحص توفر MB51 والميزان لنفس التاريخ...';
-  const {data:incomingBatch,error:incomingErr}=await WarehouseDB.client
-    .from('incoming_upload_batches').select('id,report_date').eq('report_type','incoming').eq('status','active').eq('report_date',reportDate).maybeSingle();
-  if(incomingErr) throw incomingErr;
-  const {data:scaleBatch,error:scaleErr}=await WarehouseDB.client
-    .from('scale_upload_batches').select('id,report_date').eq('report_type','scale').eq('status','active').eq('report_date',reportDate).maybeSingle();
-  if(scaleErr) throw scaleErr;
-  if(!incomingBatch || !scaleBatch){
-    const missing=!incomingBatch?'MB51':'تقرير الميزان';
-    const msg=`تم الحفظ، ولم يتم إنشاء مراجعة الوارد لأن ${missing} غير متوفر لنفس التاريخ ${reportDate}.`;
-    if(targetStatus) targetStatus.textContent=msg;
-    return {built:false,message:msg};
-  }
-  if(targetStatus) targetStatus.textContent='التقريران متوفران. جاري بناء نتائج مراجعة الوارد...';
-  const [incomingRows,scaleRows,freightRows]=await Promise.all([
-    fetchAllRows('incoming_raw_transactions','*',q=>q.eq('batch_id',incomingBatch.id)),
-    fetchAllRows('scale_raw_transactions','*',q=>q.eq('batch_id',scaleBatch.id)),
-    fetchAllRows('incoming_freight_rates','*',q=>q.eq('is_active',true))
-  ]);
-  const scaleIndex=new Map();
-  scaleRows.forEach(s=>{
-    const key=[s.material_code,s.purchase_order,s.vehicle_number].map(normKey).join('|');
-    if(!scaleIndex.has(key)) scaleIndex.set(key,[]);
-    scaleIndex.get(key).push(s);
-  });
-  const freightIndex=new Map();
-  freightRows.forEach(f=>{
-    const key=[f.plant_code,f.vehicle_description,f.goods_type,f.freight_description].map(normKey).join('|');
-    freightIndex.set(key,f);
-  });
-  await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',reportDate);
-  const results=incomingRows.map(r=>{
-    const key=[r.material_code,r.purchase_order,r.vehicle_number].map(normKey).join('|');
-    const matches=scaleIndex.get(key)||[];
-    const scale=matches.length===1?matches[0]:null;
-    const quantityTo=String(r.uom||'').toUpperCase()==='KG' ? Number(r.quantity||0)/1000 : Number(r.quantity_to ?? r.quantity ?? 0);
-    const incomingType=incomingTypeFromVehicle(r.vehicle_number,r.vehicle_description);
-    let scaleMatchStatus='not_cleared',scaleCellStatus='red',rowStatus='error',rowColor='red',warning='';
-    let weightDiffTo=null,weightDiffPercent=null,weightDiffStatus='not_applicable';
-    let warehouseStatus='not_applicable',poStatus='not_cleared';
-    if(matches.length>1){ scaleMatchStatus='multiple_matches'; warning='يوجد أكثر من تصفية مطابقة لنفس المادة/أمر الشراء/رقم العربية.'; }
-    else if(scale){
-      scaleMatchStatus='matched'; scaleCellStatus='green';
-      weightDiffTo=quantityTo-Number(scale.net_weight_to ?? (Number(scale.net_weight_kg||0)/1000));
-      weightDiffPercent=quantityTo ? Math.abs(weightDiffTo)/Math.abs(quantityTo)*100 : null;
-      weightDiffStatus=(weightDiffPercent!==null && weightDiffPercent<=0.3) ? 'ok' : 'out_of_tolerance';
-      warehouseStatus=normKey(r.warehouse_code)===normKey(scale.warehouse_code)?'matched':'mismatch';
-      poStatus=normKey(r.purchase_order)===normKey(scale.purchase_order)?'matched':'mismatch';
-      rowStatus=(weightDiffStatus==='ok' && warehouseStatus==='matched' && poStatus==='matched')?'ok':'error';
-      rowColor=rowStatus==='ok'?'green':'red';
-    }else{
-      warning='لم يتم التصفية في تاريخه';
-      rowStatus='warning'; rowColor='yellow';
-    }
-    let freightStatus='not_applicable',refFreightDesc='',refRate=null;
-    if(incomingType==='وصّال'){
-      freightStatus=(!normText(r.freight_description) && isRateEqual(r.freight_rate_per_ton,0.01))?'supplier_vehicle_ok':'supplier_vehicle_mismatch';
-    }else{
-      const fkey=[r.plant_code,r.vehicle_description,r.goods_type || r.material_name,r.freight_description].map(normKey).join('|');
-      const ref=freightIndex.get(fkey);
-      if(ref){
-        refFreightDesc=ref.freight_description; refRate=Number(ref.rate_per_ton||0);
-        freightStatus=isRateEqual(r.freight_rate_per_ton,refRate)?'matched':'mismatch';
-      }else{
-        freightStatus='mismatch';
-      }
-    }
-    if(rowStatus==='ok' && !['matched','supplier_vehicle_ok','not_applicable'].includes(freightStatus)){rowStatus='error';rowColor='red';}
-    return {
-      report_date: reportDate,
-      incoming_batch_id: incomingBatch.id,
-      scale_batch_id: scaleBatch.id,
-      incoming_transaction_id: r.id,
-      scale_transaction_id: scale?.id || null,
-      material_code: r.material_code,
-      material_name: r.material_name,
-      uom: r.uom,
-      quantity_to: quantityTo,
-      scale_net_weight_to: scale ? Number(scale.net_weight_to ?? (Number(scale.net_weight_kg||0)/1000)) : null,
-      scale_match_status: scaleMatchStatus,
-      scale_cell_status: scaleCellStatus,
-      weight_diff_to: weightDiffTo,
-      weight_diff_percent: weightDiffPercent,
-      weight_diff_status: weightDiffStatus,
-      mb51_warehouse_code: r.warehouse_code,
-      scale_warehouse_code: scale?.warehouse_code || null,
-      warehouse_match_status: warehouseStatus,
-      mb51_purchase_order: r.purchase_order || '',
-      scale_purchase_order: scale?.purchase_order || null,
-      purchase_order_match_status: poStatus,
-      vehicle_number: r.vehicle_number || '',
-      incoming_type: incomingType,
-      vehicle_description: r.vehicle_description || '',
-      mb51_freight_description: r.freight_description || '',
-      reference_freight_description: refFreightDesc,
-      mb51_freight_rate_per_ton: Number(r.freight_rate_per_ton||0),
-      reference_freight_rate_per_ton: refRate,
-      freight_match_status: freightStatus,
-      row_status: rowStatus,
-      row_color: rowColor,
-      warning_message: warning,
-      raw_result: {scale_matches:matches.length}
-    };
-  });
-  if(results.length) await insertChunks('incoming_audit_results',results,300);
-  if(targetStatus){ targetStatus.className='upload-status ok'; targetStatus.textContent=`تم إنشاء نتائج مراجعة الوارد تلقائياً: ${results.length} سطر لتاريخ ${reportDate}.`; }
-  await refreshInboundReportDates(reportDate);
-  await loadInboundAuditReport(reportDate);
-  return {built:true,count:results.length};
-}
-
 async function insertChunks(tableName, rows, chunkSize=500){
   for(let i=0;i<rows.length;i+=chunkSize){
     const chunk=rows.slice(i,i+chunkSize);
@@ -556,7 +384,6 @@ async function handleIncomingFile(file){
       if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
       status.textContent='جاري حذف النسخة القديمة لنفس التاريخ...';
       const ids=existing.map(x=>x.id);
-      await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',reportDate);
       const {error:rawDeleteError}=await WarehouseDB.client.from('incoming_raw_transactions').delete().in('batch_id',ids);
       if(rawDeleteError) throw rawDeleteError;
       const {error:deleteError}=await WarehouseDB.client.from('incoming_upload_batches').delete().in('id',ids);
@@ -582,7 +409,6 @@ async function handleIncomingFile(file){
     status.textContent=`تم رفع ${payload.length} سطر وارد بنجاح لتاريخ ${reportDate}.`;
     status.className='upload-status ok';
     await loadIncomingBatches();
-    await tryBuildIncomingAudit(reportDate,status);
   }catch(err){
     status.textContent=`خطأ أثناء رفع الوارد: ${err.message || err}`;
     status.className='upload-status err';
@@ -619,8 +445,7 @@ async function handleIncomingBatchAction(btn){
   const date=btn.dataset.date || '';
   if(action==='view'){
     switchSection('inbound');
-    await refreshInboundReportDates(date);
-    await loadInboundAuditReport(date);
+    alert(`تم اختيار نسخة الوارد بتاريخ ${date}. ربط شاشة مراجعة الوارد التفصيلية سيتم في مرحلة عرض الوارد بعد اعتماد المعادلات.`);
   }
   if(action==='replace'){
     if($('#incomingReportDateInput')) $('#incomingReportDateInput').value=date;
@@ -628,7 +453,6 @@ async function handleIncomingBatchAction(btn){
   }
   if(action==='delete'){
     if(!confirm(`سيتم حذف تقرير الوارد بتاريخ ${date} وكل بياناته الخام. هل أنت متأكد؟`)) return;
-    await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',date);
     const {error:rawDeleteError}=await WarehouseDB.client.from('incoming_raw_transactions').delete().eq('batch_id',btn.dataset.id);
     if(rawDeleteError){ alert('خطأ أثناء حذف بيانات الوارد: '+rawDeleteError.message); return; }
     const {error:delError}=await WarehouseDB.client.from('incoming_upload_batches').delete().eq('id',btn.dataset.id);
@@ -636,192 +460,6 @@ async function handleIncomingBatchAction(btn){
     await loadIncomingBatches();
   }
 }
-
-async function handleScaleFile(file){
-  const status=$('#scaleUploadStatus');
-  const reportDate=normalizeDateISO($('#scaleReportDateInput')?.value);
-  if(!status) return;
-  status.className='upload-status';
-  status.textContent='جاري قراءة ملف الميزان...';
-  if(!reportDate){ status.textContent='اختار تاريخ التقرير أولاً.'; status.className='upload-status err'; return; }
-  if(!WarehouseDB?.ready){ status.textContent='Supabase غير متصل. راجع ملف supabase-config.js'; status.className='upload-status err'; return; }
-  const {data:userData}=await WarehouseDB.getUser();
-  if(!userData?.user){ status.textContent='سجل الدخول أولًا قبل رفع الملف.'; status.className='upload-status err'; return; }
-  try{
-    const arrayBuffer=await file.arrayBuffer();
-    const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
-    const sourceRows=rowsFromWorkbook(workbook);
-    if(!sourceRows.length) throw new Error('الملف لا يحتوي على بيانات.');
-    const payloadPreview=mapScaleRows(sourceRows,'00000000-0000-0000-0000-000000000000');
-    if(!payloadPreview.length) throw new Error('لم يتم العثور على صفوف ميزان صالحة. راجع رؤوس الأعمدة.');
-    const {data:existing,error:existingError}=await WarehouseDB.client
-      .from('scale_upload_batches')
-      .select('id,file_name,report_date')
-      .eq('report_type','scale')
-      .eq('report_date',reportDate)
-      .eq('status','active');
-    if(existingError) throw existingError;
-    if(existing?.length){
-      const ok=confirm(`يوجد تقرير ميزان مرفوع بالفعل بتاريخ ${reportDate}.\nهل تريد استبداله بالملف الجديد؟`);
-      if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
-      status.textContent='جاري حذف نسخة الميزان القديمة لنفس التاريخ...';
-      const ids=existing.map(x=>x.id);
-      await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',reportDate);
-      const {error:rawDeleteError}=await WarehouseDB.client.from('scale_raw_transactions').delete().in('batch_id',ids);
-      if(rawDeleteError) throw rawDeleteError;
-      const {error:deleteError}=await WarehouseDB.client.from('scale_upload_batches').delete().in('id',ids);
-      if(deleteError) throw deleteError;
-    }
-    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء نسخة ميزان بتاريخ ${reportDate}...`;
-    const {data:batch,error:batchError}=await WarehouseDB.client.from('scale_upload_batches').insert({
-      file_name:file.name,
-      uploaded_by:userData.user.id,
-      uploaded_by_name:currentUploaderName(userData),
-      notes:'تقرير الميزان',
-      report_type:'scale',
-      report_date:reportDate,
-      row_count:payloadPreview.length,
-      file_size_bytes:file.size || 0,
-      status:'active'
-    }).select('id').single();
-    if(batchError) throw batchError;
-    const payload=payloadPreview.map(r=>({...r,batch_id:batch.id}));
-    status.textContent=`جاري رفع ${payload.length} سطر ميزان إلى Supabase...`;
-    await insertChunks('scale_raw_transactions',payload,400);
-    status.textContent=`تم رفع ${payload.length} سطر ميزان بنجاح لتاريخ ${reportDate}.`;
-    status.className='upload-status ok';
-    await loadScaleBatches();
-    await tryBuildIncomingAudit(reportDate,status);
-  }catch(err){
-    status.textContent=`خطأ أثناء رفع تقرير الميزان: ${err.message || err}`;
-    status.className='upload-status err';
-  }
-}
-async function loadScaleBatches(){
-  const tbl=$('#scaleBatchesTable');
-  if(!tbl || !WarehouseDB?.ready){ return; }
-  const {data,error}=await WarehouseDB.client
-    .from('scale_upload_batches')
-    .select('id,file_name,upload_date,uploaded_by,uploaded_by_name,report_date,row_count,file_size_bytes,status')
-    .eq('report_type','scale')
-    .eq('status','active')
-    .order('report_date',{ascending:false});
-  if(error){
-    tbl.innerHTML=`<tbody><tr><td>خطأ تحميل سجل الميزان: ${error.message}</td></tr></tbody>`;
-    return;
-  }
-  const rows=(data||[]).map(b=>[
-    normalizeDateISO(b.report_date) || '-',
-    b.file_name || '-',
-    Number(b.row_count||0).toLocaleString('en-US'),
-    formatFileSize(b.file_size_bytes),
-    b.uploaded_by_name || b.uploaded_by || '-',
-    b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
-    `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض المراجعة</button>
-     <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
-     <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">حذف</button>`
-  ]);
-  table('#scaleBatchesTable',['تاريخ التقرير','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الإجراءات'],rows);
-}
-async function handleScaleBatchAction(btn){
-  const action=btn.dataset.action;
-  const date=btn.dataset.date || '';
-  if(action==='view'){
-    switchSection('inbound');
-    await refreshInboundReportDates(date);
-    await loadInboundAuditReport(date);
-  }
-  if(action==='replace'){
-    if($('#scaleReportDateInput')) $('#scaleReportDateInput').value=date;
-    $('#scaleExcelInput')?.click();
-  }
-  if(action==='delete'){
-    if(!confirm(`سيتم حذف تقرير الميزان بتاريخ ${date} وكل بياناته الخام ونتائج مراجعة الوارد المبنية عليه. هل أنت متأكد؟`)) return;
-    await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',date);
-    const {error:rawDeleteError}=await WarehouseDB.client.from('scale_raw_transactions').delete().eq('batch_id',btn.dataset.id);
-    if(rawDeleteError){ alert('خطأ أثناء حذف بيانات الميزان: '+rawDeleteError.message); return; }
-    const {error:delError}=await WarehouseDB.client.from('scale_upload_batches').delete().eq('id',btn.dataset.id);
-    if(delError){ alert('خطأ أثناء حذف نسخة الميزان: '+delError.message); return; }
-    await loadScaleBatches();
-    await refreshInboundReportDates();
-    await loadInboundAuditReport();
-  }
-}
-function initScaleUploader(){
-  const input=$('#scaleExcelInput'), btn=$('#pickScaleFileBtn'), dz=$('#scaleDropZone'), dateInput=$('#scaleReportDateInput');
-  if(dateInput && !dateInput.value) dateInput.value=todayISO();
-  if(!input || !btn) return;
-  btn.onclick=()=>input.click();
-  input.onchange=()=>{ if(input.files?.[0]) handleScaleFile(input.files[0]); input.value=''; };
-  if(dz){
-    dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag')};
-    dz.ondragleave=()=>dz.classList.remove('drag');
-    dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files?.[0];if(f)handleScaleFile(f)};
-  }
-  loadScaleBatches();
-}
-document.addEventListener('click',e=>{
-  const btn=e.target.closest('#scaleBatchesTable [data-action]');
-  if(!btn) return;
-  e.preventDefault();
-  handleScaleBatchAction(btn);
-});
-async function refreshInboundReportDates(preferredDate=''){
-  const select=$('#inboundReportDateSelect');
-  if(!select || !WarehouseDB?.ready) return;
-  const {data,error}=await WarehouseDB.client
-    .from('incoming_audit_results')
-    .select('report_date')
-    .not('report_date','is',null)
-    .order('report_date',{ascending:false});
-  if(error){ console.error(error); return; }
-  const dates=[...new Set((data||[]).map(x=>normalizeDateISO(x.report_date)).filter(Boolean))];
-  const current=preferredDate || select.value || dates[0] || '';
-  select.innerHTML='<option value="">اختر تاريخ المراجعة</option>'+dates.map(d=>`<option value="${d}">${d}</option>`).join('');
-  if(current && dates.includes(current)) select.value=current;
-  select.onchange=()=>loadInboundAuditReport(select.value);
-}
-async function loadInboundAuditReport(date=''){
-  const tbl=$('#inboundTable');
-  if(!tbl || !WarehouseDB?.ready) return;
-  const selected=normalizeDateISO(date || $('#inboundReportDateSelect')?.value || '');
-  if(!selected){
-    table('#inboundTable',['المادة','وصف المادة','وحدة القياس','الكمية','صافي الميزان','فرق الوزن %','مخزن MB51','مخزن الميزان','أمر الشراء MB51','أمر الشراء الميزان','رقم العربية','نوع الوارد','وصف العربية','وصف النولون','قيمة النولون للطن'],[]);
-    return;
-  }
-  const {data,error}=await WarehouseDB.client
-    .from('incoming_audit_results')
-    .select('*')
-    .eq('report_date',selected)
-    .order('material_code',{ascending:true});
-  if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل مراجعة الوارد: ${error.message}</td></tr></tbody>`; return; }
-  const rows=(data||[]).map(r=>{
-    const scaleStatus=r.scale_cell_status || (r.scale_match_status==='matched'?'green':r.row_color);
-    const weightStatus=r.weight_diff_status==='ok'?'green':(r.weight_diff_status==='not_applicable'?'yellow':'red');
-    const whStatus=r.warehouse_match_status==='matched'?'green':(r.warehouse_match_status==='not_applicable'?'yellow':'red');
-    const poStatus=r.purchase_order_match_status==='matched'?'green':(r.purchase_order_match_status==='not_cleared'?'yellow':'red');
-    const freightStatus=['matched','supplier_vehicle_ok'].includes(r.freight_match_status)?'green':(r.freight_match_status==='not_applicable'?'yellow':'red');
-    return [
-      r.material_code || '-',
-      r.material_name || '-',
-      r.uom || '-',
-      fmt(r.quantity_to || 0),
-      auditStatusCell(r.scale_net_weight_to==null ? (r.warning_message || 'لم يتم التصفية في تاريخه') : fmt(r.scale_net_weight_to), scaleStatus),
-      auditStatusCell(r.weight_diff_percent==null ? '-' : fmt(r.weight_diff_percent)+'%', weightStatus),
-      auditStatusCell(r.mb51_warehouse_code || '-', whStatus),
-      auditStatusCell(r.scale_warehouse_code || 'لم يتم التصفية في تاريخه', whStatus),
-      auditStatusCell(r.mb51_purchase_order || '-', poStatus),
-      auditStatusCell(r.scale_purchase_order || 'لم يتم التصفية في تاريخه', poStatus),
-      r.vehicle_number || '-',
-      r.incoming_type || '-',
-      r.vehicle_description || '-',
-      auditStatusCell(r.mb51_freight_description || '-', freightStatus),
-      auditStatusCell(r.mb51_freight_rate_per_ton==null ? '-' : fmt(r.mb51_freight_rate_per_ton), freightStatus)
-    ];
-  });
-  table('#inboundTable',['المادة','وصف المادة','وحدة القياس','الكمية','صافي الميزان','فرق الوزن %','مخزن MB51','مخزن الميزان','أمر الشراء MB51','أمر الشراء الميزان','رقم العربية','نوع الوارد','وصف العربية','وصف النولون','قيمة النولون للطن'],rows);
-}
-
 function initIncomingUploader(){
   const input=$('#incomingExcelInput'), btn=$('#pickIncomingFileBtn'), dz=$('#incomingDropZone'), dateInput=$('#incomingReportDateInput');
   if(dateInput && !dateInput.value) dateInput.value=todayISO();
@@ -877,7 +515,7 @@ async function loadSalesReport(warehouseCode){
 renderTabs = function(){
   $('#salesTabs').innerHTML=SALES_WAREHOUSES.map((w,i)=>`<button class="${i===0?'active':''}" data-warehouse="${w}">${w}</button>`).join('');
   $$('#salesTabs button').forEach(btn=>btn.onclick=()=>{ $$('#salesTabs button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); loadSalesReport(btn.dataset.warehouse); });
-  if($('#inboundTabs')) $('#inboundTabs').innerHTML=APP_DATA.plants.map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('');
+  $('#inboundTabs').innerHTML=APP_DATA.plants.map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('');
 };
 renderTables = function(){
   table('#latestTable',['التاريخ','رقم الحركة','كود الحركة','وصف الحركة','من مخزن','إلى مخزن','الكمية','الوحدة'],APP_DATA.latest);
@@ -885,7 +523,7 @@ renderTables = function(){
   table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحميل'],[]);
   table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample);
 };
-document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initSalesUploader();initIncomingUploader();initScaleUploader();refreshInboundReportDates();setTimeout(()=>{loadSalesReport(activeSalesWarehouse);loadInboundAuditReport();},300);});
+document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initSalesUploader();initIncomingUploader();setTimeout(()=>loadSalesReport(activeSalesWarehouse),300);});
 
 // === Main Program Login Gate ===
 let CURRENT_AUTH_USER=null;
@@ -976,12 +614,8 @@ async function showApplication(user){
   fillProfileForm(profile,user);
   setTimeout(()=>{
     loadSalesBatches();
-    loadIncomingBatches();
-    loadScaleBatches();
     refreshSalesReportDates();
-    refreshInboundReportDates();
     loadSalesReport(activeSalesWarehouse);
-    loadInboundAuditReport();
   },250);
 }
 async function checkMainSession(){
