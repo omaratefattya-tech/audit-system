@@ -128,25 +128,9 @@ function excelDateToISO(v){
 }
 function getRowValue(row, names){
   for(const n of names){
-    const key=normalizeHeader(n);
-    if(row[key] !== undefined && row[key] !== null && row[key] !== '') return row[key];
     if(row[n] !== undefined && row[n] !== null && row[n] !== '') return row[n];
   }
   return '';
-}
-function getRawRowValue(rawRow,names){
-  const row=rawRow&&typeof rawRow==='object'?rawRow:{};
-  return getRowValue(row,names);
-}
-function getIncomingMovementType(row){
-  return String(row?.movement_type || getRawRowValue(row?.raw_row,[
-    'نوع الحركة','نوع الحركه','كود الحركة','كود الحركه','الحركة','حركة','MvT','Mvt','Movement Type','Movement type','Movement Type Code'
-  ]) || '').trim();
-}
-function getIncomingMovementText(row){
-  return String(row?.movement_text || getRawRowValue(row?.raw_row,[
-    'وصف نوع الحركة','وصف نوع الحركه','وصف الحركة','وصف الحركه','نص الحركة','نص الحركه','Movement Text','Movement Type Text','Movement Description'
-  ]) || '').trim();
 }
 async function updateAuthStatus(){
   const el=$('#authStatus'); if(!el || !window.WarehouseDB?.ready) return;
@@ -213,8 +197,8 @@ function mapIncomingRows(rows,batchId){
       material_name: materialName,
       quantity: parseArabicNumber(getRowValue(normalized,['الكمية','كمية','Quantity','Qty in Un. of Entry'])),
       uom,
-      movement_type: String(getRowValue(normalized,['نوع الحركة','نوع الحركه','كود الحركة','كود الحركه','الحركة','حركة','Movement Type','Movement type','Movement Type Code','MvT','Mvt'])).trim(),
-      movement_text: String(getRowValue(normalized,['وصف نوع الحركة','وصف نوع الحركه','وصف الحركة','وصف الحركه','نص الحركة','نص الحركه','Movement Text','Movement Type Text','Movement Description'])).trim(),
+      movement_type: String(getRowValue(normalized,['نوع الحركة','كود الحركة','Movement Type','MvT'])).trim(),
+      movement_text: String(getRowValue(normalized,['وصف نوع الحركة','وصف الحركة','Movement Text','Movement Type Text'])).trim(),
       warehouse_code: String(getRowValue(normalized,['المخزن','كود المخزن','Storage Location','SLoc'])).trim(),
       plant_code: String(getRowValue(normalized,['المصنع','تلمصنع','Plant'])).trim(),
       plant_name: String(getRowValue(normalized,['إسم المصنع','اسم المصنع','Plant Name'])).trim(),
@@ -380,7 +364,7 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
     const key=[row.material_code,row.purchase_order,row.vehicle_number].map(normKey).join('|');
     if(!movementGroupIndex.has(key)) movementGroupIndex.set(key,{has101:false,has102:false,hasZ13:false});
     const group=movementGroupIndex.get(key);
-    const mt=normKey(getIncomingMovementType(row)).toUpperCase();
+    const mt=normKey(row.movement_type).toUpperCase();
     if(mt==='101') group.has101=true;
     if(mt==='102') group.has102=true;
     if(mt==='Z13') group.hasZ13=true;
@@ -392,9 +376,7 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
     const scale=matches.length===1?matches[0]:null;
     const quantityTo=String(r.uom||'').toUpperCase()==='KG' ? Number(r.quantity||0)/1000 : Number(r.quantity_to ?? r.quantity ?? 0);
     const movementGroup=movementGroupIndex.get(key)||{};
-    const incomingMovementType=getIncomingMovementType(r);
-    const incomingMovementText=getIncomingMovementText(r);
-    const movementCellStatus=movementCellStatusFromGroup(incomingMovementType,movementGroup);
+    const movementCellStatus=movementCellStatusFromGroup(r.movement_type,movementGroup);
     const incomingType=incomingTypeFromVehicle(r.vehicle_number,r.vehicle_description);
     let scaleMatchStatus='not_cleared',scaleCellStatus='red',rowStatus='error',rowColor='red',warning='';
     let weightDiffTo=null,weightDiffPercent=null,weightDiffStatus='not_applicable';
@@ -436,8 +418,8 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
       material_name: r.material_name,
       uom: r.uom,
       quantity_to: quantityTo,
-      incoming_movement_type: incomingMovementType || '',
-      incoming_movement_text: incomingMovementText || '',
+      incoming_movement_type: r.movement_type || '',
+      incoming_movement_text: r.movement_text || '',
       movement_cell_status: movementCellStatus,
       scale_net_weight_to: scale ? Number(scale.net_weight_to ?? (Number(scale.net_weight_kg||0)/1000)) : null,
       scale_match_status: scaleMatchStatus,
@@ -462,7 +444,7 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
       row_status: rowStatus,
       row_color: rowColor,
       warning_message: warning,
-      raw_result: {scale_matches:matches.length,movement_group:movementGroup,movement_type:incomingMovementType,movement_text:incomingMovementText,plant_used_for_freight:normalizePlantCodeForAudit(r.plant_code || r.plant_name,r.warehouse_code),vehicle_class_used_for_freight:normalizeVehicleClass(r.vehicle_description)}
+      raw_result: {scale_matches:matches.length,movement_group:movementGroup,plant_used_for_freight:normalizePlantCodeForAudit(r.plant_code || r.plant_name,r.warehouse_code),vehicle_class_used_for_freight:normalizeVehicleClass(r.vehicle_description)}
     };
   });
   if(results.length) await insertChunks('incoming_audit_results',results,300);
@@ -900,13 +882,6 @@ async function loadInboundAuditReport(date=''){
     .eq('report_date',selected)
     .order('material_code',{ascending:true});
   if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل مراجعة الوارد: ${error.message}</td></tr></tbody>`; return; }
-  if((data||[]).some(r=>!r.incoming_movement_type) && !window.__incomingMovementRebuildOnce){
-    window.__incomingMovementRebuildOnce=true;
-    try{
-      await tryBuildIncomingAudit(selected);
-      return loadInboundAuditReport(selected);
-    }catch(e){ console.warn('incoming movement rebuild skipped',e); }
-  }
   const rows=(data||[]).map(r=>{
     const scaleStatus=r.scale_cell_status || (r.scale_match_status==='matched'?'green':r.row_color);
     const weightStatus=r.weight_diff_status==='ok'?'green':(r.weight_diff_status==='not_applicable'?'yellow':'red');
