@@ -286,3 +286,44 @@ table{display:block;overflow-x:auto;white-space:nowrap}
     grid-template-columns:1fr !important;
   }
 }
+
+
+/* Collapsible sidebar - report reading workspace */
+.sidebar-toggle{
+  width:44px;
+  height:44px;
+  border:1px solid rgba(241,187,48,.85);
+  border-radius:12px;
+  background:rgba(0,35,27,.92);
+  color:#f4fff5;
+  font-size:22px;
+  font-weight:900;
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  margin:0 auto 14px;
+  box-shadow:0 0 0 2px rgba(241,187,48,.12),0 10px 26px rgba(0,0,0,.28);
+  transition:.22s ease;
+}
+.sidebar-toggle:hover{background:linear-gradient(135deg,#4fa83d,#12692f);transform:translateY(-1px)}
+@media (min-width:1101px){
+  .app-shell{transition:grid-template-columns .22s ease}
+  .app-shell.sidebar-collapsed{grid-template-columns:76px minmax(0,1fr)}
+  .app-shell.sidebar-collapsed .sidebar{padding:14px 10px}
+  .app-shell.sidebar-collapsed .brand{padding-bottom:14px;margin-bottom:14px}
+  .app-shell.sidebar-collapsed .brand-logo{width:48px;height:48px;border-radius:14px;padding:5px;margin-bottom:0}
+  .app-shell.sidebar-collapsed .brand h2,
+  .app-shell.sidebar-collapsed .brand p{display:none}
+  .app-shell.sidebar-collapsed .nav{gap:10px;align-items:center}
+  .app-shell.sidebar-collapsed .nav-item{
+    width:48px;
+    height:48px;
+    padding:0;
+    justify-content:center;
+    border-radius:12px;
+    font-size:0;
+  }
+  .app-shell.sidebar-collapsed .nav-item span{font-size:18px;margin:0}
+  .app-shell.sidebar-collapsed .main{min-width:0}
+}
+@media (max-width:1100px){.sidebar-toggle{display:none}}

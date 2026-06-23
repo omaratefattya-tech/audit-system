@@ -93,8 +93,27 @@ function nav(){
   const active=$('.nav-item.active')?.dataset.section || 'dashboard';
   updateFiltersVisibility(active);
 }
+
+function initSidebarToggle(){
+  const shell = $('#appShell');
+  const btn = $('#sidebarToggleBtn');
+  if(!shell || !btn) return;
+  const saved = localStorage.getItem('auditSidebarCollapsed') === '1';
+  const apply = (collapsed)=>{
+    shell.classList.toggle('sidebar-collapsed', collapsed);
+    btn.textContent = collapsed ? '›' : '☰';
+    btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    btn.title = collapsed ? 'فتح القائمة' : 'إغلاق القائمة';
+  };
+  apply(saved);
+  btn.onclick = ()=>{
+    const collapsed = !shell.classList.contains('sidebar-collapsed');
+    localStorage.setItem('auditSidebarCollapsed', collapsed ? '1' : '0');
+    apply(collapsed);
+  };
+}
 function renderAll(){renderKPIs();drawDonut();drawLine();renderStock();renderPlants();renderTables();renderTabs();renderAlerts()}
-document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();nav();renderAll()});
+document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();nav();initSidebarToggle();renderAll()});
 
 // === Supabase Sales Upload + Dynamic Sales Report ===
 const SALES_WAREHOUSES = ['W401','W402','N401','N402','N411','N412','E401','E402'];
@@ -378,6 +397,32 @@ function movementCellStatusFromGroup(movementType,group){
   if(mt==='Z13') return 'gold';
   return 'neutral';
 }
+function buildMovementCellStatusIndex(rows){
+  const grouped=new Map();
+  (rows||[]).forEach((row,sourceIndex)=>{
+    const key=[row.material_code,row.purchase_order,row.vehicle_number].map(normKey).join('|');
+    if(!grouped.has(key)) grouped.set(key,[]);
+    grouped.get(key).push({row,sourceIndex,mt:normKey(getIncomingMovementType(row)).toUpperCase()});
+  });
+  const statusById=new Map();
+  grouped.forEach(items=>{
+    const sorted=items.slice().sort((a,b)=>{
+      const ai=Number(a.row?.id||0), bi=Number(b.row?.id||0);
+      if(ai && bi && ai!==bi) return ai-bi;
+      return a.sourceIndex-b.sourceIndex;
+    });
+    const firstCancelIndex=sorted.findIndex(x=>x.mt==='102');
+    if(firstCancelIndex<0) return;
+    sorted.forEach((item,idx)=>{
+      let status='neutral';
+      if(item.mt==='102') status='red';
+      else if(item.mt==='101') status=idx>firstCancelIndex ? 'gold' : 'red';
+      else if(item.mt==='Z13') status='gold';
+      if(status!=='neutral') statusById.set(String(item.row?.id||item.sourceIndex),status);
+    });
+  });
+  return statusById;
+}
 async function tryBuildIncomingAudit(reportDate, targetStatus){
   reportDate=normalizeDateISO(reportDate);
   if(!reportDate || !WarehouseDB?.ready) return {built:false,message:'لم يتم تحديد تاريخ التقرير.'};
@@ -416,6 +461,7 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
     if(mt==='102') group.has102=true;
     if(mt==='Z13') group.hasZ13=true;
   });
+  const movementStatusIndex=buildMovementCellStatusIndex(incomingRows);
   await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',reportDate);
   const results=incomingRows.map(r=>{
     const key=[r.material_code,r.purchase_order,r.vehicle_number].map(normKey).join('|');
@@ -425,7 +471,7 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
     const movementGroup=movementGroupIndex.get(key)||{};
     const incomingMovementType=getIncomingMovementType(r);
     const incomingMovementText=getIncomingMovementText(r);
-    const movementCellStatus=movementCellStatusFromGroup(incomingMovementType,movementGroup);
+    const movementCellStatus=movementStatusIndex.get(String(r.id)) || movementCellStatusFromGroup(incomingMovementType,movementGroup);
     const incomingType=incomingTypeFromVehicle(r.vehicle_number,r.vehicle_description);
     let scaleMatchStatus='not_cleared',scaleCellStatus='red',rowStatus='error',rowColor='red',warning='';
     let weightDiffTo=null,weightDiffPercent=null,weightDiffStatus='not_applicable';
@@ -497,7 +543,7 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
       row_status: rowStatus,
       row_color: rowColor,
       warning_message: warning,
-      raw_result: {scale_matches:matches.length,movement_group:movementGroup,movement_type:incomingMovementType,movement_text:incomingMovementText,plant_used_for_freight:normalizePlantCodeForAudit(r.plant_code || r.plant_name,r.warehouse_code),goods_used_for_freight:normalizeGoodsTypeForFreight(r.goods_type || r.material_name),vehicle_class_used_for_freight:normalizeVehicleClass(r.vehicle_description),freight_diagnosis:freightDiagnosis}
+      raw_result: {scale_matches:matches.length,movement_group:movementGroup,movement_type:incomingMovementType,movement_text:incomingMovementText,movement_cell_status:movementCellStatus,movement_color_logic:'repost_101_gold_v2',plant_used_for_freight:normalizePlantCodeForAudit(r.plant_code || r.plant_name,r.warehouse_code),goods_used_for_freight:normalizeGoodsTypeForFreight(r.goods_type || r.material_name),vehicle_class_used_for_freight:normalizeVehicleClass(r.vehicle_description),freight_diagnosis:freightDiagnosis}
     };
   });
   if(results.length) await insertChunks('incoming_audit_results',results,300);
@@ -935,7 +981,7 @@ async function loadInboundAuditReport(date=''){
     .eq('report_date',selected)
     .order('material_code',{ascending:true});
   if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل مراجعة الوارد: ${error.message}</td></tr></tbody>`; return; }
-  if((data||[]).some(r=>!r.incoming_movement_type || !r.raw_result?.freight_diagnosis) && !window.__incomingMovementRebuildOnce){
+  if((data||[]).some(r=>!r.incoming_movement_type || !r.raw_result?.freight_diagnosis || r.raw_result?.movement_color_logic!=='repost_101_gold_v2') && !window.__incomingMovementRebuildOnce){
     window.__incomingMovementRebuildOnce=true;
     try{
       await tryBuildIncomingAudit(selected);
