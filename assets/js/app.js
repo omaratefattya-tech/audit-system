@@ -270,8 +270,17 @@ function mapFreightRows(rows,batchId){
   }).filter(r=>r.freight_description && r.goods_type && r.plant_code && r.vehicle_description && Number.isFinite(Number(r.rate_per_ton)));
 }
 
-function normText(v){return String(v||'').replace(/\s+/g,' ').trim();}
+function stripHiddenUnicode(v){return String(v||'').replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g,'');}
+function normText(v){return stripHiddenUnicode(v).replace(/\s+/g,' ').trim();}
+function normKeepSapSpaces(v){return stripHiddenUnicode(v).trim();}
 function normKey(v){return normText(v).toLowerCase();}
+function normKeyKeepSapSpaces(v){return normKeepSapSpaces(v).toLowerCase();}
+function containsNormalizedText(full,part){
+  const f=normKey(full);
+  const p=normKey(part);
+  return !!p && (f===p || f.includes(p) || p.includes(f));
+}
+function freightDescriptionKey(v){return normKeyKeepSapSpaces(v);}
 function isSupplierVehicle(vehicleNumber, vehicleDescription){
   const no=normText(vehicleNumber);
   const desc=normText(vehicleDescription);
@@ -319,33 +328,41 @@ function normalizeGoodsTypeForFreight(value){
   const v=normText(value);
   if(!v) return '';
   if(v.includes('سولار')) return 'سولار';
-  if(v.includes('ذره') || v.includes('ذرة')) return 'ذره';
-  if(v.includes('صويا')) return 'صويا';
-  return v;
+  return 'باقي الأصناف ما عدا السولار';
+}
+function goodsTypeMatchesReference(refGoods, materialName){
+  const ref=normKey(refGoods);
+  const mat=normKey(materialName);
+  const group=normKey(normalizeGoodsTypeForFreight(materialName));
+  if(!ref) return false;
+  if(ref===mat || ref===group) return true;
+  if(ref.includes('باقي الأصناف') && group.includes('باقي الأصناف')) return true;
+  return false;
 }
 function freightKey(parts){return parts.map(normKey).join('|');}
 function analyzeFreightReference(freightRows,r){
   const plant=normalizePlantCodeForAudit(r.plant_code || r.plant_name,r.warehouse_code);
-  const vehicleClass=normalizeVehicleClass(r.vehicle_description);
-  const freightDesc=normKey(r.freight_description);
-  const exactGoods=normKey(r.goods_type || r.material_name);
-  const normalizedGoods=normKey(normalizeGoodsTypeForFreight(r.goods_type || r.material_name));
+  const vehicleDesc=r.vehicle_description;
+  const freightDesc=freightDescriptionKey(r.freight_description);
+  const materialName=r.goods_type || r.material_name;
   const active=freightRows||[];
   const byPlant=active.filter(f=>normKey(normalizePlantCodeForAudit(f.plant_code))===normKey(plant));
   if(!byPlant.length){
     return {ref:null,reason:'لا يوجد مصنع مطابق في مرجع النولون'};
   }
-  const byVehicle=byPlant.filter(f=>normKey(normalizeVehicleClass(f.vehicle_description))===normKey(vehicleClass));
+  const byVehicle=byPlant.filter(f=>{
+    const refVehicle=f.vehicle_description;
+    return containsNormalizedText(vehicleDesc, refVehicle)
+      || normKey(normalizeVehicleClass(vehicleDesc))===normKey(normalizeVehicleClass(refVehicle));
+  });
   if(!byVehicle.length){
     return {ref:null,reason:'وصف العربية غير مطابق مع مرجع النولون'};
   }
-  const byFreight=byVehicle.filter(f=>normKey(f.freight_description)===freightDesc);
+  const byFreight=byVehicle.filter(f=>freightDescriptionKey(f.freight_description)===freightDesc);
   if(!byFreight.length){
     return {ref:null,reason:'وصف النولون غير مطابق مع مرجع النولون'};
   }
-  const ref=byFreight.find(f=>normKey(f.goods_type)===exactGoods)
-      || byFreight.find(f=>normKey(f.goods_type)===normalizedGoods)
-      || byFreight.find(f=>normKey(f.goods_type).includes('باقي الأصناف'));
+  const ref=byFreight.find(f=>goodsTypeMatchesReference(f.goods_type,materialName));
   if(!ref){
     return {ref:null,reason:'نوع البضاعة / وصف المادة غير مطابق مع مرجع النولون'};
   }
