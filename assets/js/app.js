@@ -173,7 +173,13 @@ function table(el,heads,rows){
   const bodyHtml=visible.length
     ? visible.map(r=>`<tr>${heads.map((_,i)=>`<td>${r[i]??''}</td>`).join('')}</tr>`).join('')
     : `<tr><td colspan="${heads.length}" class="empty-row">لا توجد بيانات مطابقة</td></tr>`;
-  node.innerHTML=`<thead><tr>${headHtml}</tr><tr class="column-filter-row">${filterHtml}</tr></thead><tbody>${bodyHtml}</tbody>`;
+  let footerHtml='';
+  if(key==='salesTable' && heads.length>=8){
+    const totalIndexes=[3,4,5,6,7];
+    const totals=totalIndexes.map(idx=>visible.reduce((sum,row)=>sum+numericCellValue(row[idx]),0));
+    footerHtml=`<tfoot><tr class="sales-total-row"><td colspan="3">الإجمالي</td>${totals.map(v=>`<td>${fmt(v)}</td>`).join('')}</tr></tfoot>`;
+  }
+  node.innerHTML=`<thead><tr>${headHtml}</tr><tr class="column-filter-row">${filterHtml}</tr></thead><tbody>${bodyHtml}</tbody>${footerHtml}`;
   node.querySelectorAll('.sort-btn').forEach(btn=>{
     btn.onclick=()=>{
       const col=Number(btn.dataset.col);

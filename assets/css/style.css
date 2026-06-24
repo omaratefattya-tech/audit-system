@@ -327,3 +327,17 @@ table{display:block;overflow-x:auto;white-space:nowrap}
   .app-shell.sidebar-collapsed .main{min-width:0}
 }
 @media (max-width:1100px){.sidebar-toggle{display:none}}
+
+/* Sales review totals row */
+#salesTable tfoot td{
+  background:rgba(0,74,43,.92);
+  border-top:1px solid rgba(132,207,80,.75);
+  border-bottom:0;
+  color:#9cff66;
+  font-weight:900;
+  font-size:15px;
+  text-align:center;
+}
+#salesTable tfoot .sales-total-row td:first-child{
+  color:#d8ffd1;
+}
