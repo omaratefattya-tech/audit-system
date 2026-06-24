@@ -76,6 +76,7 @@
         <label>المخزن<select id="warehouseFilter"><option value="all">الكل</option></select></label>
         <label>نوع المخزن<select id="warehouseTypeFilter"><option value="all">الكل</option><option value="finished">منتج تام</option><option value="raw">خامات/تصنيع</option></select></label>
         <label>نوع الحركة<select id="movementFilter"><option value="all">الكل</option><option value="sales">مراجعة البيع</option><option value="inbound">مراجعة الوارد</option><option value="transfer">تحويلات</option><option value="adjustment">تسويات</option></select></label>
+        <label>حالة الوارد<select id="inboundStatusFilter"><option value="all">كل الحركات</option><option value="matched">مطابق</option><option value="weight_diff">فرق وزن</option><option value="not_cleared">لم يتم التصفية</option><option value="cancelled">ملغي (101/102)</option><option value="settled_after">مستلم بعد التصفية (Z13 / 101)</option></select></label>
         <label>من<input type="date" id="fromDate"></label>
         <label>إلى<input type="date" id="toDate"></label>
         <button class="primary" id="searchBtn">بحث 🔍</button>
@@ -233,6 +234,7 @@
               <select id="inboundReportDateSelect"><option value="">اختر تاريخ المراجعة</option></select>
             </label>
           </div>
+          <div id="inboundResultsCount" class="hint">عدد الحركات المعروضة: 0</div>
           <div class="table-wrap"><table id="inboundTable"></table></div>
         </article>
       </section>
