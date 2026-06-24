@@ -4,7 +4,45 @@ function fmt(n){return Number(n).toLocaleString('en-US',{maximumFractionDigits:3
 function setDefaultDates(){const now=new Date();const cairo=new Date(now.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));const first=new Date(cairo.getFullYear(),cairo.getMonth(),1);const last=new Date(cairo.getFullYear(),cairo.getMonth()+1,0);const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;$('#fromDate').value=iso(first);$('#toDate').value=iso(last)}
 function startCairoClock(){const time=$('#cairoTime'),date=$('#cairoDate');function tick(){const now=new Date();time.textContent=new Intl.DateTimeFormat('ar-EG',{timeZone:'Africa/Cairo',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(now);date.textContent=new Intl.DateTimeFormat('ar-EG',{timeZone:'Africa/Cairo',weekday:'long',year:'numeric',month:'long',day:'numeric'}).format(now)}tick();setInterval(tick,1000)}
 function dbBadge(){const box=document.createElement('span');box.className='db-status'+(window.WarehouseDB?.ready?' ready':'');box.textContent=window.WarehouseDB?.ready?'Supabase متصل':'Supabase جاهز للإعداد';document.querySelector('.page-title div').appendChild(box)}
-function initFilters(){const pf=$('#plantFilter'),wf=$('#warehouseFilter');APP_DATA.plants.forEach(p=>pf.add(new Option(`${p.code} - ${p.name}`,p.code)));function fillWh(){wf.innerHTML='<option value="all">الكل</option>';APP_DATA.plants.filter(p=>pf.value==='all'||p.code===pf.value).forEach(p=>p.warehouses.forEach(w=>wf.add(new Option(`${w[0]} - ${w[1]}`,w[0]))))}pf.onchange=fillWh;fillWh();$('#resetBtn').onclick=()=>{pf.value='all';$('#warehouseTypeFilter').value='all';$('#movementFilter').value='all';fillWh();renderAll()};$('#searchBtn').onclick=renderAll}
+function initFilters(){
+  const pf=$('#plantFilter'),wf=$('#warehouseFilter'),typeFilter=$('#warehouseTypeFilter'),movementFilter=$('#movementFilter'),fromDate=$('#fromDate'),toDate=$('#toDate');
+  if(!pf || !wf) return;
+  APP_DATA.plants.forEach(p=>pf.add(new Option(`${p.code} - ${p.name}`,p.code)));
+  function fillWh(){
+    wf.innerHTML='<option value="all">الكل</option>';
+    APP_DATA.plants
+      .filter(p=>pf.value==='all'||p.code===pf.value)
+      .forEach(p=>p.warehouses.forEach(w=>{
+        if(!typeFilter || typeFilter.value==='all' || w[2]===typeFilter.value){
+          wf.add(new Option(`${w[0]} - ${w[1]}`,w[0]));
+        }
+      }));
+  }
+  function fillIncomingMovements(){
+    if(!movementFilter) return;
+    movementFilter.innerHTML='<option value="all">الكل</option><option value="101">101 - استلام</option><option value="102">102 - إلغاء استلام</option><option value="Z13">Z13 - استلام بدون الميزان</option><option value="Z14">Z14 - إلغاء بدون ميزان</option>';
+  }
+  pf.onchange=fillWh;
+  if(typeFilter) typeFilter.onchange=fillWh;
+  fillWh();
+  fillIncomingMovements();
+  const runInboundFilter=()=>loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});
+  $('#resetBtn').onclick=()=>{
+    pf.value='all';
+    if(typeFilter) typeFilter.value='all';
+    fillWh();
+    if(movementFilter) movementFilter.value='all';
+    if(fromDate) fromDate.value='';
+    if(toDate) toDate.value='';
+    const dateSelect=$('#inboundReportDateSelect');
+    if(dateSelect) dateSelect.value='';
+    runInboundFilter();
+  };
+  $('#searchBtn').onclick=()=>{
+    if($('#inbound')?.classList.contains('active-section')) runInboundFilter();
+    else renderAll();
+  };
+}
 function renderKPIs(){const totalWh=APP_DATA.plants.reduce((a,p)=>a+p.warehouses.length,0);const cards=[['عدد المخازن',totalWh,'مخزن','⌂'],['صافي الحركة','2,464.500','طن','⚖'],['إجمالي الكميات الخارجة','54,320.750','طن','↧'],['إجمالي الكميات الداخلة','56,785.250','طن','↥'],['إجمالي الحركات','12,458','حركة','☷']];$('#kpiCards').innerHTML=cards.map(c=>`<article class="kpi glass"><h3>${c[0]}</h3><div class="num">${c[1]}</div><small>${c[2]}</small><div class="icon">${c[3]}</div></article>`).join('')}
 function drawDonut(){const ctx=$('#donutChart').getContext('2d'),vals=[2985,2243,1972,1684,1489,2085],sum=vals.reduce((a,b)=>a+b,0);ctx.clearRect(0,0,340,240);let a=-Math.PI/2;vals.forEach((v,i)=>{let e=a+v/sum*Math.PI*2;ctx.beginPath();ctx.moveTo(115,120);ctx.arc(115,120,88,a,e);ctx.closePath();ctx.fillStyle=colors[i];ctx.globalAlpha=.9;ctx.fill();a=e});ctx.globalAlpha=1;ctx.beginPath();ctx.arc(115,120,45,0,Math.PI*2);ctx.fillStyle='#00251f';ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 16px Cairo';ctx.fillText('24%',95,72);ctx.fillText('18%',165,122);ctx.fillText('16%',90,178);ctx.fillText('12%',45,139);ctx.fillText('16%',45,91);const labs=['601 إصدار بضائع تسليم','101 استلام بضائع/تحويل','Z51 تحويل مخزون (ميزان)','301 نقل مخزون لوحدة','653 مرتجعات غير مقيدة','أخرى'];$('#movementLegend').innerHTML=labs.map((l,i)=>`<div><span style="background:${colors[i]}"></span>${l}</div>`).join('')}
 function drawLine(){const ctx=$('#lineChart').getContext('2d');ctx.clearRect(0,0,430,250);const inV=[900,1400,1300,1500,1950,1450,1350,1500,1600,2000,1500,1750,1850,1800,1600,1650,1900,2200,1800,2000,1700,1900,2150,2000,2250,1900],outV=[600,780,820,1000,1260,1100,980,1070,1020,1350,1150,1200,1300,1100,1300,1450,1350,1500,1600,1200,1350,1300,1500,1450,1550,1200];function axes(){ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;for(let i=0;i<6;i++){let y=215-i*34;ctx.beginPath();ctx.moveTo(35,y);ctx.lineTo(410,y);ctx.stroke()}ctx.fillStyle='#d6ead1';ctx.font='12px Cairo';ctx.fillText('2.5K',2,45);ctx.fillText('0',18,218);ctx.fillText('01/05',30,235);ctx.fillText('31/05',376,235)}function line(arr,c){ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();arr.forEach((v,i)=>{let x=45+i*(350/(arr.length-1)),y=215-(v/2500)*170;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();arr.forEach((v,i)=>{let x=45+i*(350/(arr.length-1)),y=215-(v/2500)*170;ctx.beginPath();ctx.arc(x,y,3,0,7);ctx.fillStyle=c;ctx.fill()})}axes();line(inV,'#74c54a');line(outV,'#f1bb30');ctx.fillStyle='#74c54a';ctx.fillRect(200,18,10,10);ctx.fillStyle='#fff';ctx.fillText('حركات داخلة',215,28);ctx.fillStyle='#f1bb30';ctx.fillRect(295,18,10,10);ctx.fillStyle='#fff';ctx.fillText('حركات خارجة',310,28)}
@@ -14,6 +52,36 @@ const TABLE_STATE={};
 function escapeHtml(v){return String(v??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));}
 function stripHtml(v){const tmp=document.createElement('div');tmp.innerHTML=String(v??'');return (tmp.textContent||tmp.innerText||'').trim();}
 function normalizeArabicDigits(v){return String(v??'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));}
+
+function warehouseMetaByCode(code){
+  const target=String(code||'').trim().toUpperCase();
+  for(const plant of APP_DATA.plants){
+    const wh=plant.warehouses.find(w=>String(w[0]).toUpperCase()===target);
+    if(wh) return {plant_code:plant.code,warehouse_code:wh[0],warehouse_type:wh[2],warehouse_name:wh[1]};
+  }
+  return {plant_code:'',warehouse_code:target,warehouse_type:'',warehouse_name:''};
+}
+function getInboundTopFilters(){
+  return {
+    plant: $('#plantFilter')?.value || 'all',
+    warehouse: $('#warehouseFilter')?.value || 'all',
+    warehouseType: $('#warehouseTypeFilter')?.value || 'all',
+    movement: ($('#movementFilter')?.value || 'all').toUpperCase(),
+    from: normalizeDateISO($('#fromDate')?.value || ''),
+    to: normalizeDateISO($('#toDate')?.value || '')
+  };
+}
+function inboundRowMatchesTopFilters(row,filters){
+  if(!filters) return true;
+  const whCode=String(row.mb51_warehouse_code || row.scale_warehouse_code || '').trim().toUpperCase();
+  const meta=warehouseMetaByCode(whCode);
+  const movement=String(row.incoming_movement_type || row.raw_result?.movement_type || '').trim().toUpperCase();
+  if(filters.plant && filters.plant!=='all' && meta.plant_code!==filters.plant) return false;
+  if(filters.warehouse && filters.warehouse!=='all' && whCode!==String(filters.warehouse).toUpperCase()) return false;
+  if(filters.warehouseType && filters.warehouseType!=='all' && meta.warehouse_type!==filters.warehouseType) return false;
+  if(filters.movement && filters.movement!=='ALL' && movement!==filters.movement) return false;
+  return true;
+}
 function comparableValue(v){
   const txt=normalizeArabicDigits(stripHtml(v)).replace(/\s+/g,' ').trim();
   const numeric=Number(txt.replace(/,/g,'').replace(/[^0-9.\-]/g,''));
@@ -966,29 +1034,38 @@ async function refreshInboundReportDates(preferredDate=''){
   if(current && dates.includes(current)) select.value=current;
   select.onchange=()=>loadInboundAuditReport(select.value);
 }
-async function loadInboundAuditReport(date=''){
+async function loadInboundAuditReport(date='',options={}){
   const tbl=$('#inboundTable');
   if(!tbl || !WarehouseDB?.ready) return;
-  const selected=normalizeDateISO(date || $('#inboundReportDateSelect')?.value || '');
-  const heads=['المادة','وصف المادة','وحدة القياس','الكمية','صافي الميزان','فرق الوزن %','نوع الحركة','مخزن MB51','مخزن الميزان','أمر الشراء MB51','أمر الشراء الميزان','رقم العربية','نوع الوارد','وصف العربية','وصف النولون','قيمة النولون للطن','سبب مطابقة النولون'];
-  if(!selected){
+  const useTopFilters=!!options.useTopFilters;
+  const topFilters=useTopFilters ? getInboundTopFilters() : null;
+  const selected=normalizeDateISO(date || (!options.ignoreSelectedDate ? $('#inboundReportDateSelect')?.value : '') || '');
+  const heads=['تاريخ التقرير','المادة','وصف المادة','وحدة القياس','الكمية','صافي الميزان','فرق الوزن %','نوع الحركة','مخزن MB51','مخزن الميزان','أمر الشراء MB51','أمر الشراء الميزان','رقم العربية','نوع الوارد','وصف العربية','وصف النولون','قيمة النولون للطن','سبب مطابقة النولون'];
+  let query=WarehouseDB.client
+    .from('incoming_audit_results')
+    .select('*');
+  if(useTopFilters){
+    if(topFilters.from) query=query.gte('report_date',topFilters.from);
+    if(topFilters.to) query=query.lte('report_date',topFilters.to);
+  }else if(selected){
+    query=query.eq('report_date',selected);
+  }else{
     table('#inboundTable',heads,[]);
     return;
   }
-  const {data,error}=await WarehouseDB.client
-    .from('incoming_audit_results')
-    .select('*')
-    .eq('report_date',selected)
+  const {data,error}=await query
+    .order('report_date',{ascending:false})
     .order('material_code',{ascending:true});
   if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل مراجعة الوارد: ${error.message}</td></tr></tbody>`; return; }
-  if((data||[]).some(r=>!r.incoming_movement_type || !r.raw_result?.freight_diagnosis || r.raw_result?.movement_color_logic!=='repost_101_gold_v2') && !window.__incomingMovementRebuildOnce){
+  const filtered=(data||[]).filter(r=>inboundRowMatchesTopFilters(r,topFilters));
+  if((!useTopFilters || selected) && filtered.some(r=>!r.incoming_movement_type || !r.raw_result?.freight_diagnosis || r.raw_result?.movement_color_logic!=='repost_101_gold_v2') && !window.__incomingMovementRebuildOnce){
     window.__incomingMovementRebuildOnce=true;
     try{
       await tryBuildIncomingAudit(selected);
       return loadInboundAuditReport(selected);
     }catch(e){ console.warn('incoming audit rebuild skipped',e); }
   }
-  const rows=(data||[]).map(r=>{
+  const rows=filtered.map(r=>{
     const scaleStatus=r.scale_cell_status || (r.scale_match_status==='matched'?'green':r.row_color);
     const weightStatus=r.weight_diff_status==='ok'?'green':(r.weight_diff_status==='not_applicable'?'yellow':'red');
     const whStatus=r.warehouse_match_status==='matched'?'green':(r.warehouse_match_status==='not_applicable'?'yellow':'red');
@@ -997,6 +1074,7 @@ async function loadInboundAuditReport(date=''){
     const movementStatus=r.movement_cell_status || r.raw_result?.movement_cell_status || 'neutral';
     const movementValue=(r.incoming_movement_type || r.raw_result?.movement_type || '-') + (r.incoming_movement_text ? ' - '+r.incoming_movement_text : '');
     const values=[
+      normalizeDateISO(r.report_date) || '-',
       r.material_code || '-',
       r.material_name || '-',
       r.uom || '-',
@@ -1015,7 +1093,7 @@ async function loadInboundAuditReport(date=''){
       r.mb51_freight_rate_per_ton==null ? '-' : fmt(r.mb51_freight_rate_per_ton),
       r.raw_result?.freight_diagnosis || '-'
     ];
-    const normalStatuses=['neutral','neutral','neutral','neutral',scaleStatus,weightStatus,movementStatus,whStatus,whStatus,poStatus,poStatus,'neutral','neutral','neutral',freightStatus,freightStatus,freightStatus];
+    const normalStatuses=['neutral','neutral','neutral','neutral','neutral',scaleStatus,weightStatus,movementStatus,whStatus,whStatus,poStatus,poStatus,'neutral','neutral','neutral',freightStatus,freightStatus,freightStatus];
     let statuses=normalStatuses;
     if(movementStatus==='red'){
       statuses=values.map(()=> 'red');
