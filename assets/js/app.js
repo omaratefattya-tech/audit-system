@@ -236,24 +236,52 @@ function exportTableToExcel(tableId,reportTitle){
   ];
   const ws=XLSX.utils.aoa_to_sheet([...meta,...matrix]);
   ws['!cols']=matrix[0].map((_,i)=>({wch:Math.max(14,...matrix.map(r=>String(r[i]||'').length).slice(0,500).map(n=>Math.min(n,42)))}));
+  ws['!rtl']=true;
+  ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:meta.length,c:0},e:{r:meta.length,c:Math.max(0,matrix[0].length-1)}})};
   const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Report');
+  wb.Workbook={Views:[{RTL:true}]};
+  XLSX.utils.book_append_sheet(wb,ws,'التقرير');
   const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-  XLSX.writeFile(wb,`${reportTitle}-${stamp}.xlsx`);
+  XLSX.writeFile(wb,`${reportTitle}-${stamp}.xlsx`,{bookType:'xlsx',cellStyles:true});
 }
 function exportTableToPdf(tableId,reportTitle){
   const matrix=tableExportMatrix(tableId);
   if(!matrix.length || matrix.length===1){ alert('لا توجد بيانات للتصدير.'); return; }
+  if(!window.html2pdf){ alert('مكتبة PDF غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
+
   const head=matrix[0];
   const body=matrix.slice(1);
-  const rowsHtml=body.map((r,idx)=>`<tr class="${idx===body.length-1 && r.includes('الإجمالي')?'total-row':''}">${head.map((_,i)=>`<td>${escapeHtml(r[i]||'')}</td>`).join('')}</tr>`).join('');
-  const html=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${escapeHtml(reportTitle)}</title>
-  <style>
-    @page{size:A4 landscape;margin:10mm}body{font-family:Cairo,Arial,sans-serif;color:#111;direction:rtl}h1{text-align:center;font-size:18px;margin:0 0 6px}.meta{text-align:center;font-size:11px;margin-bottom:10px;color:#444}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #777;padding:4px 5px;text-align:center;vertical-align:middle}th{background:#e8f3e4;font-weight:700}.total-row td{background:#dff1d8;font-weight:800}tr{page-break-inside:avoid}
-  </style></head><body><h1>${escapeHtml(reportTitle)}</h1><div class="meta">تاريخ التصدير: ${escapeHtml(new Date().toLocaleString('ar-EG'))}</div><table><thead><tr>${head.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${rowsHtml}</tbody></table><script>window.onload=function(){setTimeout(function(){window.print();},300)}<\/script></body></html>`;
-  const w=window.open('','_blank');
-  if(!w){ alert('المتصفح منع فتح نافذة التصدير. اسمح بالنوافذ المنبثقة.'); return; }
-  w.document.open();w.document.write(html);w.document.close();
+  const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  const safeTitle=String(reportTitle||'Report').replace(/[\\/:*?"<>|]/g,'-');
+  const wrapper=document.createElement('div');
+  wrapper.dir='rtl';
+  wrapper.lang='ar';
+  wrapper.style.cssText='position:fixed;left:-10000px;top:0;width:1120px;background:#fff;color:#111;font-family:Cairo,Arial,sans-serif;padding:18px;box-sizing:border-box;direction:rtl;';
+  wrapper.innerHTML=`
+    <div style="text-align:center;margin-bottom:10px;">
+      <h1 style="font-size:22px;margin:0 0 6px;font-weight:800;">${escapeHtml(reportTitle)}</h1>
+      <div style="font-size:12px;color:#444;">تاريخ التصدير: ${escapeHtml(new Date().toLocaleString('ar-EG'))}</div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:10px;direction:rtl;table-layout:auto;">
+      <thead><tr>${head.map(h=>`<th style="border:1px solid #666;padding:5px;background:#e8f3e4;text-align:center;font-weight:800;white-space:normal;">${escapeHtml(h)}</th>`).join('')}</tr></thead>
+      <tbody>${body.map((r,idx)=>{
+        const isTotal=idx===body.length-1 && r.includes('الإجمالي');
+        return `<tr>${head.map((_,i)=>`<td style="border:1px solid #777;padding:4px 5px;text-align:center;vertical-align:middle;${isTotal?'background:#dff1d8;font-weight:800;':''}">${escapeHtml(r[i]||'')}</td>`).join('')}</tr>`;
+      }).join('')}</tbody>
+    </table>`;
+  document.body.appendChild(wrapper);
+  const options={
+    margin:8,
+    filename:`${safeTitle}-${stamp}.pdf`,
+    image:{type:'jpeg',quality:0.98},
+    html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',scrollX:0,scrollY:0},
+    jsPDF:{unit:'mm',format:'a4',orientation:'landscape'}
+  };
+  html2pdf().set(options).from(wrapper).save().then(()=>wrapper.remove()).catch(err=>{
+    wrapper.remove();
+    console.error(err);
+    alert('تعذر تصدير PDF. حاول مرة أخرى.');
+  });
 }
 function initReportExportButtons(){
   $('#salesExportExcelBtn')?.addEventListener('click',()=>exportTableToExcel('salesTable','مراجعة البيع والتحويلات'));
