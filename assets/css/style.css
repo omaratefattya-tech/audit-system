@@ -341,3 +341,11 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 #salesTable tfoot .sales-total-row td:first-child{
   color:#d8ffd1;
 }
+
+/* Report export buttons */
+.export-actions{display:flex;gap:10px;justify-content:flex-start;align-items:center;margin:12px 0 10px;flex-wrap:wrap}
+.export-actions.compact{margin:0}
+.report-tools-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:10px 0 8px;flex-wrap:wrap}
+.export-btn{min-width:120px;border-color:rgba(81,184,72,.75)!important;background:rgba(0,58,43,.9)!important;color:#dfffd4!important}
+.export-btn:hover{background:rgba(81,184,72,.22)!important;box-shadow:0 0 18px rgba(81,184,72,.22)}
+@media(max-width:700px){.report-tools-row{align-items:stretch}.export-actions,.export-actions.compact{width:100%;justify-content:stretch}.export-btn{flex:1;min-width:0}}

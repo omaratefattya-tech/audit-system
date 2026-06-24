@@ -221,6 +221,10 @@
             </label>
           </div>
           <div id="salesTabs" class="subtabs"></div>
+          <div class="export-actions">
+            <button class="secondary export-btn" id="salesExportExcelBtn" type="button">تصدير Excel</button>
+            <button class="secondary export-btn" id="salesExportPdfBtn" type="button">تصدير PDF</button>
+          </div>
           <div class="table-wrap"><table id="salesTable"></table></div>
         </article>
       </section>
@@ -234,7 +238,13 @@
               <select id="inboundReportDateSelect"><option value="">اختر تاريخ المراجعة</option></select>
             </label>
           </div>
-          <div id="inboundResultsCount" class="hint">عدد الحركات المعروضة: 0</div>
+          <div class="report-tools-row">
+            <div id="inboundResultsCount" class="hint">عدد الحركات المعروضة: 0</div>
+            <div class="export-actions compact">
+              <button class="secondary export-btn" id="inboundExportExcelBtn" type="button">تصدير Excel</button>
+              <button class="secondary export-btn" id="inboundExportPdfBtn" type="button">تصدير PDF</button>
+            </div>
+          </div>
           <div class="table-wrap"><table id="inboundTable"></table></div>
         </article>
       </section>

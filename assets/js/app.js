@@ -205,6 +205,63 @@ let footerHtml='';
     };
   });
 }
+
+
+function cleanHeaderText(text){
+  return String(text||'').replace(/[▲▼↕]/g,'').replace(/\s+/g,' ').trim();
+}
+function tableExportMatrix(tableId){
+  const tbl=document.getElementById(tableId);
+  if(!tbl) return [];
+  const header=[...tbl.querySelectorAll('thead tr:first-child th')].map(th=>cleanHeaderText(th.textContent));
+  const rows=[...tbl.querySelectorAll('tbody tr')]
+    .filter(tr=>!tr.querySelector('.empty-row'))
+    .map(tr=>[...tr.cells].map(td=>stripHtml(td.innerHTML).replace(/\s+/g,' ').trim()));
+  const footer=[...tbl.querySelectorAll('tfoot tr')]
+    .map(tr=>[...tr.cells].flatMap(td=>{
+      const span=Number(td.getAttribute('colspan')||1);
+      const txt=stripHtml(td.innerHTML).replace(/\s+/g,' ').trim();
+      return [txt,...Array(Math.max(0,span-1)).fill('')];
+    }));
+  return [header,...rows,...footer].filter(r=>r.length);
+}
+function exportTableToExcel(tableId,reportTitle){
+  const matrix=tableExportMatrix(tableId);
+  if(!matrix.length || matrix.length===1){ alert('لا توجد بيانات للتصدير.'); return; }
+  if(!window.XLSX){ alert('مكتبة Excel غير محملة.'); return; }
+  const meta=[
+    [reportTitle],
+    ['تاريخ التصدير', new Date().toLocaleString('ar-EG')],
+    []
+  ];
+  const ws=XLSX.utils.aoa_to_sheet([...meta,...matrix]);
+  ws['!cols']=matrix[0].map((_,i)=>({wch:Math.max(14,...matrix.map(r=>String(r[i]||'').length).slice(0,500).map(n=>Math.min(n,42)))}));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Report');
+  const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  XLSX.writeFile(wb,`${reportTitle}-${stamp}.xlsx`);
+}
+function exportTableToPdf(tableId,reportTitle){
+  const matrix=tableExportMatrix(tableId);
+  if(!matrix.length || matrix.length===1){ alert('لا توجد بيانات للتصدير.'); return; }
+  const head=matrix[0];
+  const body=matrix.slice(1);
+  const rowsHtml=body.map((r,idx)=>`<tr class="${idx===body.length-1 && r.includes('الإجمالي')?'total-row':''}">${head.map((_,i)=>`<td>${escapeHtml(r[i]||'')}</td>`).join('')}</tr>`).join('');
+  const html=`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${escapeHtml(reportTitle)}</title>
+  <style>
+    @page{size:A4 landscape;margin:10mm}body{font-family:Cairo,Arial,sans-serif;color:#111;direction:rtl}h1{text-align:center;font-size:18px;margin:0 0 6px}.meta{text-align:center;font-size:11px;margin-bottom:10px;color:#444}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #777;padding:4px 5px;text-align:center;vertical-align:middle}th{background:#e8f3e4;font-weight:700}.total-row td{background:#dff1d8;font-weight:800}tr{page-break-inside:avoid}
+  </style></head><body><h1>${escapeHtml(reportTitle)}</h1><div class="meta">تاريخ التصدير: ${escapeHtml(new Date().toLocaleString('ar-EG'))}</div><table><thead><tr>${head.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${rowsHtml}</tbody></table><script>window.onload=function(){setTimeout(function(){window.print();},300)}<\/script></body></html>`;
+  const w=window.open('','_blank');
+  if(!w){ alert('المتصفح منع فتح نافذة التصدير. اسمح بالنوافذ المنبثقة.'); return; }
+  w.document.open();w.document.write(html);w.document.close();
+}
+function initReportExportButtons(){
+  $('#salesExportExcelBtn')?.addEventListener('click',()=>exportTableToExcel('salesTable','مراجعة البيع والتحويلات'));
+  $('#salesExportPdfBtn')?.addEventListener('click',()=>exportTableToPdf('salesTable','مراجعة البيع والتحويلات'));
+  $('#inboundExportExcelBtn')?.addEventListener('click',()=>exportTableToExcel('inboundTable','مراجعة الوارد'));
+  $('#inboundExportPdfBtn')?.addEventListener('click',()=>exportTableToPdf('inboundTable','مراجعة الوارد'));
+}
+
 function renderTables(){table('#latestTable',['التاريخ','رقم الحركة','كود الحركة','وصف الحركة','من مخزن','إلى مخزن','الكمية','الوحدة'],APP_DATA.latest);table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']));table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحويل'],APP_DATA.salesReviewSample);table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample)}
 function renderTabs(){const salesWh=APP_DATA.plants.flatMap(p=>p.warehouses.filter(w=>['W401','W402','N401','N402','N411','N412','E401','E402'].includes(w[0])).map(w=>w[0]));$('#salesTabs').innerHTML=salesWh.map((w,i)=>`<button class="${i===0?'active':''}">${w}</button>`).join('');$('#inboundTabs').innerHTML=APP_DATA.plants.map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('')}
 function renderAlerts(){$('#alertsBox').innerHTML=[['⚠','حركات لم يتم تسويتها','يوجد 28 حركة تحتاج إلى تسوية'],['!','فروق جرد','يوجد 12 مخزن به فروق جرد'],['ℹ','حركات ملغاة','يوجد 15 حركة ملغاة خلال الفترة']].map(a=>`<div class="alert"><span>${a[0]}</span><div><b>${a[1]}</b><small>${a[2]}</small></div></div>`).join('')}
@@ -248,7 +305,7 @@ function initSidebarToggle(){
   };
 }
 function renderAll(){renderKPIs();drawDonut();drawLine();renderStock();renderPlants();renderTables();renderTabs();renderAlerts()}
-document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();nav();initSidebarToggle();renderAll()});
+document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();nav();initSidebarToggle();initReportExportButtons();renderAll()});
 
 // === Supabase Sales Upload + Dynamic Sales Report ===
 const SALES_WAREHOUSES = ['W401','W402','N401','N402','N411','N412','E401','E402'];
