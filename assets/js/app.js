@@ -256,7 +256,7 @@ function exportTableToPdf(tableId,reportTitle){
   const wrapper=document.createElement('div');
   wrapper.dir='rtl';
   wrapper.lang='ar';
-  wrapper.style.cssText='position:fixed;left:0;top:0;width:1120px;background:#fff;color:#111;font-family:Cairo,Arial,sans-serif;padding:18px;box-sizing:border-box;direction:rtl;z-index:-1;pointer-events:none;';
+  wrapper.style.cssText='position:absolute;left:-99999px;top:0;width:1600px;background:#fff;color:#111;font-family:Cairo,Arial,sans-serif;padding:18px;box-sizing:border-box;direction:rtl;z-index:1;pointer-events:none;';
   wrapper.innerHTML=`
     <div style="text-align:center;margin-bottom:10px;">
       <h1 style="font-size:22px;margin:0 0 6px;font-weight:800;">${escapeHtml(reportTitle)}</h1>
@@ -274,7 +274,7 @@ function exportTableToPdf(tableId,reportTitle){
     margin:8,
     filename:`${safeTitle}-${stamp}.pdf`,
     image:{type:'jpeg',quality:0.98},
-    html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',scrollX:0,scrollY:0,windowWidth:1120},
+    html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',scrollX:0,scrollY:0,windowWidth:1600,windowHeight:wrapper.scrollHeight},
     jsPDF:{unit:'mm',format:'a4',orientation:'landscape'},
     pagebreak:{mode:['avoid-all','css','legacy']}
   };
