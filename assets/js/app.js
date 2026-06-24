@@ -173,7 +173,13 @@ function table(el,heads,rows){
   const bodyHtml=visible.length
     ? visible.map(r=>`<tr>${heads.map((_,i)=>`<td>${r[i]??''}</td>`).join('')}</tr>`).join('')
     : `<tr><td colspan="${heads.length}" class="empty-row">لا توجد بيانات مطابقة</td></tr>`;
-  let footerHtml='';
+  
+function numericCellValue(v){
+  if(v===null||v===undefined) return 0;
+  const n=parseFloat(String(v).replace(/,/g,'').trim());
+  return Number.isFinite(n)?n:0;
+}
+let footerHtml='';
   if(key==='salesTable' && heads.length>=8){
     const totalIndexes=[3,4,5,6,7];
     const totals=totalIndexes.map(idx=>visible.reduce((sum,row)=>sum+numericCellValue(row[idx]),0));
