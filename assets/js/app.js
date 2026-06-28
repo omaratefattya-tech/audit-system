@@ -225,7 +225,37 @@ function tableExportMatrix(tableId){
     }));
   return [header,...rows,...footer].filter(r=>r.length);
 }
-function exportTableToExcel(tableId,reportTitle){
+async function saveBlobWithPicker(blob, suggestedName, mimeType){
+  const fileName=String(suggestedName||'report').replace(/[\\/:*?"<>|]/g,'-');
+  if(window.showSaveFilePicker){
+    try{
+      const extension=fileName.toLowerCase().endsWith('.pdf') ? '.pdf' : (fileName.toLowerCase().endsWith('.xlsx') ? '.xlsx' : '');
+      const pickerOptions={
+        suggestedName:fileName,
+        types:[{
+          description: extension==='.pdf' ? 'PDF File' : 'Excel Workbook',
+          accept:{[mimeType||blob.type||'application/octet-stream']:[extension||'.bin']}
+        }]
+      };
+      const handle=await window.showSaveFilePicker(pickerOptions);
+      const writable=await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return;
+    }catch(err){
+      if(err && err.name==='AbortError') return;
+      console.warn('Save picker unavailable, using browser download fallback',err);
+    }
+  }
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=fileName;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },1000);
+}
+async function exportTableToExcel(tableId,reportTitle){
   const matrix=tableExportMatrix(tableId);
   if(!matrix.length || matrix.length===1){ alert('لا توجد بيانات للتصدير.'); return; }
   if(!window.XLSX){ alert('مكتبة Excel غير محملة.'); return; }
@@ -242,52 +272,100 @@ function exportTableToExcel(tableId,reportTitle){
   wb.Workbook={Views:[{RTL:true}]};
   XLSX.utils.book_append_sheet(wb,ws,'التقرير');
   const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-  XLSX.writeFile(wb,`${reportTitle}-${stamp}.xlsx`,{bookType:'xlsx',cellStyles:true});
+  const safeTitle=String(reportTitle||'Report').replace(/[\\/:*?"<>|]/g,'-');
+  const out=XLSX.write(wb,{bookType:'xlsx',type:'array',cellStyles:true});
+  const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  await saveBlobWithPicker(blob,`${safeTitle}-${stamp}.xlsx`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
-function exportTableToPdf(tableId,reportTitle){
+async function exportTableToPdf(tableId,reportTitle){
   const matrix=tableExportMatrix(tableId);
   if(!matrix.length || matrix.length===1){ alert('لا توجد بيانات للتصدير.'); return; }
-  if(!window.html2pdf){ alert('مكتبة PDF غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
+  const Html2Canvas=window.html2canvas;
+  const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+  if(!Html2Canvas || !JsPDF){ alert('مكتبة PDF غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
 
   const head=matrix[0];
   const body=matrix.slice(1);
   const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
   const safeTitle=String(reportTitle||'Report').replace(/[\\/:*?"<>|]/g,'-');
-  const wrapper=document.createElement('div');
-  wrapper.dir='rtl';
-  wrapper.lang='ar';
-  wrapper.style.cssText='position:absolute;left:-99999px;top:0;width:1600px;background:#fff;color:#111;font-family:Cairo,Arial,sans-serif;padding:18px;box-sizing:border-box;direction:rtl;z-index:1;pointer-events:none;';
-  wrapper.innerHTML=`
-    <div style="text-align:center;margin-bottom:10px;">
-      <h1 style="font-size:22px;margin:0 0 6px;font-weight:800;">${escapeHtml(reportTitle)}</h1>
-      <div style="font-size:12px;color:#444;">تاريخ التصدير: ${escapeHtml(new Date().toLocaleString('ar-EG'))}</div>
+
+  const exportLayer=document.createElement('div');
+  exportLayer.id='pdfExportRenderLayer';
+  exportLayer.style.cssText=[
+    'position:fixed',
+    'left:0',
+    'top:0',
+    'width:1600px',
+    'min-height:400px',
+    'background:#ffffff',
+    'color:#111111',
+    'font-family:Cairo,Arial,Tahoma,sans-serif',
+    'padding:18px',
+    'box-sizing:border-box',
+    'direction:rtl',
+    'z-index:2147483647',
+    'opacity:1',
+    'pointer-events:none',
+    'overflow:visible'
+  ].join(';')+';';
+  exportLayer.dir='rtl';
+  exportLayer.lang='ar';
+  exportLayer.innerHTML=`
+    <div style="text-align:center;margin-bottom:12px;color:#111;background:#fff;">
+      <h1 style="font-size:24px;margin:0 0 8px;font-weight:800;color:#111;line-height:1.5;">${escapeHtml(reportTitle)}</h1>
+      <div style="font-size:13px;color:#333;line-height:1.6;">تاريخ التصدير: ${escapeHtml(new Date().toLocaleString('ar-EG'))}</div>
     </div>
-    <table style="width:100%;border-collapse:collapse;font-size:10px;direction:rtl;table-layout:auto;">
-      <thead><tr>${head.map(h=>`<th style="border:1px solid #666;padding:5px;background:#e8f3e4;text-align:center;font-weight:800;white-space:normal;">${escapeHtml(h)}</th>`).join('')}</tr></thead>
+    <table style="width:100%;border-collapse:collapse;font-size:10px;direction:rtl;background:#fff;color:#111;">
+      <thead><tr>${head.map(h=>`<th style="border:1px solid #555;padding:6px 5px;background:#dff1d8;color:#111;text-align:center;font-weight:800;line-height:1.45;white-space:normal;">${escapeHtml(h)}</th>`).join('')}</tr></thead>
       <tbody>${body.map((r,idx)=>{
-        const isTotal=idx===body.length-1 && r.includes('الإجمالي');
-        return `<tr>${head.map((_,i)=>`<td style="border:1px solid #777;padding:4px 5px;text-align:center;vertical-align:middle;${isTotal?'background:#dff1d8;font-weight:800;':''}">${escapeHtml(r[i]||'')}</td>`).join('')}</tr>`;
+        const isTotal=(idx===body.length-1 && r.some(c=>String(c).includes('الإجمالي')));
+        return `<tr>${head.map((_,i)=>`<td style="border:1px solid #777;padding:5px;background:${isTotal?'#e5f6dd':'#fff'};color:#111;text-align:center;vertical-align:middle;line-height:1.45;${isTotal?'font-weight:800;':''}">${escapeHtml(r[i]||'')}</td>`).join('')}</tr>`;
       }).join('')}</tbody>
     </table>`;
-  document.body.appendChild(wrapper);
-  const options={
-    margin:8,
-    filename:`${safeTitle}-${stamp}.pdf`,
-    image:{type:'jpeg',quality:0.98},
-    html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',scrollX:0,scrollY:0,windowWidth:1600,windowHeight:wrapper.scrollHeight},
-    jsPDF:{unit:'mm',format:'a4',orientation:'landscape'},
-    pagebreak:{mode:['avoid-all','css','legacy']}
-  };
-  const finish=()=>{ try{ wrapper.remove(); }catch(_){} };
-  const runExport=()=>html2pdf().set(options).from(wrapper).save().then(finish).catch(err=>{
-    finish();
+
+  document.body.appendChild(exportLayer);
+  try{
+    if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
+    const canvas=await Html2Canvas(exportLayer,{
+      scale:2,
+      useCORS:true,
+      allowTaint:true,
+      backgroundColor:'#ffffff',
+      logging:false,
+      scrollX:0,
+      scrollY:0,
+      windowWidth:exportLayer.scrollWidth,
+      windowHeight:exportLayer.scrollHeight
+    });
+
+    const pdf=new JsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
+    const pageWidth=pdf.internal.pageSize.getWidth();
+    const pageHeight=pdf.internal.pageSize.getHeight();
+    const margin=7;
+    const imgWidth=pageWidth-(margin*2);
+    const imgHeight=(canvas.height*imgWidth)/canvas.width;
+    const imgData=canvas.toDataURL('image/jpeg',0.95);
+
+    let y=margin;
+    let remainingHeight=imgHeight;
+    pdf.addImage(imgData,'JPEG',margin,y,imgWidth,imgHeight,undefined,'FAST');
+    remainingHeight-=pageHeight-(margin*2);
+    while(remainingHeight>0){
+      pdf.addPage('a4','landscape');
+      y=margin-(imgHeight-remainingHeight);
+      pdf.addImage(imgData,'JPEG',margin,y,imgWidth,imgHeight,undefined,'FAST');
+      remainingHeight-=pageHeight-(margin*2);
+    }
+
+    const blob=pdf.output('blob');
+    await saveBlobWithPicker(blob,`${safeTitle}-${stamp}.pdf`,'application/pdf');
+  }catch(err){
     console.error(err);
     alert('تعذر تصدير PDF. حاول مرة أخرى.');
-  });
-  if(document.fonts && document.fonts.ready){
-    document.fonts.ready.then(()=>setTimeout(runExport,80));
-  }else{
-    setTimeout(runExport,80);
+  }finally{
+    try{ exportLayer.remove(); }catch(_){}
   }
 }
 function initReportExportButtons(){
