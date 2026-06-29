@@ -558,6 +558,10 @@ function renderPlantPerformanceTable(plantStats){
 function modernIcon(name){
   const attrs='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
   const icons={
+    warning:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.2 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.2a2 2 0 0 0-3.4 0Z"></path><path d="M12 9v5"></path><path d="M12 18h.01"></path></svg>`,
+    box:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 8-9-5-9 5 9 5 9-5Z"></path><path d="M3 8v8l9 5 9-5V8"></path><path d="M12 13v8"></path></svg>`,
+    transfer:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h14l-4-4"></path><path d="M17 17H3l4 4"></path><path d="M21 7l-4 4"></path><path d="M3 17l4-4"></path></svg>`,
+    doc:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M8 13h8"></path><path d="M8 17h5"></path></svg>`,
     sales:`<svg ${attrs}><circle cx="9" cy="20" r="1.6"></circle><circle cx="18" cy="20" r="1.6"></circle><path d="M3 4h2.4l2.2 11.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 1.9-1.4L21 8H7"></path><path d="M9 11h9"></path></svg>`,
     production:`<svg ${attrs}><path d="M3 21h18"></path><path d="M5 21V10l5 3V9l5 4V7l4 3v11"></path><path d="M8 17h1"></path><path d="M12 17h1"></path><path d="M16 17h1"></path><path d="M7 7h3"></path></svg>`,
     outgoing:`<svg ${attrs}><path d="M4 7h14"></path><path d="M14 3l4 4-4 4"></path><path d="M20 17H6"></path><path d="M10 13l-4 4 4 4"></path></svg>`,
@@ -678,21 +682,39 @@ function renderDashboardSummary(stats){
     ['إجمالي التحميل',`${fmt(stats.totalLoadingQty)} طن`]
   ].map(r=>`<div class="stock-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
 }
-function renderDashboardPlants(plantStats){
-  const cards=APP_DATA.plants.map(p=>{
-    const st=plantStats[p.code]||{sales:0,production:0,outgoing:0,incoming:0,loading:0};
-    return `<div class="plant-card"><div class="plant-icon"><img src="assets/img/logo.png" alt=""></div><strong>${p.name}</strong><br><span class="plant-code">${p.code}</span><br><small>بيع: ${fmt(st.sales)} طن</small><br><small>إنتاج: ${fmt(st.production)} طن</small><br><small>تحميل: ${fmt(st.loading)} طن</small></div>`;
-  }).join('');
+function renderDashboardPlants(plantStats, totalSales=0){
   const node=$('#plantsCards');
-  if(node) node.innerHTML=cards;
+  if(!node) return;
+  const rows=APP_DATA.plants.map(p=>{
+    const st=plantStats[p.code]||{sales:0,production:0,outgoing:0,incoming:0,loading:0};
+    const pct=totalSales?Math.max(0,(st.sales/totalSales)*100):0;
+    return {code:p.code,name:p.name,st,pct};
+  }).sort((a,b)=>b.st.sales-a.st.sales);
+  node.innerHTML=rows.map((r,i)=>`<div class="plant-progress-card rank-${i+1}">
+    <div class="plant-progress-head"><b>${escapeHtml(r.name)}</b><span>${escapeHtml(r.code)}</span></div>
+    <div class="plant-progress-value"><strong>${fmt(r.st.sales)}</strong><small>طن بيع</small><em>${r.pct.toFixed(1)}%</em></div>
+    <div class="progress-track"><i style="width:${Math.min(100,r.pct).toFixed(1)}%"></i></div>
+    <div class="plant-progress-metrics"><span>إنتاج ${fmt(r.st.production)}</span><span>تحميل ${fmt(r.st.loading)}</span></div>
+  </div>`).join('');
 }
-function renderDashboardAlerts(stats){
-  const alerts=[];
-  if(!stats.rowsCount) alerts.push(['⚠','لا توجد بيانات للفلاتر الحالية','غير نطاق التاريخ أو المصنع أو المخزن']);
-  else alerts.push(['✓','بيانات مراجعة البيع جاهزة',`تم عرض ${fmt(stats.rowsCount)} صنف/سطر من تقرير مراجعة البيع`]);
-  if(stats.totalLoadingQty<0) alerts.push(['!','إجمالي التحميل بالسالب','راجع الحركات الملغاة أو المرتجعات في الفترة المحددة']);
+function renderDashboardAlerts(stats, insights={}){
   const node=$('#alertsBox');
-  if(node) node.innerHTML=alerts.map(a=>`<div class="alert"><span>${a[0]}</span><div><b>${a[1]}</b><small>${a[2]}</small></div></div>`).join('');
+  if(!node) return;
+  const cards=[];
+  if(!stats.rowsCount){
+    cards.push({icon:'warning',title:'لا توجد بيانات',value:'0',note:'غيّر الفلاتر أو التاريخ',level:'danger'});
+  }else{
+    cards.push({icon:'warning',title:'أصناف إنتاجها أعلى من البيع',value:fmt(insights.productionAboveSalesCount||0),note:'تحتاج متابعة رصيد/تحميل',level:'danger'});
+    cards.push({icon:'box',title:'أصناف بدون بيع',value:fmt(insights.noSalesCount||0),note:'لها إنتاج أو تحويلات خلال الفترة',level:'warn'});
+    cards.push({icon:'transfer',title:'تحويلات صادرة مرتفعة',value:fmt(insights.highOutgoingCount||0),note:'أصناف أعلى من متوسط الصادر',level:'info'});
+    cards.push({icon:'doc',title:'أصناف تحتاج تحليل تكلفة',value:fmt(insights.reviewItemsCount||0),note:'فرق واضح بين البيع والإنتاج',level:'note'});
+  }
+  node.innerHTML=cards.map(c=>`<div class="review-card ${c.level}">
+    <div class="review-icon">${modernIcon(c.icon)}</div>
+    <div class="review-value">${c.value}</div>
+    <b>${escapeHtml(c.title)}</b>
+    <small>${escapeHtml(c.note)}</small>
+  </div>`).join('');
 }
 async function loadDashboardRealData(options={}){
   if(!WarehouseDB?.ready) return;
@@ -713,7 +735,7 @@ async function loadDashboardRealData(options={}){
     return;
   }
   const sales=applyDashboardSalesFilters(salesRes.data||[],filters);
-  const whSet=new Set(), daily={}, warehouseSalesMap={}, plantStats={};
+  const whSet=new Set(), daily={}, warehouseSalesMap={}, warehouseActivityMap={}, productMap={}, plantStats={};
   APP_DATA.plants.forEach(p=>plantStats[p.code]={sales:0,production:0,outgoing:0,incoming:0,loading:0});
   const stats={rowsCount:sales.length,salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0};
   sales.forEach(r=>{
@@ -738,26 +760,54 @@ async function loadDashboardRealData(options={}){
     plantStats[plant].incoming+=inTr;
     plantStats[plant].loading+=load;
     if(salesQty) warehouseSalesMap[wh]=(warehouseSalesMap[wh]||0)+Math.abs(salesQty);
+    const pkey=String(r.material_code||r.material_name||'غير محدد');
+    if(!productMap[pkey]) productMap[pkey]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0};
+    productMap[pkey].sales+=salesQty;
+    productMap[pkey].production+=prod;
+    productMap[pkey].outgoing+=outTr;
+    productMap[pkey].incoming+=inTr;
+    productMap[pkey].loading+=load;
+    if(!warehouseActivityMap[wh]) warehouseActivityMap[wh]={code:wh,name:meta.name||'-',plant:plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0};
+    warehouseActivityMap[wh].sales+=salesQty;
+    warehouseActivityMap[wh].production+=prod;
+    warehouseActivityMap[wh].outgoing+=outTr;
+    warehouseActivityMap[wh].incoming+=inTr;
+    warehouseActivityMap[wh].loading+=load;
+    warehouseActivityMap[wh].totalActivity+=Math.abs(salesQty)+Math.abs(prod)+Math.abs(outTr)+Math.abs(inTr)+Math.abs(load);
   });
   renderDashboardKPIs(stats);
   renderDashboardSummary(stats);
   drawDashboardLine(daily);
   drawDashboardPlantBar(plantStats);
   drawDashboardDonut(Object.entries(warehouseSalesMap).sort((a,b)=>b[1]-a[1]).map(([code,value])=>({label:`${code} - ${dashboardWhMeta(code).name||'مخزن بيع'}`,value})));
-  renderDashboardPlants(plantStats);
-  renderDashboardAlerts(stats);
-  const latest=sales.slice(0,12).map(r=>[
-    dashboardDateKey(r.report_date),
-    r.plant_code || dashboardWhMeta(r.warehouse_code).plant || '-',
-    r.warehouse_code||'-',
-    r.material_name||r.material_code||'-',
-    fmt(toNumber(r.sales_quantity)),
-    fmt(toNumber(r.production_quantity)),
-    fmt(toNumber(r.outgoing_transfer_quantity)),
-    fmt(toNumber(r.incoming_transfer_quantity)),
-    fmt(toNumber(r.total_loading_quantity))
+  const products=Object.values(productMap);
+  const avgOutgoing=products.length ? products.reduce((a,p)=>a+Math.abs(p.outgoing),0)/products.length : 0;
+  const insights={
+    productionAboveSalesCount:products.filter(p=>p.production>p.sales && p.production>0).length,
+    noSalesCount:products.filter(p=>Math.abs(p.sales)===0 && (Math.abs(p.production)+Math.abs(p.outgoing)+Math.abs(p.incoming))>0).length,
+    highOutgoingCount:products.filter(p=>Math.abs(p.outgoing)>avgOutgoing && Math.abs(p.outgoing)>0).length,
+    reviewItemsCount:products.filter(p=>Math.abs(p.production-p.sales)>0 && Math.abs(p.production-p.sales)>Math.max(5,Math.abs(p.sales)*.25)).length
+  };
+  renderDashboardPlants(plantStats, stats.salesQty);
+  renderDashboardAlerts(stats, insights);
+  const topProducts=products.sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales)).slice(0,10).map((p,i)=>[
+    i+1,
+    escapeHtml(p.code||'-'),
+    escapeHtml(p.name||'-'),
+    fmt(p.sales),
+    fmt(p.production),
+    fmt(p.loading)
   ]);
-  table('#latestTable',['التاريخ','المصنع','المخزن','الصنف','البيع','الإنتاج','تحويلات صادرة','تحويلات واردة','إجمالي التحميل'],latest);
+  table('#latestTable',['#','كود الصنف','اسم الصنف','البيع','الإنتاج','التحميل'],topProducts);
+  const topWarehouses=Object.values(warehouseActivityMap).sort((a,b)=>b.totalActivity-a.totalActivity).slice(0,10).map((w,i)=>[
+    i+1,
+    escapeHtml(w.code||'-'),
+    escapeHtml(w.name||'-'),
+    escapeHtml(w.plant||'-'),
+    fmt(w.sales),
+    fmt(w.loading)
+  ]);
+  table('#topWarehousesTable',['#','كود المخزن','اسم المخزن','المصنع','البيع','التحميل'],topWarehouses);
 }
 
 

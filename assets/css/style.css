@@ -636,3 +636,82 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 .app-shell.sidebar-collapsed .nav-item .nav-icon{margin:0;width:34px;height:34px;min-width:34px}
 .app-shell.sidebar-collapsed .nav-item .nav-icon svg{width:23px;height:23px}
 @media(max-width:700px){.kpi .modern-kpi-icon{width:46px;height:46px}.kpi .modern-kpi-icon svg{width:34px;height:34px}}
+
+/* Executive bottom dashboard replacement */
+#dashboard .executive-bottom-grid{
+  grid-template-columns:1.05fr 1.15fr 1.05fr 1.05fr;
+  align-items:stretch;
+}
+#dashboard .executive-bottom-grid .panel{
+  min-height:310px;
+  overflow:hidden;
+  padding:18px 16px;
+  border-radius:16px;
+  background:linear-gradient(145deg,rgba(0,62,43,.62),rgba(0,24,20,.84));
+}
+#dashboard .executive-bottom-grid .panel h3{
+  font-size:20px;
+  margin-bottom:14px;
+  color:#f4fff5;
+  text-shadow:0 2px 12px rgba(0,0,0,.35);
+}
+#dashboard .review-indicators{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+#dashboard .review-card{
+  min-height:116px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  text-align:center;
+  border:1px solid rgba(132,207,80,.28);
+  border-radius:14px;
+  background:rgba(0,35,27,.52);
+  padding:12px 8px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.035);
+}
+#dashboard .review-icon{
+  width:44px;height:44px;border-radius:13px;display:grid;place-items:center;
+  background:rgba(255,255,255,.045);
+  color:#9be650;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06),0 0 18px rgba(132,207,80,.10);
+}
+#dashboard .review-icon svg{width:30px;height:30px;filter:drop-shadow(0 0 8px currentColor)}
+#dashboard .review-card.danger .review-icon{color:#ff6565;border-color:rgba(255,101,101,.35)}
+#dashboard .review-card.warn .review-icon{color:#f1bb30}
+#dashboard .review-card.info .review-icon{color:#2fc7df}
+#dashboard .review-card.note .review-icon{color:#58a6ff}
+#dashboard .review-value{font-size:24px;font-weight:900;color:#fff;line-height:1;direction:ltr}
+#dashboard .review-card b{font-size:13px;color:#f4fff5;line-height:1.35}
+#dashboard .review-card small{font-size:11px;color:#b8d7bc;line-height:1.35}
+#dashboard .compact-table-wrap{max-height:245px;overflow:auto;border:1px solid rgba(132,207,80,.22);border-radius:12px;background:rgba(0,35,27,.26)}
+#dashboard .executive-bottom-grid table{font-size:11.5px;table-layout:fixed}
+#dashboard .executive-bottom-grid th,
+#dashboard .executive-bottom-grid td{padding:7px 6px}
+#dashboard .executive-bottom-grid .column-filter-row input{height:28px;padding:4px 7px;font-size:10.5px;border-radius:7px}
+#dashboard .plant-progress-list{display:grid;grid-template-columns:1fr;gap:10px}
+#dashboard .plant-progress-card{
+  border:1px solid rgba(132,207,80,.28);
+  border-radius:14px;
+  background:rgba(0,35,27,.50);
+  padding:12px;
+}
+#dashboard .plant-progress-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+#dashboard .plant-progress-head b{font-size:13px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dashboard .plant-progress-head span{font-size:12px;color:#fff;background:#237b36;border-radius:8px;padding:4px 9px;font-weight:900;direction:ltr}
+#dashboard .plant-progress-value{display:grid;grid-template-columns:auto 1fr auto;align-items:end;gap:8px;margin-bottom:8px}
+#dashboard .plant-progress-value strong{font-size:20px;color:#fff;direction:ltr}
+#dashboard .plant-progress-value small{font-size:11px;color:#b8d7bc}
+#dashboard .plant-progress-value em{font-style:normal;font-weight:900;color:#9bd653;direction:ltr}
+#dashboard .progress-track{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+#dashboard .progress-track i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#64bd3f,#a6f45a);box-shadow:0 0 14px rgba(141,220,89,.38)}
+#dashboard .plant-progress-card.rank-2 .progress-track i{background:linear-gradient(90deg,#239fd7,#55d5ff)}
+#dashboard .plant-progress-card.rank-3 .progress-track i{background:linear-gradient(90deg,#ff9f2f,#f1bb30)}
+#dashboard .plant-progress-metrics{display:flex;justify-content:space-between;gap:6px;margin-top:8px;color:#9bd653;font-size:11px}
+@media(max-width:1500px){#dashboard .executive-bottom-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){#dashboard .executive-bottom-grid{grid-template-columns:1fr}#dashboard .review-indicators{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){#dashboard .review-indicators{grid-template-columns:1fr}}
