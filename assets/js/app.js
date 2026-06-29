@@ -2576,8 +2576,25 @@ function drawExceptionsChart(summary){
 }
 function renderExceptionsPriority(exceptions){
   const node=$('#exceptionsPriorityList'); if(!node) return;
-  const top=exceptions.slice(0,8);
-  node.innerHTML=top.map((e,i)=>`<div class="exception-priority-row ${e.severity}"><em>${i+1}</em><div><b>${escapeHtml(e.code)}</b><span>${escapeHtml(e.name)}</span><small>${escapeHtml(e.label)} - ${escapeHtml(e.details)}</small></div><strong>${fmt(e.reviewScore)}</strong></div>`).join('') || '<div class="empty-row">لا توجد استثناءات حسب الفلتر الحالي</div>';
+  const top=exceptions.slice(0,10);
+  if(!top.length){
+    node.innerHTML='<div class="empty-row exception-priority-empty">لا توجد استثناءات حسب الفلتر الحالي</div>';
+    return;
+  }
+  const priorityText=e=>e.severity==='high'?'عالية':e.severity==='medium'?'متوسطة':'منخفضة';
+  const actionText=e=>e.severity==='high'?'مراجعة فورية':e.severity==='medium'?'مراجعة':'متابعة';
+  node.innerHTML=`<div class="exception-priority-head">
+      <span>#</span><span>كود الصنف</span><span>الصنف</span><span>نوع الاستثناء</span><span>الأولوية</span><span>الفارق</span><span>الإجراء</span>
+    </div>`+top.map((e,i)=>`
+      <div class="exception-priority-row ${e.severity}">
+        <em>${i+1}</em>
+        <b>${escapeHtml(e.code)}</b>
+        <span class="priority-item-name">${escapeHtml(e.name)}</span>
+        <span class="priority-type">${escapeHtml(e.label)}</span>
+        <span class="priority-badge ${e.severity}">${priorityText(e)}</span>
+        <strong>${fmt(e.reviewScore)}<small> نقطة</small></strong>
+        <button type="button" class="priority-action ${e.severity}">${actionText(e)}</button>
+      </div>`).join('');
 }
 function exceptionRow(e,i){
   return `<tr class="exception-row ${e.severity}"><td>${i+1}</td><td><span class="item-status-badge ${e.severity==='high'?'danger':e.severity==='medium'?'warning':'info'}">${escapeHtml(e.label)}</span></td><td>${escapeHtml(e.code)}</td><td>${escapeHtml(e.name)}</td><td>${escapeHtml(e.plants)}</td><td>${escapeHtml(e.warehouses)}</td><td>${fmt(e.sales)}</td><td>${fmt(e.production)}</td><td>${fmt(e.outgoing)}</td><td>${fmt(e.incoming)}</td><td>${fmt(e.loading)}</td><td>${escapeHtml(e.details)}</td></tr>`;
