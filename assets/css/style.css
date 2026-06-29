@@ -380,3 +380,155 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 .sidebar .nav-item *:not([class*="icon"]){
   font-family:"Cairo",sans-serif !important;
 }
+
+/* Executive dashboard charts polish - phase 1 visual alignment */
+#dashboard .grid-3{
+  grid-template-columns:1.05fr .98fr 1.18fr;
+  gap:14px;
+  align-items:stretch;
+}
+#dashboard .grid-3 .panel{
+  min-height:430px;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  padding:18px 18px 16px;
+  border-radius:16px;
+  background:linear-gradient(145deg,rgba(0,62,43,.62),rgba(0,24,20,.84));
+}
+#dashboard .grid-3 .panel h3{
+  font-size:20px;
+  line-height:1.4;
+  margin-bottom:4px;
+  color:#f4fff5;
+  text-shadow:0 2px 12px rgba(0,0,0,.35);
+}
+#dashboard .grid-3 .panel h3::after{
+  content:"(طن)";
+  display:block;
+  font-size:12px;
+  color:#d8ffd1;
+  opacity:.9;
+  margin-top:2px;
+}
+#dashboard .grid-3 canvas{
+  width:100% !important;
+  height:230px !important;
+  max-width:100%;
+  display:block;
+  margin:2px auto 8px;
+}
+#dashboard .chart-stats-row{
+  margin-top:auto;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:0;
+  border:1px solid rgba(132,207,80,.24);
+  border-radius:12px;
+  overflow:hidden;
+  background:rgba(0,35,27,.38);
+}
+#dashboard .chart-stats-row div{
+  padding:12px 8px;
+  text-align:center;
+  border-inline-start:1px solid rgba(255,255,255,.08);
+}
+#dashboard .chart-stats-row div:first-child{border-inline-start:0}
+#dashboard .chart-stats-row b{
+  display:block;
+  font-size:18px;
+  color:#fff;
+  font-weight:900;
+  direction:ltr;
+}
+#dashboard .chart-stats-row span{
+  display:block;
+  color:#9bd653;
+  font-size:12px;
+  margin-top:3px;
+  white-space:nowrap;
+}
+#dashboard .dashboard-donut-legend{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:5px;
+  max-height:154px;
+  overflow:auto;
+  padding-inline:2px 6px;
+  margin:2px 0 10px;
+}
+#dashboard .legend-row{
+  display:grid !important;
+  grid-template-columns:12px 44px minmax(0,1fr) 72px 45px;
+  align-items:center;
+  gap:7px;
+  font-size:12px;
+  line-height:1.25;
+  padding:4px 6px;
+  border-radius:8px;
+  background:rgba(0,35,27,.28);
+}
+#dashboard .legend-row .dot{
+  width:10px;
+  height:10px;
+  border-radius:3px;
+  margin:0;
+}
+#dashboard .legend-row b{color:#fff;font-weight:900;text-align:center;direction:ltr}
+#dashboard .legend-row em{
+  color:#d8ffd1;
+  font-style:normal;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#dashboard .legend-row strong{
+  color:#fff;
+  direction:ltr;
+  text-align:left;
+  font-weight:900;
+}
+#dashboard .legend-row small{
+  color:#9bd653;
+  direction:ltr;
+  text-align:left;
+}
+#dashboard #donutStats.chart-stats-row{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+#dashboard .plant-performance-table{
+  border:1px solid rgba(132,207,80,.24);
+  border-radius:12px;
+  overflow:hidden;
+  background:rgba(0,35,27,.35);
+  margin-top:auto;
+}
+#dashboard .plant-performance-table table{
+  width:100%;
+  font-size:11px;
+  table-layout:fixed;
+}
+#dashboard .plant-performance-table th,
+#dashboard .plant-performance-table td{
+  padding:7px 5px;
+  white-space:nowrap;
+  text-align:center;
+}
+#dashboard .plant-performance-table th{
+  color:#9bd653;
+  background:rgba(0,74,43,.82);
+}
+#dashboard .plant-performance-table tfoot td{
+  color:#f1bb30;
+  font-weight:900;
+  background:rgba(0,61,43,.72);
+}
+#dashboard .small-btn{
+  margin-top:14px;
+  min-width:150px;
+  border-radius:10px;
+}
+@media(max-width:1300px){
+  #dashboard .grid-3{grid-template-columns:1fr}
+  #dashboard .grid-3 .panel{min-height:390px}
+}

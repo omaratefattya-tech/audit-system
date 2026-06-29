@@ -404,71 +404,117 @@ function drawDashboardDonut(items){
   const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,340,240);
   const entries=(items||[]).filter(x=>x.value>0).slice(0,8);
   const sum=entries.reduce((a,b)=>a+b.value,0);
-  if(!sum){ ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات مبيعات',170,120);ctx.textAlign='start'; $('#movementLegend').innerHTML=''; return; }
+  const legend=$('#movementLegend');
+  const statsBox=$('#donutStats') || (()=>{const d=document.createElement('div');d.id='donutStats';d.className='chart-stats-row';legend?.after(d);return d;})();
+  if(!sum){
+    ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات مبيعات',170,120);ctx.textAlign='start';
+    if(legend) legend.innerHTML='';
+    if(statsBox) statsBox.innerHTML='<div><b>0</b><span>إجمالي المبيعات</span></div><div><b>0</b><span>عدد المخازن</span></div>';
+    return;
+  }
   let a=-Math.PI/2;
-  entries.forEach((item,i)=>{const e=a+(item.value/sum)*Math.PI*2;ctx.beginPath();ctx.moveTo(115,120);ctx.arc(115,120,88,a,e);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.globalAlpha=.9;ctx.fill();a=e;});
-  ctx.globalAlpha=1;ctx.beginPath();ctx.arc(115,120,45,0,Math.PI*2);ctx.fillStyle='#00251f';ctx.fill();
-  ctx.fillStyle='#fff';ctx.font='bold 15px Cairo';ctx.textAlign='center';ctx.fillText(fmt(sum),115,126);ctx.textAlign='start';
-  $('#movementLegend').innerHTML=entries.map((it,i)=>`<div><span style="background:${colors[i%colors.length]}"></span>${escapeHtml(it.label)} (${fmt(it.value)})</div>`).join('');
+  entries.forEach((item,i)=>{
+    const e=a+(item.value/sum)*Math.PI*2;
+    ctx.beginPath();ctx.moveTo(130,120);ctx.arc(130,120,86,a,e);ctx.closePath();
+    ctx.fillStyle=colors[i%colors.length];ctx.globalAlpha=.92;ctx.fill();a=e;
+  });
+  ctx.globalAlpha=1;
+  ctx.beginPath();ctx.arc(130,120,48,0,Math.PI*2);ctx.fillStyle='#00251f';ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText(fmt(sum),130,118);
+  ctx.font='bold 12px Cairo';ctx.fillStyle='#d8ffd1';ctx.fillText('طن',130,139);ctx.textAlign='start';
+  if(legend){
+    legend.classList.add('dashboard-donut-legend');
+    legend.innerHTML=entries.map((it,i)=>{
+      const pct=sum?((it.value/sum)*100).toFixed(1):'0.0';
+      const code=String(it.label||'').split(' - ')[0];
+      const name=String(it.label||'').replace(/^.*? - /,'');
+      return `<div class="legend-row"><span class="dot" style="background:${colors[i%colors.length]}"></span><b>${escapeHtml(code)}</b><em>${escapeHtml(name)}</em><strong>${fmt(it.value)}</strong><small>${pct}%</small></div>`;
+    }).join('');
+  }
+  if(statsBox){
+    const top=entries[0];
+    statsBox.innerHTML=`<div><b>${fmt(sum)}</b><span>إجمالي المبيعات</span></div><div><b>${entries.length}</b><span>عدد المخازن</span></div><div><b>${escapeHtml(String(top.label||'-').split(' - ')[0])}</b><span>أعلى مخزن</span></div>`;
+  }
 }
 function drawDashboardLine(dailyMap){
   const canvas=$('#lineChart'); if(!canvas) return;
   const ctx=canvas.getContext('2d');ctx.clearRect(0,0,430,250);
   const days=Object.keys(dailyMap||{}).sort().slice(-31);
-  if(!days.length){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',215,120);ctx.textAlign='start';return;}
+  const summary=$('#lineSummary') || (()=>{const d=document.createElement('div');d.id='lineSummary';d.className='chart-stats-row';canvas.after(d);return d;})();
+  if(!days.length){
+    ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',215,120);ctx.textAlign='start';
+    if(summary) summary.innerHTML='<div><b>0</b><span>البيع</span></div><div><b>0</b><span>الإنتاج</span></div><div><b>0</b><span>الصادرة</span></div><div><b>0</b><span>الواردة</span></div>';
+    return;
+  }
   const series=[
-    {key:'sales',label:'بيع',color:'#74c54a'},
-    {key:'production',label:'إنتاج',color:'#1f9e9a'},
-    {key:'outgoing',label:'تحويل صادر',color:'#f1bb30'},
-    {key:'incoming',label:'تحويل وارد',color:'#8bd34a'}
+    {key:'sales',label:'البيع',color:'#74c54a'},
+    {key:'production',label:'الإنتاج',color:'#2aa6e8'},
+    {key:'outgoing',label:'الصادرة',color:'#ff9f2f'},
+    {key:'incoming',label:'الواردة',color:'#b45cff'}
   ];
+  const totals=series.map(s=>({ ...s, total:days.reduce((a,d)=>a+(dailyMap[d][s.key]||0),0) }));
   const max=Math.max(1,...days.flatMap(d=>series.map(s=>dailyMap[d][s.key]||0)));
   function axes(){
-    ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;
-    for(let i=0;i<6;i++){let y=215-i*34;ctx.beginPath();ctx.moveTo(35,y);ctx.lineTo(410,y);ctx.stroke()}
-    ctx.fillStyle='#d6ead1';ctx.font='12px Cairo';ctx.textAlign='start';
-    ctx.fillText(fmt(max),2,45);ctx.fillText('0',18,218);ctx.fillText(days[0]?.slice(5)||'',30,235);ctx.fillText(days[days.length-1]?.slice(5)||'',376,235)
+    ctx.strokeStyle='rgba(255,255,255,.13)';ctx.lineWidth=1;
+    for(let i=0;i<6;i++){let y=205-i*31;ctx.beginPath();ctx.moveTo(40,y);ctx.lineTo(405,y);ctx.stroke()}
+    ctx.fillStyle='#d6ead1';ctx.font='11px Cairo';ctx.textAlign='start';
+    ctx.fillText(fmt(max),4,42);ctx.fillText('0',22,208);ctx.fillText(days[0]?.slice(5)||'',38,228);ctx.fillText(days[days.length-1]?.slice(5)||'',366,228)
   }
   function line(arr,c){
-    ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();
-    arr.forEach((v,i)=>{let x=45+(days.length===1?175:i*(350/(days.length-1))),y=215-(v/max)*170;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();
-    arr.forEach((v,i)=>{let x=45+(days.length===1?175:i*(350/(days.length-1))),y=215-(v/max)*170;ctx.beginPath();ctx.arc(x,y,3,0,7);ctx.fillStyle=c;ctx.fill()})
+    ctx.strokeStyle=c;ctx.lineWidth=2.5;ctx.beginPath();
+    arr.forEach((v,i)=>{let x=48+(days.length===1?175:i*(342/(days.length-1))),y=205-(v/max)*165;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();
+    arr.forEach((v,i)=>{let x=48+(days.length===1?175:i*(342/(days.length-1))),y=205-(v/max)*165;ctx.beginPath();ctx.arc(x,y,3.3,0,7);ctx.fillStyle=c;ctx.fill()})
   }
   axes();
   series.forEach(s=>line(days.map(d=>dailyMap[d][s.key]||0),s.color));
-  let x=95;
-  series.forEach(s=>{ctx.fillStyle=s.color;ctx.fillRect(x,18,9,9);ctx.fillStyle='#fff';ctx.font='11px Cairo';ctx.fillText(s.label,x+13,27);x+=78;});
+  let x=70;
+  series.forEach(s=>{ctx.fillStyle=s.color;ctx.fillRect(x,16,22,4);ctx.beginPath();ctx.arc(x+11,18,3.5,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.font='11px Cairo';ctx.fillText(s.label,x+28,22);x+=83;});
+  if(summary){
+    summary.innerHTML=totals.map(s=>`<div><b>${fmt(s.total)}</b><span>${s.label}</span></div>`).join('');
+  }
 }
+
 function drawDashboardPlantBar(plantStats){
   const canvas=$('#plantBarChart'); if(!canvas) return;
   const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,430,250);
   const plants=APP_DATA.plants.map(p=>p.code);
   const series=[
-    {key:'sales',label:'بيع',color:'#74c54a'},
-    {key:'production',label:'إنتاج',color:'#1f9e9a'},
-    {key:'outgoing',label:'صادر',color:'#f1bb30'},
-    {key:'incoming',label:'وارد',color:'#8bd34a'},
-    {key:'loading',label:'تحميل',color:'#526d62'}
+    {key:'sales',label:'البيع',color:'#74c54a'},
+    {key:'production',label:'الإنتاج',color:'#2aa6e8'},
+    {key:'outgoing',label:'الصادرة',color:'#ff9f2f'},
+    {key:'incoming',label:'الواردة',color:'#b45cff'},
+    {key:'loading',label:'التحميل',color:'#28c7bd'}
   ];
   const max=Math.max(1,...plants.flatMap(code=>series.map(s=>Math.abs((plantStats[code]||{})[s.key]||0))));
-  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;
-  for(let i=0;i<6;i++){let y=205-i*31;ctx.beginPath();ctx.moveTo(35,y);ctx.lineTo(410,y);ctx.stroke();}
-  ctx.fillStyle='#d6ead1';ctx.font='12px Cairo';ctx.fillText(fmt(max),2,45);ctx.fillText('0',18,208);
-  const groupW=105, barW=12, startX=65;
+  ctx.strokeStyle='rgba(255,255,255,.13)';ctx.lineWidth=1;
+  for(let i=0;i<6;i++){let y=200-i*30;ctx.beginPath();ctx.moveTo(38,y);ctx.lineTo(410,y);ctx.stroke();}
+  ctx.fillStyle='#d6ead1';ctx.font='11px Cairo';ctx.fillText(fmt(max),5,42);ctx.fillText('0',22,203);
+  const groupW=110, barW=12, startX=62;
   plants.forEach((code,pi)=>{
     const baseX=startX+pi*groupW;
     series.forEach((ser,si)=>{
       const v=Math.abs((plantStats[code]||{})[ser.key]||0);
-      const h=(v/max)*155;
-      const x=baseX+si*(barW+4), y=205-h;
+      const h=(v/max)*150;
+      const x=baseX+si*(barW+4), y=200-h;
       ctx.fillStyle=ser.color; ctx.globalAlpha=.9; ctx.fillRect(x,y,barW,h);
+      ctx.globalAlpha=.22; ctx.fillRect(x,200,barW,0.5);
     });
-    ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.font='bold 12px Cairo';ctx.textAlign='center';ctx.fillText(code,baseX+36,226);ctx.textAlign='start';
+    ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.font='bold 12px Cairo';ctx.textAlign='center';ctx.fillText(code,baseX+38,222);ctx.textAlign='start';
   });
-  let lx=54;
-  series.forEach(s=>{ctx.fillStyle=s.color;ctx.fillRect(lx,18,9,9);ctx.fillStyle='#fff';ctx.font='10px Cairo';ctx.fillText(s.label,lx+12,27);lx+=70;});
+  let lx=36;
+  series.forEach(s=>{ctx.fillStyle=s.color;ctx.fillRect(lx,16,9,9);ctx.fillStyle='#fff';ctx.font='10px Cairo';ctx.fillText(s.label,lx+12,25);lx+=75;});
+  renderPlantPerformanceTable(plantStats);
 }
-
+function renderPlantPerformanceTable(plantStats){
+  const node=$('#stockSummary');
+  if(!node) return;
+  const rows=APP_DATA.plants.map(p=>{
+    const st=plantStats[p.code]||{};
+    return `<tr><td>${p.code}</td><td>${fmt(st.sales||0)}</td><td>${fmt(st.production||0)}</td><td>${fmt(st.outgoing||0)}</td><td>${fmt(st.incoming||0)}</td><td>${fmt(st.loading||0)}</td></tr>`;
+  }).join('');
+  const total=APP_DATA.plants.reduce((a,p)=>{const st=plantStats[p.code]||{};a.sales+=(st.sales||0);a.production+=(st.production||0);a.outgoing+=(st.outgoing||0);a.incoming+=(st.incoming||0);a.loading+=(st.loading||0);return a;},{sales:0,production:0,outgoing:0,incoming:0,loading:0});
+  node.innerHTML=`<div class="plant-performance-table"><table><thead><tr><th>المصنع</th><th>البيع</th><th>الإنتاج</th><th>الصادرة</th><th>الواردة</th><th>التحميل</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>الإجمالي</td><td>${fmt(total.sales)}</td><td>${fmt(total.production)}</td><td>${fmt(total.outgoing)}</td><td>${fmt(total.incoming)}</td><td>${fmt(total.loading)}</td></tr></tfoot></table></div>`;
+}
 
 function renderDashboardKPIs(stats){
   const cards=[
