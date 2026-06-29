@@ -969,3 +969,48 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 .exceptions-report-main-card{min-height:520px}.exceptions-report-table-wrap{height:500px;overflow:auto;border-radius:14px}.exceptions-report-table-wrap table{min-width:1450px;width:100%}.exceptions-report-table-wrap th{position:sticky;top:0;z-index:2}.exception-row.high td{background:rgba(255,70,70,.055)}.exception-row.medium td{background:rgba(255,170,40,.05)}.exception-row.low td{background:rgba(50,174,233,.04)}
 @media(max-width:1200px){.exceptions-report-layout{grid-template-columns:1fr}.exceptions-report-summary.report-kpis{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:650px){.exceptions-report-summary.report-kpis{grid-template-columns:1fr}.exceptions-chart-card canvas{height:300px}.exception-priority-head{display:none}.exception-priority-row{grid-template-columns:32px 1fr;grid-auto-rows:auto}.exception-priority-row b,.exception-priority-row .priority-item-name,.exception-priority-row .priority-type,.exception-priority-row strong,.priority-badge,.priority-action{grid-column:2}.exceptions-priority-list{overflow:auto}}
+
+/* === Exceptions Report stacked full-width layout === */
+.exceptions-report-layout{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:18px !important;
+  align-items:stretch !important;
+}
+.exceptions-priority-card{
+  order:1 !important;
+  width:100% !important;
+  min-height:620px !important;
+  padding:22px 24px !important;
+}
+.exceptions-chart-card{
+  order:2 !important;
+  width:100% !important;
+  min-height:520px !important;
+  padding:22px 24px !important;
+}
+.exceptions-chart-card canvas{
+  width:100% !important;
+  height:430px !important;
+  min-height:430px !important;
+}
+.exceptions-priority-list{
+  flex:1 1 auto !important;
+  min-height:520px !important;
+  overflow:hidden !important;
+  padding:14px !important;
+  gap:8px !important;
+}
+.exception-priority-head,
+.exception-priority-row{
+  grid-template-columns:52px minmax(110px,.85fr) minmax(180px,1.45fr) minmax(190px,1.2fr) minmax(100px,.75fr) minmax(110px,.75fr) minmax(130px,.85fr) !important;
+}
+.exception-priority-row{
+  min-height:46px !important;
+  padding:8px 14px !important;
+}
+@media(max-width:900px){
+  .exceptions-priority-card{min-height:auto!important}
+  .exceptions-priority-list{min-height:420px!important;overflow:auto!important}
+  .exceptions-chart-card canvas{height:320px!important;min-height:320px!important}
+}
