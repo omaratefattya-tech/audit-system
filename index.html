@@ -272,7 +272,7 @@
           <div class="report-tabs" role="tablist">
             <button class="report-tab active" type="button" data-report-tab="executive">التقرير التنفيذي</button>
             <button class="report-tab" type="button" data-report-tab="items">تقرير الأصناف</button>
-            <button class="report-tab" type="button" data-report-tab="warehouses" disabled>أداء المخازن</button>
+            <button class="report-tab" type="button" data-report-tab="warehouses">أداء المخازن</button>
             <button class="report-tab" type="button" data-report-tab="exceptions" disabled>الاستثناءات</button>
           </div>
           <section class="filters glass report-filters" id="executiveReportFilters">
@@ -322,6 +322,25 @@
               <div class="rank-table-wrap item-report-table-wrap"><table id="itemsReportTable"></table></div>
             </article>
             <table id="itemsReportExportTable" class="hidden-export-table"></table>
+          </div>
+          <div id="warehousesReportContent" class="warehouses-report-content report-panel-content" style="display:none">
+            <div class="executive-title-card">
+              <h3>تقرير أداء المخازن</h3>
+              <p id="warehousesReportMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
+            </div>
+            <div class="cards report-kpis warehouse-report-summary" id="warehousesReportKpis"></div>
+            <div class="report-grid-2 warehouse-report-top-grid">
+              <article class="panel glass warehouse-chart-card"><h3>مقارنة مخازن المنتج التام</h3><canvas id="warehousesReportChart" width="900" height="360"></canvas></article>
+              <article class="panel glass warehouse-ranking-card"><h3>ترتيب المخازن</h3><div class="warehouse-ranking-list" id="warehousesRankingList"></div></article>
+            </div>
+            <article class="panel glass warehouse-report-main-card">
+              <div class="report-section-head">
+                <h3>جدول أداء المخازن المجمع</h3>
+                <span class="hint" id="warehousesReportCount">عدد المخازن: 0</span>
+              </div>
+              <div class="rank-table-wrap warehouse-report-table-wrap"><table id="warehousesReportTable"></table></div>
+            </article>
+            <table id="warehousesReportExportTable" class="hidden-export-table"></table>
           </div>
         </article>
       </section>

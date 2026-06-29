@@ -2402,22 +2402,82 @@ async function loadItemsReport(options={}){
   items.forEach(it=>{const st=getReportStatus(it); if(st.key==='ok') summary.ok++; else summary.review++; if(st.key==='no_sales') summary.noSales++; if(st.key==='production_high'||st.key==='sales_high') summary.gapItems++; if(st.key==='outgoing_high') summary.outgoingHigh++; summary.totalGap+=(it.production||0)-(it.sales||0); summary.totalLoading+=it.loading||0; const prod=Math.abs(it.production||0); if(prod){ratioSum+=(Math.abs(it.sales||0)/prod)*100; ratioCount++;}}); summary.avgSalesToProduction=ratioCount?ratioSum/ratioCount:0;
   ITEMS_REPORT_STATE={items,filters,summary}; if($('#itemsReportMeta')) $('#itemsReportMeta').textContent=reportFilterLabel(filters); renderItemsReportKPIs(summary); renderItemsStatusBoard(summary); renderItemsReportTables(items); renderItemsExportTable(items,summary);
 }
+
+
+let WAREHOUSES_REPORT_STATE={warehouses:[],filters:null,summary:null};
+function warehouseReportRow(w,i,totalSales){
+  const pct=totalSales?Math.abs(w.sales||0)/Math.abs(totalSales)*100:0;
+  return `<tr><td>${i+1}</td><td>${escapeHtml(w.code)}</td><td>${escapeHtml(w.name)}</td><td>${escapeHtml(w.plant)}</td><td>${fmt(w.sales)}</td><td>${fmt(w.production)}</td><td>${fmt(w.outgoing)}</td><td>${fmt(w.incoming)}</td><td>${fmt(w.loading)}</td><td><div class="warehouse-share-cell"><span>${fmt(pct)}%</span><b style="width:${Math.min(100,Math.max(0,pct))}%"></b></div></td></tr>`;
+}
+function renderWarehousesReportKPIs(summary){
+  const cards=[
+    ['إجمالي البيع',summary.sales,'طن','🛒'],['إجمالي الإنتاج',summary.production,'طن','🏭'],['التحويلات الصادرة',summary.outgoing,'طن','🚚'],['التحويلات الواردة',summary.incoming,'طن','📥'],['إجمالي التحميل',summary.loading,'طن','📦']
+  ];
+  const node=$('#warehousesReportKpis'); if(node) node.innerHTML=cards.map(c=>`<article class="kpi glass"><h3>${c[0]}</h3><div class="num">${fmt(c[1])}</div><small>${c[2]}</small><div class="icon">${c[3]}</div></article>`).join('');
+}
+function drawWarehousesReportChart(warehouses){
+  const canvas=$('#warehousesReportChart'); if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
+  const rows=(warehouses||[]).slice().sort((a,b)=>String(a.code).localeCompare(String(b.code))).slice(0,8);
+  const series=[{key:'sales',label:'البيع',color:'#83d84b'},{key:'production',label:'الإنتاج',color:'#32aee9'},{key:'loading',label:'التحميل',color:'#28c7bd'}];
+  if(!rows.length){ctx.fillStyle='#d6ead1';ctx.font='bold 20px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2);return;}
+  const max=Math.max(1,...rows.flatMap(r=>series.map(s=>Math.abs(r[s.key]||0)))); const pad={l:58,r:20,t:48,b:48}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
+  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.fillStyle='#cfe8d0';ctx.font='bold 12px Cairo';ctx.textAlign='right';
+  for(let i=0;i<=5;i++){const y=pad.t+ch-(i/5)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmt(max*i/5),pad.l-8,y+4);}
+  const groupW=cw/rows.length, barW=Math.min(24,(groupW-24)/series.length);
+  rows.forEach((row,ri)=>{const baseX=pad.l+ri*groupW+groupW/2-((barW+5)*series.length)/2;series.forEach((s,si)=>{const v=Math.abs(row[s.key]||0); const bh=(v/max)*ch; const x=baseX+si*(barW+5), y=pad.t+ch-bh; ctx.fillStyle=s.color; ctx.fillRect(x,y,barW,bh);}); ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.font='bold 13px Cairo'; ctx.fillText(row.code,pad.l+ri*groupW+groupW/2,pad.t+ch+28);});
+  ctx.textAlign='left'; ctx.font='bold 12px Cairo'; let lx=30; series.forEach(s=>{ctx.fillStyle=s.color;ctx.fillRect(lx,14,16,7);ctx.fillStyle='#eaffdf';ctx.fillText(s.label,lx+22,21);lx+=105;});
+}
+function renderWarehousesRanking(warehouses,summary){
+  const node=$('#warehousesRankingList'); if(!node) return;
+  const topSales=[...warehouses].sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales))[0];
+  const topLoading=[...warehouses].sort((a,b)=>Math.abs(b.loading)-Math.abs(a.loading))[0];
+  const lowActivity=[...warehouses].sort((a,b)=>(a.totalActivity||0)-(b.totalActivity||0))[0];
+  const avg=warehouses.length?summary.sales/warehouses.length:0;
+  const maxAct=Math.max(1,...warehouses.map(w=>w.totalActivity||0));
+  const rows=[...warehouses].sort((a,b)=>(b.totalActivity||0)-(a.totalActivity||0)).slice(0,8).map((w,i)=>`<div class="warehouse-rank-row"><div><b>${i+1}. ${escapeHtml(w.code)}</b><small>${escapeHtml(w.name)} - ${escapeHtml(w.plant)}</small></div><span>${fmt(w.totalActivity)}</span><i style="width:${Math.min(100,(w.totalActivity||0)/maxAct*100)}%"></i></div>`).join('');
+  node.innerHTML=`<div class="warehouse-quick-insights"><div><span>🥇 أعلى بيع</span><b>${topSales?escapeHtml(topSales.code):'-'}</b></div><div><span>📦 أعلى تحميل</span><b>${topLoading?escapeHtml(topLoading.code):'-'}</b></div><div><span>📉 أقل نشاط</span><b>${lowActivity?escapeHtml(lowActivity.code):'-'}</b></div><div><span>متوسط البيع/مخزن</span><b>${fmt(avg)}</b></div></div><div class="warehouse-rank-bars">${rows||'<p class="hint">لا توجد بيانات</p>'}</div>`;
+}
+function renderWarehousesReportTables(warehouses,summary){
+  const tbl=$('#warehousesReportTable');
+  const headers='<thead><tr><th>الترتيب</th><th>المخزن</th><th>اسم المخزن</th><th>المصنع</th><th>البيع</th><th>الإنتاج</th><th>صادر</th><th>وارد</th><th>التحميل</th><th>نسبة المساهمة</th></tr></thead>';
+  if(tbl) tbl.innerHTML=headers+`<tbody>${warehouses.map((w,i)=>warehouseReportRow(w,i,summary.sales)).join('')||'<tr><td colspan="10">لا توجد بيانات</td></tr>'}</tbody>`;
+  const count=$('#warehousesReportCount'); if(count) count.textContent=`عدد المخازن: ${warehouses.length}`;
+  const exp=$('#warehousesReportExportTable'); if(exp) exp.innerHTML=headers+`<tbody>${warehouses.map((w,i)=>{const pct=summary.sales?Math.abs(w.sales||0)/Math.abs(summary.sales)*100:0;return `<tr><td>${i+1}</td><td>${escapeHtml(w.code)}</td><td>${escapeHtml(w.name)}</td><td>${escapeHtml(w.plant)}</td><td>${fmt(w.sales)}</td><td>${fmt(w.production)}</td><td>${fmt(w.outgoing)}</td><td>${fmt(w.incoming)}</td><td>${fmt(w.loading)}</td><td>${fmt(pct)}%</td></tr>`;}).join('')}</tbody>`;
+}
+async function loadWarehousesReport(options={}){
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
+  let query=WarehouseDB.client.from('sales_audit_report').select('report_date,warehouse_code,warehouse_name,plant_code,plant_name,sales_quantity,production_quantity,outgoing_transfer_quantity,incoming_transfer_quantity,total_loading_quantity').order('warehouse_code',{ascending:true}).range(0,9999);
+  if(filters.from) query=query.gte('report_date',filters.from); if(filters.to) query=query.lte('report_date',filters.to); if(filters.plant && filters.plant!=='all') query=query.eq('plant_code',filters.plant); if(filters.warehouse && filters.warehouse!=='all') query=query.eq('warehouse_code',filters.warehouse);
+  const {data,error}=await query; if(error){console.warn('warehouses report load error',error);return;} const map={}, summary={sales:0,production:0,outgoing:0,incoming:0,loading:0};
+  (data||[]).forEach(r=>{const code=String(r.warehouse_code||'').toUpperCase()||'-'; const meta=dashboardWhMeta(code); const plant=r.plant_code||meta.plant||'-'; if(!map[code]) map[code]={code,name:meta.name||r.warehouse_name||'-',plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0}; const w=map[code]; const sales=toNumber(r.sales_quantity),prod=toNumber(r.production_quantity),out=toNumber(r.outgoing_transfer_quantity),inc=toNumber(r.incoming_transfer_quantity),load=toNumber(r.total_loading_quantity); w.sales+=sales;w.production+=prod;w.outgoing+=out;w.incoming+=inc;w.loading+=load;w.totalActivity+=Math.abs(sales)+Math.abs(prod)+Math.abs(out)+Math.abs(inc)+Math.abs(load); summary.sales+=sales;summary.production+=prod;summary.outgoing+=out;summary.incoming+=inc;summary.loading+=load;});
+  const warehouses=Object.values(map).sort((a,b)=>(b.totalActivity||0)-(a.totalActivity||0));
+  WAREHOUSES_REPORT_STATE={warehouses,filters,summary}; if($('#warehousesReportMeta')) $('#warehousesReportMeta').textContent=reportFilterLabel(filters); renderWarehousesReportKPIs(summary); drawWarehousesReportChart(warehouses); renderWarehousesRanking(warehouses,summary); renderWarehousesReportTables(warehouses,summary);
+}
+
 function switchReportTab(tab){
   ACTIVE_REPORT_TAB=tab;
   document.querySelectorAll('[data-report-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.reportTab===tab));
-  const exec=$('#executiveReportContent'), items=$('#itemsReportContent');
+  const exec=$('#executiveReportContent'), items=$('#itemsReportContent'), warehouses=$('#warehousesReportContent');
   if(exec) exec.style.display=tab==='executive'?'flex':'none';
   if(items) items.style.display=tab==='items'?'flex':'none';
+  if(warehouses) warehouses.style.display=tab==='warehouses'?'flex':'none';
   if(tab==='executive') loadExecutiveReport({keepDates:true});
   if(tab==='items') loadItemsReport({keepDates:true});
+  if(tab==='warehouses') loadWarehousesReport({keepDates:true});
 }
-function loadActiveReport(options={}){ return ACTIVE_REPORT_TAB==='items'?loadItemsReport(options):loadExecutiveReport(options); }
+function loadActiveReport(options={}){
+  if(ACTIVE_REPORT_TAB==='items') return loadItemsReport(options);
+  if(ACTIVE_REPORT_TAB==='warehouses') return loadWarehousesReport(options);
+  return loadExecutiveReport(options);
+}
 function exportActiveReportExcel(){
   if(ACTIVE_REPORT_TAB==='items') return exportTableToExcel('itemsReportExportTable','تقرير مراجعة الأصناف');
+  if(ACTIVE_REPORT_TAB==='warehouses') return exportTableToExcel('warehousesReportExportTable','تقرير أداء المخازن');
   return exportTableToExcel('executiveExportTable','التقرير التنفيذي لمراجعة المخازن');
 }
 function exportActiveReportPdf(){
   if(ACTIVE_REPORT_TAB==='items') return exportTableToPdf('itemsReportExportTable','تقرير مراجعة الأصناف');
+  if(ACTIVE_REPORT_TAB==='warehouses') return exportTableToPdf('warehousesReportExportTable','تقرير أداء المخازن');
   return exportTableToPdf('executiveExportTable','التقرير التنفيذي لمراجعة المخازن');
 }
 
