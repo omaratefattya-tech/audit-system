@@ -454,10 +454,14 @@ function initDashboardFilters(){
   }
   function fillWh(){
     const old=wf.value;
-    wf.innerHTML='<option value="all">كل المخازن</option>';
+    const salesWarehouseCodes = ['W401','W402','N401','N402','N411','N412','E401','E402'];
+    wf.innerHTML='<option value="all">كل مخازن البيع</option>';
     APP_DATA.plants
       .filter(p=>pf.value==='all'||p.code===pf.value)
-      .forEach(p=>p.warehouses.forEach(w=>wf.add(new Option(`${w[0]} - ${w[1]}`,w[0]))));
+      .forEach(p=>p.warehouses
+        .filter(w=>salesWarehouseCodes.includes(String(w[0]).toUpperCase()))
+        .forEach(w=>wf.add(new Option(`${w[0]} - ${w[1]}`,w[0])))
+      );
     if([...wf.options].some(o=>o.value===old)) wf.value=old;
   }
   pf.onchange=fillWh;
