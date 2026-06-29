@@ -84,6 +84,14 @@
       </section>
 
       <section id="dashboard" class="section active-section">
+        <section class="filters glass dashboard-filters" id="dashboardFilters">
+          <label>المصنع<select id="dashboardPlantFilter"><option value="all">كل المصانع</option></select></label>
+          <label>المخزن<select id="dashboardWarehouseFilter"><option value="all">كل المخازن</option></select></label>
+          <label>من<input type="date" id="dashboardFromDate"></label>
+          <label>إلى<input type="date" id="dashboardToDate"></label>
+          <button class="primary" id="dashboardSearchBtn" type="button">بحث 🔍</button>
+          <button class="secondary" id="dashboardResetBtn" type="button">إعادة تعيين ↻</button>
+        </section>
         <div class="cards" id="kpiCards"></div>
         <div class="grid-3">
           <article class="panel glass"><h3>إجمالي الحركات حسب نوع الحركة</h3><canvas id="donutChart" width="340" height="240"></canvas><div id="movementLegend" class="legend"></div><button class="small-btn">عرض التقرير ▥</button></article>

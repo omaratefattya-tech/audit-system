@@ -360,3 +360,23 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 .menu-item *{
     font-family: "Cairo", sans-serif !important;
 }
+
+/* Dashboard real sales filters */
+.dashboard-filters{
+  margin-bottom:16px;
+}
+
+/* Force Cairo font inside sidebar text without affecting icon fonts */
+.sidebar,
+.sidebar h1,
+.sidebar h2,
+.sidebar h3,
+.sidebar strong,
+.sidebar small,
+.sidebar button,
+.sidebar a,
+.sidebar span:not([class*="icon"]),
+.sidebar .nav-item,
+.sidebar .nav-item *:not([class*="icon"]){
+  font-family:"Cairo",sans-serif !important;
+}
