@@ -329,9 +329,28 @@
               <p id="warehousesReportMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
             </div>
             <div class="cards report-kpis warehouse-report-summary" id="warehousesReportKpis"></div>
-            <div class="report-grid-2 warehouse-report-top-grid">
-              <article class="panel glass warehouse-chart-card"><h3>مقارنة مخازن المنتج التام</h3><canvas id="warehousesReportChart" width="900" height="360"></canvas></article>
-              <article class="panel glass warehouse-ranking-card"><h3>ترتيب المخازن</h3><div class="warehouse-ranking-list" id="warehousesRankingList"></div></article>
+            <div class="warehouse-report-performance-layout">
+              <article class="panel glass warehouse-ranking-card">
+                <h3>ترتيب المخازن حسب إجمالي التحميل</h3>
+                <div class="warehouse-ranking-list" id="warehousesRankingList"></div>
+              </article>
+              <div class="warehouse-performance-main">
+                <div class="warehouse-quick-tiles" id="warehousesQuickTiles"></div>
+                <article class="panel glass warehouse-chart-card warehouse-chart-card-wide">
+                  <h3>مقارنة مخازن المنتج التام</h3>
+                  <canvas id="warehousesReportChart" width="1200" height="520"></canvas>
+                </article>
+              </div>
+            </div>
+            <div class="warehouse-report-bottom-insights">
+              <article class="panel glass warehouse-donut-card">
+                <h3>توزيع إجمالي التحميل على المخازن</h3>
+                <canvas id="warehousesLoadingDonut" width="420" height="300"></canvas>
+                <div id="warehousesLoadingLegend" class="warehouse-donut-legend"></div>
+              </article>
+              <article class="panel glass warehouse-mini-table-card"><h3>أعلى 5 مخازن حسب البيع</h3><div id="warehouseTopSalesMini" class="warehouse-mini-table"></div></article>
+              <article class="panel glass warehouse-mini-table-card"><h3>أعلى 5 مخازن حسب الإنتاج</h3><div id="warehouseTopProductionMini" class="warehouse-mini-table"></div></article>
+              <article class="panel glass warehouse-mini-table-card"><h3>أعلى 5 مخازن حسب التحميل</h3><div id="warehouseTopLoadingMini" class="warehouse-mini-table"></div></article>
             </div>
             <article class="panel glass warehouse-report-main-card">
               <div class="report-section-head">
