@@ -1067,3 +1067,15 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 .report-exporting .hidden-export-table{
   display:none !important;
 }
+
+
+/* Universal table search + sort engine */
+.universal-filter-table thead tr:first-child th{position:sticky;top:0;z-index:3}
+.universal-filter-table .sortable-th{padding:0;background:rgba(0,70,45,.78)}
+.universal-filter-table .sort-btn{width:100%;height:100%;min-height:39px;border:0;background:transparent;color:#d8ffd1;font-family:inherit;font-weight:900;cursor:pointer;padding:10px 8px;display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap}
+.universal-filter-table .sort-btn:hover{background:rgba(132,207,80,.14)}
+.universal-filter-table .sort-btn span{font-size:11px;color:#f1bb30;line-height:1}
+.universal-filter-table .column-filter-row th{background:rgba(0,39,31,.92);padding:6px 7px;position:sticky;top:39px;z-index:2}
+.universal-filter-table .col-filter{width:100%;min-width:92px;height:32px;border-radius:8px;border:1px solid rgba(132,207,80,.42);background:rgba(0,23,20,.95);color:#fff;padding:6px 8px;font-size:12px;font-family:inherit;text-align:center}
+.universal-filter-table .col-filter::placeholder{color:rgba(216,255,209,.58)}
+.universal-filter-table .empty-row{color:var(--muted);padding:18px!important;text-align:center!important}

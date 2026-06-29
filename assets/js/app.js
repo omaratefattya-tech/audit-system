@@ -208,6 +208,122 @@ let footerHtml='';
 }
 
 
+/* =========================================================
+   Universal table engine: column search + asc/desc sorting
+   Applies automatically to current and future visible system tables.
+   ========================================================= */
+const UNIVERSAL_TABLE_STATE = window.UNIVERSAL_TABLE_STATE || (window.UNIVERSAL_TABLE_STATE = {});
+function universalTableKey(tbl){
+  if(tbl.id) return tbl.id;
+  if(!tbl.dataset.universalTableKey){
+    tbl.dataset.universalTableKey='tbl_'+Math.random().toString(36).slice(2,10);
+  }
+  return tbl.dataset.universalTableKey;
+}
+function shouldSkipUniversalTable(tbl){
+  if(!tbl || tbl.dataset.noUniversalTable==='1') return true;
+  if(tbl.closest('.hidden-export-table')) return true;
+  if(tbl.classList.contains('hidden-export-table')) return true;
+  if(tbl.closest('.export-capture,.pdf-capture,.png-capture')) return true;
+  if(tbl.querySelector('.sort-btn') || tbl.querySelector('.column-filter-row')) return true;
+  const headRow=tbl.querySelector('thead tr');
+  const body=tbl.querySelector('tbody');
+  if(!headRow || !body) return true;
+  const heads=[...headRow.cells];
+  if(!heads.length) return true;
+  const bodyRows=[...body.rows].filter(r=>!r.querySelector('.empty-row') && r.cells.length>1);
+  if(!bodyRows.length) return true;
+  return false;
+}
+function universalCellComparable(text){
+  const raw=String(text||'').replace(/\s+/g,' ').trim();
+  const numeric=raw.replace(/,/g,'').replace(/%/g,'').replace(/[^\x00-\x7F\-\.0-9]/g,'');
+  if(numeric && /^-?\d+(\.\d+)?$/.test(numeric)) return {type:'num',value:Number(numeric)};
+  const iso=raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  const dmy=raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if(iso) return {type:'date',value:new Date(`${iso[1]}-${iso[2].padStart(2,'0')}-${iso[3].padStart(2,'0')}`).getTime()};
+  if(dmy) return {type:'date',value:new Date(`${dmy[3]}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`).getTime()};
+  return {type:'text',value:raw.toLowerCase()};
+}
+function enhanceSystemTable(tbl){
+  if(shouldSkipUniversalTable(tbl)) return;
+  const key=universalTableKey(tbl);
+  const headRow=tbl.querySelector('thead tr');
+  const body=tbl.querySelector('tbody');
+  const headers=[...headRow.cells].map(th=>cleanHeaderText(th.textContent));
+  if(!UNIVERSAL_TABLE_STATE[key] || UNIVERSAL_TABLE_STATE[key].headersLength!==headers.length){
+    UNIVERSAL_TABLE_STATE[key]={headersLength:headers.length,filters:Array(headers.length).fill(''),sortIndex:null,sortDir:'asc'};
+  }
+  const state=UNIVERSAL_TABLE_STATE[key];
+  const originalRows=[...body.rows].map(tr=>({html:tr.innerHTML,texts:[...tr.cells].map(td=>stripHtml(td.innerHTML).replace(/\s+/g,' ').trim()),classes:tr.className||''}));
+  function redraw(){
+    let rows=[...originalRows];
+    rows=rows.filter(r=>state.filters.every((f,i)=>!f || String(r.texts[i]||'').toLowerCase().includes(String(f).toLowerCase())));
+    if(state.sortIndex!==null){
+      const idx=state.sortIndex, dir=state.sortDir==='desc'?-1:1;
+      rows.sort((a,b)=>{
+        const av=universalCellComparable(a.texts[idx]);
+        const bv=universalCellComparable(b.texts[idx]);
+        if(av.type===bv.type){
+          if(av.value<bv.value) return -1*dir;
+          if(av.value>bv.value) return 1*dir;
+          return 0;
+        }
+        return String(av.value).localeCompare(String(bv.value),'ar')*dir;
+      });
+    }
+    body.innerHTML=rows.length?rows.map(r=>`<tr${r.classes?` class="${r.classes}"`:''}>${r.html}</tr>`).join(''):`<tr><td colspan="${headers.length}" class="empty-row">لا توجد بيانات مطابقة</td></tr>`;
+  }
+  headRow.innerHTML=headers.map((h,i)=>{
+    const arrow=state.sortIndex===i?(state.sortDir==='asc'?'▲':'▼'):'↕';
+    return `<th class="sortable-th"><button type="button" class="sort-btn" data-col="${i}">${escapeHtml(h)} <span>${arrow}</span></button></th>`;
+  }).join('');
+  const filterRow=document.createElement('tr');
+  filterRow.className='column-filter-row';
+  filterRow.innerHTML=headers.map((h,i)=>`<th><input class="col-filter" data-col="${i}" value="${escapeHtml(state.filters[i]||'')}" placeholder="بحث ${escapeHtml(h)}"></th>`).join('');
+  headRow.parentNode.appendChild(filterRow);
+  tbl.classList.add('universal-filter-table');
+  redraw();
+  headRow.querySelectorAll('.sort-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const col=Number(btn.dataset.col);
+      if(state.sortIndex===col) state.sortDir=state.sortDir==='asc'?'desc':'asc';
+      else {state.sortIndex=col;state.sortDir='asc';}
+      headRow.querySelectorAll('.sort-btn').forEach(b=>{
+        const c=Number(b.dataset.col);
+        const sp=b.querySelector('span');
+        if(sp) sp.textContent=state.sortIndex===c?(state.sortDir==='asc'?'▲':'▼'):'↕';
+      });
+      redraw();
+    });
+  });
+  filterRow.querySelectorAll('.col-filter').forEach(input=>{
+    input.addEventListener('input',()=>{
+      const col=Number(input.dataset.col);
+      state.filters[col]=String(input.value||'').toLowerCase();
+      const pos=input.selectionStart;
+      redraw();
+      const next=tbl.querySelector(`.column-filter-row .col-filter[data-col="${col}"]`);
+      if(next){next.focus();try{next.setSelectionRange(pos,pos);}catch(_){}}
+    });
+  });
+}
+function enhanceSystemTables(root=document){
+  try{[...root.querySelectorAll('table')].forEach(enhanceSystemTable);}catch(e){console.warn('Table enhancement skipped:',e);}
+}
+function initUniversalTableEnhancer(){
+  enhanceSystemTables(document);
+  if(window.__universalTableObserver) return;
+  window.__universalTableObserver=new MutationObserver(()=>{
+    if(window.__universalTableEnhanceTimer) clearTimeout(window.__universalTableEnhanceTimer);
+    window.__universalTableEnhanceTimer=setTimeout(()=>enhanceSystemTables(document),80);
+  });
+  window.__universalTableObserver.observe(document.body,{childList:true,subtree:true});
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initUniversalTableEnhancer);
+else initUniversalTableEnhancer();
+
+
 function cleanHeaderText(text){
   return String(text||'').replace(/[▲▼↕]/g,'').replace(/\s+/g,' ').trim();
 }
