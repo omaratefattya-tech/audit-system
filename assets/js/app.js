@@ -697,24 +697,64 @@ function renderDashboardPlants(plantStats, totalSales=0){
     <div class="plant-progress-metrics"><span>إنتاج ${fmt(r.st.production)}</span><span>تحميل ${fmt(r.st.loading)}</span></div>
   </div>`).join('');
 }
-function renderDashboardAlerts(stats, insights={}){
+function monthDaysCount(year,monthIndex){
+  return new Date(year,monthIndex+1,0).getDate();
+}
+function dashboardMonthKeyFromRows(rows,filters={}){
+  const explicit=normalizeDateISO(filters.to||filters.from||'');
+  if(explicit) return explicit.slice(0,7);
+  const dates=(rows||[]).map(r=>dashboardDateKey(r.report_date)).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+  if(dates.length) return dates[dates.length-1].slice(0,7);
+  return normalizeDateISO(new Date().toISOString().slice(0,10)).slice(0,7);
+}
+function renderDashboardSalesHeatmap(allRows,filters={}){
   const node=$('#alertsBox');
   if(!node) return;
-  const cards=[];
-  if(!stats.rowsCount){
-    cards.push({icon:'warning',title:'لا توجد بيانات',value:'0',note:'غيّر الفلاتر أو التاريخ',level:'danger'});
-  }else{
-    cards.push({icon:'warning',title:'أصناف إنتاجها أعلى من البيع',value:fmt(insights.productionAboveSalesCount||0),note:'تحتاج متابعة رصيد/تحميل',level:'danger'});
-    cards.push({icon:'box',title:'أصناف بدون بيع',value:fmt(insights.noSalesCount||0),note:'لها إنتاج أو تحويلات خلال الفترة',level:'warn'});
-    cards.push({icon:'transfer',title:'تحويلات صادرة مرتفعة',value:fmt(insights.highOutgoingCount||0),note:'أصناف أعلى من متوسط الصادر',level:'info'});
-    cards.push({icon:'doc',title:'أصناف تحتاج تحليل تكلفة',value:fmt(insights.reviewItemsCount||0),note:'فرق واضح بين البيع والإنتاج',level:'note'});
+  const monthKey=dashboardMonthKeyFromRows(allRows,filters);
+  const [year,month]=monthKey.split('-').map(Number);
+  const days=monthDaysCount(year,month-1);
+  const daily={};
+  (allRows||[]).forEach(r=>{
+    const wh=String(r.warehouse_code||'').trim().toUpperCase();
+    const meta=dashboardWhMeta(wh);
+    const plant=String(r.plant_code||meta.plant||'');
+    const d=dashboardDateKey(r.report_date);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(d) || !d.startsWith(monthKey)) return;
+    if(filters.plant && filters.plant!=='all' && plant!==filters.plant) return;
+    if(filters.warehouse && filters.warehouse!=='all' && wh!==String(filters.warehouse).toUpperCase()) return;
+    daily[d]=(daily[d]||0)+Math.abs(toNumber(r.sales_quantity));
+  });
+  const values=Object.values(daily);
+  const max=Math.max(...values,0);
+  const weekDayOrder=[6,0,1,2,3,4,5];
+  const weekDayLabels=['السبت','الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'];
+  const firstDow=new Date(year,month-1,1).getDay();
+  const firstOffset=weekDayOrder.indexOf(firstDow);
+  const cells=[];
+  for(let i=0;i<42;i++){
+    const day=i-firstOffset+1;
+    if(day<1 || day>days){
+      cells.push(`<div class="heat-cell empty"></div>`);
+      continue;
+    }
+    const date=`${monthKey}-${String(day).padStart(2,'0')}`;
+    const val=daily[date]||0;
+    const ratio=max?Math.max(.12,val/max):0;
+    cells.push(`<div class="heat-cell" style="--heat:${ratio.toFixed(3)}" title="${date} - ${fmt(val)} طن"><b>${day}</b><span>${fmt(val)}</span></div>`);
   }
-  node.innerHTML=cards.map(c=>`<div class="review-card ${c.level}">
-    <div class="review-icon">${modernIcon(c.icon)}</div>
-    <div class="review-value">${c.value}</div>
-    <b>${escapeHtml(c.title)}</b>
-    <small>${escapeHtml(c.note)}</small>
-  </div>`).join('');
+  node.innerHTML=`
+    <div class="heatmap-head"><strong>${monthKey}</strong><span>الأقل</span><i></i><span>الأعلى</span></div>
+    <div class="heatmap-weekdays">${weekDayLabels.map(d=>`<span>${d}</span>`).join('')}</div>
+    <div class="heatmap-grid">${cells.join('')}</div>
+    <div class="heatmap-footer"><b>${fmt(values.reduce((a,b)=>a+b,0))}</b><span>إجمالي البيع خلال الشهر حسب الفلتر</span></div>`;
+}
+function renderRankTable(selector,heads,rows,{totalLabel='الإجمالي'}={}){
+  const node=$(selector); if(!node) return;
+  const body=(rows&&rows.length?rows:[]).map((r,ri)=>`<tr>${heads.map((_,i)=>{
+    const cls=i===0?'rank-num':(i>=heads.length-3?'num-cell':'');
+    return `<td class="${cls}">${r[i]??''}</td>`;
+  }).join('')}</tr>`).join('') || `<tr><td colspan="${heads.length}" class="empty-row">لا توجد بيانات مطابقة</td></tr>`;
+  node.innerHTML=`<thead><tr>${heads.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${body}</tbody>`;
 }
 async function loadDashboardRealData(options={}){
   if(!WarehouseDB?.ready) return;
@@ -789,7 +829,7 @@ async function loadDashboardRealData(options={}){
     reviewItemsCount:products.filter(p=>Math.abs(p.production-p.sales)>0 && Math.abs(p.production-p.sales)>Math.max(5,Math.abs(p.sales)*.25)).length
   };
   renderDashboardPlants(plantStats, stats.salesQty);
-  renderDashboardAlerts(stats, insights);
+  renderDashboardSalesHeatmap(salesRes.data||[], filters);
   const topProducts=products.sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales)).slice(0,10).map((p,i)=>[
     i+1,
     escapeHtml(p.code||'-'),
@@ -798,7 +838,7 @@ async function loadDashboardRealData(options={}){
     fmt(p.production),
     fmt(p.loading)
   ]);
-  table('#latestTable',['#','كود الصنف','اسم الصنف','البيع','الإنتاج','التحميل'],topProducts);
+  renderRankTable('#latestTable',['#','كود الصنف','اسم الصنف','البيع','الإنتاج','التحميل'],topProducts);
   const topWarehouses=Object.values(warehouseActivityMap).sort((a,b)=>b.totalActivity-a.totalActivity).slice(0,10).map((w,i)=>[
     i+1,
     escapeHtml(w.code||'-'),
@@ -807,7 +847,7 @@ async function loadDashboardRealData(options={}){
     fmt(w.sales),
     fmt(w.loading)
   ]);
-  table('#topWarehousesTable',['#','كود المخزن','اسم المخزن','المصنع','البيع','التحميل'],topWarehouses);
+  renderRankTable('#topWarehousesTable',['#','كود المخزن','اسم المخزن','المصنع','البيع','التحميل'],topWarehouses);
 }
 
 
