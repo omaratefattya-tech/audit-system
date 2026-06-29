@@ -402,9 +402,9 @@ function dashboardPlantFromWarehouse(code){return warehouseMetaByCode(code).plan
 function drawDashboardDonut(items){
   const canvas=$('#donutChart'); if(!canvas) return;
   const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,340,240);
-  const entries=(items||[]).filter(x=>x.value>0).slice(0,6);
+  const entries=(items||[]).filter(x=>x.value>0).slice(0,8);
   const sum=entries.reduce((a,b)=>a+b.value,0);
-  if(!sum){ ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.fillText('لا توجد بيانات',105,120); $('#movementLegend').innerHTML=''; return; }
+  if(!sum){ ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات مبيعات',170,120);ctx.textAlign='start'; $('#movementLegend').innerHTML=''; return; }
   let a=-Math.PI/2;
   entries.forEach((item,i)=>{const e=a+(item.value/sum)*Math.PI*2;ctx.beginPath();ctx.moveTo(115,120);ctx.arc(115,120,88,a,e);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.globalAlpha=.9;ctx.fill();a=e;});
   ctx.globalAlpha=1;ctx.beginPath();ctx.arc(115,120,45,0,Math.PI*2);ctx.fillStyle='#00251f';ctx.fill();
@@ -415,13 +415,60 @@ function drawDashboardLine(dailyMap){
   const canvas=$('#lineChart'); if(!canvas) return;
   const ctx=canvas.getContext('2d');ctx.clearRect(0,0,430,250);
   const days=Object.keys(dailyMap||{}).sort().slice(-31);
-  if(!days.length){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.fillText('لا توجد بيانات',155,120);return;}
-  const inV=days.map(d=>dailyMap[d].incoming||0), outV=days.map(d=>dailyMap[d].outgoing||0);
-  const max=Math.max(1,...inV,...outV);
-  function axes(){ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;for(let i=0;i<6;i++){let y=215-i*34;ctx.beginPath();ctx.moveTo(35,y);ctx.lineTo(410,y);ctx.stroke()}ctx.fillStyle='#d6ead1';ctx.font='12px Cairo';ctx.fillText(fmt(max),2,45);ctx.fillText('0',18,218);ctx.fillText(days[0]?.slice(5)||'',30,235);ctx.fillText(days[days.length-1]?.slice(5)||'',376,235)}
-  function line(arr,c){ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();arr.forEach((v,i)=>{let x=45+(days.length===1?0:i*(350/(days.length-1))),y=215-(v/max)*170;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();arr.forEach((v,i)=>{let x=45+(days.length===1?0:i*(350/(days.length-1))),y=215-(v/max)*170;ctx.beginPath();ctx.arc(x,y,3,0,7);ctx.fillStyle=c;ctx.fill()})}
-  axes();line(inV,'#74c54a');line(outV,'#f1bb30');ctx.fillStyle='#74c54a';ctx.fillRect(200,18,10,10);ctx.fillStyle='#fff';ctx.fillText('وارد',215,28);ctx.fillStyle='#f1bb30';ctx.fillRect(295,18,10,10);ctx.fillStyle='#fff';ctx.fillText('تحميل/خارج',310,28);
+  if(!days.length){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',215,120);ctx.textAlign='start';return;}
+  const series=[
+    {key:'sales',label:'بيع',color:'#74c54a'},
+    {key:'production',label:'إنتاج',color:'#1f9e9a'},
+    {key:'outgoing',label:'تحويل صادر',color:'#f1bb30'},
+    {key:'incoming',label:'تحويل وارد',color:'#8bd34a'}
+  ];
+  const max=Math.max(1,...days.flatMap(d=>series.map(s=>dailyMap[d][s.key]||0)));
+  function axes(){
+    ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;
+    for(let i=0;i<6;i++){let y=215-i*34;ctx.beginPath();ctx.moveTo(35,y);ctx.lineTo(410,y);ctx.stroke()}
+    ctx.fillStyle='#d6ead1';ctx.font='12px Cairo';ctx.textAlign='start';
+    ctx.fillText(fmt(max),2,45);ctx.fillText('0',18,218);ctx.fillText(days[0]?.slice(5)||'',30,235);ctx.fillText(days[days.length-1]?.slice(5)||'',376,235)
+  }
+  function line(arr,c){
+    ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();
+    arr.forEach((v,i)=>{let x=45+(days.length===1?175:i*(350/(days.length-1))),y=215-(v/max)*170;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();
+    arr.forEach((v,i)=>{let x=45+(days.length===1?175:i*(350/(days.length-1))),y=215-(v/max)*170;ctx.beginPath();ctx.arc(x,y,3,0,7);ctx.fillStyle=c;ctx.fill()})
+  }
+  axes();
+  series.forEach(s=>line(days.map(d=>dailyMap[d][s.key]||0),s.color));
+  let x=95;
+  series.forEach(s=>{ctx.fillStyle=s.color;ctx.fillRect(x,18,9,9);ctx.fillStyle='#fff';ctx.font='11px Cairo';ctx.fillText(s.label,x+13,27);x+=78;});
 }
+function drawDashboardPlantBar(plantStats){
+  const canvas=$('#plantBarChart'); if(!canvas) return;
+  const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,430,250);
+  const plants=APP_DATA.plants.map(p=>p.code);
+  const series=[
+    {key:'sales',label:'بيع',color:'#74c54a'},
+    {key:'production',label:'إنتاج',color:'#1f9e9a'},
+    {key:'outgoing',label:'صادر',color:'#f1bb30'},
+    {key:'incoming',label:'وارد',color:'#8bd34a'},
+    {key:'loading',label:'تحميل',color:'#526d62'}
+  ];
+  const max=Math.max(1,...plants.flatMap(code=>series.map(s=>Math.abs((plantStats[code]||{})[s.key]||0))));
+  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;
+  for(let i=0;i<6;i++){let y=205-i*31;ctx.beginPath();ctx.moveTo(35,y);ctx.lineTo(410,y);ctx.stroke();}
+  ctx.fillStyle='#d6ead1';ctx.font='12px Cairo';ctx.fillText(fmt(max),2,45);ctx.fillText('0',18,208);
+  const groupW=105, barW=12, startX=65;
+  plants.forEach((code,pi)=>{
+    const baseX=startX+pi*groupW;
+    series.forEach((ser,si)=>{
+      const v=Math.abs((plantStats[code]||{})[ser.key]||0);
+      const h=(v/max)*155;
+      const x=baseX+si*(barW+4), y=205-h;
+      ctx.fillStyle=ser.color; ctx.globalAlpha=.9; ctx.fillRect(x,y,barW,h);
+    });
+    ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.font='bold 12px Cairo';ctx.textAlign='center';ctx.fillText(code,baseX+36,226);ctx.textAlign='start';
+  });
+  let lx=54;
+  series.forEach(s=>{ctx.fillStyle=s.color;ctx.fillRect(lx,18,9,9);ctx.fillStyle='#fff';ctx.font='10px Cairo';ctx.fillText(s.label,lx+12,27);lx+=70;});
+}
+
 
 function renderDashboardKPIs(stats){
   const cards=[
@@ -554,11 +601,11 @@ async function loadDashboardRealData(options={}){
     return;
   }
   const sales=applyDashboardSalesFilters(salesRes.data||[],filters);
-  const whSet=new Set(), daily={}, movementMap={}, plantStats={};
+  const whSet=new Set(), daily={}, warehouseSalesMap={}, plantStats={};
   APP_DATA.plants.forEach(p=>plantStats[p.code]={sales:0,production:0,outgoing:0,incoming:0,loading:0});
   const stats={rowsCount:sales.length,salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0};
   sales.forEach(r=>{
-    const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{incoming:0,outgoing:0};
+    const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0};
     const wh=String(r.warehouse_code||'').toUpperCase(); if(wh) whSet.add(wh);
     const meta=dashboardWhMeta(wh);
     const plant=r.plant_code||meta.plant||'غير محدد';
@@ -569,22 +616,22 @@ async function loadDashboardRealData(options={}){
     stats.outgoingTransferQty+=outTr;
     stats.incomingTransferQty+=inTr;
     stats.totalLoadingQty+=load;
-    daily[d].outgoing+=Math.abs(load);
-    daily[d].incoming+=Math.max(0,prod+inTr);
+    daily[d].sales+=Math.abs(salesQty);
+    daily[d].production+=Math.abs(prod);
+    daily[d].outgoing+=Math.abs(outTr);
+    daily[d].incoming+=Math.abs(inTr);
     plantStats[plant].sales+=salesQty;
     plantStats[plant].production+=prod;
     plantStats[plant].outgoing+=outTr;
     plantStats[plant].incoming+=inTr;
     plantStats[plant].loading+=load;
-    if(salesQty) movementMap['كمية البيع']=(movementMap['كمية البيع']||0)+Math.abs(salesQty);
-    if(prod) movementMap['الإنتاج']=(movementMap['الإنتاج']||0)+Math.abs(prod);
-    if(outTr) movementMap['التحويلات الصادرة']=(movementMap['التحويلات الصادرة']||0)+Math.abs(outTr);
-    if(inTr) movementMap['التحويلات الواردة']=(movementMap['التحويلات الواردة']||0)+Math.abs(inTr);
+    if(salesQty) warehouseSalesMap[wh]=(warehouseSalesMap[wh]||0)+Math.abs(salesQty);
   });
   renderDashboardKPIs(stats);
   renderDashboardSummary(stats);
   drawDashboardLine(daily);
-  drawDashboardDonut(Object.entries(movementMap).sort((a,b)=>b[1]-a[1]).map(([label,value])=>({label,value})));
+  drawDashboardPlantBar(plantStats);
+  drawDashboardDonut(Object.entries(warehouseSalesMap).sort((a,b)=>b[1]-a[1]).map(([code,value])=>({label:`${code} - ${dashboardWhMeta(code).name||'مخزن بيع'}`,value})));
   renderDashboardPlants(plantStats);
   renderDashboardAlerts(stats);
   const latest=sales.slice(0,12).map(r=>[
