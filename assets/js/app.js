@@ -555,16 +555,35 @@ function renderPlantPerformanceTable(plantStats){
   node.innerHTML=`<div class="plant-performance-table"><table><thead><tr><th>المصنع</th><th>البيع</th><th>الإنتاج</th><th>الصادرة</th><th>الواردة</th><th>التحميل</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>الإجمالي</td><td>${fmt(total.sales)}</td><td>${fmt(total.production)}</td><td>${fmt(total.outgoing)}</td><td>${fmt(total.incoming)}</td><td>${fmt(total.loading)}</td></tr></tfoot></table></div>`;
 }
 
+function modernIcon(name){
+  const attrs='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+  const icons={
+    sales:`<svg ${attrs}><circle cx="9" cy="20" r="1.6"></circle><circle cx="18" cy="20" r="1.6"></circle><path d="M3 4h2.4l2.2 11.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 1.9-1.4L21 8H7"></path><path d="M9 11h9"></path></svg>`,
+    production:`<svg ${attrs}><path d="M3 21h18"></path><path d="M5 21V10l5 3V9l5 4V7l4 3v11"></path><path d="M8 17h1"></path><path d="M12 17h1"></path><path d="M16 17h1"></path><path d="M7 7h3"></path></svg>`,
+    outgoing:`<svg ${attrs}><path d="M4 7h14"></path><path d="M14 3l4 4-4 4"></path><path d="M20 17H6"></path><path d="M10 13l-4 4 4 4"></path></svg>`,
+    incoming:`<svg ${attrs}><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M4 18h16"></path><path d="M6 21h12"></path></svg>`,
+    loading:`<svg ${attrs}><path d="M3 16V8l9-4 9 4v8l-9 4-9-4Z"></path><path d="M3 8l9 4 9-4"></path><path d="M12 12v8"></path><path d="M7.5 5.7l9 4"></path></svg>`,
+    home:`<svg ${attrs}><path d="M3 11.5 12 4l9 7.5"></path><path d="M5 10.5V20h14v-9.5"></path><path d="M9 20v-6h6v6"></path></svg>`,
+    upload:`<svg ${attrs}><path d="M12 16V4"></path><path d="M7 9l5-5 5 5"></path><path d="M4 20h16"></path></svg>`,
+    warehouses:`<svg ${attrs}><path d="M3 21h18"></path><path d="M5 21V9l7-4 7 4v12"></path><path d="M9 21v-7h6v7"></path><path d="M8 10h1"></path><path d="M12 10h1"></path><path d="M16 10h1"></path></svg>`,
+    movements:`<svg ${attrs}><path d="M4 7h14"></path><path d="M14 3l4 4-4 4"></path><path d="M20 17H6"></path><path d="M10 13l-4 4 4 4"></path></svg>`,
+    inbound:`<svg ${attrs}><path d="M12 3v10"></path><path d="M8 9l4 4 4-4"></path><path d="M5 17h14"></path><path d="M7 21h10"></path></svg>`,
+    reports:`<svg ${attrs}><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg>`,
+    settings:`<svg ${attrs}><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path><path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.04.04a2.1 2.1 0 1 1-2.97 2.97l-.04-.04a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.65V21.4a2.1 2.1 0 1 1-4.2 0v-.06a1.8 1.8 0 0 0-1.1-1.65 1.8 1.8 0 0 0-1.98.36l-.04.04a2.1 2.1 0 1 1-2.97-2.97l.04-.04A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.65-1.1H2.9a2.1 2.1 0 1 1 0-4.2h.06A1.8 1.8 0 0 0 4.6 8a1.8 1.8 0 0 0-.36-1.98l-.04-.04a2.1 2.1 0 1 1 2.97-2.97l.04.04A1.8 1.8 0 0 0 9.2 3.4 1.8 1.8 0 0 0 10.3 1.75V1.7a2.1 2.1 0 1 1 4.2 0v.06a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 1.98-.36l.04-.04a2.1 2.1 0 1 1 2.97 2.97l-.04.04A1.8 1.8 0 0 0 19.4 8c.13.38.38.7.71.92.28.18.61.28.94.28h.06a2.1 2.1 0 1 1 0 4.2h-.06A1.8 1.8 0 0 0 19.4 15Z"></path></svg>`
+  };
+  return icons[name] || icons.reports;
+}
+
 function renderDashboardKPIs(stats){
   const cards=[
-    ['إجمالي البيع',fmt(stats.salesQty),'طن','↧'],
-    ['إجمالي الإنتاج',fmt(stats.productionQty),'طن','↥'],
-    ['إجمالي التحويلات الصادره',fmt(stats.outgoingTransferQty),'طن','⇄'],
-    ['إجمالي التحويلات الوارده',fmt(stats.incomingTransferQty),'طن','⇅'],
-    ['إجمالي التحميل',fmt(stats.totalLoadingQty),'طن','☷']
+    ['إجمالي البيع',fmt(stats.salesQty),'طن','sales','kpi-sales'],
+    ['إجمالي الإنتاج',fmt(stats.productionQty),'طن','production','kpi-production'],
+    ['إجمالي التحويلات الصادره',fmt(stats.outgoingTransferQty),'طن','outgoing','kpi-outgoing'],
+    ['إجمالي التحويلات الوارده',fmt(stats.incomingTransferQty),'طن','incoming','kpi-incoming'],
+    ['إجمالي التحميل',fmt(stats.totalLoadingQty),'طن','loading','kpi-loading']
   ];
   const box=$('#kpiCards');
-  if(box) box.innerHTML=cards.map(c=>`<article class="kpi glass"><h3>${c[0]}</h3><div class="num">${c[1]}</div><small>${c[2]}</small><div class="icon">${c[3]}</div></article>`).join('');
+  if(box) box.innerHTML=cards.map(c=>`<article class="kpi glass ${c[4]}"><h3>${c[0]}</h3><div class="num">${c[1]}</div><small>${c[2]}</small><div class="icon modern-kpi-icon">${modernIcon(c[3])}</div></article>`).join('');
 }
 function getDashboardFilters(){
   return {
@@ -578,6 +597,14 @@ function dashboardWhMeta(code){
   const meta=warehouseMetaByCode(code);
   return {plant:meta.plant_code||'', warehouse:meta.warehouse_code||String(code||'').toUpperCase(), name:meta.warehouse_name||'', type:meta.warehouse_type||''};
 }
+
+function renderModernSidebarIcons(){
+  $$('.nav-icon[data-icon]').forEach(node=>{
+    const name=node.getAttribute('data-icon');
+    node.innerHTML=modernIcon(name);
+  });
+}
+
 function initDashboardFilters(){
   const pf=$('#dashboardPlantFilter'), wf=$('#dashboardWarehouseFilter');
   if(!pf || !wf) return;
@@ -774,7 +801,7 @@ function initSidebarToggle(){
   };
 }
 function renderAll(){renderKPIs();drawDonut();drawLine();renderStock();renderPlants();renderTables();renderTabs();renderAlerts()}
-document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();initDashboardFilters();nav();initSidebarToggle();initReportExportButtons();renderAll()});
+document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();initDashboardFilters();renderModernSidebarIcons();nav();initSidebarToggle();initReportExportButtons();renderAll()});
 
 // === Supabase Sales Upload + Dynamic Sales Report ===
 const SALES_WAREHOUSES = ['W401','W402','N401','N402','N411','N412','E401','E402'];

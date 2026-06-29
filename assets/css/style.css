@@ -587,3 +587,52 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 #dashboard .line-chart-panel #lineSummary{
   margin-top: auto !important;
 }
+
+/* Modern functional icons for dashboard KPI cards and sidebar */
+.kpi .modern-kpi-icon{
+  left:22px;
+  bottom:22px;
+  width:56px;
+  height:56px;
+  font-size:0;
+  display:grid;
+  place-items:center;
+  border-radius:18px;
+  background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.14),rgba(255,255,255,.035) 54%,rgba(0,0,0,.05));
+  box-shadow:inset 0 0 18px rgba(255,255,255,.04),0 10px 28px rgba(0,0,0,.18);
+  opacity:1;
+}
+.kpi .modern-kpi-icon svg{
+  width:42px;
+  height:42px;
+  filter:drop-shadow(0 0 10px currentColor);
+}
+.kpi-sales .modern-kpi-icon{color:#8fda48}
+.kpi-production .modern-kpi-icon{color:#86d94d}
+.kpi-outgoing .modern-kpi-icon{color:#ff9f22}
+.kpi-incoming .modern-kpi-icon{color:#a85df2}
+.kpi-loading .modern-kpi-icon{color:#38bdf8}
+
+.nav-item .nav-icon{
+  width:28px;
+  height:28px;
+  min-width:28px;
+  display:grid;
+  place-items:center;
+  color:#f4fff5;
+  border-radius:9px;
+  background:rgba(255,255,255,.035);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+  transition:transform .18s ease, color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.nav-item .nav-icon svg{width:21px;height:21px;display:block;filter:drop-shadow(0 0 6px rgba(255,255,255,.18))}
+.nav-item:hover .nav-icon,
+.nav-item.active .nav-icon{
+  color:#ffffff;
+  background:rgba(255,255,255,.12);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),0 0 16px rgba(141,220,89,.24);
+  transform:translateX(-2px) scale(1.04);
+}
+.app-shell.sidebar-collapsed .nav-item .nav-icon{margin:0;width:34px;height:34px;min-width:34px}
+.app-shell.sidebar-collapsed .nav-item .nav-icon svg{width:23px;height:23px}
+@media(max-width:700px){.kpi .modern-kpi-icon{width:46px;height:46px}.kpi .modern-kpi-icon svg{width:34px;height:34px}}
