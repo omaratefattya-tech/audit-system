@@ -55,6 +55,7 @@ function initFilters(){
   };
   $('#searchBtn').onclick=()=>{
     if($('#inbound')?.classList.contains('active-section')) runInboundFilter();
+    else if($('#dashboard')?.classList.contains('active-section')) loadDashboardRealData();
     else renderAll();
   };
 }
@@ -378,6 +379,129 @@ function initReportExportButtons(){
 function renderTables(){table('#latestTable',['التاريخ','رقم الحركة','كود الحركة','وصف الحركة','من مخزن','إلى مخزن','الكمية','الوحدة'],APP_DATA.latest);table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']));table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحويل'],APP_DATA.salesReviewSample);table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample)}
 function renderTabs(){const salesWh=APP_DATA.plants.flatMap(p=>p.warehouses.filter(w=>['W401','W402','N401','N402','N411','N412','E401','E402'].includes(w[0])).map(w=>w[0]));$('#salesTabs').innerHTML=salesWh.map((w,i)=>`<button class="${i===0?'active':''}">${w}</button>`).join('');$('#inboundTabs').innerHTML=APP_DATA.plants.map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('')}
 function renderAlerts(){$('#alertsBox').innerHTML=[['⚠','حركات لم يتم تسويتها','يوجد 28 حركة تحتاج إلى تسوية'],['!','فروق جرد','يوجد 12 مخزن به فروق جرد'],['ℹ','حركات ملغاة','يوجد 15 حركة ملغاة خلال الفترة']].map(a=>`<div class="alert"><span>${a[0]}</span><div><b>${a[1]}</b><small>${a[2]}</small></div></div>`).join('')}
+
+
+// === Real Dashboard From Uploaded/Audited Data ===
+function toNumber(v){
+  const n=Number(String(v??0).replace(/,/g,''));
+  return Number.isFinite(n)?n:0;
+}
+function movementSign(movement){
+  const m=String(movement||'').trim().toUpperCase();
+  return ['102','Z14','602','653','Z52','352','302'].includes(m) ? -1 : 1;
+}
+function dashboardDateKey(v){return normalizeDateISO(v)||'غير محدد';}
+function dashboardMovementLabel(m){
+  const code=String(m||'').trim().toUpperCase()||'غير محدد';
+  const names={
+    '601':'601 بيع/تسليم','602':'602 إلغاء تسليم','653':'653 مرتجعات','654':'654 إلغاء مرتجع','101':'101 استلام','102':'102 إلغاء استلام','Z13':'Z13 استلام بعد التصفية','Z14':'Z14 إلغاء بدون ميزان','Z51':'Z51 تحويل صادر','Z52':'Z52 إلغاء تحويل','351':'351 تحويل صادر','352':'352 إلغاء تحويل','301':'301 نقل','302':'302 إلغاء نقل'
+  };
+  return names[code]||`${code} حركة أخرى`;
+}
+function dashboardPlantFromWarehouse(code){return warehouseMetaByCode(code).plant_code || 'غير محدد';}
+function drawDashboardDonut(items){
+  const canvas=$('#donutChart'); if(!canvas) return;
+  const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,340,240);
+  const entries=(items||[]).filter(x=>x.value>0).slice(0,6);
+  const sum=entries.reduce((a,b)=>a+b.value,0);
+  if(!sum){ ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.fillText('لا توجد بيانات',105,120); $('#movementLegend').innerHTML=''; return; }
+  let a=-Math.PI/2;
+  entries.forEach((item,i)=>{const e=a+(item.value/sum)*Math.PI*2;ctx.beginPath();ctx.moveTo(115,120);ctx.arc(115,120,88,a,e);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.globalAlpha=.9;ctx.fill();a=e;});
+  ctx.globalAlpha=1;ctx.beginPath();ctx.arc(115,120,45,0,Math.PI*2);ctx.fillStyle='#00251f';ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='bold 15px Cairo';ctx.textAlign='center';ctx.fillText(fmt(sum),115,126);ctx.textAlign='start';
+  $('#movementLegend').innerHTML=entries.map((it,i)=>`<div><span style="background:${colors[i%colors.length]}"></span>${escapeHtml(it.label)} (${fmt(it.value)})</div>`).join('');
+}
+function drawDashboardLine(dailyMap){
+  const canvas=$('#lineChart'); if(!canvas) return;
+  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,430,250);
+  const days=Object.keys(dailyMap||{}).sort().slice(-31);
+  if(!days.length){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.fillText('لا توجد بيانات',155,120);return;}
+  const inV=days.map(d=>dailyMap[d].incoming||0), outV=days.map(d=>dailyMap[d].outgoing||0);
+  const max=Math.max(1,...inV,...outV);
+  function axes(){ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;for(let i=0;i<6;i++){let y=215-i*34;ctx.beginPath();ctx.moveTo(35,y);ctx.lineTo(410,y);ctx.stroke()}ctx.fillStyle='#d6ead1';ctx.font='12px Cairo';ctx.fillText(fmt(max),2,45);ctx.fillText('0',18,218);ctx.fillText(days[0]?.slice(5)||'',30,235);ctx.fillText(days[days.length-1]?.slice(5)||'',376,235)}
+  function line(arr,c){ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();arr.forEach((v,i)=>{let x=45+(days.length===1?0:i*(350/(days.length-1))),y=215-(v/max)*170;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();arr.forEach((v,i)=>{let x=45+(days.length===1?0:i*(350/(days.length-1))),y=215-(v/max)*170;ctx.beginPath();ctx.arc(x,y,3,0,7);ctx.fillStyle=c;ctx.fill()})}
+  axes();line(inV,'#74c54a');line(outV,'#f1bb30');ctx.fillStyle='#74c54a';ctx.fillRect(200,18,10,10);ctx.fillStyle='#fff';ctx.fillText('وارد',215,28);ctx.fillStyle='#f1bb30';ctx.fillRect(295,18,10,10);ctx.fillStyle='#fff';ctx.fillText('تحميل/خارج',310,28);
+}
+function renderDashboardKPIs(stats){
+  const cards=[
+    ['عدد المخازن النشطة',stats.activeWarehouses,'مخزن','⌂'],
+    ['صافي حركة البيع',fmt(stats.netSales),'طن','⚖'],
+    ['إجمالي الوارد المراجع',fmt(stats.inboundNet),'طن','↥'],
+    ['حركات بها فرق وزن',stats.weightDiffCount,'حركة','!'],
+    ['حركات لم يتم تصفيتها',stats.notClearedCount,'حركة','☷']
+  ];
+  $('#kpiCards').innerHTML=cards.map(c=>`<article class="kpi glass"><h3>${c[0]}</h3><div class="num">${c[1]}</div><small>${c[2]}</small><div class="icon">${c[3]}</div></article>`).join('');
+}
+function renderDashboardSummary(stats){
+  $('#stockSummary').innerHTML=[
+    ['كمية البيع',`${fmt(stats.salesQty)} طن`],
+    ['الإنتاج',`${fmt(stats.productionQty)} طن`],
+    ['التحويلات الصادرة',`${fmt(stats.outgoingTransferQty)} طن`],
+    ['التحويلات الواردة',`${fmt(stats.incomingTransferQty)} طن`]
+  ].map(r=>`<div class="stock-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
+}
+function renderDashboardPlants(plantStats){
+  const cards=APP_DATA.plants.map(p=>{
+    const st=plantStats[p.code]||{sales:0,inbound:0,alerts:0};
+    return `<div class="plant-card"><div class="plant-icon"><img src="assets/img/logo.png" alt=""></div><strong>${p.name}</strong><br><span class="plant-code">${p.code}</span><br><small>بيع: ${fmt(st.sales)} طن</small><br><small>وارد: ${fmt(st.inbound)} طن</small></div>`;
+  }).join('');
+  $('#plantsCards').innerHTML=cards;
+}
+function renderDashboardAlerts(stats){
+  const alerts=[];
+  if(stats.notClearedCount) alerts.push(['⚠','حركات لم يتم تصفيتها',`يوجد ${fmt(stats.notClearedCount)} حركة وارد تحتاج متابعة`]);
+  if(stats.weightDiffCount) alerts.push(['!','فروق وزن',`يوجد ${fmt(stats.weightDiffCount)} حركة بها فرق وزن`]);
+  if(stats.cancelledCount) alerts.push(['ℹ','حركات ملغاة',`يوجد ${fmt(stats.cancelledCount)} حركة ملغاة 101/102`]);
+  if(!alerts.length) alerts.push(['✓','لا توجد تنبيهات حرجة','كل بيانات المراجعة الحالية مستقرة']);
+  $('#alertsBox').innerHTML=alerts.map(a=>`<div class="alert"><span>${a[0]}</span><div><b>${a[1]}</b><small>${a[2]}</small></div></div>`).join('');
+}
+async function loadDashboardRealData(){
+  if(!WarehouseDB?.ready) return;
+  const salesRes=await WarehouseDB.client.from('sales_audit_report').select('report_date,warehouse_code,warehouse_name,plant_code,plant_name,material_code,material_name,sales_quantity,production_quantity,outgoing_transfer_quantity,incoming_transfer_quantity,total_loading_quantity').order('report_date',{ascending:false}).range(0,4999);
+  const inboundRes=await WarehouseDB.client.from('incoming_audit_results').select('report_date,material_code,material_name,uom,quantity_to,scale_net_weight_to,weight_diff_status,weight_diff_percent,incoming_movement_type,incoming_movement_text,mb51_warehouse_code,scale_warehouse_code,scale_match_status,warehouse_match_status,purchase_order_match_status,movement_cell_status,raw_result,warning_message').order('report_date',{ascending:false}).range(0,4999);
+  if(salesRes.error) console.warn('dashboard sales load error',salesRes.error);
+  if(inboundRes.error) console.warn('dashboard inbound load error',inboundRes.error);
+  const sales=salesRes.data||[], inbound=inboundRes.data||[];
+  if(!sales.length && !inbound.length) return;
+  const whSet=new Set(), daily={}, movementMap={}, plantStats={};
+  APP_DATA.plants.forEach(p=>plantStats[p.code]={sales:0,inbound:0,alerts:0});
+  const stats={activeWarehouses:0,salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,netSales:0,inboundNet:0,weightDiffCount:0,notClearedCount:0,cancelledCount:0};
+  sales.forEach(r=>{
+    const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{incoming:0,outgoing:0};
+    const wh=String(r.warehouse_code||'').toUpperCase(); if(wh) whSet.add(wh);
+    const plant=r.plant_code||dashboardPlantFromWarehouse(wh); if(!plantStats[plant]) plantStats[plant]={sales:0,inbound:0,alerts:0};
+    const salesQty=toNumber(r.sales_quantity), prod=toNumber(r.production_quantity), outTr=toNumber(r.outgoing_transfer_quantity), inTr=toNumber(r.incoming_transfer_quantity), load=toNumber(r.total_loading_quantity);
+    stats.salesQty+=salesQty; stats.productionQty+=prod; stats.outgoingTransferQty+=outTr; stats.incomingTransferQty+=inTr; stats.netSales+=load;
+    daily[d].outgoing+=Math.abs(load); daily[d].incoming+=Math.max(0,prod+inTr);
+    plantStats[plant].sales+=Math.abs(load);
+  });
+  inbound.forEach(r=>{
+    const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{incoming:0,outgoing:0};
+    const wh=String(r.mb51_warehouse_code||r.scale_warehouse_code||'').toUpperCase(); if(wh) whSet.add(wh);
+    const plant=dashboardPlantFromWarehouse(wh); if(!plantStats[plant]) plantStats[plant]={sales:0,inbound:0,alerts:0};
+    const q=toNumber(r.quantity_to)*movementSign(r.incoming_movement_type);
+    stats.inboundNet+=q; daily[d].incoming+=Math.max(0,q); if(q<0) daily[d].outgoing+=Math.abs(q);
+    plantStats[plant].inbound+=Math.max(0,q);
+    const label=dashboardMovementLabel(r.incoming_movement_type); movementMap[label]=(movementMap[label]||0)+1;
+    if(r.weight_diff_status && !['ok','not_applicable'].includes(String(r.weight_diff_status))) stats.weightDiffCount++;
+    const notCleared= r.scale_net_weight_to==null || r.scale_match_status==='not_cleared' || r.purchase_order_match_status==='not_cleared' || String(r.warning_message||'').includes('لم يتم التصفية');
+    if(notCleared) stats.notClearedCount++;
+    const status=getInboundMovementStatus(r); if(status==='cancelled') stats.cancelledCount++;
+  });
+  stats.activeWarehouses=whSet.size || APP_DATA.plants.reduce((a,p)=>a+p.warehouses.length,0);
+  renderDashboardKPIs(stats);
+  renderDashboardSummary(stats);
+  drawDashboardLine(daily);
+  drawDashboardDonut(Object.entries(movementMap).sort((a,b)=>b[1]-a[1]).map(([label,value])=>({label,value})));
+  renderDashboardPlants(plantStats);
+  renderDashboardAlerts(stats);
+  const latest=[
+    ...inbound.slice(0,12).map(r=>[dashboardDateKey(r.report_date),'مراجعة الوارد',r.mb51_warehouse_code||r.scale_warehouse_code||'-',dashboardMovementLabel(r.incoming_movement_type),r.material_name||r.material_code||'-',fmt(toNumber(r.quantity_to)),getInboundMovementStatus(r)==='matched'?'مطابق':(getInboundMovementStatus(r)==='not_cleared'?'لم يتم التصفية':(getInboundMovementStatus(r)==='weight_diff'?'فرق وزن':'متابعة')),r.warning_message||'-']),
+    ...sales.slice(0,8).map(r=>[dashboardDateKey(r.report_date),'مراجعة البيع',r.warehouse_code||'-','تقرير مجمع',r.material_name||r.material_code||'-',fmt(toNumber(r.total_loading_quantity)),'مجمع','-'])
+  ].sort((a,b)=>String(b[0]).localeCompare(String(a[0]))).slice(0,12);
+  table('#latestTable',['التاريخ','المصدر','المخزن','نوع الحركة/المراجعة','الصنف','الكمية','الحالة','ملاحظة'],latest);
+}
+
 function updateFiltersVisibility(section){
   const filters=$('#globalFilters');
   if(!filters) return;
@@ -1542,7 +1666,7 @@ renderTables = function(){
   table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحميل'],[]);
   table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample);
 };
-document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initSalesUploader();initIncomingUploader();initScaleUploader();initFreightUploader();refreshInboundReportDates();setTimeout(()=>{loadSalesReport(activeSalesWarehouse);loadInboundAuditReport();},300);});
+document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initSalesUploader();initIncomingUploader();initScaleUploader();initFreightUploader();refreshInboundReportDates();setTimeout(()=>{loadSalesReport(activeSalesWarehouse);loadInboundAuditReport();loadDashboardRealData();},300);});
 
 // === Main Program Login Gate ===
 let CURRENT_AUTH_USER=null;
