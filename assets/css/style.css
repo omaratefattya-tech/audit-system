@@ -532,3 +532,39 @@ table{display:block;overflow-x:auto;white-space:nowrap}
   #dashboard .grid-3{grid-template-columns:1fr}
   #dashboard .grid-3 .panel{min-height:390px}
 }
+
+/* Dashboard charts final polish */
+#dashboard .grid-3 .panel{min-height:420px;justify-content:flex-start}
+#dashboard .grid-3 canvas{height:220px!important;margin:0 auto 8px;}
+#dashboard .chart-clean-legend{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  align-items:center;
+  gap:10px 18px;
+  min-height:26px;
+  margin:2px 0 6px;
+  padding:4px 8px;
+  font-size:12px;
+  color:#dfffd4;
+  direction:rtl;
+}
+#dashboard .chart-clean-legend span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;line-height:1.2}
+#dashboard .chart-clean-legend i{width:18px;height:5px;border-radius:99px;display:inline-block;box-shadow:0 0 10px currentColor;flex:0 0 auto}
+#dashboard .grid-3 .small-btn{display:none!important}
+#dashboard .dashboard-donut-legend{
+  max-height:none!important;
+  overflow:visible!important;
+  margin:0 0 8px!important;
+  gap:4px!important;
+}
+#dashboard .legend-row{
+  grid-template-columns:10px 42px minmax(0,1fr) 74px 42px!important;
+  padding:3px 6px!important;
+  font-size:11px!important;
+}
+#dashboard .legend-row em{max-width:100%;}
+#dashboard #stockSummary{margin-top:auto;}
+#dashboard .plant-performance-table{margin-top:4px!important;}
+#dashboard .plant-performance-table th,#dashboard .plant-performance-table td{padding:6px 4px!important;font-size:10.5px!important}
+@media(max-width:1300px){#dashboard .chart-clean-legend{justify-content:center}}

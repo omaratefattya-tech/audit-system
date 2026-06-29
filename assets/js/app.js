@@ -438,45 +438,73 @@ function drawDashboardDonut(items){
 }
 function drawDashboardLine(dailyMap){
   const canvas=$('#lineChart'); if(!canvas) return;
-  const ctx=canvas.getContext('2d');ctx.clearRect(0,0,430,250);
-  const days=Object.keys(dailyMap||{}).sort().slice(-31);
-  const summary=$('#lineSummary') || (()=>{const d=document.createElement('div');d.id='lineSummary';d.className='chart-stats-row';canvas.after(d);return d;})();
-  if(!days.length){
-    ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',215,120);ctx.textAlign='start';
-    if(summary) summary.innerHTML='<div><b>0</b><span>البيع</span></div><div><b>0</b><span>الإنتاج</span></div><div><b>0</b><span>الصادرة</span></div><div><b>0</b><span>الواردة</span></div>';
-    return;
-  }
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width, h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+  const legend=$('#lineChartLegend');
   const series=[
     {key:'sales',label:'البيع',color:'#74c54a'},
     {key:'production',label:'الإنتاج',color:'#2aa6e8'},
     {key:'outgoing',label:'الصادرة',color:'#ff9f2f'},
     {key:'incoming',label:'الواردة',color:'#b45cff'}
   ];
+  if(legend){
+    legend.innerHTML=series.map(s=>`<span><i style="background:${s.color}"></i>${s.label}</span>`).join('');
+  }
+  const days=Object.keys(dailyMap||{}).sort().slice(-31);
+  const summary=$('#lineSummary') || (()=>{const d=document.createElement('div');d.id='lineSummary';d.className='chart-stats-row';canvas.after(d);return d;})();
+  if(!days.length){
+    ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2);ctx.textAlign='start';
+    if(summary) summary.innerHTML='<div><b>0</b><span>البيع</span></div><div><b>0</b><span>الإنتاج</span></div><div><b>0</b><span>الصادرة</span></div><div><b>0</b><span>الواردة</span></div>';
+    return;
+  }
   const totals=series.map(s=>({ ...s, total:days.reduce((a,d)=>a+(dailyMap[d][s.key]||0),0) }));
   const max=Math.max(1,...days.flatMap(d=>series.map(s=>dailyMap[d][s.key]||0)));
-  function axes(){
-    ctx.strokeStyle='rgba(255,255,255,.13)';ctx.lineWidth=1;
-    for(let i=0;i<6;i++){let y=205-i*31;ctx.beginPath();ctx.moveTo(40,y);ctx.lineTo(405,y);ctx.stroke()}
-    ctx.fillStyle='#d6ead1';ctx.font='11px Cairo';ctx.textAlign='start';
-    ctx.fillText(fmt(max),4,42);ctx.fillText('0',22,208);ctx.fillText(days[0]?.slice(5)||'',38,228);ctx.fillText(days[days.length-1]?.slice(5)||'',366,228)
+  const pad={l:48,r:22,t:20,b:42};
+  const cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
+  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;
+  ctx.font='11px Cairo';ctx.fillStyle='#cfe8d0';ctx.textAlign='right';
+  for(let i=0;i<=5;i++){
+    const y=pad.t+ch-(i/5)*ch;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();
+    const label=fmt(max*i/5);
+    ctx.fillText(label,pad.l-8,y+4);
   }
-  function line(arr,c){
-    ctx.strokeStyle=c;ctx.lineWidth=2.5;ctx.beginPath();
-    arr.forEach((v,i)=>{let x=48+(days.length===1?175:i*(342/(days.length-1))),y=205-(v/max)*165;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();
-    arr.forEach((v,i)=>{let x=48+(days.length===1?175:i*(342/(days.length-1))),y=205-(v/max)*165;ctx.beginPath();ctx.arc(x,y,3.3,0,7);ctx.fillStyle=c;ctx.fill()})
+  ctx.strokeStyle='rgba(132,207,80,.35)';
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,pad.t+ch);ctx.lineTo(w-pad.r,pad.t+ch);ctx.stroke();
+  const xFor=(idx)=> days.length===1 ? pad.l+cw/2 : pad.l+idx*(cw/(days.length-1));
+  const yFor=(v)=> pad.t+ch-(v/max)*ch;
+  // If there is only one day, draw clean vertical markers instead of a broken line.
+  if(days.length===1){
+    const cx=xFor(0);
+    series.forEach((s,i)=>{
+      const v=dailyMap[days[0]][s.key]||0;
+      const y=yFor(v);
+      ctx.beginPath();ctx.arc(cx+(i-1.5)*12,y,5,0,Math.PI*2);ctx.fillStyle=s.color;ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.55)';ctx.stroke();
+    });
+  }else{
+    series.forEach(s=>{
+      ctx.strokeStyle=s.color;ctx.lineWidth=3;ctx.beginPath();
+      days.forEach((d,i)=>{const x=xFor(i), y=yFor(dailyMap[d][s.key]||0); i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+      ctx.stroke();
+      days.forEach((d,i)=>{const x=xFor(i), y=yFor(dailyMap[d][s.key]||0);ctx.beginPath();ctx.arc(x,y,3.6,0,Math.PI*2);ctx.fillStyle=s.color;ctx.fill();});
+    });
   }
-  axes();
-  series.forEach(s=>line(days.map(d=>dailyMap[d][s.key]||0),s.color));
-  let x=70;
-  series.forEach(s=>{ctx.fillStyle=s.color;ctx.fillRect(x,16,22,4);ctx.beginPath();ctx.arc(x+11,18,3.5,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.font='11px Cairo';ctx.fillText(s.label,x+28,22);x+=83;});
-  if(summary){
-    summary.innerHTML=totals.map(s=>`<div><b>${fmt(s.total)}</b><span>${s.label}</span></div>`).join('');
-  }
+  ctx.fillStyle='#d6ead1';ctx.font='bold 12px Cairo';ctx.textAlign='center';
+  const first=days[0]?.slice(5)||'';
+  const last=days[days.length-1]?.slice(5)||'';
+  ctx.fillText(first,pad.l,pad.t+ch+26);
+  ctx.fillText(last,w-pad.r,pad.t+ch+26);
+  ctx.textAlign='start';
+  if(summary){summary.innerHTML=totals.map(s=>`<div><b>${fmt(s.total)}</b><span>${s.label}</span></div>`).join('');}
 }
 
 function drawDashboardPlantBar(plantStats){
   const canvas=$('#plantBarChart'); if(!canvas) return;
-  const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,430,250);
+  const ctx=canvas.getContext('2d');
+  const w=canvas.width, h=canvas.height;
+  ctx.clearRect(0,0,w,h);
   const plants=APP_DATA.plants.map(p=>p.code);
   const series=[
     {key:'sales',label:'البيع',color:'#74c54a'},
@@ -485,26 +513,37 @@ function drawDashboardPlantBar(plantStats){
     {key:'incoming',label:'الواردة',color:'#b45cff'},
     {key:'loading',label:'التحميل',color:'#28c7bd'}
   ];
+  const legend=$('#plantBarLegend');
+  if(legend){legend.innerHTML=series.map(s=>`<span><i style="background:${s.color}"></i>${s.label}</span>`).join('');}
   const max=Math.max(1,...plants.flatMap(code=>series.map(s=>Math.abs((plantStats[code]||{})[s.key]||0))));
-  ctx.strokeStyle='rgba(255,255,255,.13)';ctx.lineWidth=1;
-  for(let i=0;i<6;i++){let y=200-i*30;ctx.beginPath();ctx.moveTo(38,y);ctx.lineTo(410,y);ctx.stroke();}
-  ctx.fillStyle='#d6ead1';ctx.font='11px Cairo';ctx.fillText(fmt(max),5,42);ctx.fillText('0',22,203);
-  const groupW=110, barW=12, startX=62;
+  const pad={l:48,r:20,t:18,b:40};
+  const cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
+  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;
+  ctx.font='11px Cairo';ctx.fillStyle='#cfe8d0';ctx.textAlign='right';
+  for(let i=0;i<=5;i++){
+    const y=pad.t+ch-(i/5)*ch;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();
+    ctx.fillText(fmt(max*i/5),pad.l-8,y+4);
+  }
+  const groupGap=28;
+  const groupW=(cw-groupGap*(plants.length-1))/plants.length;
+  const barW=Math.max(8,Math.min(14,(groupW-20)/series.length));
   plants.forEach((code,pi)=>{
-    const baseX=startX+pi*groupW;
+    const groupX=pad.l+pi*(groupW+groupGap);
+    const barsW=barW*series.length+4*(series.length-1);
+    const baseX=groupX+(groupW-barsW)/2;
     series.forEach((ser,si)=>{
       const v=Math.abs((plantStats[code]||{})[ser.key]||0);
-      const h=(v/max)*150;
-      const x=baseX+si*(barW+4), y=200-h;
-      ctx.fillStyle=ser.color; ctx.globalAlpha=.9; ctx.fillRect(x,y,barW,h);
-      ctx.globalAlpha=.22; ctx.fillRect(x,200,barW,0.5);
+      const bh=(v/max)*ch;
+      const x=baseX+si*(barW+4), y=pad.t+ch-bh;
+      ctx.fillStyle=ser.color;ctx.globalAlpha=.9;ctx.fillRect(x,y,barW,bh);
     });
-    ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.font='bold 12px Cairo';ctx.textAlign='center';ctx.fillText(code,baseX+38,222);ctx.textAlign='start';
+    ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.font='bold 12px Cairo';ctx.textAlign='center';ctx.fillText(code,groupX+groupW/2,pad.t+ch+25);
   });
-  let lx=36;
-  series.forEach(s=>{ctx.fillStyle=s.color;ctx.fillRect(lx,16,9,9);ctx.fillStyle='#fff';ctx.font='10px Cairo';ctx.fillText(s.label,lx+12,25);lx+=75;});
+  ctx.textAlign='start';
   renderPlantPerformanceTable(plantStats);
 }
+
 function renderPlantPerformanceTable(plantStats){
   const node=$('#stockSummary');
   if(!node) return;
