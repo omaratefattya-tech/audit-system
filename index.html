@@ -257,7 +257,55 @@
           <div class="table-wrap"><table id="inboundTable"></table></div>
         </article>
       </section>
-      <section id="reports" class="section"><article class="panel glass"><h2>التقارير</h2><div class="report-actions"><button class="primary">تقرير الحركات</button><button class="primary">تقرير التسويات</button><button class="primary">تقرير الوارد</button><button class="primary">تقرير البيع</button></div></article></section>
+      <section id="reports" class="section">
+        <article class="panel glass reports-center">
+          <div class="reports-head">
+            <div>
+              <h2>مركز التقارير التنفيذية</h2>
+              <p class="hint">تقارير إدارية مبنية على بيانات مراجعة البيع المرفوعة، مع فلاتر موحدة وتصدير PDF / Excel.</p>
+            </div>
+            <div class="report-export-actions">
+              <button class="secondary export-btn" id="executiveReportExcelBtn" type="button">تصدير Excel</button>
+              <button class="secondary export-btn" id="executiveReportPdfBtn" type="button">تصدير PDF</button>
+            </div>
+          </div>
+          <div class="report-tabs" role="tablist">
+            <button class="report-tab active" type="button" data-report-tab="executive">التقرير التنفيذي</button>
+            <button class="report-tab" type="button" data-report-tab="items" disabled>تقرير الأصناف</button>
+            <button class="report-tab" type="button" data-report-tab="warehouses" disabled>أداء المخازن</button>
+            <button class="report-tab" type="button" data-report-tab="exceptions" disabled>الاستثناءات</button>
+          </div>
+          <section class="filters glass report-filters" id="executiveReportFilters">
+            <label>المصنع<select id="reportPlantFilter"><option value="all">كل المصانع</option></select></label>
+            <label>المخزن<select id="reportWarehouseFilter"><option value="all">كل مخازن البيع</option></select></label>
+            <label>من<input type="date" id="reportFromDate"></label>
+            <label>إلى<input type="date" id="reportToDate"></label>
+            <button class="primary" id="reportSearchBtn" type="button">بحث 🔍</button>
+            <button class="secondary" id="reportResetBtn" type="button">إعادة تعيين ↻</button>
+          </section>
+          <div id="executiveReportContent" class="executive-report-content">
+            <div class="executive-title-card">
+              <h3>التقرير التنفيذي لمراجعة مخازن المنتج التام</h3>
+              <p id="executiveReportMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
+            </div>
+            <div class="cards report-kpis" id="executiveKpiCards"></div>
+            <div class="report-grid-3">
+              <article class="panel glass report-chart-card"><h3>اتجاه البيع والإنتاج</h3><canvas id="reportLineChart" width="520" height="260"></canvas></article>
+              <article class="panel glass report-chart-card"><h3>مقارنة أداء المصانع</h3><canvas id="reportPlantChart" width="520" height="260"></canvas></article>
+              <article class="panel glass report-chart-card"><h3>توزيع البيع على المخازن</h3><canvas id="reportDonutChart" width="520" height="260"></canvas><div id="reportDonutLegend" class="legend report-donut-legend"></div></article>
+            </div>
+            <div class="report-grid-2">
+              <article class="panel glass"><h3>أعلى 10 أصناف بيعاً</h3><div class="rank-table-wrap report-rank-wrap"><table id="executiveTopProductsTable"></table></div></article>
+              <article class="panel glass"><h3>أعلى 10 مخازن نشاطاً</h3><div class="rank-table-wrap report-rank-wrap"><table id="executiveTopWarehousesTable"></table></div></article>
+            </div>
+            <article class="panel glass report-insights-card">
+              <h3>مؤشرات تحتاج مراجعة</h3>
+              <div id="executiveInsights" class="executive-insights"></div>
+            </article>
+            <table id="executiveExportTable" class="hidden-export-table"></table>
+          </div>
+        </article>
+      </section>
       <section id="settings" class="section">
         <article class="panel glass">
           <h2>الإعدادات</h2>
