@@ -2917,3 +2917,160 @@ function initExecutiveReports(){
   $('#activeReportPngBtn')?.addEventListener('click',exportActiveReportPng);
 }
 document.addEventListener('DOMContentLoaded',initExecutiveReports);
+
+
+/* Dashboard PNG Export - reusable card/screen capture */
+(function(){
+  function dashboardPngIcon(){
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="m7 15 3.2-3.2a1.5 1.5 0 0 1 2.1 0L15 14.5l1-1a1.5 1.5 0 0 1 2.1 0L21 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="8.5" r="1.3" fill="currentColor"/></svg>';
+  }
+  function normalizePngFileName(title){
+    const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    return `${String(title||'dashboard').replace(/[\\/:*?"<>|]/g,'-')}-${stamp}.png`;
+  }
+  async function saveDashboardPngBlob(blob,fileName){
+    const safeName=String(fileName||'dashboard.png').replace(/[\\/:*?"<>|]/g,'-');
+    if(window.showSaveFilePicker){
+      try{
+        const handle=await window.showSaveFilePicker({
+          suggestedName:safeName,
+          types:[{description:'PNG Image',accept:{'image/png':['.png']}}]
+        });
+        const writable=await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return;
+      }catch(err){
+        if(err && err.name==='AbortError') return;
+        console.warn('PNG save picker fallback',err);
+      }
+    }
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=safeName;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },1000);
+  }
+  function copyDashboardCanvases(sourceRoot,cloneRoot){
+    const sourceCanvases=[...sourceRoot.querySelectorAll('canvas')];
+    const cloneCanvases=[...cloneRoot.querySelectorAll('canvas')];
+    sourceCanvases.forEach((canvas,idx)=>{
+      const cloneCanvas=cloneCanvases[idx];
+      if(!cloneCanvas) return;
+      try{
+        const img=document.createElement('img');
+        img.src=canvas.toDataURL('image/png');
+        img.alt='chart';
+        const rect=canvas.getBoundingClientRect();
+        img.style.width=(rect.width||canvas.clientWidth||canvas.width||520)+'px';
+        img.style.maxWidth='100%';
+        img.style.height='auto';
+        img.style.display='block';
+        img.style.margin='0 auto';
+        cloneCanvas.replaceWith(img);
+      }catch(_){ }
+    });
+  }
+  function exportTitleForElement(el){
+    if(!el) return 'Dashboard';
+    if(el.id==='dashboard') return 'الشاشة الرئيسية';
+    const heading=el.querySelector('h1,h2,h3');
+    if(heading && heading.textContent.trim()) return heading.textContent.trim();
+    const kpiTitle=el.querySelector('h3');
+    if(kpiTitle && kpiTitle.textContent.trim()) return kpiTitle.textContent.trim();
+    return el.getAttribute('aria-label') || 'Dashboard Box';
+  }
+  async function renderElementToPngCanvas(source,title){
+    const Html2Canvas=window.html2canvas;
+    if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return null; }
+    if(!source){ alert('لم يتم العثور على الجزء المطلوب تصديره.'); return null; }
+    const clone=source.cloneNode(true);
+    copyDashboardCanvases(source,clone);
+    clone.classList.add('dashboard-png-exporting');
+    clone.querySelectorAll('.dashboard-png-export,.dashboard-full-png-btn,.export-actions,.report-export-actions').forEach(n=>n.remove());
+    clone.querySelectorAll('.rank-table-wrap,.table-wrap').forEach(n=>{
+      n.style.maxHeight='none';
+      n.style.height='auto';
+      n.style.overflow='visible';
+    });
+    const layer=document.createElement('div');
+    layer.className='dashboard-png-capture-layer';
+    layer.dir='rtl';
+    layer.lang='ar';
+    layer.appendChild(clone);
+    document.body.appendChild(layer);
+    try{
+      if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+      const width=Math.max(360, source.scrollWidth, clone.scrollWidth, Math.ceil(source.getBoundingClientRect().width));
+      const height=Math.max(160, source.scrollHeight, clone.scrollHeight, Math.ceil(source.getBoundingClientRect().height));
+      layer.style.width=width+'px';
+      clone.style.width=width+'px';
+      const canvas=await Html2Canvas(clone,{
+        scale:3,
+        useCORS:true,
+        allowTaint:true,
+        backgroundColor:'#001f18',
+        logging:false,
+        scrollX:0,
+        scrollY:0,
+        windowWidth:width,
+        windowHeight:height
+      });
+      return {canvas,title:title||exportTitleForElement(source)};
+    }catch(err){
+      console.error(err);
+      alert('تعذر تصدير الصورة. حاول مرة أخرى.');
+      return null;
+    }finally{
+      try{ layer.remove(); }catch(_){ }
+    }
+  }
+  async function exportDashboardElementPng(source,title){
+    const rendered=await renderElementToPngCanvas(source,title);
+    if(!rendered) return;
+    rendered.canvas.toBlob(async blob=>{
+      if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
+      await saveDashboardPngBlob(blob,normalizePngFileName(rendered.title));
+    },'image/png',1);
+  }
+  function makePngButton(target,title){
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='dashboard-png-export';
+    btn.title='تصدير هذا البوكس PNG';
+    btn.setAttribute('aria-label','تصدير هذا البوكس PNG');
+    btn.innerHTML='<span>PNG</span>'+dashboardPngIcon();
+    btn.addEventListener('click',e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      exportDashboardElementPng(target,title||exportTitleForElement(target));
+    });
+    return btn;
+  }
+  function ensureDashboardPngButtons(){
+    const dashboard=document.getElementById('dashboard');
+    if(!dashboard) return;
+    dashboard.querySelectorAll('.panel.glass,.kpi.glass').forEach(card=>{
+      if(card.querySelector(':scope > .dashboard-png-export')) return;
+      card.classList.add('dashboard-exportable-box');
+      card.prepend(makePngButton(card));
+    });
+    const fullBtn=document.getElementById('dashboardExportPngBtn');
+    if(fullBtn && !fullBtn.dataset.pngReady){
+      fullBtn.dataset.pngReady='1';
+      fullBtn.addEventListener('click',()=>exportDashboardElementPng(dashboard,'الشاشة الرئيسية'));
+    }
+  }
+  document.addEventListener('DOMContentLoaded',()=>{
+    ensureDashboardPngButtons();
+    const dashboard=document.getElementById('dashboard');
+    if(dashboard){
+      const observer=new MutationObserver(()=>ensureDashboardPngButtons());
+      observer.observe(dashboard,{childList:true,subtree:true});
+    }
+  });
+  window.ensureDashboardPngButtons=ensureDashboardPngButtons;
+})();

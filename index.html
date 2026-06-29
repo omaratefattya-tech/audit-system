@@ -91,6 +91,7 @@
           <label>إلى<input type="date" id="dashboardToDate"></label>
           <button class="primary" id="dashboardSearchBtn" type="button">بحث 🔍</button>
           <button class="secondary" id="dashboardResetBtn" type="button">إعادة تعيين ↻</button>
+          <button class="secondary dashboard-full-png-btn" id="dashboardExportPngBtn" type="button" title="تصدير الشاشة الرئيسية كاملة PNG">PNG 🖼️</button>
         </section>
         <div class="cards" id="kpiCards"></div>
         <div class="grid-3">
@@ -99,7 +100,7 @@
           <article class="panel glass line-chart-panel"><h3>اتجاه البيع والإنتاج خلال الفترة</h3><div id="lineChartLegend" class="chart-clean-legend"></div><canvas id="lineChart" width="560" height="320"></canvas></article>
         </div>
         <div class="bottom-grid executive-bottom-grid">
-          <article class="panel glass review-panel heatmap-panel"><h3>خريطة حرارة البيع (طن)</h3><small class="panel-subtitle">حسب الشهر الحالي</small><div class="sales-heatmap" id="alertsBox"></div></article>
+          <article class="panel glass review-panel heatmap-panel"><h3>الخريطة الحرارية للبيع (طن)</h3><small class="panel-subtitle">حسب الشهر الحالي</small><div class="sales-heatmap" id="alertsBox"></div></article>
           <article class="panel glass top-products-panel"><h3>أعلى 10 أصناف بيعاً</h3><div class="rank-table-wrap"><table id="latestTable"></table></div></article>
           <article class="panel glass top-warehouses-panel"><h3>أكثر 10 مخازن نشاطاً</h3><div class="rank-table-wrap"><table id="topWarehousesTable"></table></div></article>
           <article class="panel glass plant-performance-panel"><h3>أداء المصانع</h3><div id="plantsCards" class="plants-cards plant-progress-list"></div></article>

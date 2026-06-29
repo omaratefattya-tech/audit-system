@@ -1089,3 +1089,64 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 #dashboard .executive-bottom-grid .top-warehouses-panel{min-height:380px}
 #dashboard .executive-bottom-grid .heatmap-panel{min-height:400px}
 #dashboard .executive-bottom-grid .plant-performance-panel{min-height:380px}
+
+
+/* Dashboard PNG export buttons */
+.dashboard-exportable-box{position:relative;}
+.dashboard-png-export{
+  position:absolute;
+  z-index:7;
+  top:12px;
+  left:12px;
+  direction:ltr;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-width:64px;
+  height:30px;
+  padding:0 10px;
+  border-radius:9px;
+  border:1px solid rgba(145,255,98,.55);
+  background:linear-gradient(135deg,rgba(38,156,58,.92),rgba(10,89,56,.88));
+  color:#efffe8;
+  font-family:"Cairo",sans-serif;
+  font-weight:900;
+  font-size:12px;
+  line-height:1;
+  cursor:pointer;
+  box-shadow:0 8px 18px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.12);
+  transition:.18s ease;
+}
+.dashboard-png-export svg{width:15px;height:15px;display:block;}
+.dashboard-png-export:hover{transform:translateY(-1px);filter:brightness(1.12);box-shadow:0 10px 22px rgba(66,210,84,.18), inset 0 1px 0 rgba(255,255,255,.16);}
+.dashboard-png-export:active{transform:translateY(0) scale(.98);}
+.dashboard-full-png-btn{
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-width:118px;
+  font-weight:900;
+}
+.dashboard-png-capture-layer{
+  position:fixed;
+  left:0;
+  top:0;
+  z-index:2147483000;
+  background:#001f18;
+  color:#f4fff0;
+  padding:18px;
+  opacity:1;
+  pointer-events:none;
+}
+.dashboard-png-exporting{
+  direction:rtl;
+  background:linear-gradient(135deg,rgba(0,60,45,.98),rgba(0,38,31,.98))!important;
+  color:#f4fff0!important;
+  box-shadow:none!important;
+}
+.dashboard-png-exporting .dashboard-png-export,
+.dashboard-png-exporting .dashboard-full-png-btn{display:none!important;}
+.dashboard-png-exporting .rank-table-wrap,
+.dashboard-png-exporting .table-wrap{max-height:none!important;overflow:visible!important;height:auto!important;}
+@media (max-width:900px){.dashboard-png-export{top:9px;left:9px;min-width:54px;height:27px;font-size:11px;padding:0 8px}.dashboard-png-export svg{width:13px;height:13px}}
