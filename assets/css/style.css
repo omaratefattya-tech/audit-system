@@ -349,3 +349,14 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 .export-btn{min-width:120px;border-color:rgba(81,184,72,.75)!important;background:rgba(0,58,43,.9)!important;color:#dfffd4!important}
 .export-btn:hover{background:rgba(81,184,72,.22)!important;box-shadow:0 0 18px rgba(81,184,72,.22)}
 @media(max-width:700px){.report-tools-row{align-items:stretch}.export-actions,.export-actions.compact{width:100%;justify-content:stretch}.export-btn{flex:1;min-width:0}}
+
+
+/* Force Cairo font on sidebar only */
+.sidebar,
+.sidebar *,
+.sidebar-nav,
+.sidebar-nav *,
+.menu-item,
+.menu-item *{
+    font-family: "Cairo", sans-serif !important;
+}
