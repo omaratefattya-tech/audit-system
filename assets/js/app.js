@@ -2651,6 +2651,126 @@ function exportActiveReportPdf(){
   if(ACTIVE_REPORT_TAB==='exceptions') return exportTableToPdf('exceptionsReportExportTable','تقرير الاستثناءات والمراجعة');
   return exportTableToPdf('executiveExportTable','التقرير التنفيذي لمراجعة المخازن');
 }
+function activeReportVisualInfo(){
+  const map={
+    executive:{id:'executiveReportContent',title:'التقرير التنفيذي لمراجعة المخازن'},
+    items:{id:'itemsReportContent',title:'تقرير مراجعة الأصناف'},
+    warehouses:{id:'warehousesReportContent',title:'تقرير أداء المخازن'},
+    exceptions:{id:'exceptionsReportContent',title:'تقرير الاستثناءات والمراجعة'}
+  };
+  return map[ACTIVE_REPORT_TAB] || map.executive;
+}
+function copyCanvasPixelsToClone(sourceRoot, cloneRoot){
+  const sourceCanvases=[...sourceRoot.querySelectorAll('canvas')];
+  const cloneCanvases=[...cloneRoot.querySelectorAll('canvas')];
+  sourceCanvases.forEach((canvas,idx)=>{
+    const cloneCanvas=cloneCanvases[idx];
+    if(!cloneCanvas) return;
+    try{
+      const img=document.createElement('img');
+      img.src=canvas.toDataURL('image/png');
+      img.alt='chart';
+      img.style.width=(canvas.getAttribute('width')||canvas.clientWidth||520)+'px';
+      img.style.maxWidth='100%';
+      img.style.height='auto';
+      img.style.display='block';
+      img.style.margin='0 auto';
+      cloneCanvas.replaceWith(img);
+    }catch(_){ }
+  });
+}
+async function renderActiveReportCanvas(){
+  const info=activeReportVisualInfo();
+  const source=document.getElementById(info.id);
+  if(!source){ alert('لم يتم العثور على التقرير الحالي.'); return null; }
+  const Html2Canvas=window.html2canvas;
+  if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return null; }
+
+  const clone=source.cloneNode(true);
+  copyCanvasPixelsToClone(source,clone);
+  clone.style.display='block';
+  clone.removeAttribute('hidden');
+  clone.classList.add('report-exporting');
+
+  const layer=document.createElement('div');
+  layer.className='report-capture-layer';
+  layer.dir='rtl';
+  layer.lang='ar';
+  layer.appendChild(clone);
+  document.body.appendChild(layer);
+
+  try{
+    if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const width=Math.max(1200, clone.scrollWidth, source.scrollWidth, clone.getBoundingClientRect().width);
+    const height=Math.max(400, clone.scrollHeight, source.scrollHeight, clone.getBoundingClientRect().height);
+    layer.style.width=width+'px';
+    clone.style.width='100%';
+    const canvas=await Html2Canvas(clone,{
+      scale:2,
+      useCORS:true,
+      allowTaint:true,
+      backgroundColor:'#001f18',
+      logging:false,
+      scrollX:0,
+      scrollY:0,
+      windowWidth:width,
+      windowHeight:height
+    });
+    return {canvas,info};
+  }catch(err){
+    console.error(err);
+    alert('تعذر تجهيز التقرير للتصدير. حاول مرة أخرى.');
+    return null;
+  }finally{
+    try{ layer.remove(); }catch(_){}
+  }
+}
+function safeFileName(title){
+  const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  return `${String(title||'Report').replace(/[\/:*?"<>|]/g,'-')}-${stamp}`;
+}
+async function exportActiveReportPng(){
+  const rendered=await renderActiveReportCanvas();
+  if(!rendered) return;
+  const {canvas,info}=rendered;
+  canvas.toBlob(async blob=>{
+    if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
+    await saveBlobWithPicker(blob,`${safeFileName(info.title)}.png`,'image/png');
+  },'image/png',1);
+}
+async function exportActiveReportVisualPdf(){
+  const rendered=await renderActiveReportCanvas();
+  if(!rendered) return;
+  const {canvas,info}=rendered;
+  const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+  if(!JsPDF){ alert('مكتبة PDF غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
+  try{
+    const orientation=canvas.width>=canvas.height?'landscape':'portrait';
+    const pdf=new JsPDF({orientation,unit:'mm',format:'a4',compress:true});
+    const pageWidth=pdf.internal.pageSize.getWidth();
+    const pageHeight=pdf.internal.pageSize.getHeight();
+    const margin=5;
+    const imgWidth=pageWidth-(margin*2);
+    const imgHeight=(canvas.height*imgWidth)/canvas.width;
+    const imgData=canvas.toDataURL('image/jpeg',0.94);
+    let y=margin;
+    let remainingHeight=imgHeight;
+    pdf.addImage(imgData,'JPEG',margin,y,imgWidth,imgHeight,undefined,'FAST');
+    remainingHeight-=pageHeight-(margin*2);
+    while(remainingHeight>0){
+      pdf.addPage('a4',orientation);
+      y=margin-(imgHeight-remainingHeight);
+      pdf.addImage(imgData,'JPEG',margin,y,imgWidth,imgHeight,undefined,'FAST');
+      remainingHeight-=pageHeight-(margin*2);
+    }
+    const blob=pdf.output('blob');
+    await saveBlobWithPicker(blob,`${safeFileName(info.title)}.pdf`,'application/pdf');
+  }catch(err){
+    console.error(err);
+    alert('تعذر تصدير PDF. حاول مرة أخرى.');
+  }
+}
 
 async function loadExecutiveReport(options={}){
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
@@ -2677,6 +2797,7 @@ function initExecutiveReports(){
     loadActiveReport();
   });
   $('#executiveReportExcelBtn')?.addEventListener('click',exportActiveReportExcel);
-  $('#executiveReportPdfBtn')?.addEventListener('click',exportActiveReportPdf);
+  $('#activeReportPdfBtn')?.addEventListener('click',exportActiveReportVisualPdf);
+  $('#activeReportPngBtn')?.addEventListener('click',exportActiveReportPng);
 }
 document.addEventListener('DOMContentLoaded',initExecutiveReports);

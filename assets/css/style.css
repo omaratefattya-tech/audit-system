@@ -1014,3 +1014,56 @@ table{display:block;overflow-x:auto;white-space:nowrap}
   .exceptions-priority-list{min-height:420px!important;overflow:auto!important}
   .exceptions-chart-card canvas{height:320px!important;min-height:320px!important}
 }
+
+/* Report visual export (PDF / PNG) */
+.report-export-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  align-items:center;
+}
+.report-capture-layer{
+  position:fixed;
+  left:0;
+  top:0;
+  z-index:2147483647;
+  background:#001f18;
+  color:#fff;
+  padding:18px;
+  box-sizing:border-box;
+  direction:rtl;
+  pointer-events:none;
+  opacity:1;
+}
+.report-exporting,
+.report-exporting *{
+  -webkit-print-color-adjust:exact !important;
+  print-color-adjust:exact !important;
+}
+.report-exporting{
+  display:block !important;
+  background:linear-gradient(135deg,#00231b,#003a2b 55%,#001f18) !important;
+  color:#fff !important;
+  padding:14px !important;
+  border-radius:18px;
+  box-sizing:border-box;
+  overflow:visible !important;
+}
+.report-exporting .rank-table-wrap,
+.report-exporting .table-wrap,
+.report-exporting .item-report-table-wrap,
+.report-exporting .warehouse-report-table-wrap,
+.report-exporting .exceptions-report-table-wrap,
+.report-exporting .report-rank-wrap,
+.report-exporting .tall{
+  overflow:visible !important;
+  max-height:none !important;
+  height:auto !important;
+}
+.report-exporting table{
+  width:100% !important;
+}
+.report-exporting .hidden-export-table{
+  display:none !important;
+}
