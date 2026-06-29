@@ -2497,30 +2497,141 @@ async function loadWarehousesReport(options={}){
   WAREHOUSES_REPORT_STATE={warehouses,filters,summary}; if($('#warehousesReportMeta')) $('#warehousesReportMeta').textContent=reportFilterLabel(filters); renderWarehousesReportKPIs(summary); drawWarehousesReportChart(warehouses); renderWarehousesRanking(warehouses,summary); renderWarehouseMiniTables(warehouses,summary); renderWarehousesReportTables(warehouses,summary);
 }
 
+
+let EXCEPTIONS_REPORT_STATE={exceptions:[], filters:null, summary:null};
+function buildSalesAuditItemMap(rows){
+  const map={};
+  (rows||[]).forEach(r=>{
+    const code=String(r.material_code||r.material_name||'غير محدد').trim()||'غير محدد';
+    const wh=String(r.warehouse_code||'').toUpperCase();
+    const meta=dashboardWhMeta(wh);
+    if(!map[code]) map[code]={code:r.material_code||'-',name:r.material_name||'-',warehouses:new Set(),plants:new Set(),sales:0,production:0,outgoing:0,incoming:0,loading:0,rows:0};
+    const item=map[code];
+    item.rows++;
+    if(wh) item.warehouses.add(wh);
+    const plant=r.plant_code||meta.plant||'';
+    if(plant) item.plants.add(plant);
+    item.sales+=toNumber(r.sales_quantity);
+    item.production+=toNumber(r.production_quantity);
+    item.outgoing+=toNumber(r.outgoing_transfer_quantity);
+    item.incoming+=toNumber(r.incoming_transfer_quantity);
+    item.loading+=toNumber(r.total_loading_quantity);
+  });
+  return Object.values(map).map(i=>({...i,warehouses:[...i.warehouses],plants:[...i.plants]}));
+}
+function getItemExceptions(item){
+  const sales=Math.abs(item.sales||0), production=Math.abs(item.production||0), outgoing=Math.abs(item.outgoing||0), incoming=Math.abs(item.incoming||0), loading=Math.abs(item.loading||0);
+  const activity=sales+production+outgoing+incoming+loading;
+  const list=[];
+  if(activity>0 && sales===0) list.push({type:'no_sales',label:'بدون بيع',severity:'high',score:95,details:'الصنف له إنتاج أو تحويلات بدون أي بيع خلال الفترة'});
+  const gap=production-sales, absGap=Math.abs(gap), gapThreshold=Math.max(5,Math.max(sales,production)*0.25);
+  if(gap>gapThreshold) list.push({type:'production_high',label:'الإنتاج أعلى من البيع',severity:'medium',score:70+Math.min(25,absGap),details:`فرق إنتاج/بيع = ${fmt(gap)} طن`});
+  if(-gap>gapThreshold) list.push({type:'sales_high',label:'البيع أعلى من الإنتاج',severity:'medium',score:68+Math.min(25,absGap),details:`فرق بيع/إنتاج = ${fmt(-gap)} طن`});
+  if(outgoing>Math.max(5,(sales+production)*0.35)) list.push({type:'outgoing_high',label:'تحويلات صادرة مرتفعة',severity:'medium',score:62+Math.min(20,outgoing),details:`الصادر = ${fmt(outgoing)} طن`});
+  if(incoming>Math.max(5,sales*0.45) && incoming>outgoing*1.25) list.push({type:'incoming_high',label:'تحويلات واردة مرتفعة',severity:'low',score:48+Math.min(18,incoming),details:`الوارد = ${fmt(incoming)} طن`});
+  const expectedLoading=sales+outgoing;
+  if(expectedLoading>0 && Math.abs(loading-expectedLoading)>Math.max(2,expectedLoading*0.03)) list.push({type:'loading_gap',label:'فرق في إجمالي التحميل',severity:'high',score:82+Math.min(20,Math.abs(loading-expectedLoading)),details:`التحميل ${fmt(loading)} مقابل المتوقع ${fmt(expectedLoading)}`});
+  return list;
+}
+function flattenExceptions(items){
+  const rows=[];
+  (items||[]).forEach(item=>{
+    getItemExceptions(item).forEach(ex=>rows.push({
+      ...ex,
+      code:item.code,
+      name:item.name,
+      warehouses:item.warehouses.join('، ')||'-',
+      plants:item.plants.join('، ')||'-',
+      sales:item.sales,
+      production:item.production,
+      outgoing:item.outgoing,
+      incoming:item.incoming,
+      loading:item.loading,
+      reviewScore:ex.score+Math.abs((item.production||0)-(item.sales||0))*0.05+Math.abs(item.outgoing||0)*0.03
+    }));
+  });
+  return rows.sort((a,b)=>b.reviewScore-a.reviewScore);
+}
+function renderExceptionsKPIs(summary){
+  const cards=[
+    ['إجمالي الاستثناءات',summary.total,'حالة','🚨'],
+    ['أولوية عالية',summary.high,'حالة','🔴'],
+    ['أولوية متوسطة',summary.medium,'حالة','🟠'],
+    ['أصناف متأثرة',summary.items,'صنف','📦'],
+    ['أكبر فرق إنتاج/بيع',summary.maxGap,'طن','↕']
+  ];
+  const node=$('#exceptionsReportKpis');
+  if(node) node.innerHTML=cards.map(c=>`<article class="kpi glass"><h3>${c[0]}</h3><div class="num">${fmt(c[1])}</div><small>${c[2]}</small><div class="icon">${c[3]}</div></article>`).join('');
+}
+function drawExceptionsChart(summary){
+  const canvas=$('#exceptionsReportChart'); if(!canvas) return;
+  const ctx=canvas.getContext('2d'), w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h);
+  const labels=[['no_sales','بدون بيع'],['production_high','إنتاج أعلى من البيع'],['sales_high','بيع أعلى من الإنتاج'],['outgoing_high','صادر مرتفع'],['incoming_high','وارد مرتفع'],['loading_gap','فرق تحميل']];
+  const vals=labels.map(([k])=>summary.byType[k]||0), max=Math.max(1,...vals);
+  const pad={l:40,r:24,t:38,b:76}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
+  ctx.strokeStyle='rgba(255,255,255,.11)';ctx.fillStyle='#d7f3d2';ctx.font='bold 12px Cairo';ctx.textAlign='right';
+  for(let i=0;i<=4;i++){const y=pad.t+ch-(i/4)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmt(max*i/4),pad.l-8,y+4);}
+  const bw=Math.min(70,cw/labels.length*.55);
+  labels.forEach(([key,label],i)=>{const v=vals[i];const x=pad.l+(i+.5)*(cw/labels.length)-bw/2;const bh=(v/max)*ch;const y=pad.t+ch-bh;const grad=ctx.createLinearGradient(x,y,x,y+bh);grad.addColorStop(0,key==='loading_gap'||key==='no_sales'?'#ff5959':'#ffd44f');grad.addColorStop(1,'#62d84e');ctx.fillStyle=grad;ctx.fillRect(x,y,bw,bh);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 13px Cairo';ctx.fillText(fmt(v),x+bw/2,y-8);ctx.save();ctx.translate(x+bw/2,pad.t+ch+18);ctx.rotate(-Math.PI/7);ctx.fillStyle='#dff8d4';ctx.font='bold 11px Cairo';ctx.fillText(label,0,0);ctx.restore();});
+}
+function renderExceptionsPriority(exceptions){
+  const node=$('#exceptionsPriorityList'); if(!node) return;
+  const top=exceptions.slice(0,8);
+  node.innerHTML=top.map((e,i)=>`<div class="exception-priority-row ${e.severity}"><em>${i+1}</em><div><b>${escapeHtml(e.code)}</b><span>${escapeHtml(e.name)}</span><small>${escapeHtml(e.label)} - ${escapeHtml(e.details)}</small></div><strong>${fmt(e.reviewScore)}</strong></div>`).join('') || '<div class="empty-row">لا توجد استثناءات حسب الفلتر الحالي</div>';
+}
+function exceptionRow(e,i){
+  return `<tr class="exception-row ${e.severity}"><td>${i+1}</td><td><span class="item-status-badge ${e.severity==='high'?'danger':e.severity==='medium'?'warning':'info'}">${escapeHtml(e.label)}</span></td><td>${escapeHtml(e.code)}</td><td>${escapeHtml(e.name)}</td><td>${escapeHtml(e.plants)}</td><td>${escapeHtml(e.warehouses)}</td><td>${fmt(e.sales)}</td><td>${fmt(e.production)}</td><td>${fmt(e.outgoing)}</td><td>${fmt(e.incoming)}</td><td>${fmt(e.loading)}</td><td>${escapeHtml(e.details)}</td></tr>`;
+}
+function renderExceptionsTables(exceptions){
+  const headers='<thead><tr><th>#</th><th>نوع الاستثناء</th><th>كود الصنف</th><th>اسم الصنف</th><th>المصنع</th><th>المخزن</th><th>البيع</th><th>الإنتاج</th><th>صادر</th><th>وارد</th><th>التحميل</th><th>الملاحظة</th></tr></thead>';
+  const body=`<tbody>${exceptions.map(exceptionRow).join('')||'<tr><td colspan="12">لا توجد استثناءات حسب الفلتر الحالي</td></tr>'}</tbody>`;
+  const tbl=$('#exceptionsReportTable'); if(tbl) tbl.innerHTML=headers+body;
+  const exp=$('#exceptionsReportExportTable'); if(exp) exp.innerHTML=headers+body;
+  const count=$('#exceptionsReportCount'); if(count) count.textContent=`عدد الاستثناءات: ${exceptions.length}`;
+}
+async function loadExceptionsReport(options={}){
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
+  let query=WarehouseDB.client.from('sales_audit_report').select('report_date,warehouse_code,warehouse_name,plant_code,plant_name,material_code,material_name,sales_quantity,production_quantity,outgoing_transfer_quantity,incoming_transfer_quantity,total_loading_quantity').order('report_date',{ascending:false}).range(0,9999);
+  if(filters.from) query=query.gte('report_date',filters.from); if(filters.to) query=query.lte('report_date',filters.to); if(filters.plant && filters.plant!=='all') query=query.eq('plant_code',filters.plant); if(filters.warehouse && filters.warehouse!=='all') query=query.eq('warehouse_code',filters.warehouse);
+  const {data,error}=await query; if(error){console.warn('exceptions report load error',error);return;}
+  const items=buildSalesAuditItemMap(data||[]), exceptions=flattenExceptions(items);
+  const summary={total:exceptions.length,high:exceptions.filter(e=>e.severity==='high').length,medium:exceptions.filter(e=>e.severity==='medium').length,items:new Set(exceptions.map(e=>e.code)).size,maxGap:0,byType:{}};
+  items.forEach(i=>summary.maxGap=Math.max(summary.maxGap,Math.abs((i.production||0)-(i.sales||0))));
+  exceptions.forEach(e=>summary.byType[e.type]=(summary.byType[e.type]||0)+1);
+  EXCEPTIONS_REPORT_STATE={exceptions,filters,summary};
+  if($('#exceptionsReportMeta')) $('#exceptionsReportMeta').textContent=reportFilterLabel(filters);
+  renderExceptionsKPIs(summary); drawExceptionsChart(summary); renderExceptionsPriority(exceptions); renderExceptionsTables(exceptions);
+}
+
 function switchReportTab(tab){
   ACTIVE_REPORT_TAB=tab;
   document.querySelectorAll('[data-report-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.reportTab===tab));
-  const exec=$('#executiveReportContent'), items=$('#itemsReportContent'), warehouses=$('#warehousesReportContent');
+  const exec=$('#executiveReportContent'), items=$('#itemsReportContent'), warehouses=$('#warehousesReportContent'), exceptions=$('#exceptionsReportContent');
   if(exec) exec.style.display=tab==='executive'?'flex':'none';
   if(items) items.style.display=tab==='items'?'flex':'none';
   if(warehouses) warehouses.style.display=tab==='warehouses'?'flex':'none';
+  if(exceptions) exceptions.style.display=tab==='exceptions'?'flex':'none';
   if(tab==='executive') loadExecutiveReport({keepDates:true});
   if(tab==='items') loadItemsReport({keepDates:true});
   if(tab==='warehouses') loadWarehousesReport({keepDates:true});
+  if(tab==='exceptions') loadExceptionsReport({keepDates:true});
 }
 function loadActiveReport(options={}){
   if(ACTIVE_REPORT_TAB==='items') return loadItemsReport(options);
   if(ACTIVE_REPORT_TAB==='warehouses') return loadWarehousesReport(options);
+  if(ACTIVE_REPORT_TAB==='exceptions') return loadExceptionsReport(options);
   return loadExecutiveReport(options);
 }
 function exportActiveReportExcel(){
   if(ACTIVE_REPORT_TAB==='items') return exportTableToExcel('itemsReportExportTable','تقرير مراجعة الأصناف');
   if(ACTIVE_REPORT_TAB==='warehouses') return exportTableToExcel('warehousesReportExportTable','تقرير أداء المخازن');
+  if(ACTIVE_REPORT_TAB==='exceptions') return exportTableToExcel('exceptionsReportExportTable','تقرير الاستثناءات والمراجعة');
   return exportTableToExcel('executiveExportTable','التقرير التنفيذي لمراجعة المخازن');
 }
 function exportActiveReportPdf(){
   if(ACTIVE_REPORT_TAB==='items') return exportTableToPdf('itemsReportExportTable','تقرير مراجعة الأصناف');
   if(ACTIVE_REPORT_TAB==='warehouses') return exportTableToPdf('warehousesReportExportTable','تقرير أداء المخازن');
+  if(ACTIVE_REPORT_TAB==='exceptions') return exportTableToPdf('exceptionsReportExportTable','تقرير الاستثناءات والمراجعة');
   return exportTableToPdf('executiveExportTable','التقرير التنفيذي لمراجعة المخازن');
 }
 

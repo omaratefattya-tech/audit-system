@@ -273,7 +273,7 @@
             <button class="report-tab active" type="button" data-report-tab="executive">التقرير التنفيذي</button>
             <button class="report-tab" type="button" data-report-tab="items">تقرير الأصناف</button>
             <button class="report-tab" type="button" data-report-tab="warehouses">أداء المخازن</button>
-            <button class="report-tab" type="button" data-report-tab="exceptions" disabled>الاستثناءات</button>
+            <button class="report-tab" type="button" data-report-tab="exceptions">الاستثناءات</button>
           </div>
           <section class="filters glass report-filters" id="executiveReportFilters">
             <label>المصنع<select id="reportPlantFilter"><option value="all">كل المصانع</option></select></label>
@@ -360,6 +360,31 @@
               <div class="rank-table-wrap warehouse-report-table-wrap"><table id="warehousesReportTable"></table></div>
             </article>
             <table id="warehousesReportExportTable" class="hidden-export-table"></table>
+          </div>
+          <div id="exceptionsReportContent" class="exceptions-report-content report-panel-content" style="display:none">
+            <div class="executive-title-card">
+              <h3>تقرير الاستثناءات والمراجعة</h3>
+              <p id="exceptionsReportMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
+            </div>
+            <div class="cards report-kpis exceptions-report-summary" id="exceptionsReportKpis"></div>
+            <div class="exceptions-report-layout">
+              <article class="panel glass exceptions-chart-card">
+                <h3>توزيع الاستثناءات حسب النوع</h3>
+                <canvas id="exceptionsReportChart" width="760" height="360"></canvas>
+              </article>
+              <article class="panel glass exceptions-priority-card">
+                <h3>أولويات المراجعة</h3>
+                <div id="exceptionsPriorityList" class="exceptions-priority-list"></div>
+              </article>
+            </div>
+            <article class="panel glass exceptions-report-main-card">
+              <div class="report-section-head">
+                <h3>جدول الاستثناءات التفصيلي</h3>
+                <span class="hint" id="exceptionsReportCount">عدد الاستثناءات: 0</span>
+              </div>
+              <div class="rank-table-wrap exceptions-report-table-wrap"><table id="exceptionsReportTable"></table></div>
+            </article>
+            <table id="exceptionsReportExportTable" class="hidden-export-table"></table>
           </div>
         </article>
       </section>
