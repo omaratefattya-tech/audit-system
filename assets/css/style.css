@@ -568,3 +568,22 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 #dashboard .plant-performance-table{margin-top:4px!important;}
 #dashboard .plant-performance-table th,#dashboard .plant-performance-table td{padding:6px 4px!important;font-size:10.5px!important}
 @media(max-width:1300px){#dashboard .chart-clean-legend{justify-content:center}}
+
+/* Dashboard line chart sizing fix */
+#dashboard .line-chart-panel{
+  min-height: 460px !important;
+}
+#dashboard .line-chart-panel canvas#lineChart{
+  width: 100% !important;
+  height: 300px !important;
+  max-height: 300px !important;
+  margin: 0 auto 10px !important;
+  display: block;
+}
+#dashboard .line-chart-panel .chart-clean-legend{
+  margin-bottom: 2px !important;
+  gap: 10px 24px !important;
+}
+#dashboard .line-chart-panel #lineSummary{
+  margin-top: auto !important;
+}

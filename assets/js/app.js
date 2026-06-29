@@ -443,60 +443,60 @@ function drawDashboardLine(dailyMap){
   ctx.clearRect(0,0,w,h);
   const legend=$('#lineChartLegend');
   const series=[
-    {key:'sales',label:'البيع',color:'#74c54a'},
-    {key:'production',label:'الإنتاج',color:'#2aa6e8'},
+    {key:'sales',label:'البيع',color:'#83d84b'},
+    {key:'production',label:'الإنتاج',color:'#32aee9'},
     {key:'outgoing',label:'الصادرة',color:'#ff9f2f'},
-    {key:'incoming',label:'الواردة',color:'#b45cff'}
+    {key:'incoming',label:'الواردة',color:'#b965ff'}
   ];
   if(legend){
-    legend.innerHTML=series.map(s=>`<span><i style="background:${s.color}"></i>${s.label}</span>`).join('');
+    legend.innerHTML=series.map(s=>`<span><i style="background:${s.color};color:${s.color}"></i>${s.label}</span>`).join('');
   }
-  const days=Object.keys(dailyMap||{}).sort().slice(-31);
+  const realDays=Object.keys(dailyMap||{}).sort().slice(-31);
   const summary=$('#lineSummary') || (()=>{const d=document.createElement('div');d.id='lineSummary';d.className='chart-stats-row';canvas.after(d);return d;})();
-  if(!days.length){
-    ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2);ctx.textAlign='start';
+  if(!realDays.length){
+    ctx.fillStyle='#d6ead1';ctx.font='bold 20px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2);ctx.textAlign='start';
     if(summary) summary.innerHTML='<div><b>0</b><span>البيع</span></div><div><b>0</b><span>الإنتاج</span></div><div><b>0</b><span>الصادرة</span></div><div><b>0</b><span>الواردة</span></div>';
     return;
   }
-  const totals=series.map(s=>({ ...s, total:days.reduce((a,d)=>a+(dailyMap[d][s.key]||0),0) }));
-  const max=Math.max(1,...days.flatMap(d=>series.map(s=>dailyMap[d][s.key]||0)));
-  const pad={l:48,r:22,t:20,b:42};
+  const totals=series.map(s=>({ ...s, total:realDays.reduce((a,d)=>a+(dailyMap[d][s.key]||0),0) }));
+  // Keep the chart as a real LINE chart even when the selected period is one day.
+  // In that case we duplicate the same day visually to draw horizontal trend lines instead of isolated dots.
+  const plotDays = realDays.length===1 ? [realDays[0], realDays[0]] : realDays;
+  const valueFor=(day,key)=> (dailyMap[day]?.[key] || 0);
+  const rawMax=Math.max(1,...realDays.flatMap(d=>series.map(s=>valueFor(d,s.key))));
+  const max=Math.ceil((rawMax*1.12)/10)*10;
+  const pad={l:60,r:20,t:18,b:44};
   const cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
+
+  ctx.save();
   ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;
-  ctx.font='11px Cairo';ctx.fillStyle='#cfe8d0';ctx.textAlign='right';
+  ctx.font='bold 12px Cairo';ctx.fillStyle='#cfe8d0';ctx.textAlign='right';ctx.textBaseline='middle';
   for(let i=0;i<=5;i++){
     const y=pad.t+ch-(i/5)*ch;
     ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();
-    const label=fmt(max*i/5);
-    ctx.fillText(label,pad.l-8,y+4);
+    ctx.fillText(fmt(max*i/5),pad.l-10,y);
   }
-  ctx.strokeStyle='rgba(132,207,80,.35)';
+  ctx.strokeStyle='rgba(132,207,80,.35)';ctx.lineWidth=1.4;
   ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,pad.t+ch);ctx.lineTo(w-pad.r,pad.t+ch);ctx.stroke();
-  const xFor=(idx)=> days.length===1 ? pad.l+cw/2 : pad.l+idx*(cw/(days.length-1));
+
+  const xFor=(idx)=> plotDays.length===1 ? pad.l+cw/2 : pad.l+idx*(cw/(plotDays.length-1));
   const yFor=(v)=> pad.t+ch-(v/max)*ch;
-  // If there is only one day, draw clean vertical markers instead of a broken line.
-  if(days.length===1){
-    const cx=xFor(0);
-    series.forEach((s,i)=>{
-      const v=dailyMap[days[0]][s.key]||0;
-      const y=yFor(v);
-      ctx.beginPath();ctx.arc(cx+(i-1.5)*12,y,5,0,Math.PI*2);ctx.fillStyle=s.color;ctx.fill();
-      ctx.strokeStyle='rgba(255,255,255,.55)';ctx.stroke();
+  series.forEach(s=>{
+    ctx.strokeStyle=s.color;ctx.lineWidth=3.2;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();
+    plotDays.forEach((d,i)=>{const x=xFor(i), y=yFor(valueFor(d,s.key)); i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+    ctx.stroke();
+    plotDays.forEach((d,i)=>{
+      const x=xFor(i), y=yFor(valueFor(d,s.key));
+      ctx.beginPath();ctx.arc(x,y,4.2,0,Math.PI*2);ctx.fillStyle=s.color;ctx.fill();
+      ctx.strokeStyle='rgba(0,20,14,.85)';ctx.lineWidth=2;ctx.stroke();
     });
-  }else{
-    series.forEach(s=>{
-      ctx.strokeStyle=s.color;ctx.lineWidth=3;ctx.beginPath();
-      days.forEach((d,i)=>{const x=xFor(i), y=yFor(dailyMap[d][s.key]||0); i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
-      ctx.stroke();
-      days.forEach((d,i)=>{const x=xFor(i), y=yFor(dailyMap[d][s.key]||0);ctx.beginPath();ctx.arc(x,y,3.6,0,Math.PI*2);ctx.fillStyle=s.color;ctx.fill();});
-    });
-  }
-  ctx.fillStyle='#d6ead1';ctx.font='bold 12px Cairo';ctx.textAlign='center';
-  const first=days[0]?.slice(5)||'';
-  const last=days[days.length-1]?.slice(5)||'';
-  ctx.fillText(first,pad.l,pad.t+ch+26);
-  ctx.fillText(last,w-pad.r,pad.t+ch+26);
-  ctx.textAlign='start';
+  });
+  ctx.fillStyle='#d6ead1';ctx.font='bold 13px Cairo';ctx.textAlign='center';ctx.textBaseline='alphabetic';
+  const first=realDays[0]?.slice(5)||'';
+  const last=realDays[realDays.length-1]?.slice(5)||first;
+  ctx.fillText(first,pad.l,pad.t+ch+30);
+  ctx.fillText(last,w-pad.r,pad.t+ch+30);
+  ctx.restore();
   if(summary){summary.innerHTML=totals.map(s=>`<div><b>${fmt(s.total)}</b><span>${s.label}</span></div>`).join('');}
 }
 
