@@ -2331,6 +2331,96 @@ function renderExecutiveExportTable(stats, products, warehouses, plantStats){
   const whRows=warehouses.slice(0,10).map(w=>`<tr><td>أفضل مخزن</td><td>${escapeHtml(w.code)}</td><td>${escapeHtml(w.name)}</td><td>${fmt(w.sales)}</td><td>${fmt(w.production)}</td><td>${fmt(w.outgoing)}</td><td>${fmt(w.incoming)}</td><td>${fmt(w.loading)}</td></tr>`).join('');
   tbl.innerHTML=`<thead><tr><th>القسم</th><th>الكود</th><th>البيان</th><th>البيع</th><th>الإنتاج</th><th>الصادرة</th><th>الواردة</th><th>التحميل</th></tr></thead><tbody><tr><td>إجمالي</td><td>-</td><td>إجمالي الفترة</td><td>${fmt(stats.salesQty)}</td><td>${fmt(stats.productionQty)}</td><td>${fmt(stats.outgoingTransferQty)}</td><td>${fmt(stats.incomingTransferQty)}</td><td>${fmt(stats.totalLoadingQty)}</td></tr>${plantRows}${productRows}${whRows}</tbody>`;
 }
+
+let ACTIVE_REPORT_TAB='executive';
+let ITEMS_REPORT_STATE={items:[], filters:null, summary:null};
+function getReportStatus(item){
+  const sales=Math.abs(item.sales||0), production=Math.abs(item.production||0), outgoing=Math.abs(item.outgoing||0), incoming=Math.abs(item.incoming||0), loading=Math.abs(item.loading||0);
+  const activity=sales+production+outgoing+incoming+loading;
+  const gap=production-sales;
+  const absGap=Math.abs(gap);
+  const threshold=Math.max(5, Math.max(sales,production)*0.25);
+  if(activity>0 && sales===0) return {key:'no_sales', label:'بدون بيع', cls:'danger', weight:90};
+  if(absGap>threshold && gap>0) return {key:'production_high', label:'إنتاج أعلى من البيع', cls:'warning', weight:70};
+  if(absGap>threshold && gap<0) return {key:'sales_high', label:'بيع أعلى من الإنتاج', cls:'warning', weight:65};
+  if(outgoing>Math.max(5,sales*0.5)) return {key:'outgoing_high', label:'تحويلات صادرة مرتفعة', cls:'info', weight:55};
+  return {key:'ok', label:'طبيعي', cls:'ok', weight:0};
+}
+function getItemReviewScore(item){
+  const st=getReportStatus(item);
+  const sales=Math.abs(item.sales||0), production=Math.abs(item.production||0), outgoing=Math.abs(item.outgoing||0);
+  return st.weight + Math.abs(production-sales) + outgoing*0.15 + (sales===0?25:0);
+}
+function renderItemsReportKPIs(summary){
+  const cards=[
+    ['عدد الأصناف',summary.count,'صنف','📦'],
+    ['أصناف طبيعية',summary.ok,'صنف','✅'],
+    ['تحتاج مراجعة',summary.review,'صنف','⚠️'],
+    ['بدون بيع',summary.noSales,'صنف','🚫'],
+    ['إجمالي فرق الإنتاج/البيع',summary.totalGap,'طن','↕']
+  ];
+  const node=$('#itemsReportKpis'); if(node) node.innerHTML=cards.map(c=>`<article class="kpi glass"><h3>${c[0]}</h3><div class="num">${fmt(c[1])}</div><small>${c[2]}</small><div class="icon">${c[3]}</div></article>`).join('');
+}
+function renderItemsStatusBoard(summary){
+  const node=$('#itemsStatusBoard'); if(!node) return;
+  node.innerHTML=`
+    <div class="item-status-card ok"><div><span>الأصناف الطبيعية</span><small>لا توجد مؤشرات غير معتادة</small></div><b>${fmt(summary.ok)}</b></div>
+    <div class="item-status-card danger"><div><span>أصناف بدون بيع</span><small>لها إنتاج أو تحويلات خلال الفترة</small></div><b>${fmt(summary.noSales)}</b></div>
+    <div class="item-status-card warning"><div><span>فرق إنتاج/بيع مرتفع</span><small>تحتاج مراجعة كمية وحركة</small></div><b>${fmt(summary.gapItems)}</b></div>
+    <div class="item-status-card warning"><div><span>تحويلات صادرة مرتفعة</span><small>أعلى من متوسط النشاط</small></div><b>${fmt(summary.outgoingHigh)}</b></div>
+    <div class="item-status-card"><div><span>متوسط نسبة البيع للإنتاج</span><small>حسب الأصناف ذات الإنتاج</small></div><b>${fmt(summary.avgSalesToProduction)}%</b></div>
+    <div class="item-status-card"><div><span>إجمالي التحميل</span><small>للأصناف المعروضة</small></div><b>${fmt(summary.totalLoading)}</b></div>`;
+}
+function itemReportRow(item,i){
+  const status=getReportStatus(item);
+  const prod=Math.abs(item.production||0), sales=Math.abs(item.sales||0);
+  const gap=(item.production||0)-(item.sales||0);
+  const ratio=prod?((sales/prod)*100):0;
+  return `<tr class="item-row-${status.cls}"><td>${i+1}</td><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.name)}</td><td>${fmt(item.sales)}</td><td>${fmt(item.production)}</td><td>${fmt(item.outgoing)}</td><td>${fmt(item.incoming)}</td><td>${fmt(item.loading)}</td><td>${fmt(gap)}</td><td>${prod?fmt(ratio)+'%':'-'}</td><td><span class="item-status-badge ${status.cls}">${status.label}</span></td></tr>`;
+}
+function renderItemsReportTables(items){
+  const tbl=$('#itemsReportTable'), top=$('#itemsReviewTopTable');
+  const headers='<thead><tr><th>#</th><th>كود الصنف</th><th>اسم الصنف</th><th>البيع</th><th>الإنتاج</th><th>الصادرة</th><th>الواردة</th><th>التحميل</th><th>فرق الإنتاج/البيع</th><th>نسبة البيع للإنتاج</th><th>الحالة</th></tr></thead>';
+  if(tbl) tbl.innerHTML=headers+`<tbody>${items.map(itemReportRow).join('')||'<tr><td colspan="11">لا توجد بيانات</td></tr>'}</tbody>`;
+  const reviewItems=[...items].sort((a,b)=>getItemReviewScore(b)-getItemReviewScore(a)).slice(0,10);
+  if(top) top.innerHTML=headers+`<tbody>${reviewItems.map(itemReportRow).join('')||'<tr><td colspan="11">لا توجد بيانات</td></tr>'}</tbody>`;
+  const count=$('#itemsReportCount'); if(count) count.textContent=`عدد الأصناف: ${items.length}`;
+}
+function renderItemsExportTable(items,summary){
+  const tbl=$('#itemsReportExportTable'); if(!tbl) return;
+  const rows=items.map((item,i)=>{const st=getReportStatus(item); const prod=Math.abs(item.production||0), sales=Math.abs(item.sales||0); const gap=(item.production||0)-(item.sales||0); const ratio=prod?((sales/prod)*100):0; return `<tr><td>${i+1}</td><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.name)}</td><td>${fmt(item.sales)}</td><td>${fmt(item.production)}</td><td>${fmt(item.outgoing)}</td><td>${fmt(item.incoming)}</td><td>${fmt(item.loading)}</td><td>${fmt(gap)}</td><td>${prod?fmt(ratio)+'%':'-'}</td><td>${st.label}</td></tr>`;}).join('');
+  tbl.innerHTML=`<thead><tr><th>#</th><th>كود الصنف</th><th>اسم الصنف</th><th>البيع</th><th>الإنتاج</th><th>الصادرة</th><th>الواردة</th><th>التحميل</th><th>فرق الإنتاج/البيع</th><th>نسبة البيع للإنتاج</th><th>الحالة</th></tr></thead><tbody>${rows}</tbody>`;
+}
+async function loadItemsReport(options={}){
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
+  let query=WarehouseDB.client.from('sales_audit_report').select('report_date,warehouse_code,plant_code,material_code,material_name,sales_quantity,production_quantity,outgoing_transfer_quantity,incoming_transfer_quantity,total_loading_quantity').order('material_code',{ascending:true}).range(0,9999);
+  if(filters.from) query=query.gte('report_date',filters.from); if(filters.to) query=query.lte('report_date',filters.to); if(filters.plant && filters.plant!=='all') query=query.eq('plant_code',filters.plant); if(filters.warehouse && filters.warehouse!=='all') query=query.eq('warehouse_code',filters.warehouse);
+  const {data,error}=await query; if(error){console.warn('items report load error',error);return;} const map={};
+  (data||[]).forEach(r=>{const key=String(r.material_code||r.material_name||'غير محدد'); if(!map[key]) map[key]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0}; const it=map[key]; it.sales+=toNumber(r.sales_quantity); it.production+=toNumber(r.production_quantity); it.outgoing+=toNumber(r.outgoing_transfer_quantity); it.incoming+=toNumber(r.incoming_transfer_quantity); it.loading+=toNumber(r.total_loading_quantity);});
+  const items=Object.values(map).sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales));
+  const summary={count:items.length,ok:0,review:0,noSales:0,gapItems:0,outgoingHigh:0,totalGap:0,totalLoading:0,avgSalesToProduction:0}; let ratioSum=0, ratioCount=0;
+  items.forEach(it=>{const st=getReportStatus(it); if(st.key==='ok') summary.ok++; else summary.review++; if(st.key==='no_sales') summary.noSales++; if(st.key==='production_high'||st.key==='sales_high') summary.gapItems++; if(st.key==='outgoing_high') summary.outgoingHigh++; summary.totalGap+=(it.production||0)-(it.sales||0); summary.totalLoading+=it.loading||0; const prod=Math.abs(it.production||0); if(prod){ratioSum+=(Math.abs(it.sales||0)/prod)*100; ratioCount++;}}); summary.avgSalesToProduction=ratioCount?ratioSum/ratioCount:0;
+  ITEMS_REPORT_STATE={items,filters,summary}; if($('#itemsReportMeta')) $('#itemsReportMeta').textContent=reportFilterLabel(filters); renderItemsReportKPIs(summary); renderItemsStatusBoard(summary); renderItemsReportTables(items); renderItemsExportTable(items,summary);
+}
+function switchReportTab(tab){
+  ACTIVE_REPORT_TAB=tab;
+  document.querySelectorAll('[data-report-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.reportTab===tab));
+  const exec=$('#executiveReportContent'), items=$('#itemsReportContent');
+  if(exec) exec.style.display=tab==='executive'?'flex':'none';
+  if(items) items.style.display=tab==='items'?'flex':'none';
+  if(tab==='executive') loadExecutiveReport({keepDates:true});
+  if(tab==='items') loadItemsReport({keepDates:true});
+}
+function loadActiveReport(options={}){ return ACTIVE_REPORT_TAB==='items'?loadItemsReport(options):loadExecutiveReport(options); }
+function exportActiveReportExcel(){
+  if(ACTIVE_REPORT_TAB==='items') return exportTableToExcel('itemsReportExportTable','تقرير مراجعة الأصناف');
+  return exportTableToExcel('executiveExportTable','التقرير التنفيذي لمراجعة المخازن');
+}
+function exportActiveReportPdf(){
+  if(ACTIVE_REPORT_TAB==='items') return exportTableToPdf('itemsReportExportTable','تقرير مراجعة الأصناف');
+  return exportTableToPdf('executiveExportTable','التقرير التنفيذي لمراجعة المخازن');
+}
+
 async function loadExecutiveReport(options={}){
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
   let query=WarehouseDB.client.from('sales_audit_report').select('report_date,warehouse_code,warehouse_name,plant_code,plant_name,material_code,material_name,sales_quantity,production_quantity,outgoing_transfer_quantity,incoming_transfer_quantity,total_loading_quantity').order('report_date',{ascending:false}).range(0,9999);
@@ -2343,9 +2433,19 @@ async function loadExecutiveReport(options={}){
 }
 function initExecutiveReports(){
   fillReportFilters();
-  $('#reportSearchBtn')?.addEventListener('click',()=>loadExecutiveReport({keepDates:true}));
-  $('#reportResetBtn')?.addEventListener('click',()=>{ if($('#reportPlantFilter')) $('#reportPlantFilter').value='all'; fillReportFilters(); if($('#reportWarehouseFilter')) $('#reportWarehouseFilter').value='all'; if($('#reportFromDate')) $('#reportFromDate').value=''; if($('#reportToDate')) $('#reportToDate').value=''; loadExecutiveReport(); });
-  $('#executiveReportExcelBtn')?.addEventListener('click',()=>exportTableToExcel('executiveExportTable','التقرير التنفيذي لمراجعة المخازن'));
-  $('#executiveReportPdfBtn')?.addEventListener('click',()=>exportTableToPdf('executiveExportTable','التقرير التنفيذي لمراجعة المخازن'));
+  document.querySelectorAll('[data-report-tab]').forEach(btn=>{
+    if(!btn.disabled) btn.addEventListener('click',()=>switchReportTab(btn.dataset.reportTab));
+  });
+  $('#reportSearchBtn')?.addEventListener('click',()=>loadActiveReport({keepDates:true}));
+  $('#reportResetBtn')?.addEventListener('click',()=>{
+    if($('#reportPlantFilter')) $('#reportPlantFilter').value='all';
+    fillReportFilters();
+    if($('#reportWarehouseFilter')) $('#reportWarehouseFilter').value='all';
+    if($('#reportFromDate')) $('#reportFromDate').value='';
+    if($('#reportToDate')) $('#reportToDate').value='';
+    loadActiveReport();
+  });
+  $('#executiveReportExcelBtn')?.addEventListener('click',exportActiveReportExcel);
+  $('#executiveReportPdfBtn')?.addEventListener('click',exportActiveReportPdf);
 }
 document.addEventListener('DOMContentLoaded',initExecutiveReports);
