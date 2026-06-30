@@ -2456,6 +2456,7 @@ function renderUsersManagementTableBody(rows){
           <button type="button" class="icon-action view-user-btn" data-user-id="${escapeHtml(u.id)}" title="عرض">👁</button>
           ${canEdit?`<button type="button" class="icon-action edit-user-btn" data-user-id="${escapeHtml(u.id)}" title="تعديل">✎</button>`:`<button type="button" class="icon-action disabled" title="حساب منشئ النظام لا يتم تعديله من هنا">🔒</button>`}
           ${canToggle?`<button type="button" class="icon-action ${u.is_active?'danger-icon':'ok-icon'} toggle-user-btn" data-user-id="${escapeHtml(u.id)}" data-active="${u.is_active?'1':'0'}" title="${u.is_active?'تعطيل':'تفعيل'}">${u.is_active?'🚫':'✅'}</button>`:`<button type="button" class="icon-action disabled" title="لا يمكن تعطيل هذا الحساب">🔒</button>`}
+          ${canToggle?`<button type="button" class="icon-action delete-user-btn hard-delete-icon" data-user-id="${escapeHtml(u.id)}" title="حذف نهائي من Auth">🗑</button>`:`<button type="button" class="icon-action disabled" title="لا يمكن حذف هذا الحساب">🔒</button>`}
         </div>
       </td>
     </tr>`;
@@ -2628,6 +2629,47 @@ async function toggleManagedUser(userId,currentActive){
     await loadUsersManagement();
   }catch(err){ setUsersStatus('تعذر تحديث الحالة: '+(err.message||err),'err'); }
 }
+
+async function deleteManagedUserForever(userId){
+  const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
+  if(!userId || !WarehouseDB?.ready) return;
+  if(!u){ setUsersStatus('المستخدم غير موجود في الجدول الحالي.','err'); return; }
+  if(u.role==='super_admin'){ setUsersStatus('لا يمكن حذف حساب منشئ النظام.','err'); return; }
+  if(u.is_current){ setUsersStatus('لا يمكن حذف حسابك الحالي.','err'); return; }
+  const label=u.full_name || u.email || userId;
+  const ok=confirm(`تحذير نهائي
+
+سيتم حذف المستخدم من Supabase Auth نهائيًا، وحذف ملفه من جدول المستخدمين.
+
+المستخدم: ${label}
+
+هل أنت متأكد؟`);
+  if(!ok) return;
+  try{
+    setUsersStatus('جاري حذف المستخدم نهائيًا من Supabase Auth...');
+    const sessionRes=await WarehouseDB.client.auth.getSession();
+    const accessToken=sessionRes?.data?.session?.access_token;
+    if(!accessToken) throw new Error('جلسة الدخول غير صالحة. سجل الدخول مرة أخرى.');
+    const cfg=window.WAREHOUSE_SUPABASE_CONFIG || {};
+    const fnUrl=`${String(cfg.url||'').replace(/\/$/,'')}/functions/v1/delete-user`;
+    if(!cfg.url) throw new Error('رابط Supabase غير مضبوط.');
+    const response=await fetch(fnUrl,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':`Bearer ${accessToken}`,
+        'apikey':cfg.anonKey || ''
+      },
+      body:JSON.stringify({user_id:userId})
+    });
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok || result.error) throw new Error(result.error || `فشل الحذف. HTTP ${response.status}`);
+    setUsersStatus('تم حذف المستخدم نهائيًا من Auth وجدول المستخدمين.','ok');
+    await loadUsersManagement();
+  }catch(err){
+    setUsersStatus('تعذر الحذف النهائي: '+(err.message||err),'err');
+  }
+}
 async function exportUsersPanelPng(){
   const source=$('#usersManagementCapture');
   const Html2Canvas=window.html2canvas;
@@ -2657,9 +2699,11 @@ function initUsersManagement(){
     const view=e.target.closest('.view-user-btn');
     const edit=e.target.closest('.edit-user-btn');
     const toggle=e.target.closest('.toggle-user-btn');
+    const del=e.target.closest('.delete-user-btn');
     if(view){ viewManagedUser(view.dataset.userId); }
     if(edit){ fillUserFormForEdit(edit.dataset.userId); }
     if(toggle){ toggleManagedUser(toggle.dataset.userId, toggle.dataset.active==='1'); }
+    if(del){ deleteManagedUserForever(del.dataset.userId); }
   });
 }
 

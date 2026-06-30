@@ -1290,3 +1290,16 @@ body.modal-open{overflow:hidden;}
 @media(max-width:1300px){.users-kpi-grid{grid-template-columns:repeat(4,1fr)}.users-toolbar{grid-template-columns:1fr 1fr;}.users-search-box{grid-column:1/-1}.users-toolbar .primary{grid-column:auto}}
 @media(max-width:720px){.users-enterprise-panel{padding:16px!important}.users-hero{flex-direction:column}.users-kpi-grid{grid-template-columns:repeat(2,1fr)}.users-toolbar{grid-template-columns:1fr}.users-form-grid{grid-template-columns:1fr}.users-hero h2{font-size:1.55rem}.enterprise-users-table .table-wrap{height:430px}}
 @media(max-width:480px){.users-kpi-grid{grid-template-columns:1fr}}
+
+/* Hard delete user action */
+.users-row-actions .hard-delete-icon{
+  border-color: rgba(239,68,68,.65) !important;
+  background: linear-gradient(135deg, rgba(127,29,29,.72), rgba(239,68,68,.28)) !important;
+  color: #fecaca !important;
+  box-shadow: 0 0 0 1px rgba(239,68,68,.18), 0 8px 18px rgba(127,29,29,.28);
+}
+.users-row-actions .hard-delete-icon:hover{
+  transform: translateY(-1px) scale(1.03);
+  background: linear-gradient(135deg, rgba(185,28,28,.9), rgba(239,68,68,.42)) !important;
+  box-shadow: 0 0 0 1px rgba(248,113,113,.35), 0 10px 24px rgba(239,68,68,.35);
+}
