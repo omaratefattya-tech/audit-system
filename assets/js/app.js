@@ -2151,7 +2151,7 @@ let CURRENT_APP_PROFILE=null;
 async function fetchCurrentAppProfile(user){
   const fallback={
     full_name:user?.email || 'مستخدم',
-    role:'authenticated',
+    role:isSystemOwnerEmail(user?.email) ? 'super_admin' : 'authenticated',
     job_title:'',
     phone:'',
     avatar_url:'',
@@ -2278,7 +2278,7 @@ async function saveCurrentProfile(){
       job_title: ($('#profileJobTitle')?.value || '').trim(),
       phone: ($('#profilePhone')?.value || '').trim(),
       avatar_url: avatarUrl,
-      role: CURRENT_APP_PROFILE?.role && CURRENT_APP_PROFILE.role !== 'authenticated' ? CURRENT_APP_PROFILE.role : 'viewer',
+      role: isSystemOwnerEmail(CURRENT_AUTH_USER.email) ? 'super_admin' : (CURRENT_APP_PROFILE?.role && CURRENT_APP_PROFILE.role !== 'authenticated' ? CURRENT_APP_PROFILE.role : 'viewer'),
       is_active: true
     };
     if(!payload.full_name) throw new Error('الإسم مطلوب.');
@@ -2323,6 +2323,8 @@ function initProfileSettings(){
 // === Users Management ===
 const USER_ROLE_LABELS={super_admin:'منشئ النظام',admin:'Admin',auditor:'Auditor',viewer:'Viewer',authenticated:'Authenticated'};
 const USER_ROLE_CREATE_VALUES=new Set(['admin','auditor','viewer']);
+const SYSTEM_OWNER_EMAILS=new Set(['ahmed.alaa842001@gmail.com']);
+function isSystemOwnerEmail(email){ return SYSTEM_OWNER_EMAILS.has(String(email||'').trim().toLowerCase()); }
 let USERS_MANAGEMENT_ROWS=[];
 let USERS_MANAGEMENT_VIEW=[];
 function setUsersStatus(message,type=''){
@@ -2372,7 +2374,7 @@ async function ensureCurrentUserProfileFallback(rows){
       job_title:profile.job_title || profile.position || '',
       phone:profile.phone || '',
       avatar_url:profile.avatar_url || '',
-      role:profile.role || 'authenticated',
+      role:profile.role || (isSystemOwnerEmail(user.email) ? 'super_admin' : 'authenticated'),
       is_active:true,
       created_at:user.created_at || new Date().toISOString(),
       updated_at:new Date().toISOString(),
@@ -2388,7 +2390,7 @@ async function ensureCurrentUserProfileFallback(rows){
         full_name:fallback.full_name || user.email,
         job_title:fallback.job_title,
         phone:fallback.phone,
-        role:fallback.role==='authenticated'?'viewer':fallback.role,
+        role:isSystemOwnerEmail(user.email) ? 'super_admin' : (fallback.role==='authenticated'?'viewer':fallback.role),
         is_active:true,
         updated_at:new Date().toISOString()
       },{onConflict:'id'});
@@ -2487,7 +2489,12 @@ async function loadUsersManagement(){
   if(!WarehouseDB?.ready){ setUsersStatus('Supabase غير متصل.','err'); return; }
   setUsersStatus('جاري تحميل المستخدمين...');
   const {data,error}=await selectAppUsersForManagement();
-  if(error){ setUsersStatus('تعذر تحميل المستخدمين: '+(error.message||error),'err'); return; }
+  if(error){
+    const merged=await ensureCurrentUserProfileFallback([]);
+    renderUsersManagementTable(merged);
+    setUsersStatus('تعذر تحميل جدول المستخدمين من Supabase: '+(error.message||error)+' — تم عرض المستخدم الحالي مؤقتاً. شغل ملف SQL المحدث لإصلاح سياسات RLS.','err');
+    return;
+  }
   const merged=await ensureCurrentUserProfileFallback(data||[]);
   renderUsersManagementTable(merged);
   setUsersStatus(`تم تحميل ${merged.length} مستخدم.`,'ok');
