@@ -51,6 +51,7 @@
         <button class="nav-item" data-section="sales">مراجعة البيع <span class="nav-icon" data-icon="sales"></span></button>
         <button class="nav-item" data-section="inbound">مراجعة الوارد <span class="nav-icon" data-icon="inbound"></span></button>
         <button class="nav-item" data-section="reports">التقارير <span class="nav-icon" data-icon="reports"></span></button>
+        <button class="nav-item" data-section="users">إدارة المستخدمين <span class="nav-icon" data-icon="users"></span></button>
         <button class="nav-item" data-section="settings">الإعدادات <span class="nav-icon" data-icon="settings"></span></button>
       </nav>
     </aside>
@@ -449,6 +450,82 @@
           </div>
         </article>
       </section>
+      <section id="users" class="section">
+        <article class="panel glass users-management-panel">
+          <div class="section-head section-head-actions">
+            <div>
+              <h2>إدارة المستخدمين</h2>
+              <p class="hint">إضافة وتعديل وتعطيل المستخدمين. جميع المستخدمين لديهم رؤية كاملة للمصانع الثلاثة، ويتم التحكم فقط في الدور وحالة التفعيل.</p>
+            </div>
+            <button class="primary" id="refreshUsersBtn" type="button">تحديث المستخدمين ↻</button>
+          </div>
+          <div class="user-management-grid">
+            <form id="userManagementForm" class="user-form-card">
+              <input type="hidden" id="managedUserId" />
+              <h3 id="userFormTitle">إضافة مستخدم جديد</h3>
+              <label>البريد الإلكتروني
+                <input type="email" id="managedUserEmail" placeholder="user@company.com" autocomplete="off" required />
+              </label>
+              <label>كلمة المرور للمستخدم الجديد
+                <input type="password" id="managedUserPassword" placeholder="اتركها فارغة عند التعديل" autocomplete="new-password" />
+              </label>
+              <label>الإسم
+                <input type="text" id="managedUserFullName" placeholder="اسم المستخدم" required />
+              </label>
+              <label>الوظيفة
+                <input type="text" id="managedUserJobTitle" placeholder="مثال: مراجع مخازن" />
+              </label>
+              <label>رقم التليفون
+                <input type="tel" id="managedUserPhone" placeholder="01000000000" />
+              </label>
+              <label>الدور
+                <select id="managedUserRole">
+                  <option value="super_admin">Super Admin</option>
+                  <option value="admin">Admin</option>
+                  <option value="auditor">Auditor</option>
+                  <option value="viewer">Viewer</option>
+                </select>
+              </label>
+              <label class="inline-check">
+                <input type="checkbox" id="managedUserActive" checked />
+                <span>مستخدم مفعل</span>
+              </label>
+              <div class="form-actions">
+                <button class="primary" id="saveManagedUserBtn" type="submit">حفظ المستخدم</button>
+                <button class="secondary" id="resetManagedUserFormBtn" type="button">تفريغ النموذج</button>
+              </div>
+              <div class="upload-status" id="userManagementStatus"></div>
+              <p class="hint small-hint">ملاحظة: إنشاء حساب دخول جديد يتم من خلال Supabase Auth باستخدام البريد وكلمة المرور، ثم يتم حفظ بياناته في جدول المستخدمين.</p>
+            </form>
+            <div class="users-table-card">
+              <div class="mini-kpis users-mini-kpis">
+                <div><span>إجمالي المستخدمين</span><strong id="usersTotalCount">0</strong></div>
+                <div><span>المفعلين</span><strong id="usersActiveCount">0</strong></div>
+                <div><span>المعطلين</span><strong id="usersInactiveCount">0</strong></div>
+              </div>
+              <div class="table-wrap user-table-wrap">
+                <table id="usersManagementTable">
+                  <thead>
+                    <tr>
+                      <th>الإسم</th>
+                      <th>البريد</th>
+                      <th>الوظيفة</th>
+                      <th>الدور</th>
+                      <th>الحالة</th>
+                      <th>آخر تحديث</th>
+                      <th>إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td colspan="7" class="empty-row">جاري تحميل المستخدمين...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
       <section id="settings" class="section">
         <article class="panel glass">
           <h2>الإعدادات</h2>
