@@ -696,6 +696,7 @@ function modernIcon(name){
     movements:`<svg ${attrs}><path d="M4 7h14"></path><path d="M14 3l4 4-4 4"></path><path d="M20 17H6"></path><path d="M10 13l-4 4 4 4"></path></svg>`,
     inbound:`<svg ${attrs}><path d="M12 3v10"></path><path d="M8 9l4 4 4-4"></path><path d="M5 17h14"></path><path d="M7 21h10"></path></svg>`,
     reports:`<svg ${attrs}><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg>`,
+    users:`<svg ${attrs}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`,
     settings:`<svg ${attrs}><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path><path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.04.04a2.1 2.1 0 1 1-2.97 2.97l-.04-.04a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.65V21.4a2.1 2.1 0 1 1-4.2 0v-.06a1.8 1.8 0 0 0-1.1-1.65 1.8 1.8 0 0 0-1.98.36l-.04.04a2.1 2.1 0 1 1-2.97-2.97l.04-.04A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.65-1.1H2.9a2.1 2.1 0 1 1 0-4.2h.06A1.8 1.8 0 0 0 4.6 8a1.8 1.8 0 0 0-.36-1.98l-.04-.04a2.1 2.1 0 1 1 2.97-2.97l.04.04A1.8 1.8 0 0 0 9.2 3.4 1.8 1.8 0 0 0 10.3 1.75V1.7a2.1 2.1 0 1 1 4.2 0v.06a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 1.98-.36l.04-.04a2.1 2.1 0 1 1 2.97 2.97l-.04.04A1.8 1.8 0 0 0 19.4 8c.13.38.38.7.71.92.28.18.61.28.94.28h.06a2.1 2.1 0 1 1 0 4.2h-.06A1.8 1.8 0 0 0 19.4 15Z"></path></svg>`
   };
   return icons[name] || icons.reports;
@@ -990,6 +991,7 @@ function switchSection(section){
   if(target) target.classList.add('active-section');
   updateFiltersVisibility(section);
   if(section==='reports') setTimeout(()=>loadExecutiveReport(),50);
+  if(section==='users') setTimeout(()=>loadUsersManagement(),50);
 }
 function nav(){
   $$('.nav-item').forEach(b=>b.onclick=()=>switchSection(b.dataset.section));
@@ -2317,6 +2319,343 @@ function initProfileSettings(){
   }
 }
 
+
+// === Users Management ===
+const USER_ROLE_LABELS={super_admin:'منشئ النظام',admin:'Admin',auditor:'Auditor',viewer:'Viewer',authenticated:'Authenticated'};
+const USER_ROLE_CREATE_VALUES=new Set(['admin','auditor','viewer']);
+let USERS_MANAGEMENT_ROWS=[];
+let USERS_MANAGEMENT_VIEW=[];
+function setUsersStatus(message,type=''){
+  const el=$('#userManagementStatus');
+  if(!el) return;
+  el.className='upload-status users-status-bar '+(type||'');
+  el.textContent=message||'';
+}
+function roleLabel(role){ return USER_ROLE_LABELS[role] || role || 'Viewer'; }
+function userInitial(name,email){ return String((name||email||'م').trim()).charAt(0).toUpperCase() || 'م'; }
+function userDateText(v){
+  if(!v) return '--';
+  try{ return new Date(v).toLocaleString('ar-EG',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(_){ return String(v).slice(0,19).replace('T',' '); }
+}
+function normalizeManagedUser(row){
+  return {
+    id: row?.id || '',
+    email: row?.email || row?.auth_email || '',
+    full_name: row?.full_name || row?.name || row?.email || '',
+    job_title: row?.job_title || '',
+    phone: row?.phone || '',
+    role: row?.role || 'viewer',
+    is_active: row?.is_active !== false,
+    avatar_url: row?.avatar_url || '',
+    created_at: row?.created_at || '',
+    updated_at: row?.updated_at || row?.created_at || '',
+    is_current: !!row?.is_current,
+    is_fallback: !!row?.is_fallback
+  };
+}
+async function ensureCurrentUserProfileFallback(rows){
+  let list=(rows||[]).map(normalizeManagedUser);
+  try{
+    const {data:userData}=await WarehouseDB.getUser();
+    const user=userData?.user;
+    if(!user?.id) return list;
+    const exists=list.some(u=>String(u.id)===String(user.id));
+    if(exists){
+      list=list.map(u=>String(u.id)===String(user.id)?{...u,is_current:true}:u);
+      return list;
+    }
+    const profile=CURRENT_APP_PROFILE || {};
+    const fallback=normalizeManagedUser({
+      id:user.id,
+      email:user.email,
+      full_name:profile.full_name || user.user_metadata?.full_name || user.email,
+      job_title:profile.job_title || profile.position || '',
+      phone:profile.phone || '',
+      avatar_url:profile.avatar_url || '',
+      role:profile.role || 'authenticated',
+      is_active:true,
+      created_at:user.created_at || new Date().toISOString(),
+      updated_at:new Date().toISOString(),
+      is_current:true,
+      is_fallback:true
+    });
+    list.unshift(fallback);
+    // Best effort sync so the current authenticated user appears later from app_users too.
+    try{
+      await WarehouseDB.client.from('app_users').upsert({
+        id:user.id,
+        email:user.email,
+        full_name:fallback.full_name || user.email,
+        job_title:fallback.job_title,
+        phone:fallback.phone,
+        role:fallback.role==='authenticated'?'viewer':fallback.role,
+        is_active:true,
+        updated_at:new Date().toISOString()
+      },{onConflict:'id'});
+    }catch(syncErr){ console.warn('Current profile sync skipped',syncErr); }
+  }catch(err){ console.warn('Unable to merge current user',err); }
+  return list;
+}
+function usersKpiUpdate(rows){
+  const total=rows.length;
+  const active=rows.filter(u=>u.is_active).length;
+  const count=role=>rows.filter(u=>u.role===role).length;
+  const set=(id,val)=>{ const el=$(id); if(el) el.textContent=val; };
+  set('#usersTotalCount',total);
+  set('#usersActiveCount',active);
+  set('#usersInactiveCount',total-active);
+  set('#usersSuperCount',count('super_admin'));
+  set('#usersAdminCount',count('admin'));
+  set('#usersAuditorCount',count('auditor'));
+  set('#usersViewerCount',count('viewer')+count('authenticated'));
+}
+function currentUsersFilters(){
+  return {
+    q:($('#usersQuickSearch')?.value||'').trim().toLowerCase(),
+    role:$('#usersRoleFilter')?.value||'all',
+    status:$('#usersStatusFilter')?.value||'all'
+  };
+}
+function applyUsersFilters(){
+  const f=currentUsersFilters();
+  USERS_MANAGEMENT_VIEW=USERS_MANAGEMENT_ROWS.filter(u=>{
+    const hay=[u.full_name,u.email,u.job_title,u.phone,roleLabel(u.role)].join(' ').toLowerCase();
+    const roleOk=f.role==='all' || u.role===f.role || (f.role==='viewer' && u.role==='authenticated');
+    const statusOk=f.status==='all' || (f.status==='active'?u.is_active:!u.is_active);
+    return (!f.q || hay.includes(f.q)) && roleOk && statusOk;
+  });
+  renderUsersManagementTableBody(USERS_MANAGEMENT_VIEW);
+}
+function renderUsersManagementTableBody(rows){
+  const tbody=$('#usersManagementTable tbody');
+  if(!tbody) return;
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="10" class="empty-row">لا توجد بيانات مستخدمين مطابقة.</td></tr>';
+    return;
+  }
+  tbody.innerHTML=rows.map((u,i)=>{
+    const isSuper=u.role==='super_admin';
+    const roleClass=(u.role||'viewer').replace(/[^a-z_]/g,'');
+    const canToggle=!isSuper && !u.is_current;
+    const canEdit=!isSuper || u.is_current;
+    const avatar=u.avatar_url ? `<img src="${escapeHtml(u.avatar_url)}" alt="" />` : `<span>${escapeHtml(userInitial(u.full_name,u.email))}</span>`;
+    return `<tr data-user-id="${escapeHtml(u.id)}" class="${u.is_current?'current-user-row':''} ${u.is_fallback?'fallback-user-row':''}">
+      <td class="users-row-index">${i+1}</td>
+      <td><div class="user-avatar-cell ${roleClass}">${avatar}</div></td>
+      <td><strong>${escapeHtml(u.full_name||'--')}</strong>${u.is_current?'<small class="you-badge">أنت</small>':''}${u.is_fallback?'<small class="sync-badge">Auth</small>':''}</td>
+      <td>${escapeHtml(u.job_title||'--')}</td>
+      <td class="ltr-cell">${escapeHtml(u.email||'غير مخزن')}</td>
+      <td class="ltr-cell">${escapeHtml(u.phone||'--')}</td>
+      <td><span class="role-badge role-${roleClass}">${escapeHtml(roleLabel(u.role))}</span></td>
+      <td><span class="status-pill ${u.is_active?'ok':'danger'}">${u.is_active?'نشط':'معطل'}</span></td>
+      <td>${escapeHtml(userDateText(u.updated_at))}</td>
+      <td>
+        <div class="row-actions users-row-actions">
+          <button type="button" class="icon-action view-user-btn" data-user-id="${escapeHtml(u.id)}" title="عرض">👁</button>
+          ${canEdit?`<button type="button" class="icon-action edit-user-btn" data-user-id="${escapeHtml(u.id)}" title="تعديل">✎</button>`:`<button type="button" class="icon-action disabled" title="حساب منشئ النظام لا يتم تعديله من هنا">🔒</button>`}
+          ${canToggle?`<button type="button" class="icon-action ${u.is_active?'danger-icon':'ok-icon'} toggle-user-btn" data-user-id="${escapeHtml(u.id)}" data-active="${u.is_active?'1':'0'}" title="${u.is_active?'تعطيل':'تفعيل'}">${u.is_active?'🚫':'✅'}</button>`:`<button type="button" class="icon-action disabled" title="لا يمكن تعطيل هذا الحساب">🔒</button>`}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function renderUsersManagementTable(rows){
+  USERS_MANAGEMENT_ROWS=(rows||[]).map(normalizeManagedUser);
+  usersKpiUpdate(USERS_MANAGEMENT_ROWS);
+  applyUsersFilters();
+}
+async function selectAppUsersForManagement(){
+  if(!WarehouseDB?.ready) return {data:[],error:new Error('Supabase غير متصل')};
+  const variants=[
+    {select:'id, full_name, role, is_active, job_title, phone, avatar_url, created_at, updated_at, email', order:'created_at'},
+    {select:'id, full_name, role, is_active, job_title, phone, avatar_url, created_at, updated_at', order:'created_at'},
+    {select:'id, full_name, role, is_active, job_title, phone, avatar_url, email', order:null},
+    {select:'id, full_name, role, is_active, job_title, phone, avatar_url', order:null}
+  ];
+  let last=null;
+  for(const v of variants){
+    let q=WarehouseDB.client.from('app_users').select(v.select);
+    if(v.order) q=q.order(v.order,{ascending:false});
+    const res=await q;
+    if(!res.error) return res;
+    last=res;
+  }
+  return last || {data:[],error:null};
+}
+async function loadUsersManagement(){
+  if(!$('#usersManagementTable')) return;
+  if(!WarehouseDB?.ready){ setUsersStatus('Supabase غير متصل.','err'); return; }
+  setUsersStatus('جاري تحميل المستخدمين...');
+  const {data,error}=await selectAppUsersForManagement();
+  if(error){ setUsersStatus('تعذر تحميل المستخدمين: '+(error.message||error),'err'); return; }
+  const merged=await ensureCurrentUserProfileFallback(data||[]);
+  renderUsersManagementTable(merged);
+  setUsersStatus(`تم تحميل ${merged.length} مستخدم.`,'ok');
+}
+function openUserManagementModal(mode='create'){
+  const modal=$('#userManagementModal');
+  if(!modal) return;
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+  document.body.classList.add('modal-open');
+  if(mode==='create') resetUserManagementForm(false);
+  setTimeout(()=>$('#managedUserFullName')?.focus(),50);
+}
+function closeUserManagementModal(){
+  const modal=$('#userManagementModal');
+  if(!modal) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden','true');
+  document.body.classList.remove('modal-open');
+}
+function resetUserManagementForm(closeStatus=true){
+  if($('#managedUserId')) $('#managedUserId').value='';
+  if($('#managedUserEmail')) { $('#managedUserEmail').value=''; $('#managedUserEmail').disabled=false; }
+  if($('#managedUserPassword')) { $('#managedUserPassword').value=''; $('#managedUserPassword').disabled=false; $('#managedUserPassword').placeholder='مطلوبة عند إضافة مستخدم جديد'; }
+  if($('#managedUserFullName')) $('#managedUserFullName').value='';
+  if($('#managedUserJobTitle')) $('#managedUserJobTitle').value='';
+  if($('#managedUserPhone')) $('#managedUserPhone').value='';
+  if($('#managedUserRole')) { $('#managedUserRole').value='viewer'; $('#managedUserRole').disabled=false; }
+  if($('#managedUserActive')) { $('#managedUserActive').checked=true; $('#managedUserActive').disabled=false; }
+  if($('#userFormTitle')) $('#userFormTitle').textContent='إضافة مستخدم جديد';
+  if($('#saveManagedUserBtn')) $('#saveManagedUserBtn').textContent='إنشاء المستخدم';
+  if(closeStatus) setUsersStatus('');
+}
+function fillUserFormForEdit(userId){
+  const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
+  if(!u) return;
+  if(u.role==='super_admin' && !u.is_current){ setUsersStatus('حساب منشئ النظام لا يتم تعديله من شاشة المستخدمين.','err'); return; }
+  if($('#managedUserId')) $('#managedUserId').value=u.id;
+  if($('#managedUserEmail')) { $('#managedUserEmail').value=u.email||''; $('#managedUserEmail').disabled=true; }
+  if($('#managedUserPassword')) { $('#managedUserPassword').value=''; $('#managedUserPassword').disabled=true; $('#managedUserPassword').placeholder='إعادة تعيين كلمة المرور تتم من Supabase Auth'; }
+  if($('#managedUserFullName')) $('#managedUserFullName').value=u.full_name||'';
+  if($('#managedUserJobTitle')) $('#managedUserJobTitle').value=u.job_title||'';
+  if($('#managedUserPhone')) $('#managedUserPhone').value=u.phone||'';
+  if($('#managedUserRole')) { $('#managedUserRole').value=USER_ROLE_CREATE_VALUES.has(u.role)?u.role:'viewer'; $('#managedUserRole').disabled=u.role==='super_admin'; }
+  if($('#managedUserActive')) { $('#managedUserActive').checked=u.is_active; $('#managedUserActive').disabled=u.role==='super_admin'; }
+  if($('#userFormTitle')) $('#userFormTitle').textContent='تعديل مستخدم';
+  if($('#saveManagedUserBtn')) $('#saveManagedUserBtn').textContent='حفظ التعديل';
+  openUserManagementModal('edit');
+}
+function viewManagedUser(userId){
+  const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
+  if(!u) return;
+  alert(`بيانات المستخدم\n\nالاسم: ${u.full_name||'--'}\nالبريد: ${u.email||'--'}\nالدور: ${roleLabel(u.role)}\nالحالة: ${u.is_active?'نشط':'معطل'}\nالوظيفة: ${u.job_title||'--'}\nالهاتف: ${u.phone||'--'}`);
+}
+async function createAuthUserWithIsolatedClient(email,password){
+  const cfg=window.WAREHOUSE_SUPABASE_CONFIG || {};
+  if(!window.supabase || !cfg.url || !cfg.anonKey) throw new Error('Supabase غير جاهز لإنشاء الحساب.');
+  const temp=window.supabase.createClient(cfg.url,cfg.anonKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+  const {data,error}=await temp.auth.signUp({email,password});
+  if(error) throw error;
+  return data?.user;
+}
+async function upsertManagedUserProfile(payload){
+  const attempts=[];
+  attempts.push(payload);
+  const {email,...withoutEmail}=payload;
+  attempts.push(withoutEmail);
+  const {updated_at,...withoutUpdated}=withoutEmail;
+  attempts.push(withoutUpdated);
+  let lastError=null;
+  for(const body of attempts){
+    const res=await WarehouseDB.client.from('app_users').upsert(body,{onConflict:'id'}).select('*').single();
+    if(!res.error) return res.data;
+    lastError=res.error;
+  }
+  throw lastError || new Error('تعذر حفظ بيانات المستخدم.');
+}
+async function saveManagedUser(e){
+  e?.preventDefault?.();
+  if(!WarehouseDB?.ready){ setUsersStatus('Supabase غير متصل.','err'); return; }
+  const existingId=$('#managedUserId')?.value || '';
+  const email=($('#managedUserEmail')?.value||'').trim().toLowerCase();
+  const password=$('#managedUserPassword')?.value || '';
+  const fullName=($('#managedUserFullName')?.value||'').trim();
+  const role=$('#managedUserRole')?.value || 'viewer';
+  const jobTitle=($('#managedUserJobTitle')?.value||'').trim();
+  const phone=($('#managedUserPhone')?.value||'').trim();
+  const active=$('#managedUserActive')?.checked !== false;
+  if(!fullName){ setUsersStatus('اسم المستخدم مطلوب.','err'); return; }
+  if(!USER_ROLE_CREATE_VALUES.has(role)){ setUsersStatus('لا يمكن اختيار Super Admin من هذه الشاشة.','err'); return; }
+  try{
+    setUsersStatus(existingId?'جاري حفظ التعديل...':'جاري إنشاء المستخدم...');
+    let userId=existingId;
+    if(!existingId){
+      if(!email){ setUsersStatus('البريد الإلكتروني مطلوب عند إضافة مستخدم جديد.','err'); return; }
+      if(!password || password.length<6){ setUsersStatus('كلمة المرور مطلوبة ولا تقل عن 6 أحرف عند إضافة مستخدم جديد.','err'); return; }
+      const authUser=await createAuthUserWithIsolatedClient(email,password);
+      userId=authUser?.id;
+      if(!userId) throw new Error('تم إرسال دعوة/تأكيد للمستخدم ولكن لم يتم إرجاع معرف الحساب. راجع إعدادات Supabase Auth.');
+    }
+    await upsertManagedUserProfile({
+      id:userId,
+      email,
+      full_name:fullName,
+      job_title:jobTitle,
+      phone,
+      role,
+      is_active:active,
+      updated_at:new Date().toISOString()
+    });
+    setUsersStatus(existingId?'تم حفظ تعديل المستخدم.':'تم إنشاء المستخدم وحفظ بياناته.','ok');
+    closeUserManagementModal();
+    resetUserManagementForm(false);
+    await loadUsersManagement();
+  }catch(err){
+    setUsersStatus('خطأ: '+(err.message||err),'err');
+  }
+}
+async function toggleManagedUser(userId,currentActive){
+  const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
+  if(!userId || !WarehouseDB?.ready) return;
+  if(u?.role==='super_admin' || u?.is_current){ setUsersStatus('لا يمكن تعطيل هذا الحساب من شاشة إدارة المستخدمين.','err'); return; }
+  try{
+    setUsersStatus('جاري تحديث حالة المستخدم...');
+    let res=await WarehouseDB.client.from('app_users').update({is_active:!currentActive, updated_at:new Date().toISOString()}).eq('id',userId);
+    if(res.error && String(res.error.message||'').includes('updated_at')){
+      res=await WarehouseDB.client.from('app_users').update({is_active:!currentActive}).eq('id',userId);
+    }
+    if(res.error) throw res.error;
+    setUsersStatus(!currentActive?'تم تفعيل المستخدم.':'تم تعطيل المستخدم.','ok');
+    await loadUsersManagement();
+  }catch(err){ setUsersStatus('تعذر تحديث الحالة: '+(err.message||err),'err'); }
+}
+async function exportUsersPanelPng(){
+  const source=$('#usersManagementCapture');
+  const Html2Canvas=window.html2canvas;
+  if(!source || !Html2Canvas){ alert('مكتبة تصدير الصور غير محملة.'); return; }
+  try{
+    if(document.fonts?.ready) await document.fonts.ready;
+    const canvas=await Html2Canvas(source,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001f18',logging:false});
+    canvas.toBlob(async blob=>{ if(blob) await saveBlobWithPicker(blob,`${safeFileName('إدارة المستخدمين')}.png`,'image/png'); },'image/png',1);
+  }catch(err){ alert('تعذر تصدير صورة إدارة المستخدمين.'); }
+}
+function initUsersManagement(){
+  const form=$('#userManagementForm');
+  if(form) form.addEventListener('submit',saveManagedUser);
+  $('#resetManagedUserFormBtn')?.addEventListener('click',()=>resetUserManagementForm());
+  $('#refreshUsersBtn')?.addEventListener('click',loadUsersManagement);
+  document.querySelectorAll('.users-open-create').forEach(btn=>btn.addEventListener('click',()=>openUserManagementModal('create')));
+  $('#closeUserModalBtn')?.addEventListener('click',closeUserManagementModal);
+  $('#cancelUserModalBtn')?.addEventListener('click',closeUserManagementModal);
+  $('#userManagementModal')?.addEventListener('click',e=>{ if(e.target.id==='userManagementModal') closeUserManagementModal(); });
+  $('#usersQuickSearch')?.addEventListener('input',applyUsersFilters);
+  $('#usersRoleFilter')?.addEventListener('change',applyUsersFilters);
+  $('#usersStatusFilter')?.addEventListener('change',applyUsersFilters);
+  $('#usersExportExcelBtn')?.addEventListener('click',()=>exportTableToExcel('usersManagementTable','إدارة المستخدمين'));
+  $('#usersExportPdfBtn')?.addEventListener('click',()=>exportTableToPdf('usersManagementTable','إدارة المستخدمين'));
+  $('#usersExportPngBtn')?.addEventListener('click',exportUsersPanelPng);
+  $('#usersManagementTable')?.addEventListener('click',e=>{
+    const view=e.target.closest('.view-user-btn');
+    const edit=e.target.closest('.edit-user-btn');
+    const toggle=e.target.closest('.toggle-user-btn');
+    if(view){ viewManagedUser(view.dataset.userId); }
+    if(edit){ fillUserFormForEdit(edit.dataset.userId); }
+    if(toggle){ toggleManagedUser(toggle.dataset.userId, toggle.dataset.active==='1'); }
+  });
+}
+
 function initMainLoginGate(){
   const loginBtn=$('#mainLoginBtn');
   const emailInput=$('#mainLoginEmail');
@@ -2350,7 +2689,7 @@ function initMainLoginGate(){
   }
   checkMainSession();
 }
-document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();});
+document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initUsersManagement();});
 
 // Upload reports tabs controller
 function initUploadReportTabs(){

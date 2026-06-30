@@ -451,26 +451,97 @@
         </article>
       </section>
       <section id="users" class="section">
-        <article class="panel glass users-management-panel">
-          <div class="section-head section-head-actions">
+        <article class="panel glass users-management-panel users-enterprise-panel" id="usersManagementCapture">
+          <div class="users-hero">
             <div>
-              <h2>إدارة المستخدمين</h2>
-              <p class="hint">إضافة وتعديل وتعطيل المستخدمين. جميع المستخدمين لديهم رؤية كاملة للمصانع الثلاثة، ويتم التحكم فقط في الدور وحالة التفعيل.</p>
+              <div class="section-eyebrow">إدارة النظام</div>
+              <h2>إدارة المستخدمين <span class="hero-icon">👥</span></h2>
+              <p class="hint">إدارة مستخدمي النظام وتحديد أدوارهم وحالة التفعيل. جميع المستخدمين لديهم رؤية كاملة للمصانع الثلاثة، ويتم التحكم فقط في الدور وحالة الحساب.</p>
             </div>
-            <button class="primary" id="refreshUsersBtn" type="button">تحديث المستخدمين ↻</button>
+            <div class="users-hero-actions">
+              <button class="primary users-open-create" id="openCreateUserModalBtn" type="button">＋ مستخدم جديد</button>
+              <button class="secondary" id="refreshUsersBtn" type="button">تحديث ↻</button>
+            </div>
           </div>
-          <div class="user-management-grid">
-            <form id="userManagementForm" class="user-form-card">
-              <input type="hidden" id="managedUserId" />
+
+          <div class="users-kpi-grid">
+            <article class="users-kpi-card"><span class="users-kpi-icon blue">👥</span><b id="usersTotalCount">0</b><small>إجمالي المستخدمين</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon green">✅</span><b id="usersActiveCount">0</b><small>المستخدمون النشطون</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon red">⛔</span><b id="usersInactiveCount">0</b><small>المستخدمون المعطلون</small></article>
+            <article class="users-kpi-card super"><span class="users-kpi-icon gold">👑</span><b id="usersSuperCount">0</b><small>منشئ النظام</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon purple">🛡️</span><b id="usersAdminCount">0</b><small>Admin</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon cyan">📝</span><b id="usersAuditorCount">0</b><small>Auditor</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon slate">👁️</span><b id="usersViewerCount">0</b><small>Viewer</small></article>
+          </div>
+
+          <div class="users-toolbar glass-soft">
+            <button class="primary users-open-create" type="button">＋ مستخدم جديد</button>
+            <div class="users-search-box">
+              <span>🔍</span>
+              <input id="usersQuickSearch" type="search" placeholder="بحث بالاسم أو البريد أو الوظيفة أو الهاتف..." />
+            </div>
+            <select id="usersRoleFilter" title="فلتر الدور">
+              <option value="all">كل الأدوار</option>
+              <option value="admin">Admin</option>
+              <option value="auditor">Auditor</option>
+              <option value="viewer">Viewer</option>
+              <option value="super_admin">منشئ النظام</option>
+            </select>
+            <select id="usersStatusFilter" title="فلتر الحالة">
+              <option value="all">كل الحالات</option>
+              <option value="active">النشط فقط</option>
+              <option value="inactive">المعطل فقط</option>
+            </select>
+            <button class="secondary" id="usersExportExcelBtn" type="button">Excel</button>
+            <button class="secondary" id="usersExportPdfBtn" type="button">PDF</button>
+            <button class="secondary" id="usersExportPngBtn" type="button">PNG</button>
+          </div>
+
+          <div class="upload-status users-status-bar" id="userManagementStatus"></div>
+
+          <div class="users-table-card enterprise-users-table">
+            <div class="table-wrap user-table-wrap">
+              <table id="usersManagementTable" class="enterprise-users-table-el">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>الصورة</th>
+                    <th>الاسم</th>
+                    <th>الوظيفة</th>
+                    <th>البريد</th>
+                    <th>الهاتف</th>
+                    <th>الدور</th>
+                    <th>الحالة</th>
+                    <th>آخر تحديث</th>
+                    <th>الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="10" class="empty-row">جاري تحميل المستخدمين...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <div id="userManagementModal" class="modal-backdrop users-modal-backdrop" aria-hidden="true">
+        <div class="modal-card users-modal-card" role="dialog" aria-modal="true" aria-labelledby="userFormTitle">
+          <div class="modal-head users-modal-head">
+            <div>
               <h3 id="userFormTitle">إضافة مستخدم جديد</h3>
+              <p class="hint small-hint">Super Admin لا يتم إنشاؤه من هذه الشاشة. الأدوار المتاحة: Admin / Auditor / Viewer فقط.</p>
+            </div>
+            <button type="button" class="modal-close" id="closeUserModalBtn">×</button>
+          </div>
+          <form id="userManagementForm" class="user-form-card users-modal-form">
+            <input type="hidden" id="managedUserId" />
+            <div class="users-form-grid">
+              <label>الاسم
+                <input type="text" id="managedUserFullName" placeholder="اسم المستخدم" required />
+              </label>
               <label>البريد الإلكتروني
                 <input type="email" id="managedUserEmail" placeholder="user@company.com" autocomplete="off" required />
-              </label>
-              <label>كلمة المرور للمستخدم الجديد
-                <input type="password" id="managedUserPassword" placeholder="اتركها فارغة عند التعديل" autocomplete="new-password" />
-              </label>
-              <label>الإسم
-                <input type="text" id="managedUserFullName" placeholder="اسم المستخدم" required />
               </label>
               <label>الوظيفة
                 <input type="text" id="managedUserJobTitle" placeholder="مثال: مراجع مخازن" />
@@ -478,53 +549,29 @@
               <label>رقم التليفون
                 <input type="tel" id="managedUserPhone" placeholder="01000000000" />
               </label>
+              <label>كلمة المرور المؤقتة
+                <input type="password" id="managedUserPassword" placeholder="مطلوبة عند إضافة مستخدم جديد" autocomplete="new-password" />
+              </label>
               <label>الدور
                 <select id="managedUserRole">
-                  <option value="super_admin">Super Admin</option>
                   <option value="admin">Admin</option>
                   <option value="auditor">Auditor</option>
-                  <option value="viewer">Viewer</option>
+                  <option value="viewer" selected>Viewer</option>
                 </select>
               </label>
-              <label class="inline-check">
-                <input type="checkbox" id="managedUserActive" checked />
-                <span>مستخدم مفعل</span>
-              </label>
-              <div class="form-actions">
-                <button class="primary" id="saveManagedUserBtn" type="submit">حفظ المستخدم</button>
-                <button class="secondary" id="resetManagedUserFormBtn" type="button">تفريغ النموذج</button>
-              </div>
-              <div class="upload-status" id="userManagementStatus"></div>
-              <p class="hint small-hint">ملاحظة: إنشاء حساب دخول جديد يتم من خلال Supabase Auth باستخدام البريد وكلمة المرور، ثم يتم حفظ بياناته في جدول المستخدمين.</p>
-            </form>
-            <div class="users-table-card">
-              <div class="mini-kpis users-mini-kpis">
-                <div><span>إجمالي المستخدمين</span><strong id="usersTotalCount">0</strong></div>
-                <div><span>المفعلين</span><strong id="usersActiveCount">0</strong></div>
-                <div><span>المعطلين</span><strong id="usersInactiveCount">0</strong></div>
-              </div>
-              <div class="table-wrap user-table-wrap">
-                <table id="usersManagementTable">
-                  <thead>
-                    <tr>
-                      <th>الإسم</th>
-                      <th>البريد</th>
-                      <th>الوظيفة</th>
-                      <th>الدور</th>
-                      <th>الحالة</th>
-                      <th>آخر تحديث</th>
-                      <th>إجراءات</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr><td colspan="7" class="empty-row">جاري تحميل المستخدمين...</td></tr>
-                  </tbody>
-                </table>
-              </div>
             </div>
-          </div>
-        </article>
-      </section>
+            <label class="inline-check users-active-check">
+              <input type="checkbox" id="managedUserActive" checked />
+              <span>مستخدم مفعل</span>
+            </label>
+            <div class="form-actions users-form-actions">
+              <button class="primary" id="saveManagedUserBtn" type="submit">حفظ المستخدم</button>
+              <button class="secondary" id="resetManagedUserFormBtn" type="button">تفريغ النموذج</button>
+              <button class="secondary" id="cancelUserModalBtn" type="button">إلغاء</button>
+            </div>
+          </form>
+        </div>
+      </div>
 
       <section id="settings" class="section">
         <article class="panel glass">
