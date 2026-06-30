@@ -91,7 +91,6 @@
           <label>إلى<input type="date" id="dashboardToDate"></label>
           <button class="primary" id="dashboardSearchBtn" type="button">بحث 🔍</button>
           <button class="secondary" id="dashboardResetBtn" type="button">إعادة تعيين ↻</button>
-          <button class="secondary dashboard-full-png-btn" id="dashboardExportPngBtn" type="button" title="تصدير الشاشة الرئيسية كاملة PNG">PNG 🖼️</button>
         </section>
         <div class="cards" id="kpiCards"></div>
         <div class="grid-3">
@@ -276,6 +275,7 @@
             <button class="report-tab" type="button" data-report-tab="items">تقرير الأصناف</button>
             <button class="report-tab" type="button" data-report-tab="warehouses">أداء المخازن</button>
             <button class="report-tab" type="button" data-report-tab="exceptions">الاستثناءات</button>
+            <button class="report-tab" type="button" data-report-tab="smart">🧠 التحليلات الذكية</button>
           </div>
           <section class="filters glass report-filters" id="executiveReportFilters">
             <label>المصنع<select id="reportPlantFilter"><option value="all">كل المصانع</option></select></label>
@@ -387,6 +387,48 @@
               <div class="rank-table-wrap exceptions-report-table-wrap"><table id="exceptionsReportTable"></table></div>
             </article>
             <table id="exceptionsReportExportTable" class="hidden-export-table"></table>
+
+          <div id="smartAnalyticsContent" class="smart-analytics-content report-panel-content" style="display:none">
+            <div class="executive-title-card smart-title-card">
+              <h3>🧠 التحليلات الذكية لمراجعة المخازن</h3>
+              <p id="smartAnalyticsMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
+            </div>
+            <div class="smart-summary-layout">
+              <article class="panel glass smart-summary-card">
+                <div class="smart-card-head">
+                  <h3>الملخص التنفيذي التلقائي</h3>
+                  <span class="smart-badge">Auto Insights</span>
+                </div>
+                <div id="smartExecutiveSummary" class="smart-summary-list"></div>
+              </article>
+              <article class="panel glass smart-score-card">
+                <div class="smart-card-head"><h3>درجة مراجعة المصانع</h3><span class="smart-badge">Audit Score</span></div>
+                <div id="smartPlantScores" class="smart-score-list"></div>
+              </article>
+            </div>
+            <div class="smart-grid-3">
+              <article class="panel glass smart-panel">
+                <h3>🚨 تنبيهات ذكية</h3>
+                <div id="smartAlerts" class="smart-alerts-list"></div>
+              </article>
+              <article class="panel glass smart-panel">
+                <h3>🏆 أعلى المؤشرات</h3>
+                <div id="smartTopInsights" class="smart-top-list"></div>
+              </article>
+              <article class="panel glass smart-panel">
+                <h3>💡 توصيات المراجعة</h3>
+                <div id="smartRecommendations" class="smart-recommendations-list"></div>
+              </article>
+            </div>
+            <article class="panel glass smart-trend-card">
+              <div class="smart-card-head">
+                <h3>تحليل الاتجاه خلال الفترة</h3>
+                <span class="hint" id="smartTrendHint">آخر 30 يوم حسب الفلاتر</span>
+              </div>
+              <div id="smartTrendAnalysis" class="smart-trend-list"></div>
+            </article>
+            <table id="smartAnalyticsExportTable" class="hidden-export-table"></table>
+          </div>
           </div>
         </article>
       </section>

@@ -2739,35 +2739,184 @@ async function loadExceptionsReport(options={}){
   renderExceptionsKPIs(summary); drawExceptionsChart(summary); renderExceptionsPriority(exceptions); renderExceptionsTables(exceptions);
 }
 
+
+let SMART_ANALYTICS_STATE={rows:[],filters:null,stats:null,items:[],warehouses:[],plantStats:{},exceptions:[],daily:{}};
+function smartSeverityClass(level){ return level==='high'?'danger':level==='medium'?'warning':level==='ok'?'ok':'info'; }
+function smartTrendInfo(values){
+  const clean=(values||[]).filter(v=>Number.isFinite(v));
+  if(clean.length<2) return {label:'غير كافٍ',cls:'neutral',delta:0,icon:'•'};
+  const first=clean[0]||0,last=clean[clean.length-1]||0;
+  const base=Math.max(1,Math.abs(first));
+  const delta=((last-first)/base)*100;
+  if(delta>8) return {label:'صاعد',cls:'up',delta,icon:'▲'};
+  if(delta<-8) return {label:'هابط',cls:'down',delta,icon:'▼'};
+  return {label:'مستقر',cls:'stable',delta,icon:'▬'};
+}
+function buildSmartAnalyticsModel(rows,filters){
+  const stats={salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0};
+  const daily={}, whMap={}, productMap={}, plantStats={};
+  APP_DATA.plants.forEach(p=>plantStats[p.code]={sales:0,production:0,outgoing:0,incoming:0,loading:0,activity:0});
+  (rows||[]).forEach(r=>{
+    const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0,loading:0};
+    const wh=String(r.warehouse_code||'').toUpperCase();
+    const meta=dashboardWhMeta(wh);
+    const plant=r.plant_code||meta.plant||'غير محدد';
+    if(!plantStats[plant]) plantStats[plant]={sales:0,production:0,outgoing:0,incoming:0,loading:0,activity:0};
+    const sales=toNumber(r.sales_quantity), prod=toNumber(r.production_quantity), out=toNumber(r.outgoing_transfer_quantity), inc=toNumber(r.incoming_transfer_quantity), load=toNumber(r.total_loading_quantity);
+    stats.salesQty+=sales; stats.productionQty+=prod; stats.outgoingTransferQty+=out; stats.incomingTransferQty+=inc; stats.totalLoadingQty+=load;
+    daily[d].sales+=Math.abs(sales); daily[d].production+=Math.abs(prod); daily[d].outgoing+=Math.abs(out); daily[d].incoming+=Math.abs(inc); daily[d].loading+=Math.abs(load);
+    plantStats[plant].sales+=sales; plantStats[plant].production+=prod; plantStats[plant].outgoing+=out; plantStats[plant].incoming+=inc; plantStats[plant].loading+=load; plantStats[plant].activity+=Math.abs(sales)+Math.abs(prod)+Math.abs(out)+Math.abs(inc)+Math.abs(load);
+    const pk=String(r.material_code||r.material_name||'غير محدد');
+    if(!productMap[pk]) productMap[pk]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0};
+    productMap[pk].sales+=sales; productMap[pk].production+=prod; productMap[pk].outgoing+=out; productMap[pk].incoming+=inc; productMap[pk].loading+=load;
+    if(!whMap[wh]) whMap[wh]={code:wh||'-',name:meta.name||r.warehouse_name||'-',plant:plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0};
+    whMap[wh].sales+=sales; whMap[wh].production+=prod; whMap[wh].outgoing+=out; whMap[wh].incoming+=inc; whMap[wh].loading+=load; whMap[wh].totalActivity+=Math.abs(sales)+Math.abs(prod)+Math.abs(out)+Math.abs(inc)+Math.abs(load);
+  });
+  const items=buildSalesAuditItemMap(rows||[]);
+  const exceptions=flattenExceptions(items);
+  const warehouses=Object.values(whMap).sort((a,b)=>b.totalActivity-a.totalActivity);
+  const products=Object.values(productMap).sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales));
+  return {rows,filters,stats,daily,warehouses,products,plantStats,items,exceptions};
+}
+function renderSmartExecutiveSummary(model){
+  const node=$('#smartExecutiveSummary'); if(!node) return;
+  const {stats,warehouses,products,plantStats,exceptions}=model;
+  const topPlant=Object.entries(plantStats||{}).sort((a,b)=>Math.abs(b[1].sales)-Math.abs(a[1].sales))[0]||['-',{}];
+  const topWh=warehouses[0]||{};
+  const topProduct=products[0]||{};
+  const gap=(stats.productionQty||0)-(stats.salesQty||0);
+  const plantShare=stats.salesQty?Math.abs((topPlant[1].sales||0)/stats.salesQty*100):0;
+  const lines=[
+    ['📈',`بلغ إجمالي البيع ${fmt(stats.salesQty)} طن خلال الفترة المحددة.`],
+    ['🏭',`أعلى مصنع بيعاً هو ${escapeHtml(topPlant[0])} بنسبة مساهمة تقريبية ${fmt(plantShare)}%.`],
+    ['📦',`أعلى مخزن نشاطاً هو ${escapeHtml(topWh.code||'-')} بإجمالي تحميل ${fmt(topWh.loading||0)} طن.`],
+    ['⭐',`أعلى صنف بيعاً هو ${escapeHtml(topProduct.code||'-')} - ${escapeHtml(topProduct.name||'-')}.`],
+    [gap>=0?'🟢':'🟡',`فرق الإنتاج عن البيع ${fmt(gap)} طن.`],
+    [exceptions.length?'⚠️':'✅',`عدد الاستثناءات التي تحتاج مراجعة: ${exceptions.length}.`]
+  ];
+  node.innerHTML=lines.map(([ico,text])=>`<div class="smart-summary-line"><span>${ico}</span><b>${text}</b></div>`).join('');
+}
+function renderSmartAlerts(model){
+  const node=$('#smartAlerts'); if(!node) return;
+  const {stats,warehouses,items,exceptions}=model;
+  const alerts=[];
+  const gap=(stats.productionQty||0)-(stats.salesQty||0);
+  const gapLimit=Math.max(10,Math.abs(stats.salesQty||0)*0.15);
+  if(Math.abs(gap)>gapLimit) alerts.push({level:'medium',title:gap>0?'الإنتاج أعلى من البيع':'البيع أعلى من الإنتاج',text:`الفارق ${fmt(Math.abs(gap))} طن`});
+  const noSales=items.filter(i=>Math.abs(i.sales||0)===0 && (Math.abs(i.production||0)+Math.abs(i.outgoing||0)+Math.abs(i.incoming||0))>0).length;
+  if(noSales) alerts.push({level:'high',title:'أصناف بدون بيع',text:`يوجد ${noSales} صنف له حركة بدون بيع`});
+  const inactiveWh=warehouses.filter(w=>Math.abs(w.totalActivity||0)===0).length;
+  if(inactiveWh) alerts.push({level:'medium',title:'مخازن بلا نشاط',text:`عدد المخازن غير النشطة ${inactiveWh}`});
+  if(Math.abs(stats.outgoingTransferQty||0)>Math.max(5,Math.abs(stats.salesQty||0)*0.45)) alerts.push({level:'medium',title:'تحويلات صادرة مرتفعة',text:`الصادر ${fmt(stats.outgoingTransferQty)} طن`});
+  if(exceptions.filter(e=>e.severity==='high').length) alerts.push({level:'high',title:'استثناءات عالية الأولوية',text:`${exceptions.filter(e=>e.severity==='high').length} حالة تحتاج تدخل سريع`});
+  if(!alerts.length) alerts.push({level:'ok',title:'الوضع مستقر',text:'لا توجد مؤشرات خطرة حسب الفلتر الحالي'});
+  node.innerHTML=alerts.slice(0,8).map(a=>`<div class="smart-alert ${smartSeverityClass(a.level)}"><strong>${escapeHtml(a.title)}</strong><span>${escapeHtml(a.text)}</span></div>`).join('');
+}
+function renderSmartTopInsights(model){
+  const node=$('#smartTopInsights'); if(!node) return;
+  const {warehouses,products,plantStats}=model;
+  const topPlant=Object.entries(plantStats||{}).sort((a,b)=>Math.abs(b[1].sales)-Math.abs(a[1].sales))[0]||['-',{}];
+  const lowPlant=Object.entries(plantStats||{}).filter(x=>x[1].activity>0).sort((a,b)=>Math.abs(a[1].sales)-Math.abs(b[1].sales))[0]||['-',{}];
+  const topWh=[...warehouses].sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales))[0]||{};
+  const lowWh=[...warehouses].filter(w=>w.totalActivity>0).sort((a,b)=>Math.abs(a.sales)-Math.abs(b.sales))[0]||{};
+  const topProduct=[...products].sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales))[0]||{};
+  const rows=[
+    ['🏭','أعلى مصنع',topPlant[0],`${fmt(topPlant[1].sales||0)} طن`],
+    ['📉','أقل مصنع بيعاً',lowPlant[0],`${fmt(lowPlant[1].sales||0)} طن`],
+    ['📦','أعلى مخزن',topWh.code||'-',`${fmt(topWh.sales||0)} طن`],
+    ['📉','أقل مخزن بيعاً',lowWh.code||'-',`${fmt(lowWh.sales||0)} طن`],
+    ['⭐','أعلى صنف',topProduct.code||'-',escapeHtml(topProduct.name||'-')]
+  ];
+  node.innerHTML=rows.map(r=>`<div class="smart-top-row"><span>${r[0]}</span><b>${r[1]}</b><strong>${escapeHtml(String(r[2]))}</strong><small>${r[3]}</small></div>`).join('');
+}
+function renderSmartRecommendations(model){
+  const node=$('#smartRecommendations'); if(!node) return;
+  const {stats,warehouses,exceptions,items}=model;
+  const rec=[];
+  const topHigh=exceptions.filter(e=>e.severity==='high').slice(0,3);
+  topHigh.forEach(e=>rec.push(`مراجعة الصنف ${e.code} بسبب: ${e.label}.`));
+  const topWh=[...warehouses].sort((a,b)=>Math.abs(b.outgoing)-Math.abs(a.outgoing))[0];
+  if(topWh && Math.abs(topWh.outgoing||0)>Math.max(5,Math.abs(topWh.sales||0)*0.4)) rec.push(`مراجعة التحويلات الصادرة في المخزن ${topWh.code}.`);
+  const gap=(stats.productionQty||0)-(stats.salesQty||0);
+  if(gap< -Math.max(10,Math.abs(stats.salesQty||0)*0.15)) rec.push('البيع أعلى من الإنتاج بشكل ملحوظ؛ يفضل مراجعة خطة الإنتاج والتحويلات الواردة.');
+  if(gap> Math.max(10,Math.abs(stats.salesQty||0)*0.15)) rec.push('الإنتاج أعلى من البيع؛ يفضل متابعة الأصناف الأعلى تراكمًا.');
+  if(!rec.length) rec.push('لا توجد توصيات حرجة حالياً؛ استمر في المتابعة الدورية.');
+  node.innerHTML=rec.slice(0,6).map((t,i)=>`<div class="smart-rec"><em>${i+1}</em><span>${escapeHtml(t)}</span></div>`).join('');
+}
+function renderSmartTrendAnalysis(model){
+  const node=$('#smartTrendAnalysis'); if(!node) return;
+  const days=Object.keys(model.daily||{}).sort().slice(-30);
+  const metrics=[['sales','البيع'],['production','الإنتاج'],['outgoing','الصادر'],['incoming','الوارد'],['loading','التحميل']];
+  node.innerHTML=metrics.map(([key,label])=>{
+    const values=days.map(d=>model.daily[d]?.[key]||0);
+    const t=smartTrendInfo(values);
+    const total=values.reduce((a,b)=>a+b,0);
+    return `<div class="smart-trend-row ${t.cls}"><b>${label}</b><strong>${t.icon} ${t.label}</strong><span>${fmt(t.delta)}%</span><small>إجمالي ${fmt(total)} طن</small></div>`;
+  }).join('') || '<div class="empty-row">لا توجد بيانات اتجاه كافية</div>';
+  const hint=$('#smartTrendHint'); if(hint) hint.textContent=days.length?`من ${days[0]} إلى ${days[days.length-1]}`:'لا توجد بيانات';
+}
+function renderSmartPlantScores(model){
+  const node=$('#smartPlantScores'); if(!node) return;
+  const highExceptions=model.exceptions.filter(e=>e.severity==='high');
+  const rows=APP_DATA.plants.map(p=>{
+    const st=model.plantStats[p.code]||{sales:0,production:0,outgoing:0,incoming:0,loading:0,activity:0};
+    const gapRatio=Math.abs((st.production||0)-(st.sales||0))/Math.max(1,Math.abs(st.sales||0)+Math.abs(st.production||0));
+    const excPenalty=highExceptions.filter(e=>String(e.plants||'').includes(p.code)).length*4;
+    const score=Math.max(0,Math.min(100,100-(gapRatio*45)-excPenalty));
+    return {...p,score,st};
+  });
+  node.innerHTML=rows.map(r=>`<div class="smart-score-row"><div><b>${r.code}</b><span>${escapeHtml(r.name)}</span></div><div class="smart-score-bar"><i style="width:${r.score.toFixed(0)}%"></i></div><strong>${r.score.toFixed(0)}%</strong></div>`).join('');
+}
+function renderSmartExportTable(model){
+  const tbl=$('#smartAnalyticsExportTable'); if(!tbl) return;
+  const topRows=model.exceptions.slice(0,10).map((e,i)=>`<tr><td>استثناء</td><td>${i+1}</td><td>${escapeHtml(e.code)}</td><td>${escapeHtml(e.name)}</td><td>${escapeHtml(e.label)}</td><td>${fmt(e.reviewScore)}</td></tr>`).join('');
+  tbl.innerHTML=`<thead><tr><th>النوع</th><th>#</th><th>الكود</th><th>البيان</th><th>المؤشر</th><th>القيمة</th></tr></thead><tbody><tr><td>ملخص</td><td>-</td><td>إجمالي البيع</td><td>-</td><td>طن</td><td>${fmt(model.stats.salesQty)}</td></tr><tr><td>ملخص</td><td>-</td><td>إجمالي الإنتاج</td><td>-</td><td>طن</td><td>${fmt(model.stats.productionQty)}</td></tr>${topRows}</tbody>`;
+}
+async function loadSmartAnalyticsReport(options={}){
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
+  let query=WarehouseDB.client.from('sales_audit_report').select('report_date,warehouse_code,warehouse_name,plant_code,plant_name,material_code,material_name,sales_quantity,production_quantity,outgoing_transfer_quantity,incoming_transfer_quantity,total_loading_quantity').order('report_date',{ascending:true}).range(0,9999);
+  if(filters.from) query=query.gte('report_date',filters.from); if(filters.to) query=query.lte('report_date',filters.to); if(filters.plant && filters.plant!=='all') query=query.eq('plant_code',filters.plant); if(filters.warehouse && filters.warehouse!=='all') query=query.eq('warehouse_code',filters.warehouse);
+  const {data,error}=await query; if(error){console.warn('smart analytics load error',error);return;}
+  const model=buildSmartAnalyticsModel(data||[],filters);
+  SMART_ANALYTICS_STATE=model;
+  if($('#smartAnalyticsMeta')) $('#smartAnalyticsMeta').textContent=reportFilterLabel(filters);
+  renderSmartExecutiveSummary(model); renderSmartAlerts(model); renderSmartTopInsights(model); renderSmartRecommendations(model); renderSmartTrendAnalysis(model); renderSmartPlantScores(model); renderSmartExportTable(model);
+}
+
 function switchReportTab(tab){
   ACTIVE_REPORT_TAB=tab;
   document.querySelectorAll('[data-report-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.reportTab===tab));
-  const exec=$('#executiveReportContent'), items=$('#itemsReportContent'), warehouses=$('#warehousesReportContent'), exceptions=$('#exceptionsReportContent');
+  const exec=$('#executiveReportContent'), items=$('#itemsReportContent'), warehouses=$('#warehousesReportContent'), exceptions=$('#exceptionsReportContent'), smart=$('#smartAnalyticsContent');
   if(exec) exec.style.display=tab==='executive'?'flex':'none';
   if(items) items.style.display=tab==='items'?'flex':'none';
   if(warehouses) warehouses.style.display=tab==='warehouses'?'flex':'none';
   if(exceptions) exceptions.style.display=tab==='exceptions'?'flex':'none';
+  if(smart) smart.style.display=tab==='smart'?'flex':'none';
   if(tab==='executive') loadExecutiveReport({keepDates:true});
   if(tab==='items') loadItemsReport({keepDates:true});
   if(tab==='warehouses') loadWarehousesReport({keepDates:true});
   if(tab==='exceptions') loadExceptionsReport({keepDates:true});
+  if(tab==='smart') loadSmartAnalyticsReport({keepDates:true});
 }
 function loadActiveReport(options={}){
   if(ACTIVE_REPORT_TAB==='items') return loadItemsReport(options);
   if(ACTIVE_REPORT_TAB==='warehouses') return loadWarehousesReport(options);
   if(ACTIVE_REPORT_TAB==='exceptions') return loadExceptionsReport(options);
+  if(ACTIVE_REPORT_TAB==='smart') return loadSmartAnalyticsReport(options);
   return loadExecutiveReport(options);
 }
 function exportActiveReportExcel(){
   if(ACTIVE_REPORT_TAB==='items') return exportTableToExcel('itemsReportExportTable','تقرير مراجعة الأصناف');
   if(ACTIVE_REPORT_TAB==='warehouses') return exportTableToExcel('warehousesReportExportTable','تقرير أداء المخازن');
   if(ACTIVE_REPORT_TAB==='exceptions') return exportTableToExcel('exceptionsReportExportTable','تقرير الاستثناءات والمراجعة');
+  if(ACTIVE_REPORT_TAB==='smart') return exportTableToExcel('smartAnalyticsExportTable','التحليلات الذكية');
   return exportTableToExcel('executiveExportTable','التقرير التنفيذي لمراجعة المخازن');
 }
 function exportActiveReportPdf(){
   if(ACTIVE_REPORT_TAB==='items') return exportTableToPdf('itemsReportExportTable','تقرير مراجعة الأصناف');
   if(ACTIVE_REPORT_TAB==='warehouses') return exportTableToPdf('warehousesReportExportTable','تقرير أداء المخازن');
   if(ACTIVE_REPORT_TAB==='exceptions') return exportTableToPdf('exceptionsReportExportTable','تقرير الاستثناءات والمراجعة');
+  if(ACTIVE_REPORT_TAB==='smart') return exportTableToPdf('smartAnalyticsExportTable','التحليلات الذكية');
   return exportTableToPdf('executiveExportTable','التقرير التنفيذي لمراجعة المخازن');
 }
 function activeReportVisualInfo(){
@@ -2775,7 +2924,8 @@ function activeReportVisualInfo(){
     executive:{id:'executiveReportContent',title:'التقرير التنفيذي لمراجعة المخازن'},
     items:{id:'itemsReportContent',title:'تقرير مراجعة الأصناف'},
     warehouses:{id:'warehousesReportContent',title:'تقرير أداء المخازن'},
-    exceptions:{id:'exceptionsReportContent',title:'تقرير الاستثناءات والمراجعة'}
+    exceptions:{id:'exceptionsReportContent',title:'تقرير الاستثناءات والمراجعة'},
+    smart:{id:'smartAnalyticsContent',title:'التحليلات الذكية'}
   };
   return map[ACTIVE_REPORT_TAB] || map.executive;
 }
