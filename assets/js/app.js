@@ -1,3 +1,8 @@
+
+function roundRect(ctx,x,y,w,h,r,fill,stroke){
+  const rr=Math.min(r||0, Math.abs(w)/2, Math.abs(h)/2);
+  ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.lineTo(x+w-rr,y); ctx.quadraticCurveTo(x+w,y,x+w,y+rr); ctx.lineTo(x+w,y+h-rr); ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h); ctx.lineTo(x+rr,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-rr); ctx.lineTo(x,y+rr); ctx.quadraticCurveTo(x,y,x+rr,y); ctx.closePath(); if(fill)ctx.fill(); if(stroke)ctx.stroke();
+}
 const $=s=>document.querySelector(s);const $$=s=>document.querySelectorAll(s);
 const colors=['#51b848','#1f9e9a','#7fc34b','#f1bf35','#526d62','#e88f2d'];
 function fmt(n){return Number(n).toLocaleString('en-US',{maximumFractionDigits:3})}
@@ -2778,6 +2783,66 @@ function buildSmartAnalyticsModel(rows,filters){
   const products=Object.values(productMap).sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales));
   return {rows,filters,stats,daily,warehouses,products,plantStats,items,exceptions};
 }
+
+function renderSmartKpiCards(model){
+  const node=$('#smartKpiCards'); if(!node) return;
+  const stats=model?.stats||{};
+  const gap=(stats.productionQty||0)-(stats.salesQty||0);
+  const exc=(model?.exceptions||[]).length;
+  const wh=(model?.warehouses||[]).length;
+  const items=(model?.products||[]).length;
+  const cards=[
+    ['إجمالي البيع',stats.salesQty||0,'طن','🛒'],
+    ['إجمالي الإنتاج',stats.productionQty||0,'طن','🏭'],
+    ['فرق الإنتاج / البيع',gap,'طن',gap>=0?'🟢':'🟡'],
+    ['عدد الاستثناءات',exc,'حالة','⚠️'],
+    ['الأصناف النشطة',items,'صنف','📦'],
+    ['المخازن النشطة',wh,'مخزن','🏪']
+  ];
+  node.innerHTML=cards.map(c=>`<article class="kpi glass smart-kpi-card"><h3>${escapeHtml(c[0])}</h3><div class="num">${fmt(c[1])}</div><small>${escapeHtml(c[2])}</small><div class="icon">${c[3]}</div></article>`).join('');
+}
+function drawSmartMixChart(model){
+  const canvas=$('#smartMixChart'); if(!canvas) return;
+  const ctx=canvas.getContext('2d'), w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h);
+  const stats=model?.stats||{};
+  const entries=[
+    ['البيع',Math.abs(stats.salesQty||0),'#83d84b'],
+    ['الإنتاج',Math.abs(stats.productionQty||0),'#32aee9'],
+    ['الصادر',Math.abs(stats.outgoingTransferQty||0),'#ff9f2f'],
+    ['الوارد',Math.abs(stats.incomingTransferQty||0),'#b965ff'],
+    ['التحميل',Math.abs(stats.totalLoadingQty||0),'#28c7bd']
+  ];
+  const max=Math.max(1,...entries.map(e=>e[1]));
+  const pad={l:70,r:25,t:24,b:44}, ch=h-pad.t-pad.b, cw=w-pad.l-pad.r;
+  ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.lineWidth=1; ctx.fillStyle='#cfe8d0'; ctx.font='bold 12px Cairo'; ctx.textAlign='right';
+  for(let i=0;i<=4;i++){const y=pad.t+ch-(i/4)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmt(max*i/4),pad.l-8,y+4);}
+  const barW=Math.min(72,cw/entries.length*.55); const gap=cw/entries.length;
+  entries.forEach((e,i)=>{const x=pad.l+i*gap+gap/2-barW/2; const bh=(e[1]/max)*ch; const y=pad.t+ch-bh; const grad=ctx.createLinearGradient(0,y,0,pad.t+ch); grad.addColorStop(0,e[2]); grad.addColorStop(1,'rgba(255,255,255,.12)'); ctx.fillStyle=grad; roundRect(ctx,x,y,barW,bh,10,true,false); ctx.fillStyle='#eaffdf'; ctx.textAlign='center'; ctx.font='bold 12px Cairo'; ctx.fillText(e[0],x+barW/2,pad.t+ch+25); ctx.fillStyle='#fff'; ctx.font='bold 13px Cairo'; ctx.fillText(fmt(e[1]),x+barW/2,Math.max(18,y-8));});
+}
+function drawSmartPlantScoreChart(model){
+  const canvas=$('#smartPlantScoreChart'); if(!canvas) return;
+  const ctx=canvas.getContext('2d'), w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h);
+  const high=(model?.exceptions||[]).filter(e=>e.severity==='high');
+  const rows=APP_DATA.plants.map(p=>{
+    const st=(model?.plantStats||{})[p.code]||{sales:0,production:0};
+    const gapRatio=Math.abs((st.production||0)-(st.sales||0))/Math.max(1,Math.abs(st.sales||0)+Math.abs(st.production||0));
+    const excPenalty=high.filter(e=>String(e.plants||'').includes(p.code)).length*4;
+    const score=Math.max(0,Math.min(100,100-(gapRatio*45)-excPenalty));
+    return {...p,score};
+  });
+  const pad={l:105,r:28,t:22,b:34}, rowH=(h-pad.t-pad.b)/Math.max(1,rows.length);
+  ctx.font='bold 14px Cairo';
+  rows.forEach((r,i)=>{
+    const y=pad.t+i*rowH+rowH/2;
+    ctx.fillStyle='#eaffdf'; ctx.textAlign='right'; ctx.fillText(r.code,pad.l-15,y+5);
+    const bw=w-pad.l-pad.r; const bh=18; const x=pad.l; const by=y-bh/2;
+    ctx.fillStyle='rgba(255,255,255,.10)'; roundRect(ctx,x,by,bw,bh,10,true,false);
+    const grad=ctx.createLinearGradient(x,0,x+bw,0); grad.addColorStop(0,'#ff5959'); grad.addColorStop(.55,'#ffd44f'); grad.addColorStop(1,'#74d84b');
+    ctx.fillStyle=grad; roundRect(ctx,x,by,bw*(r.score/100),bh,10,true,false);
+    ctx.fillStyle='#fff'; ctx.textAlign='left'; ctx.font='bold 13px Cairo'; ctx.fillText(`${r.score.toFixed(0)}%`,x+bw-4,y+5);
+  });
+}
+
 function renderSmartExecutiveSummary(model){
   const node=$('#smartExecutiveSummary'); if(!node) return;
   const {stats,warehouses,products,plantStats,exceptions}=model;
@@ -2880,7 +2945,7 @@ async function loadSmartAnalyticsReport(options={}){
   const model=buildSmartAnalyticsModel(data||[],filters);
   SMART_ANALYTICS_STATE=model;
   if($('#smartAnalyticsMeta')) $('#smartAnalyticsMeta').textContent=reportFilterLabel(filters);
-  renderSmartExecutiveSummary(model); renderSmartAlerts(model); renderSmartTopInsights(model); renderSmartRecommendations(model); renderSmartTrendAnalysis(model); renderSmartPlantScores(model); renderSmartExportTable(model);
+  renderSmartKpiCards(model); drawSmartMixChart(model); drawSmartPlantScoreChart(model); renderSmartExecutiveSummary(model); renderSmartAlerts(model); renderSmartTopInsights(model); renderSmartRecommendations(model); renderSmartTrendAnalysis(model); renderSmartPlantScores(model); renderSmartExportTable(model);
 }
 
 function switchReportTab(tab){
@@ -3148,6 +3213,8 @@ function initExecutiveReports(){
   $('#executiveReportExcelBtn')?.addEventListener('click',exportActiveReportExcel);
   $('#activeReportPdfBtn')?.addEventListener('click',exportActiveReportVisualPdf);
   $('#activeReportPngBtn')?.addEventListener('click',exportActiveReportPng);
+  $('#smartVisualPdfBtn')?.addEventListener('click',async()=>{ ACTIVE_REPORT_TAB='smart'; await exportActiveReportVisualPdf(); });
+  $('#smartVisualPngBtn')?.addEventListener('click',async()=>{ ACTIVE_REPORT_TAB='smart'; await exportActiveReportPng(); });
 }
 document.addEventListener('DOMContentLoaded',initExecutiveReports);
 document.addEventListener('DOMContentLoaded',()=>{ ensureDashboardPngButtons(); setTimeout(ensureDashboardPngButtons,800); });

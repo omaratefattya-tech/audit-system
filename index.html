@@ -387,11 +387,29 @@
               <div class="rank-table-wrap exceptions-report-table-wrap"><table id="exceptionsReportTable"></table></div>
             </article>
             <table id="exceptionsReportExportTable" class="hidden-export-table"></table>
+          </div>
 
           <div id="smartAnalyticsContent" class="smart-analytics-content report-panel-content" style="display:none">
-            <div class="executive-title-card smart-title-card">
-              <h3>🧠 التحليلات الذكية لمراجعة المخازن</h3>
-              <p id="smartAnalyticsMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
+            <div class="executive-title-card smart-title-card smart-title-actions-card">
+              <div>
+                <h3>🧠 التحليلات الذكية لمراجعة المخازن</h3>
+                <p id="smartAnalyticsMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
+              </div>
+              <div class="smart-export-actions">
+                <button class="secondary export-btn" id="smartVisualPdfBtn" type="button">PDF</button>
+                <button class="secondary export-btn" id="smartVisualPngBtn" type="button">PNG</button>
+              </div>
+            </div>
+            <div class="cards report-kpis smart-kpis" id="smartKpiCards"></div>
+            <div class="smart-visual-grid">
+              <article class="panel glass smart-chart-card">
+                <div class="smart-card-head"><h3>مؤشر التوازن بين البيع والإنتاج</h3><span class="smart-badge">Balance</span></div>
+                <canvas id="smartMixChart" width="700" height="280"></canvas>
+              </article>
+              <article class="panel glass smart-chart-card">
+                <div class="smart-card-head"><h3>درجات المصانع بصرياً</h3><span class="smart-badge">Score</span></div>
+                <canvas id="smartPlantScoreChart" width="700" height="280"></canvas>
+              </article>
             </div>
             <div class="smart-summary-layout">
               <article class="panel glass smart-summary-card">
@@ -428,7 +446,6 @@
               <div id="smartTrendAnalysis" class="smart-trend-list"></div>
             </article>
             <table id="smartAnalyticsExportTable" class="hidden-export-table"></table>
-          </div>
           </div>
         </article>
       </section>
