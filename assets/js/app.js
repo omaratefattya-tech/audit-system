@@ -2757,6 +2757,57 @@ function smartTrendInfo(values){
   if(delta<-8) return {label:'هابط',cls:'down',delta,icon:'▼'};
   return {label:'مستقر',cls:'stable',delta,icon:'▬'};
 }
+
+function clampScore(v){ return Math.max(0, Math.min(100, Number.isFinite(v)?v:0)); }
+function auditScoreStatus(score){
+  if(score>=90) return {label:'ممتاز',cls:'excellent',icon:'🟢'};
+  if(score>=80) return {label:'جيد جداً',cls:'good',icon:'🟢'};
+  if(score>=70) return {label:'يحتاج متابعة',cls:'warning',icon:'🟡'};
+  return {label:'يحتاج تدخل',cls:'danger',icon:'🔴'};
+}
+function calculateAuditScoreForPlant(plantCode,modelBase){
+  const st=(modelBase.plantStats||{})[plantCode]||{sales:0,production:0,outgoing:0,incoming:0,loading:0,activity:0};
+  const rows=(modelBase.rows||[]).filter(r=>String(r.plant_code||dashboardWhMeta(String(r.warehouse_code||'').toUpperCase()).plant||'')===String(plantCode));
+  const exceptions=(modelBase.exceptions||[]).filter(e=>String(e.plants||'').split('،').map(x=>x.trim()).includes(String(plantCode)));
+  const totalActivity=Math.abs(st.sales||0)+Math.abs(st.production||0)+Math.abs(st.outgoing||0)+Math.abs(st.incoming||0)+Math.abs(st.loading||0);
+  const hasData=rows.length>0 && totalActivity>0;
+  const expectedLoading=Math.abs((st.sales||0)+(st.outgoing||0));
+  const loadingGap=expectedLoading>0?Math.abs((st.loading||0)-expectedLoading):0;
+  const salesProdGap=Math.abs((st.production||0)-(st.sales||0));
+  const salesProdBase=Math.max(1,Math.abs(st.sales||0),Math.abs(st.production||0));
+  const transferBalanceGap=Math.abs((st.outgoing||0)-(st.incoming||0));
+  const transferBase=Math.max(1,Math.abs(st.outgoing||0)+Math.abs(st.incoming||0));
+  const high=exceptions.filter(e=>e.severity==='high').length;
+  const medium=exceptions.filter(e=>e.severity==='medium').length;
+  const low=exceptions.filter(e=>e.severity==='low').length;
+
+  const dataQuality=hasData?20:8;
+  const salesBalance=clampScore(20-(salesProdGap/salesProdBase)*20);
+  const transferScore=clampScore(15-(transferBalanceGap/transferBase)*15);
+  const loadingScore=clampScore(15-(loadingGap/Math.max(1,expectedLoading))*15);
+  const exceptionScore=clampScore(20-(high*6+medium*3+low*1.5));
+  const activityScore=clampScore(10-(hasData?0:8));
+  const total=clampScore(dataQuality+salesBalance+transferScore+loadingScore+exceptionScore+activityScore);
+  const status=auditScoreStatus(total);
+  const reasons=[];
+  if(!hasData) reasons.push('لا توجد بيانات كافية للمصنع حسب الفلتر الحالي');
+  if(salesProdGap>Math.max(5,salesProdBase*.25)) reasons.push(`فرق الإنتاج/البيع مرتفع (${fmt(salesProdGap)} طن)`);
+  if(loadingGap>Math.max(2,expectedLoading*.03)) reasons.push(`فرق التحميل عن المتوقع (${fmt(loadingGap)} طن)`);
+  if(high) reasons.push(`${high} استثناء عالي الأولوية`);
+  if(medium) reasons.push(`${medium} استثناء متوسط الأولوية`);
+  if(!reasons.length) reasons.push('المؤشرات الرئيسية ضمن الحدود المقبولة');
+  return {plant:plantCode,score:total,status,parts:{dataQuality,salesBalance,transferScore,loadingScore,exceptionScore,activityScore},stats:st,exceptions:{high,medium,low,total:exceptions.length},reasons};
+}
+function calculateAuditScores(modelBase){
+  const plantScores=APP_DATA.plants.map(p=>({...(calculateAuditScoreForPlant(p.code,modelBase)),name:p.name}));
+  const active=plantScores.filter(s=>Math.abs((s.stats||{}).activity||0)>0 || s.exceptions.total>0);
+  const weightedBase=active.length?active:plantScores;
+  const overall=weightedBase.length?weightedBase.reduce((sum,r)=>sum+r.score,0)/weightedBase.length:100;
+  const critical=plantScores.reduce((a,b)=>a+b.exceptions.high,0);
+  const status=auditScoreStatus(overall);
+  return {overall:clampScore(overall),status,critical,plantScores};
+}
+
 function buildSmartAnalyticsModel(rows,filters){
   const stats={salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0};
   const daily={}, whMap={}, productMap={}, plantStats={};
@@ -2781,7 +2832,9 @@ function buildSmartAnalyticsModel(rows,filters){
   const exceptions=flattenExceptions(items);
   const warehouses=Object.values(whMap).sort((a,b)=>b.totalActivity-a.totalActivity);
   const products=Object.values(productMap).sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales));
-  return {rows,filters,stats,daily,warehouses,products,plantStats,items,exceptions};
+  const modelBase={rows,filters,stats,daily,warehouses,products,plantStats,items,exceptions};
+  const auditScores=calculateAuditScores(modelBase);
+  return {...modelBase,auditScores};
 }
 
 function renderSmartKpiCards(model){
@@ -2791,7 +2844,9 @@ function renderSmartKpiCards(model){
   const exc=(model?.exceptions||[]).length;
   const wh=(model?.warehouses||[]).length;
   const items=(model?.products||[]).length;
+  const audit=model?.auditScores||{overall:100,status:{label:'ممتاز'},critical:0};
   const cards=[
+    ['الصحة العامة للمراجعة',audit.overall||0,`${audit.status?.label||''} - ${audit.critical||0} حرجة`,'🛡️','audit-health'],
     ['إجمالي البيع',stats.salesQty||0,'طن','🛒'],
     ['إجمالي الإنتاج',stats.productionQty||0,'طن','🏭'],
     ['فرق الإنتاج / البيع',gap,'طن',gap>=0?'🟢':'🟡'],
@@ -2799,7 +2854,7 @@ function renderSmartKpiCards(model){
     ['الأصناف النشطة',items,'صنف','📦'],
     ['المخازن النشطة',wh,'مخزن','🏪']
   ];
-  node.innerHTML=cards.map(c=>`<article class="kpi glass smart-kpi-card"><h3>${escapeHtml(c[0])}</h3><div class="num">${fmt(c[1])}</div><small>${escapeHtml(c[2])}</small><div class="icon">${c[3]}</div></article>`).join('');
+  node.innerHTML=cards.map(c=>`<article class="kpi glass smart-kpi-card ${c[4]||''}"><h3>${escapeHtml(c[0])}</h3><div class="num">${c[4]?Math.round(c[1])+'%':fmt(c[1])}</div><small>${escapeHtml(c[2])}</small><div class="icon">${c[3]}</div></article>`).join('');
 }
 function drawSmartMixChart(model){
   const canvas=$('#smartMixChart'); if(!canvas) return;
@@ -2822,14 +2877,7 @@ function drawSmartMixChart(model){
 function drawSmartPlantScoreChart(model){
   const canvas=$('#smartPlantScoreChart'); if(!canvas) return;
   const ctx=canvas.getContext('2d'), w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h);
-  const high=(model?.exceptions||[]).filter(e=>e.severity==='high');
-  const rows=APP_DATA.plants.map(p=>{
-    const st=(model?.plantStats||{})[p.code]||{sales:0,production:0};
-    const gapRatio=Math.abs((st.production||0)-(st.sales||0))/Math.max(1,Math.abs(st.sales||0)+Math.abs(st.production||0));
-    const excPenalty=high.filter(e=>String(e.plants||'').includes(p.code)).length*4;
-    const score=Math.max(0,Math.min(100,100-(gapRatio*45)-excPenalty));
-    return {...p,score};
-  });
+  const rows=(model?.auditScores?.plantScores||APP_DATA.plants.map(p=>({...p,score:100,status:auditScoreStatus(100)}))).map(r=>({code:r.plant||r.code,name:r.name,score:r.score,status:r.status}));
   const pad={l:105,r:28,t:22,b:34}, rowH=(h-pad.t-pad.b)/Math.max(1,rows.length);
   ctx.font='bold 14px Cairo';
   rows.forEach((r,i)=>{
@@ -2857,6 +2905,7 @@ function renderSmartExecutiveSummary(model){
     ['📦',`أعلى مخزن نشاطاً هو ${escapeHtml(topWh.code||'-')} بإجمالي تحميل ${fmt(topWh.loading||0)} طن.`],
     ['⭐',`أعلى صنف بيعاً هو ${escapeHtml(topProduct.code||'-')} - ${escapeHtml(topProduct.name||'-')}.`],
     [gap>=0?'🟢':'🟡',`فرق الإنتاج عن البيع ${fmt(gap)} طن.`],
+    [model.auditScores?.status?.icon||'🛡️',`الصحة العامة للمراجعة ${Math.round(model.auditScores?.overall||0)}% (${model.auditScores?.status?.label||''}).`],
     [exceptions.length?'⚠️':'✅',`عدد الاستثناءات التي تحتاج مراجعة: ${exceptions.length}.`]
   ];
   node.innerHTML=lines.map(([ico,text])=>`<div class="smart-summary-line"><span>${ico}</span><b>${text}</b></div>`).join('');
@@ -2922,20 +2971,23 @@ function renderSmartTrendAnalysis(model){
 }
 function renderSmartPlantScores(model){
   const node=$('#smartPlantScores'); if(!node) return;
-  const highExceptions=model.exceptions.filter(e=>e.severity==='high');
-  const rows=APP_DATA.plants.map(p=>{
-    const st=model.plantStats[p.code]||{sales:0,production:0,outgoing:0,incoming:0,loading:0,activity:0};
-    const gapRatio=Math.abs((st.production||0)-(st.sales||0))/Math.max(1,Math.abs(st.sales||0)+Math.abs(st.production||0));
-    const excPenalty=highExceptions.filter(e=>String(e.plants||'').includes(p.code)).length*4;
-    const score=Math.max(0,Math.min(100,100-(gapRatio*45)-excPenalty));
-    return {...p,score,st};
-  });
-  node.innerHTML=rows.map(r=>`<div class="smart-score-row"><div><b>${r.code}</b><span>${escapeHtml(r.name)}</span></div><div class="smart-score-bar"><i style="width:${r.score.toFixed(0)}%"></i></div><strong>${r.score.toFixed(0)}%</strong></div>`).join('');
+  const rows=model.auditScores?.plantScores||[];
+  node.innerHTML=rows.map(r=>{
+    const parts=r.parts||{};
+    const details=`جودة البيانات ${fmt(parts.dataQuality||0)}/20 | توازن البيع والإنتاج ${fmt(parts.salesBalance||0)}/20 | التحويلات ${fmt(parts.transferScore||0)}/15 | التحميل ${fmt(parts.loadingScore||0)}/15 | الاستثناءات ${fmt(parts.exceptionScore||0)}/20 | النشاط ${fmt(parts.activityScore||0)}/10`;
+    return `<div class="smart-score-row smart-score-row-real ${r.status?.cls||''}" title="${escapeHtml(details)}">
+      <div><b>${escapeHtml(r.plant)}</b><span>${escapeHtml(r.name||'')}</span><small>${escapeHtml(r.status?.icon||'')} ${escapeHtml(r.status?.label||'')}</small></div>
+      <div class="smart-score-bar"><i style="width:${r.score.toFixed(0)}%"></i></div>
+      <strong>${r.score.toFixed(0)}%</strong>
+      <em>${escapeHtml((r.reasons||[])[0]||'')}</em>
+    </div>`;
+  }).join('');
 }
 function renderSmartExportTable(model){
   const tbl=$('#smartAnalyticsExportTable'); if(!tbl) return;
   const topRows=model.exceptions.slice(0,10).map((e,i)=>`<tr><td>استثناء</td><td>${i+1}</td><td>${escapeHtml(e.code)}</td><td>${escapeHtml(e.name)}</td><td>${escapeHtml(e.label)}</td><td>${fmt(e.reviewScore)}</td></tr>`).join('');
-  tbl.innerHTML=`<thead><tr><th>النوع</th><th>#</th><th>الكود</th><th>البيان</th><th>المؤشر</th><th>القيمة</th></tr></thead><tbody><tr><td>ملخص</td><td>-</td><td>إجمالي البيع</td><td>-</td><td>طن</td><td>${fmt(model.stats.salesQty)}</td></tr><tr><td>ملخص</td><td>-</td><td>إجمالي الإنتاج</td><td>-</td><td>طن</td><td>${fmt(model.stats.productionQty)}</td></tr>${topRows}</tbody>`;
+  const scoreRows=(model.auditScores?.plantScores||[]).map((r,i)=>`<tr><td>Audit Score</td><td>${i+1}</td><td>${escapeHtml(r.plant)}</td><td>${escapeHtml(r.name||'')}</td><td>${escapeHtml(r.status?.label||'')}</td><td>${Math.round(r.score)}%</td></tr>`).join('');
+  tbl.innerHTML=`<thead><tr><th>النوع</th><th>#</th><th>الكود</th><th>البيان</th><th>المؤشر</th><th>القيمة</th></tr></thead><tbody><tr><td>ملخص</td><td>-</td><td>الصحة العامة للمراجعة</td><td>-</td><td>${escapeHtml(model.auditScores?.status?.label||'')}</td><td>${Math.round(model.auditScores?.overall||0)}%</td></tr><tr><td>ملخص</td><td>-</td><td>إجمالي البيع</td><td>-</td><td>طن</td><td>${fmt(model.stats.salesQty)}</td></tr><tr><td>ملخص</td><td>-</td><td>إجمالي الإنتاج</td><td>-</td><td>طن</td><td>${fmt(model.stats.productionQty)}</td></tr>${scoreRows}${topRows}</tbody>`;
 }
 async function loadSmartAnalyticsReport(options={}){
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();

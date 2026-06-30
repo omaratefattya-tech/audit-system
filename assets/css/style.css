@@ -1184,3 +1184,43 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 @media(max-width:1350px){.smart-kpis{grid-template-columns:repeat(3,minmax(0,1fr));}.smart-visual-grid{grid-template-columns:1fr;}}
 @media(max-width:720px){.smart-kpis{grid-template-columns:1fr 1fr;}.smart-title-actions-card{align-items:flex-start}.smart-export-actions{width:100%;justify-content:flex-start}.smart-chart-card{min-height:300px}}
 @media(max-width:520px){.smart-kpis{grid-template-columns:1fr}}
+
+/* Smart Analytics - real audit score improvements */
+.smart-kpi-card.audit-health{
+  border-color: rgba(140,255,92,.55) !important;
+  background: linear-gradient(135deg, rgba(37,117,66,.34), rgba(0,64,51,.78)) !important;
+  box-shadow: 0 0 22px rgba(110,255,90,.13);
+}
+.smart-score-row-real{
+  grid-template-columns: minmax(150px, 1fr) minmax(180px, 2fr) 62px;
+  row-gap: 6px;
+  align-items:center;
+}
+.smart-score-row-real > div:first-child{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.smart-score-row-real > div:first-child small{
+  color:#9be96a;
+  font-size:11px;
+  font-weight:800;
+}
+.smart-score-row-real em{
+  grid-column: 1 / -1;
+  color:#d7f7cd;
+  opacity:.85;
+  font-style:normal;
+  font-size:11px;
+  line-height:1.5;
+  border-top:1px solid rgba(255,255,255,.07);
+  padding-top:5px;
+}
+.smart-score-row-real.danger .smart-score-bar i{ background:linear-gradient(90deg,#ff4e5f,#ffb13b) !important; }
+.smart-score-row-real.warning .smart-score-bar i{ background:linear-gradient(90deg,#ffb13b,#e8f84e) !important; }
+.smart-score-row-real.good .smart-score-bar i,
+.smart-score-row-real.excellent .smart-score-bar i{ background:linear-gradient(90deg,#49d15a,#9cff50) !important; }
+@media(max-width:900px){
+  .smart-score-row-real{grid-template-columns:1fr;}
+  .smart-score-row-real strong{justify-self:start;}
+}
