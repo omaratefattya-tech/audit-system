@@ -2846,15 +2846,15 @@ function renderSmartKpiCards(model){
   const items=(model?.products||[]).length;
   const audit=model?.auditScores||{overall:100,status:{label:'ممتاز'},critical:0};
   const cards=[
-    ['الصحة العامة للمراجعة',audit.overall||0,`${audit.status?.label||''} - ${audit.critical||0} حرجة`,'🛡️','audit-health'],
-    ['إجمالي البيع',stats.salesQty||0,'طن','🛒'],
-    ['إجمالي الإنتاج',stats.productionQty||0,'طن','🏭'],
-    ['فرق الإنتاج / البيع',gap,'طن',gap>=0?'🟢':'🟡'],
-    ['عدد الاستثناءات',exc,'حالة','⚠️'],
-    ['الأصناف النشطة',items,'صنف','📦'],
-    ['المخازن النشطة',wh,'مخزن','🏪']
+    ['الصحة العامة للمراجعة',audit.overall||0,`${audit.status?.label||''} - ${audit.critical||0} حرجة`,'🛡️','audit-health','overall'],
+    ['إجمالي البيع',stats.salesQty||0,'طن','🛒','','sales'],
+    ['إجمالي الإنتاج',stats.productionQty||0,'طن','🏭','','production'],
+    ['فرق الإنتاج / البيع',gap,'طن',gap>=0?'🟢':'🟡','','balance'],
+    ['عدد الاستثناءات',exc,'حالة','⚠️','','exceptions'],
+    ['الأصناف النشطة',items,'صنف','📦','','items'],
+    ['المخازن النشطة',wh,'مخزن','🏪','','warehouses']
   ];
-  node.innerHTML=cards.map(c=>`<article class="kpi glass smart-kpi-card ${c[4]||''}"><h3>${escapeHtml(c[0])}</h3><div class="num">${c[4]?Math.round(c[1])+'%':fmt(c[1])}</div><small>${escapeHtml(c[2])}</small><div class="icon">${c[3]}</div></article>`).join('');
+  node.innerHTML=cards.map(c=>`<article class="kpi glass smart-kpi-card ${c[4]||''}" data-audit-score-target="${escapeHtml(c[5]||'overall')}"><h3>${escapeHtml(c[0])}</h3><div class="num">${c[4]?Math.round(c[1])+'%':fmt(c[1])}</div><small>${escapeHtml(c[2])}</small><div class="icon">${c[3]}</div></article>`).join('');
 }
 function drawSmartMixChart(model){
   const canvas=$('#smartMixChart'); if(!canvas) return;
@@ -2975,7 +2975,7 @@ function renderSmartPlantScores(model){
   node.innerHTML=rows.map(r=>{
     const parts=r.parts||{};
     const details=`جودة البيانات ${fmt(parts.dataQuality||0)}/20 | توازن البيع والإنتاج ${fmt(parts.salesBalance||0)}/20 | التحويلات ${fmt(parts.transferScore||0)}/15 | التحميل ${fmt(parts.loadingScore||0)}/15 | الاستثناءات ${fmt(parts.exceptionScore||0)}/20 | النشاط ${fmt(parts.activityScore||0)}/10`;
-    return `<div class="smart-score-row smart-score-row-real ${r.status?.cls||''}" title="${escapeHtml(details)}">
+    return `<div class="smart-score-row smart-score-row-real ${r.status?.cls||''}" title="${escapeHtml(details)}" data-audit-score-target="${escapeHtml(r.plant)}">
       <div><b>${escapeHtml(r.plant)}</b><span>${escapeHtml(r.name||'')}</span><small>${escapeHtml(r.status?.icon||'')} ${escapeHtml(r.status?.label||'')}</small></div>
       <div class="smart-score-bar"><i style="width:${r.score.toFixed(0)}%"></i></div>
       <strong>${r.score.toFixed(0)}%</strong>
@@ -2983,6 +2983,128 @@ function renderSmartPlantScores(model){
     </div>`;
   }).join('');
 }
+
+function auditScorePartRows(parts){
+  const rows=[
+    ['جودة البيانات',parts?.dataQuality||0,20,'اكتمال وتوفر بيانات المراجعة حسب الفلتر الحالي'],
+    ['توازن البيع والإنتاج',parts?.salesBalance||0,20,'كلما زاد الفرق غير الطبيعي بين البيع والإنتاج انخفضت الدرجة'],
+    ['التحويلات',parts?.transferScore||0,15,'يقيس اتزان الصادر والوارد وعدم وجود تحويلات غير مكتملة'],
+    ['التحميل',parts?.loadingScore||0,15,'يقارن إجمالي التحميل المتوقع بالتحميل الفعلي'],
+    ['الاستثناءات',parts?.exceptionScore||0,20,'كل استثناء عالي أو متوسط أو منخفض يقلل الدرجة حسب شدته'],
+    ['النشاط',parts?.activityScore||0,10,'وجود حركة وبيانات فعلية يرفع درجة الثقة']
+  ];
+  return rows.map(([label,val,max,desc])=>{
+    const pct=max?Math.max(0,Math.min(100,(val/max)*100)):0;
+    return `<div class="score-break-row"><div><b>${escapeHtml(label)}</b><small>${escapeHtml(desc)}</small></div><strong>${fmt(val)} / ${max}</strong><span><i style="width:${pct}%"></i></span></div>`;
+  }).join('');
+}
+function auditScoreModalPlantTable(scores){
+  return `<div class="score-mini-table-wrap"><table class="score-mini-table"><thead><tr><th>المصنع</th><th>الحالة</th><th>الدرجة</th><th>الاستثناءات</th></tr></thead><tbody>${(scores||[]).map(r=>`<tr><td><b>${escapeHtml(r.plant)}</b><small>${escapeHtml(r.name||'')}</small></td><td>${escapeHtml(r.status?.icon||'')} ${escapeHtml(r.status?.label||'')}</td><td>${Math.round(r.score)}%</td><td>${r.exceptions?.total||0}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function averageAuditParts(scores){
+  const keys=['dataQuality','salesBalance','transferScore','loadingScore','exceptionScore','activityScore'];
+  const out={};
+  keys.forEach(k=>out[k]=(scores||[]).length?(scores.reduce((a,b)=>a+(b.parts?.[k]||0),0)/scores.length):0);
+  return out;
+}
+function scoreModalData(target){
+  const model=SMART_ANALYTICS_STATE;
+  const scores=model?.auditScores?.plantScores||[];
+  const stats=model?.stats||{};
+  if(!model || !model.auditScores) return null;
+  if(APP_DATA.plants.some(p=>p.code===target)){
+    const r=scores.find(x=>x.plant===target);
+    if(!r) return null;
+    return {
+      title:`تفاصيل Audit Score - ${r.plant}`,
+      subtitle:r.name||'',
+      score:r.score,
+      status:r.status,
+      parts:r.parts,
+      reasons:r.reasons||[],
+      extra:`إجمالي الاستثناءات: ${r.exceptions?.total||0} | عالي: ${r.exceptions?.high||0} | متوسط: ${r.exceptions?.medium||0} | منخفض: ${r.exceptions?.low||0}`,
+      table:''
+    };
+  }
+  if(target==='balance'){
+    const gap=(stats.productionQty||0)-(stats.salesQty||0);
+    const base=Math.max(1,Math.abs(stats.salesQty||0),Math.abs(stats.productionQty||0));
+    const balance=clampScore(100-(Math.abs(gap)/base)*100);
+    return {
+      title:'تفاصيل مؤشر التوازن بين البيع والإنتاج',
+      subtitle:'تحليل الفرق بين البيع والإنتاج حسب الفلاتر الحالية',
+      score:balance,
+      status:auditScoreStatus(balance),
+      parts:{dataQuality:20,salesBalance:clampScore(20-(Math.abs(gap)/base)*20),transferScore:15,loadingScore:15,exceptionScore:20,activityScore:10},
+      reasons:[gap>=0?`الإنتاج أعلى من البيع بمقدار ${fmt(gap)} طن`:`البيع أعلى من الإنتاج بمقدار ${fmt(Math.abs(gap))} طن`,`إجمالي البيع ${fmt(stats.salesQty||0)} طن`,`إجمالي الإنتاج ${fmt(stats.productionQty||0)} طن`],
+      extra:`نسبة التوازن التقريبية: ${Math.round(balance)}%`,
+      table:''
+    };
+  }
+  if(target==='exceptions'){
+    const exc=model.exceptions||[];
+    const high=exc.filter(e=>e.severity==='high').length, med=exc.filter(e=>e.severity==='medium').length, low=exc.filter(e=>e.severity==='low').length;
+    const sc=clampScore(100-(high*10+med*5+low*2));
+    return {title:'تفاصيل الاستثناءات',subtitle:'تأثير الاستثناءات على درجة المراجعة',score:sc,status:auditScoreStatus(sc),parts:averageAuditParts(scores),reasons:[`إجمالي الاستثناءات ${exc.length}`,`عالية الأولوية ${high}`,`متوسطة الأولوية ${med}`,`منخفضة الأولوية ${low}`],extra:'كلما زادت الاستثناءات عالية الأولوية انخفضت درجة الصحة العامة.',table:''};
+  }
+  if(target==='sales' || target==='production' || target==='items' || target==='warehouses'){
+    const map={sales:['إجمالي البيع',stats.salesQty||0,'طن'],production:['إجمالي الإنتاج',stats.productionQty||0,'طن'],items:['الأصناف النشطة',(model.products||[]).length,'صنف'],warehouses:['المخازن النشطة',(model.warehouses||[]).length,'مخزن']};
+    const m=map[target];
+    return {title:`تفاصيل ${m[0]}`,subtitle:'حسب الفلاتر الحالية',score:model.auditScores.overall,status:model.auditScores.status,parts:averageAuditParts(scores),reasons:[`${m[0]}: ${fmt(m[1])} ${m[2]}`,`الصحة العامة للمراجعة ${Math.round(model.auditScores.overall)}%`],extra:'هذا المؤشر جزء من نموذج التحليلات الذكية وليس درجة مستقلة.',table:auditScoreModalPlantTable(scores)};
+  }
+  const parts=averageAuditParts(scores);
+  return {
+    title:'تفاصيل الصحة العامة للمراجعة',
+    subtitle:'متوسط درجات المصانع حسب الفلاتر الحالية',
+    score:model.auditScores.overall,
+    status:model.auditScores.status,
+    parts,
+    reasons:[`إجمالي المصانع المحسوبة: ${scores.length}`,`الحالات الحرجة: ${model.auditScores.critical||0}`,`الاستثناءات الحالية: ${(model.exceptions||[]).length}`],
+    extra:'اضغط على أي مصنع داخل درجة مراجعة المصانع لعرض تفاصيله منفرداً.',
+    table:auditScoreModalPlantTable(scores)
+  };
+}
+function ensureAuditScoreModal(){
+  let modal=$('#auditScoreModal');
+  if(modal) return modal;
+  modal=document.createElement('div');
+  modal.id='auditScoreModal';
+  modal.className='audit-score-modal hidden';
+  modal.innerHTML=`<div class="audit-score-backdrop" data-close-audit-score></div><section class="audit-score-dialog glass" role="dialog" aria-modal="true" aria-labelledby="auditScoreModalTitle"><button class="audit-score-close" type="button" data-close-audit-score>×</button><div id="auditScoreModalBody"></div></section>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click',e=>{ if(e.target.closest('[data-close-audit-score]')) closeAuditScoreModal(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeAuditScoreModal(); });
+  return modal;
+}
+function closeAuditScoreModal(){
+  const modal=$('#auditScoreModal'); if(!modal) return;
+  modal.classList.add('hidden');
+  document.body.classList.remove('modal-open');
+}
+function openAuditScoreModal(target){
+  const data=scoreModalData(target||'overall');
+  if(!data) return;
+  const modal=ensureAuditScoreModal();
+  const body=$('#auditScoreModalBody');
+  const score=Math.round(data.score||0);
+  const reasons=(data.reasons||[]).map(r=>`<li>${escapeHtml(r)}</li>`).join('');
+  body.innerHTML=`<header class="score-modal-head"><div><h3 id="auditScoreModalTitle">${escapeHtml(data.title)}</h3><p>${escapeHtml(data.subtitle||'')}</p></div><div class="score-modal-gauge ${data.status?.cls||''}"><strong>${score}%</strong><span>${escapeHtml(data.status?.icon||'')} ${escapeHtml(data.status?.label||'')}</span></div></header><div class="score-breakdown">${auditScorePartRows(data.parts||{})}</div><div class="score-reasons"><h4>سبب النتيجة</h4><ul>${reasons}</ul><p>${escapeHtml(data.extra||'')}</p></div>${data.table||''}`;
+  modal.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+}
+function initAuditScoreDetails(){
+  document.addEventListener('click',e=>{
+    const target=e.target.closest('[data-audit-score-target]');
+    if(!target) return;
+    if(e.target.closest('button,input,select,a')) return;
+    openAuditScoreModal(target.dataset.auditScoreTarget||'overall');
+  });
+  const scoreChart=$('#smartPlantScoreChart');
+  if(scoreChart){ scoreChart.closest('.smart-chart-card')?.setAttribute('data-audit-score-target','overall'); }
+  const mixChart=$('#smartMixChart');
+  if(mixChart){ mixChart.closest('.smart-chart-card')?.setAttribute('data-audit-score-target','balance'); }
+}
+
 function renderSmartExportTable(model){
   const tbl=$('#smartAnalyticsExportTable'); if(!tbl) return;
   const topRows=model.exceptions.slice(0,10).map((e,i)=>`<tr><td>استثناء</td><td>${i+1}</td><td>${escapeHtml(e.code)}</td><td>${escapeHtml(e.name)}</td><td>${escapeHtml(e.label)}</td><td>${fmt(e.reviewScore)}</td></tr>`).join('');
@@ -3269,4 +3391,5 @@ function initExecutiveReports(){
   $('#smartVisualPngBtn')?.addEventListener('click',async()=>{ ACTIVE_REPORT_TAB='smart'; await exportActiveReportPng(); });
 }
 document.addEventListener('DOMContentLoaded',initExecutiveReports);
+document.addEventListener('DOMContentLoaded',initAuditScoreDetails);
 document.addEventListener('DOMContentLoaded',()=>{ ensureDashboardPngButtons(); setTimeout(ensureDashboardPngButtons,800); });
