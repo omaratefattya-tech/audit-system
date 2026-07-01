@@ -52,6 +52,7 @@
         <button class="nav-item" data-section="inbound">مراجعة الوارد <span class="nav-icon" data-icon="inbound"></span></button>
         <button class="nav-item" data-section="reports">التقارير <span class="nav-icon" data-icon="reports"></span></button>
         <button class="nav-item" data-section="users">إدارة المستخدمين <span class="nav-icon" data-icon="users"></span></button>
+        <button class="nav-item" data-section="permissions">إدارة الصلاحيات <span class="nav-icon" data-icon="shield"></span></button>
         <button class="nav-item" data-section="settings">الإعدادات <span class="nav-icon" data-icon="settings"></span></button>
       </nav>
     </aside>
@@ -572,6 +573,84 @@
           </form>
         </div>
       </div>
+
+
+      <section id="permissions" class="section">
+        <article class="panel glass permissions-management-panel" id="permissionsManagementCapture">
+          <div class="permissions-hero">
+            <div>
+              <span class="section-badge">أمن النظام</span>
+              <h2>إدارة الصلاحيات <span class="hero-icon">🛡️</span></h2>
+              <p class="hint">تحديد صلاحيات كل دور على الشاشات والإجراءات. Super Admin يملك كل الصلاحيات ولا يتم تعديله من هذه الشاشة.</p>
+            </div>
+            <div class="permissions-hero-actions">
+              <button class="primary" id="savePermissionsBtn" type="button">💾 حفظ الصلاحيات</button>
+              <button class="secondary" id="reloadPermissionsBtn" type="button">تحديث ↻</button>
+            </div>
+          </div>
+
+          <div class="permissions-kpi-grid">
+            <article class="permissions-kpi-card"><span>🧩</span><b id="permissionsScreensCount">0</b><small>الشاشات</small></article>
+            <article class="permissions-kpi-card"><span>✅</span><b id="permissionsEnabledCount">0</b><small>صلاحيات مفعلة</small></article>
+            <article class="permissions-kpi-card"><span>🔒</span><b id="permissionsDisabledCount">0</b><small>صلاحيات مقفلة</small></article>
+            <article class="permissions-kpi-card"><span>👤</span><b id="permissionsSelectedRoleLabel">Admin</b><small>الدور المختار</small></article>
+          </div>
+
+          <div class="permissions-toolbar glass-soft">
+            <label class="permissions-role-picker">الدور
+              <select id="permissionsRoleSelect">
+                <option value="admin">Admin</option>
+                <option value="auditor">Auditor</option>
+                <option value="viewer">Viewer</option>
+              </select>
+            </label>
+            <div class="permissions-search-box">
+              <span>🔍</span>
+              <input id="permissionsQuickSearch" type="search" placeholder="بحث باسم الشاشة أو الوصف..." />
+            </div>
+            <button class="secondary" id="permissionsSelectAllBtn" type="button">تحديد الكل</button>
+            <button class="secondary" id="permissionsClearAllBtn" type="button">إلغاء الكل</button>
+            <button class="secondary" id="permissionsDefaultsBtn" type="button">استعادة الافتراضي</button>
+          </div>
+
+          <div class="upload-status permissions-status-bar" id="permissionsManagementStatus"></div>
+
+          <div class="permissions-layout">
+            <div class="permissions-table-card">
+              <table id="permissionsMatrixTable" class="permissions-matrix-table">
+                <thead>
+                  <tr>
+                    <th>الشاشة / القسم</th>
+                    <th>عرض</th>
+                    <th>إضافة</th>
+                    <th>تعديل</th>
+                    <th>حذف</th>
+                    <th>رفع</th>
+                    <th>Excel</th>
+                    <th>PDF</th>
+                    <th>PNG</th>
+                    <th>اعتماد</th>
+                    <th>إدارة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="11" class="empty-row">اختر الدور لتحميل الصلاحيات...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <aside class="permissions-side-card glass-soft">
+              <h3>قواعد مهمة</h3>
+              <ul>
+                <li>Super Admin لا يظهر هنا لأنه يملك كل الصلاحيات تلقائياً.</li>
+                <li>إلغاء صلاحية العرض يخفي الشاشة من القائمة الجانبية.</li>
+                <li>الأزرار الحساسة مثل الحذف والرفع والتصدير تتأثر بالصلاحيات.</li>
+                <li>يتم تطبيق الصلاحيات بعد الحفظ وتحديث الصفحة أو تسجيل الدخول.</li>
+              </ul>
+              <div class="permissions-role-info" id="permissionsRoleInfo"></div>
+            </aside>
+          </div>
+        </article>
+      </section>
 
       <section id="settings" class="section">
         <article class="panel glass">

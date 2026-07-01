@@ -697,6 +697,7 @@ function modernIcon(name){
     inbound:`<svg ${attrs}><path d="M12 3v10"></path><path d="M8 9l4 4 4-4"></path><path d="M5 17h14"></path><path d="M7 21h10"></path></svg>`,
     reports:`<svg ${attrs}><path d="M4 20V10"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg>`,
     users:`<svg ${attrs}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`,
+    shield:`<svg ${attrs}><path d="M12 3 20 6v5c0 5-3.4 8.2-8 10-4.6-1.8-8-5-8-10V6l8-3Z"></path><path d="m9 12 2 2 4-5"></path></svg>`,
     settings:`<svg ${attrs}><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path><path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.04.04a2.1 2.1 0 1 1-2.97 2.97l-.04-.04a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.65V21.4a2.1 2.1 0 1 1-4.2 0v-.06a1.8 1.8 0 0 0-1.1-1.65 1.8 1.8 0 0 0-1.98.36l-.04.04a2.1 2.1 0 1 1-2.97-2.97l.04-.04A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.65-1.1H2.9a2.1 2.1 0 1 1 0-4.2h.06A1.8 1.8 0 0 0 4.6 8a1.8 1.8 0 0 0-.36-1.98l-.04-.04a2.1 2.1 0 1 1 2.97-2.97l.04.04A1.8 1.8 0 0 0 9.2 3.4 1.8 1.8 0 0 0 10.3 1.75V1.7a2.1 2.1 0 1 1 4.2 0v.06a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 1.98-.36l.04-.04a2.1 2.1 0 1 1 2.97 2.97l-.04.04A1.8 1.8 0 0 0 19.4 8c.13.38.38.7.71.92.28.18.61.28.94.28h.06a2.1 2.1 0 1 1 0 4.2h-.06A1.8 1.8 0 0 0 19.4 15Z"></path></svg>`
   };
   return icons[name] || icons.reports;
@@ -985,6 +986,10 @@ function updateFiltersVisibility(section){
   filters.setAttribute('aria-hidden',shouldShow?'false':'true');
 }
 function switchSection(section){
+  if(!canViewSection(section)){
+    showPermissionDenied(section);
+    return;
+  }
   $$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.section===section));
   $$('.section').forEach(s=>s.classList.remove('active-section'));
   const target=$('#'+section);
@@ -992,6 +997,8 @@ function switchSection(section){
   updateFiltersVisibility(section);
   if(section==='reports') setTimeout(()=>loadExecutiveReport(),50);
   if(section==='users') setTimeout(()=>loadUsersManagement(),50);
+  if(section==='permissions') setTimeout(()=>loadPermissionsManagement(),50);
+  setTimeout(()=>applyPermissionActionGuards(section),80);
 }
 function nav(){
   $$('.nav-item').forEach(b=>b.onclick=()=>switchSection(b.dataset.section));
@@ -2227,10 +2234,12 @@ async function showApplication(user){
     return;
   }
   CURRENT_APP_PROFILE=profile;
+  await loadCurrentUserPermissions();
   $('#loginScreen')?.classList.add('login-hidden');
   $('#appShell')?.classList.remove('app-hidden');
   applyProfileToHeader(profile);
   fillProfileForm(profile,user);
+  applyNavigationPermissions();
   setTimeout(()=>{
     loadSalesBatches();
     loadIncomingBatches();
@@ -2319,6 +2328,246 @@ function initProfileSettings(){
   }
 }
 
+
+
+// === Permissions Engine ===
+const PERMISSION_ACTIONS = [
+  {key:'view', label:'عرض'},
+  {key:'add', label:'إضافة'},
+  {key:'edit', label:'تعديل'},
+  {key:'delete', label:'حذف'},
+  {key:'upload', label:'رفع'},
+  {key:'export_excel', label:'Excel'},
+  {key:'export_pdf', label:'PDF'},
+  {key:'export_png', label:'PNG'},
+  {key:'approve', label:'اعتماد'},
+  {key:'manage', label:'إدارة'}
+];
+const PERMISSION_SCREENS = [
+  {key:'dashboard', label:'الرئيسية', description:'عرض لوحة المؤشرات والشاشة الرئيسية'},
+  {key:'upload', label:'رفع التقارير', description:'رفع ملفات البيع والوارد والميزان والنولون'},
+  {key:'plants', label:'مصانع ومخازن', description:'عرض وإدارة المصانع والمخازن'},
+  {key:'movements', label:'الحركات المخزنية', description:'قواعد وأكواد الحركات المخزنية'},
+  {key:'sales', label:'مراجعة البيع', description:'مراجعة مبيعات المنتج التام والتحويلات'},
+  {key:'inbound', label:'مراجعة الوارد', description:'مراجعة وارد MB51 والميزان والنولون'},
+  {key:'reports', label:'التقارير', description:'مركز التقارير التنفيذية والتحليلات'},
+  {key:'users', label:'إدارة المستخدمين', description:'إنشاء وتعديل وتعطيل وحذف المستخدمين'},
+  {key:'permissions', label:'إدارة الصلاحيات', description:'تعديل صلاحيات الأدوار والشاشات'},
+  {key:'settings', label:'الإعدادات', description:'بيانات الحساب وإعدادات النظام'}
+];
+const PERMISSION_ROLE_LABELS={admin:'Admin',auditor:'Auditor',viewer:'Viewer'};
+let CURRENT_ROLE_PERMISSIONS = {};
+let PERMISSIONS_MANAGEMENT_STATE={role:'admin', rows:[], view:[], dirty:false};
+function permissionColumn(action){ return 'can_'+action; }
+function defaultPermissionValue(role,screen,action){
+  if(role==='admin') return true;
+  if(role==='auditor'){
+    if(['users','permissions','settings'].includes(screen)) return false;
+    if(['delete','manage','approve'].includes(action)) return false;
+    if(action==='add') return ['upload'].includes(screen);
+    if(action==='edit') return ['sales','inbound','reports'].includes(screen);
+    return ['view','upload','export_excel','export_pdf','export_png'].includes(action);
+  }
+  if(role==='viewer'){
+    if(['users','permissions','settings','upload'].includes(screen)) return false;
+    return ['view','export_excel','export_pdf','export_png'].includes(action);
+  }
+  return false;
+}
+function buildDefaultPermissions(role){
+  const map={};
+  PERMISSION_SCREENS.forEach(sc=>{
+    map[sc.key]={screen_key:sc.key, role};
+    PERMISSION_ACTIONS.forEach(a=>{ map[sc.key][permissionColumn(a.key)] = defaultPermissionValue(role,sc.key,a.key); });
+  });
+  return map;
+}
+function normalizePermissionRow(row, role){
+  const key=row?.screen_key || row?.screen || row?.section_key || '';
+  const out={screen_key:key, role:row?.role || role};
+  PERMISSION_ACTIONS.forEach(a=>{
+    const col=permissionColumn(a.key);
+    out[col]=row && Object.prototype.hasOwnProperty.call(row,col) ? row[col] === true : defaultPermissionValue(role,key,a.key);
+  });
+  return out;
+}
+function permissionsForRoleFromRows(role, rows){
+  const defaults=buildDefaultPermissions(role);
+  (rows||[]).forEach(r=>{
+    const nr=normalizePermissionRow(r,role);
+    if(nr.screen_key && defaults[nr.screen_key]) defaults[nr.screen_key]={...defaults[nr.screen_key],...nr};
+  });
+  return defaults;
+}
+function isSuperAdmin(){ return CURRENT_APP_PROFILE?.role === 'super_admin'; }
+function hasPermission(section, action='view'){
+  if(isSuperAdmin()) return true;
+  if(!section) return true;
+  const row=CURRENT_ROLE_PERMISSIONS?.[section];
+  if(!row) return action==='view' ? ['dashboard'].includes(section) : false;
+  return row[permissionColumn(action)] === true;
+}
+function canViewSection(section){ return hasPermission(section,'view'); }
+function showPermissionDenied(section){
+  const label=PERMISSION_SCREENS.find(x=>x.key===section)?.label || section;
+  alert(`غير مسموح بالوصول إلى: ${label}\nراجع مدير النظام لتعديل الصلاحيات.`);
+}
+async function loadCurrentUserPermissions(){
+  if(isSuperAdmin()){ CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions('admin'); return; }
+  const role=CURRENT_APP_PROFILE?.role || 'viewer';
+  if(!WarehouseDB?.ready){ CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions(role); return; }
+  try{
+    const {data,error}=await WarehouseDB.client.from('app_role_permissions').select('*').eq('role',role);
+    CURRENT_ROLE_PERMISSIONS = error ? buildDefaultPermissions(role) : permissionsForRoleFromRows(role,data||[]);
+  }catch(_){ CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions(role); }
+}
+function applyNavigationPermissions(){
+  $$('.nav-item').forEach(btn=>{
+    const section=btn.dataset.section;
+    const allowed=canViewSection(section);
+    btn.classList.toggle('permission-hidden',!allowed);
+    btn.disabled=!allowed;
+    btn.title=allowed?'':'غير مسموح حسب صلاحيات الدور';
+  });
+  const active=$('.nav-item.active');
+  if(active && active.disabled){
+    const first=[...$$('.nav-item')].find(b=>!b.disabled);
+    if(first) switchSection(first.dataset.section);
+  }
+}
+function disableByPermission(selector, section, action, message){
+  $$(selector).forEach(el=>{
+    const allowed=hasPermission(section,action);
+    el.disabled=!allowed;
+    el.classList.toggle('permission-disabled',!allowed);
+    if(!allowed) el.title=message || 'غير مسموح حسب صلاحيات الدور';
+  });
+}
+function applyPermissionActionGuards(section){
+  applyNavigationPermissions();
+  if(!section) return;
+  disableByPermission('button[id*="ExportExcel"],button[id*="Excel"],button[id*="exportExcel"],button[id*="ExcelBtn"]',section,'export_excel','لا تملك صلاحية تصدير Excel');
+  disableByPermission('button[id*="ExportPdf"],button[id*="Pdf"],button[id*="exportPdf"],button[id*="PdfBtn"]',section,'export_pdf','لا تملك صلاحية تصدير PDF');
+  disableByPermission('button[id*="ExportPng"],button[id*="Png"],.png-export-btn',section,'export_png','لا تملك صلاحية تصدير PNG');
+  disableByPermission('.delete-user-btn,.delete-batch-btn,button[id*="Delete"],button.danger',section,'delete','لا تملك صلاحية الحذف');
+  disableByPermission('button[id*="Upload"],button[id*="pick"],.upload-report-tab',section,'upload','لا تملك صلاحية الرفع');
+  disableByPermission('button[id*="save"],button[id*="Save"],button[id*="edit"],.edit-user-btn',section,'edit','لا تملك صلاحية التعديل');
+}
+function setPermissionsStatus(message,type=''){
+  const el=$('#permissionsManagementStatus');
+  if(!el) return;
+  el.className='upload-status permissions-status-bar '+(type||'');
+  el.textContent=message||'';
+}
+function permissionsKpiUpdate(rows){
+  const total=rows.length*PERMISSION_ACTIONS.length;
+  let enabled=0;
+  rows.forEach(r=>PERMISSION_ACTIONS.forEach(a=>{ if(r[permissionColumn(a.key)]) enabled++; }));
+  const set=(id,v)=>{const el=$(id); if(el) el.textContent=v;};
+  set('#permissionsScreensCount',rows.length);
+  set('#permissionsEnabledCount',enabled);
+  set('#permissionsDisabledCount',Math.max(0,total-enabled));
+  set('#permissionsSelectedRoleLabel',PERMISSION_ROLE_LABELS[PERMISSIONS_MANAGEMENT_STATE.role]||PERMISSIONS_MANAGEMENT_STATE.role);
+}
+function renderPermissionsMatrix(rows){
+  const tbody=$('#permissionsMatrixTable tbody');
+  if(!tbody) return;
+  if(!rows.length){ tbody.innerHTML='<tr><td colspan="11" class="empty-row">لا توجد شاشات مطابقة.</td></tr>'; return; }
+  tbody.innerHTML=rows.map(sc=>{
+    const row=PERMISSIONS_MANAGEMENT_STATE.rows.find(r=>r.screen_key===sc.key) || buildDefaultPermissions(PERMISSIONS_MANAGEMENT_STATE.role)[sc.key];
+    const cells=PERMISSION_ACTIONS.map(a=>{
+      const col=permissionColumn(a.key);
+      return `<td><label class="perm-toggle"><input type="checkbox" data-screen="${escapeHtml(sc.key)}" data-action="${escapeHtml(a.key)}" ${row[col]?'checked':''}><span></span></label></td>`;
+    }).join('');
+    return `<tr data-screen="${escapeHtml(sc.key)}"><td class="permission-screen-cell"><b>${escapeHtml(sc.label)}</b><small>${escapeHtml(sc.description||'')}</small></td>${cells}</tr>`;
+  }).join('');
+  tbody.querySelectorAll('input[type="checkbox"]').forEach(chk=>chk.addEventListener('change',onPermissionToggleChange));
+}
+function applyPermissionsSearch(){
+  const q=($('#permissionsQuickSearch')?.value||'').trim().toLowerCase();
+  PERMISSIONS_MANAGEMENT_STATE.view=PERMISSION_SCREENS.filter(sc=>!q || [sc.key,sc.label,sc.description].join(' ').toLowerCase().includes(q));
+  renderPermissionsMatrix(PERMISSIONS_MANAGEMENT_STATE.view);
+  permissionsKpiUpdate(PERMISSIONS_MANAGEMENT_STATE.rows);
+}
+function onPermissionToggleChange(e){
+  const screen=e.target.dataset.screen;
+  const action=e.target.dataset.action;
+  const row=PERMISSIONS_MANAGEMENT_STATE.rows.find(r=>r.screen_key===screen);
+  if(row){ row[permissionColumn(action)]=e.target.checked; PERMISSIONS_MANAGEMENT_STATE.dirty=true; }
+  permissionsKpiUpdate(PERMISSIONS_MANAGEMENT_STATE.rows);
+}
+function setAllVisiblePermissions(value){
+  PERMISSIONS_MANAGEMENT_STATE.view.forEach(sc=>{
+    const row=PERMISSIONS_MANAGEMENT_STATE.rows.find(r=>r.screen_key===sc.key);
+    if(row) PERMISSION_ACTIONS.forEach(a=>row[permissionColumn(a.key)]=value);
+  });
+  PERMISSIONS_MANAGEMENT_STATE.dirty=true;
+  applyPermissionsSearch();
+}
+function resetPermissionsToDefaults(){
+  const role=PERMISSIONS_MANAGEMENT_STATE.role;
+  PERMISSIONS_MANAGEMENT_STATE.rows=Object.values(buildDefaultPermissions(role));
+  PERMISSIONS_MANAGEMENT_STATE.dirty=true;
+  applyPermissionsSearch();
+  setPermissionsStatus('تم استعادة الصلاحيات الافتراضية. اضغط حفظ لاعتمادها.','ok');
+}
+async function loadPermissionsManagement(){
+  if(!$('#permissionsMatrixTable')) return;
+  if(!isSuperAdmin() && !hasPermission('permissions','manage')){
+    setPermissionsStatus('غير مسموح بإدارة الصلاحيات لهذا الدور.','err');
+    return;
+  }
+  const role=$('#permissionsRoleSelect')?.value || PERMISSIONS_MANAGEMENT_STATE.role || 'admin';
+  PERMISSIONS_MANAGEMENT_STATE.role=role;
+  setPermissionsStatus('جاري تحميل الصلاحيات...');
+  try{
+    let rows=[];
+    if(WarehouseDB?.ready){
+      const {data,error}=await WarehouseDB.client.from('app_role_permissions').select('*').eq('role',role);
+      if(error) throw error;
+      rows=data||[];
+    }
+    PERMISSIONS_MANAGEMENT_STATE.rows=Object.values(permissionsForRoleFromRows(role,rows));
+    PERMISSIONS_MANAGEMENT_STATE.dirty=false;
+    const info=$('#permissionsRoleInfo');
+    if(info) info.innerHTML=`<b>${PERMISSION_ROLE_LABELS[role]}</b><span>عدد الصلاحيات: ${PERMISSIONS_MANAGEMENT_STATE.rows.length*PERMISSION_ACTIONS.length}</span>`;
+    applyPermissionsSearch();
+    setPermissionsStatus('تم تحميل الصلاحيات.','ok');
+  }catch(err){
+    PERMISSIONS_MANAGEMENT_STATE.rows=Object.values(buildDefaultPermissions(role));
+    applyPermissionsSearch();
+    setPermissionsStatus('تعذر تحميل الصلاحيات من Supabase، تم عرض الافتراضي: '+(err.message||err),'err');
+  }
+}
+async function savePermissionsManagement(){
+  if(!WarehouseDB?.ready){ setPermissionsStatus('Supabase غير متصل.','err'); return; }
+  if(!isSuperAdmin() && !hasPermission('permissions','manage')){ setPermissionsStatus('غير مسموح بحفظ الصلاحيات.','err'); return; }
+  const role=PERMISSIONS_MANAGEMENT_STATE.role;
+  if(role==='super_admin'){ setPermissionsStatus('لا يمكن تعديل صلاحيات Super Admin.','err'); return; }
+  try{
+    setPermissionsStatus('جاري حفظ الصلاحيات...');
+    const payload=PERMISSIONS_MANAGEMENT_STATE.rows.map(r=>{
+      const obj={role,screen_key:r.screen_key,updated_at:new Date().toISOString()};
+      PERMISSION_ACTIONS.forEach(a=>obj[permissionColumn(a.key)] = r[permissionColumn(a.key)] === true);
+      return obj;
+    });
+    const {error}=await WarehouseDB.client.from('app_role_permissions').upsert(payload,{onConflict:'role,screen_key'});
+    if(error) throw error;
+    PERMISSIONS_MANAGEMENT_STATE.dirty=false;
+    setPermissionsStatus('تم حفظ الصلاحيات بنجاح.','ok');
+    await loadCurrentUserPermissions();
+    applyNavigationPermissions();
+  }catch(err){ setPermissionsStatus('تعذر حفظ الصلاحيات: '+(err.message||err),'err'); }
+}
+function initPermissionsManagement(){
+  $('#permissionsRoleSelect')?.addEventListener('change',loadPermissionsManagement);
+  $('#permissionsQuickSearch')?.addEventListener('input',applyPermissionsSearch);
+  $('#savePermissionsBtn')?.addEventListener('click',savePermissionsManagement);
+  $('#reloadPermissionsBtn')?.addEventListener('click',loadPermissionsManagement);
+  $('#permissionsSelectAllBtn')?.addEventListener('click',()=>setAllVisiblePermissions(true));
+  $('#permissionsClearAllBtn')?.addEventListener('click',()=>setAllVisiblePermissions(false));
+  $('#permissionsDefaultsBtn')?.addEventListener('click',resetPermissionsToDefaults);
+}
 
 // === Users Management ===
 const USER_ROLE_LABELS={super_admin:'منشئ النظام',admin:'Admin',auditor:'Auditor',viewer:'Viewer',authenticated:'Authenticated'};
@@ -2740,7 +2989,7 @@ function initMainLoginGate(){
   }
   checkMainSession();
 }
-document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initUsersManagement();});
+document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initUsersManagement();initPermissionsManagement();});
 
 // Upload reports tabs controller
 function initUploadReportTabs(){
