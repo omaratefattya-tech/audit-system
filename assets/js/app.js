@@ -3761,26 +3761,158 @@ async function loadSmartAnalyticsReport(options={}){
   renderSmartKpiCards(model); drawSmartMixChart(model); drawSmartPlantScoreChart(model); renderSmartExecutiveSummary(model); renderSmartAlerts(model); renderSmartTopInsights(model); renderSmartRecommendations(model); renderSmartTrendAnalysis(model); renderSmartPlantScores(model); renderSmartExportTable(model);
 }
 
+
+// === Production Analytics Report ===
+let PRODUCTION_ANALYTICS_STATE={rows:[],filters:null,summary:null,plants:[],products:[],daily:{},plantDaily:{}};
+function productionDayKey(v){ return normalizeDateISO(v)||'غير محدد'; }
+function buildProductionAnalyticsModel(rows,filters){
+  const summary={total:0,days:0,avgDaily:0,maxDay:{date:'-',value:0},minDay:{date:'-',value:0},topPlant:null,stability:0,changePct:0};
+  const plantMap={}, productMap={}, daily={}, plantDaily={};
+  (rows||[]).forEach(r=>{
+    const prod=toNumber(r.production_quantity);
+    const date=productionDayKey(r.report_date);
+    const plant=String(r.plant_code||dashboardPlantFromWarehouse(r.warehouse_code)||'غير محدد').toUpperCase();
+    const plantName=r.plant_name || (APP_DATA.plants.find(p=>p.code===plant)||{}).name || plant;
+    const code=String(r.material_code||'-');
+    const name=r.material_name||'-';
+    summary.total+=prod;
+    daily[date]=(daily[date]||0)+prod;
+    if(!plantMap[plant]) plantMap[plant]={code:plant,name:plantName,production:0,days:{},avg:0,pct:0,maxDay:{date:'-',value:0},minDay:{date:'-',value:0}};
+    plantMap[plant].production+=prod;
+    plantMap[plant].days[date]=(plantMap[plant].days[date]||0)+prod;
+    if(!plantDaily[plant]) plantDaily[plant]={};
+    plantDaily[plant][date]=(plantDaily[plant][date]||0)+prod;
+    if(!productMap[code]) productMap[code]={code,name,production:0,pct:0};
+    productMap[code].production+=prod;
+  });
+  const dayEntries=Object.entries(daily).sort(([a],[b])=>a.localeCompare(b));
+  const positives=dayEntries.filter(([,v])=>v>0);
+  summary.days=positives.length;
+  summary.avgDaily=summary.days?summary.total/summary.days:0;
+  if(positives.length){
+    const sorted=[...positives].sort((a,b)=>b[1]-a[1]);
+    summary.maxDay={date:sorted[0][0],value:sorted[0][1]};
+    summary.minDay={date:sorted[sorted.length-1][0],value:sorted[sorted.length-1][1]};
+    const values=positives.map(([,v])=>v), mean=summary.avgDaily;
+    const variance=values.reduce((a,v)=>a+Math.pow(v-mean,2),0)/values.length;
+    const cv=mean?Math.sqrt(variance)/mean:0;
+    summary.stability=Math.max(0,Math.min(100,100-(cv*100)));
+    const mid=Math.floor(values.length/2);
+    const first=values.slice(0,mid||1).reduce((a,b)=>a+b,0)/Math.max(1,(mid||1));
+    const second=values.slice(mid).reduce((a,b)=>a+b,0)/Math.max(1,values.slice(mid).length||1);
+    summary.changePct=first?((second-first)/first)*100:0;
+  }
+  const plants=Object.values(plantMap).sort((a,b)=>b.production-a.production).map(p=>{
+    const vals=Object.entries(p.days).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+    p.pct=summary.total?Math.abs(p.production)/Math.abs(summary.total)*100:0;
+    p.avg=vals.length?p.production/vals.length:0;
+    if(vals.length){ p.maxDay={date:vals[0][0],value:vals[0][1]}; p.minDay={date:vals[vals.length-1][0],value:vals[vals.length-1][1]}; }
+    return p;
+  });
+  const products=Object.values(productMap).sort((a,b)=>b.production-a.production).map(p=>{p.pct=summary.total?Math.abs(p.production)/Math.abs(summary.total)*100:0; return p;});
+  summary.topPlant=plants[0]||null;
+  return {rows:rows||[],filters,summary,plants,products,daily,plantDaily};
+}
+function renderProductionKpis(model){
+  const s=model.summary||{};
+  const cards=[
+    ['إجمالي إنتاج المصانع',s.total,'طن','🏭'],
+    ['متوسط الإنتاج اليومي',s.avgDaily,'طن/يوم','📈'],
+    ['أعلى يوم إنتاج',s.maxDay?.value||0,s.maxDay?.date||'-','🟢'],
+    ['أقل يوم إنتاج',s.minDay?.value||0,s.minDay?.date||'-','🔴'],
+    ['عدد أيام الإنتاج',s.days,'يوم','📅'],
+    ['نسبة التغير',s.changePct||0,'%','↗']
+  ];
+  const node=$('#productionKpiCards');
+  if(node) node.innerHTML=cards.map(c=>`<article class="kpi glass production-kpi"><h3>${c[0]}</h3><div class="num">${fmt(c[1])}</div><small>${escapeHtml(c[2])}</small><div class="icon">${c[3]}</div></article>`).join('');
+}
+function drawProductionPlantBar(plants){
+  const canvas=$('#productionPlantBarChart'); if(!canvas) return; const ctx=canvas.getContext('2d'), w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
+  const data=(plants||[]).slice(0,8); if(!data.length){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات إنتاج',w/2,h/2);return;}
+  const max=Math.max(1,...data.map(p=>Math.abs(p.production||0))); const pad={l:58,r:24,t:34,b:55}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
+  ctx.strokeStyle='rgba(255,255,255,.13)'; ctx.fillStyle='#cfe8d0'; ctx.font='bold 11px Cairo'; ctx.textAlign='right';
+  for(let i=0;i<=4;i++){const y=pad.t+ch-(i/4)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmt(max*i/4),pad.l-8,y+4);}
+  const barW=Math.min(70,cw/data.length*.55);
+  data.forEach((p,i)=>{const x=pad.l+(i+.5)*(cw/data.length)-barW/2; const bh=Math.abs(p.production)/max*ch; const y=pad.t+ch-bh; const grd=ctx.createLinearGradient(0,y,0,pad.t+ch); grd.addColorStop(0,colors[i%colors.length]); grd.addColorStop(1,'rgba(81,184,72,.18)'); ctx.fillStyle=grd; ctx.fillRect(x,y,barW,bh); ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 12px Cairo';ctx.fillText(fmt(p.production),x+barW/2,y-7);ctx.fillStyle='#eaffdf';ctx.font='bold 13px Cairo';ctx.fillText(p.code,x+barW/2,pad.t+ch+26);});
+}
+function drawProductionContributionDonut(plants){
+  const canvas=$('#productionContributionDonut'), legend=$('#productionContributionLegend'); if(!canvas) return; const ctx=canvas.getContext('2d'), w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
+  const entries=(plants||[]).filter(p=>Math.abs(p.production)>0).slice(0,8); const sum=entries.reduce((a,p)=>a+Math.abs(p.production),0); if(!sum){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2); if(legend) legend.innerHTML=''; return;}
+  const cx=w*.34,cy=h*.5,r=Math.min(w,h)*.32,ir=r*.55; let a=-Math.PI/2;
+  entries.forEach((p,i)=>{const ang=Math.abs(p.production)/sum*Math.PI*2; ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+ang);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();a+=ang;});
+  ctx.beginPath();ctx.arc(cx,cy,ir,0,Math.PI*2);ctx.fillStyle='#00251f';ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 18px Cairo';ctx.fillText(fmt(sum),cx,cy-2);ctx.font='bold 12px Cairo';ctx.fillStyle='#d8ffd1';ctx.fillText('طن',cx,cy+20);
+  if(legend) legend.innerHTML=entries.map((p,i)=>`<div><span style="background:${colors[i%colors.length]}"></span><b>${escapeHtml(p.code)}</b> ${fmt(p.pct)}% - ${fmt(p.production)} طن</div>`).join('');
+}
+function heatClass(value,min,max){ if(!value) return 'zero'; if(max===min) return 'mid'; const r=(value-min)/(max-min); if(r>.72) return 'high'; if(r<.28) return 'low'; return 'mid'; }
+function renderProductionPlantHeatmap(model){
+  const node=$('#productionPlantHeatmap'); if(!node) return; const days=Object.keys(model.daily||{}).sort(); const plants=model.plants||[];
+  if(!days.length || !plants.length){ node.innerHTML='<div class="empty-row">لا توجد بيانات إنتاج</div>'; return; }
+  const vals=[]; plants.forEach(p=>days.forEach(d=>vals.push(model.plantDaily[p.code]?.[d]||0))); const pos=vals.filter(v=>v>0), max=Math.max(...pos,0), min=pos.length?Math.min(...pos):0;
+  const cols=`92px repeat(${days.length}, minmax(58px,1fr))`;
+  const dayHead=days.map(d=>`<span>${escapeHtml(d.slice(5))}</span>`).join('');
+  const rows=plants.map(p=>`<div class="prod-heat-row" style="grid-template-columns:${cols}"><strong>${escapeHtml(p.code)}</strong>${days.map(d=>{const v=model.plantDaily[p.code]?.[d]||0; return `<i class="${heatClass(v,min,max)}" title="${escapeHtml(p.code)} / ${escapeHtml(d)} / ${fmt(v)} طن"><b>${fmt(v)}</b></i>`;}).join('')}</div>`).join('');
+  node.innerHTML=`<div class="prod-heat-head" style="grid-template-columns:${cols}"><strong>المصنع</strong>${dayHead}</div>${rows}<div class="prod-heat-scale"><span>الأقل</span><em></em><span>الأعلى</span></div>`;
+}
+function renderProductionAllHeatmap(model){
+  const node=$('#productionAllHeatmap'); if(!node) return; const entries=Object.entries(model.daily||{}).sort(([a],[b])=>a.localeCompare(b));
+  if(!entries.length){node.innerHTML='<div class="empty-row">لا توجد بيانات إنتاج</div>';return;}
+  const pos=entries.map(([,v])=>v).filter(v=>v>0), max=Math.max(...pos,0), min=pos.length?Math.min(...pos):0;
+  node.innerHTML=`<div class="production-all-grid">${entries.map(([d,v])=>`<div class="all-heat-cell ${heatClass(v,min,max)}" title="${escapeHtml(d)} - ${fmt(v)} طن"><b>${escapeHtml(d.slice(5))}</b><span>${fmt(v)}</span></div>`).join('')}</div><div class="prod-heat-scale"><span>الأقل إنتاجاً</span><em></em><span>الأعلى إنتاجاً</span></div>`;
+}
+function renderProductionTopProducts(products){
+  renderRankTable('#productionTopProductsTable',['#','كود الصنف','اسم الصنف','إجمالي الإنتاج','النسبة'],(products||[]).slice(0,10).map((p,i)=>[i+1,escapeHtml(p.code),escapeHtml(p.name),fmt(p.production),`${fmt(p.pct)}%`]));
+}
+function renderProductionInsights(model){
+  const s=model.summary||{}, top=model.products?.[0]||{}, lowPlant=[...(model.plants||[])].sort((a,b)=>a.production-b.production)[0]||{};
+  const lines=[
+    ['🏆',`أعلى مصنع إنتاجاً: ${s.topPlant?.code||'-'} بإجمالي ${fmt(s.topPlant?.production||0)} طن`],
+    ['📦',`أعلى صنف إنتاجاً: ${top.code||'-'} - ${escapeHtml(top.name||'-')} بإجمالي ${fmt(top.production||0)} طن`],
+    ['📉',`أقل مصنع إنتاجاً: ${lowPlant.code||'-'} بإجمالي ${fmt(lowPlant.production||0)} طن`],
+    ['🟢',`أعلى يوم إنتاج: ${s.maxDay?.date||'-'} بقيمة ${fmt(s.maxDay?.value||0)} طن`],
+    ['🔴',`أقل يوم إنتاج: ${s.minDay?.date||'-'} بقيمة ${fmt(s.minDay?.value||0)} طن`],
+    ['🛡️',`مؤشر استقرار الإنتاج: ${fmt(s.stability||0)}%`]
+  ];
+  const node=$('#productionInsights'); if(node) node.innerHTML=lines.map(l=>`<div class="production-insight"><span>${l[0]}</span><b>${l[1]}</b></div>`).join('');
+}
+function renderProductionExportTable(model){
+  const tbl=$('#productionAnalyticsExportTable'); if(!tbl) return;
+  const plantRows=(model.plants||[]).map((p,i)=>`<tr><td>مصنع</td><td>${i+1}</td><td>${escapeHtml(p.code)}</td><td>${escapeHtml(p.name)}</td><td>${fmt(p.production)}</td><td>${fmt(p.pct)}%</td></tr>`).join('');
+  const productRows=(model.products||[]).slice(0,10).map((p,i)=>`<tr><td>صنف</td><td>${i+1}</td><td>${escapeHtml(p.code)}</td><td>${escapeHtml(p.name)}</td><td>${fmt(p.production)}</td><td>${fmt(p.pct)}%</td></tr>`).join('');
+  tbl.innerHTML=`<thead><tr><th>النوع</th><th>#</th><th>الكود</th><th>البيان</th><th>الإنتاج</th><th>النسبة</th></tr></thead><tbody><tr><td>إجمالي</td><td>-</td><td>-</td><td>إجمالي إنتاج المصانع</td><td>${fmt(model.summary?.total||0)}</td><td>100%</td></tr>${plantRows}${productRows}</tbody>`;
+}
+async function loadProductionAnalyticsReport(options={}){
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
+  let query=WarehouseDB.client.from('sales_audit_report').select('report_date,warehouse_code,warehouse_name,plant_code,plant_name,material_code,material_name,production_quantity').order('report_date',{ascending:true}).range(0,9999);
+  if(filters.from) query=query.gte('report_date',filters.from); if(filters.to) query=query.lte('report_date',filters.to); if(filters.plant && filters.plant!=='all') query=query.eq('plant_code',filters.plant); if(filters.warehouse && filters.warehouse!=='all') query=query.eq('warehouse_code',filters.warehouse);
+  const {data,error}=await query; if(error){console.warn('production analytics load error',error);return;}
+  const model=buildProductionAnalyticsModel(data||[],filters); PRODUCTION_ANALYTICS_STATE=model;
+  if($('#productionAnalyticsMeta')) $('#productionAnalyticsMeta').textContent=reportFilterLabel(filters);
+  renderProductionKpis(model); drawProductionPlantBar(model.plants); drawProductionContributionDonut(model.plants); renderProductionPlantHeatmap(model); renderProductionAllHeatmap(model); renderProductionTopProducts(model.products); renderProductionInsights(model); renderProductionExportTable(model);
+}
+
 function switchReportTab(tab){
   ACTIVE_REPORT_TAB=tab;
   document.querySelectorAll('[data-report-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.reportTab===tab));
-  const exec=$('#executiveReportContent'), items=$('#itemsReportContent'), warehouses=$('#warehousesReportContent'), exceptions=$('#exceptionsReportContent'), smart=$('#smartAnalyticsContent');
+  const exec=$('#executiveReportContent'), items=$('#itemsReportContent'), warehouses=$('#warehousesReportContent'), exceptions=$('#exceptionsReportContent'), smart=$('#smartAnalyticsContent'), production=$('#productionAnalyticsContent');
   if(exec) exec.style.display=tab==='executive'?'flex':'none';
   if(items) items.style.display=tab==='items'?'flex':'none';
   if(warehouses) warehouses.style.display=tab==='warehouses'?'flex':'none';
   if(exceptions) exceptions.style.display=tab==='exceptions'?'flex':'none';
   if(smart) smart.style.display=tab==='smart'?'flex':'none';
+  if(production) production.style.display=tab==='production'?'flex':'none';
   if(tab==='executive') loadExecutiveReport({keepDates:true});
   if(tab==='items') loadItemsReport({keepDates:true});
   if(tab==='warehouses') loadWarehousesReport({keepDates:true});
   if(tab==='exceptions') loadExceptionsReport({keepDates:true});
   if(tab==='smart') loadSmartAnalyticsReport({keepDates:true});
+  if(tab==='production') loadProductionAnalyticsReport({keepDates:true});
 }
 function loadActiveReport(options={}){
   if(ACTIVE_REPORT_TAB==='items') return loadItemsReport(options);
   if(ACTIVE_REPORT_TAB==='warehouses') return loadWarehousesReport(options);
   if(ACTIVE_REPORT_TAB==='exceptions') return loadExceptionsReport(options);
   if(ACTIVE_REPORT_TAB==='smart') return loadSmartAnalyticsReport(options);
+  if(ACTIVE_REPORT_TAB==='production') return loadProductionAnalyticsReport(options);
   return loadExecutiveReport(options);
 }
 function exportActiveReportExcel(){
@@ -3788,6 +3920,7 @@ function exportActiveReportExcel(){
   if(ACTIVE_REPORT_TAB==='warehouses') return exportTableToExcel('warehousesReportExportTable','تقرير أداء المخازن');
   if(ACTIVE_REPORT_TAB==='exceptions') return exportTableToExcel('exceptionsReportExportTable','تقرير الاستثناءات والمراجعة');
   if(ACTIVE_REPORT_TAB==='smart') return exportTableToExcel('smartAnalyticsExportTable','التحليلات الذكية');
+  if(ACTIVE_REPORT_TAB==='production') return exportTableToExcel('productionAnalyticsExportTable','تحليلات الإنتاج');
   return exportTableToExcel('executiveExportTable','التقرير التنفيذي لمراجعة المخازن');
 }
 function exportActiveReportPdf(){
@@ -3795,6 +3928,7 @@ function exportActiveReportPdf(){
   if(ACTIVE_REPORT_TAB==='warehouses') return exportTableToPdf('warehousesReportExportTable','تقرير أداء المخازن');
   if(ACTIVE_REPORT_TAB==='exceptions') return exportTableToPdf('exceptionsReportExportTable','تقرير الاستثناءات والمراجعة');
   if(ACTIVE_REPORT_TAB==='smart') return exportTableToPdf('smartAnalyticsExportTable','التحليلات الذكية');
+  if(ACTIVE_REPORT_TAB==='production') return exportTableToPdf('productionAnalyticsExportTable','تحليلات الإنتاج');
   return exportTableToPdf('executiveExportTable','التقرير التنفيذي لمراجعة المخازن');
 }
 function activeReportVisualInfo(){
@@ -3803,7 +3937,8 @@ function activeReportVisualInfo(){
     items:{id:'itemsReportContent',title:'تقرير مراجعة الأصناف'},
     warehouses:{id:'warehousesReportContent',title:'تقرير أداء المخازن'},
     exceptions:{id:'exceptionsReportContent',title:'تقرير الاستثناءات والمراجعة'},
-    smart:{id:'smartAnalyticsContent',title:'التحليلات الذكية'}
+    smart:{id:'smartAnalyticsContent',title:'التحليلات الذكية'},
+    production:{id:'productionAnalyticsContent',title:'تحليلات الإنتاج'}
   };
   return map[ACTIVE_REPORT_TAB] || map.executive;
 }
