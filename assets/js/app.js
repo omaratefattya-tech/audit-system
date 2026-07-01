@@ -845,12 +845,15 @@ function renderDashboardSalesHeatmap(allRows,filters={}){
     const plant=String(r.plant_code||meta.plant||'');
     const d=dashboardDateKey(r.report_date);
     if(!/^\d{4}-\d{2}-\d{2}$/.test(d) || !d.startsWith(monthKey)) return;
+    if(filters.from && d<filters.from) return;
+    if(filters.to && d>filters.to) return;
     if(filters.plant && filters.plant!=='all' && plant!==filters.plant) return;
     if(filters.warehouse && filters.warehouse!=='all' && wh!==String(filters.warehouse).toUpperCase()) return;
     daily[d]=(daily[d]||0)+Math.abs(toNumber(r.sales_quantity));
   });
-  const values=Object.values(daily);
+  const values=Object.values(daily).filter(v=>v>0);
   const max=Math.max(...values,0);
+  const min=values.length?Math.min(...values):0;
   const weekDayOrder=[6,0,1,2,3,4,5];
   const weekDayLabels=['السبت','الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'];
   const firstDow=new Date(year,month-1,1).getDay();
@@ -865,13 +868,14 @@ function renderDashboardSalesHeatmap(allRows,filters={}){
     const date=`${monthKey}-${String(day).padStart(2,'0')}`;
     const val=daily[date]||0;
     const ratio=max?Math.max(.12,val/max):0;
-    cells.push(`<div class="heat-cell" style="--heat:${ratio.toFixed(3)}" title="${date} - ${fmt(val)} طن"><b>${day}</b><span>${fmt(val)}</span></div>`);
+    const exactClass=val>0 && max>0 && val===max?' highest':(val>0 && min>0 && val===min?' lowest':'');
+    cells.push(`<div class="heat-cell${exactClass}" style="--heat:${ratio.toFixed(3)}" title="${date} - ${fmt(val)} طن"><b>${day}</b><span>${fmt(val)}</span></div>`);
   }
   node.innerHTML=`
     <div class="heatmap-head"><strong>${monthKey}</strong><span>الأقل</span><i></i><span>الأعلى</span></div>
     <div class="heatmap-weekdays">${weekDayLabels.map(d=>`<span>${d}</span>`).join('')}</div>
     <div class="heatmap-grid">${cells.join('')}</div>
-    <div class="heatmap-footer"><b>${fmt(values.reduce((a,b)=>a+b,0))}</b><span>إجمالي البيع خلال الشهر حسب الفلتر</span></div>`;
+    <div class="heatmap-footer"><b>${fmt(values.reduce((a,b)=>a+b,0))}</b><span>إجمالي البيع للأيام المعروضة حسب الفلتر</span></div>`;
 }
 function renderRankTable(selector,heads,rows,{totalLabel='الإجمالي'}={}){
   const node=$(selector); if(!node) return;
@@ -954,7 +958,7 @@ async function loadDashboardRealData(options={}){
     reviewItemsCount:products.filter(p=>Math.abs(p.production-p.sales)>0 && Math.abs(p.production-p.sales)>Math.max(5,Math.abs(p.sales)*.25)).length
   };
   renderDashboardPlants(plantStats, stats.salesQty);
-  renderDashboardSalesHeatmap(salesRes.data||[], filters);
+  renderDashboardSalesHeatmap(sales, filters);
   const topProducts=products.sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales)).slice(0,10).map((p,i)=>[
     i+1,
     escapeHtml(p.code||'-'),
@@ -3843,21 +3847,35 @@ function drawProductionContributionDonut(plants){
   ctx.beginPath();ctx.arc(cx,cy,ir,0,Math.PI*2);ctx.fillStyle='#00251f';ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 18px Cairo';ctx.fillText(fmt(sum),cx,cy-2);ctx.font='bold 12px Cairo';ctx.fillStyle='#d8ffd1';ctx.fillText('طن',cx,cy+20);
   if(legend) legend.innerHTML=entries.map((p,i)=>`<div><span style="background:${colors[i%colors.length]}"></span><b>${escapeHtml(p.code)}</b> ${fmt(p.pct)}% - ${fmt(p.production)} طن</div>`).join('');
 }
-function heatClass(value,min,max){ if(!value) return 'zero'; if(max===min) return 'mid'; const r=(value-min)/(max-min); if(r>.72) return 'high'; if(r<.28) return 'low'; return 'mid'; }
+function heatClass(value,min,max){
+  if(!value) return 'zero';
+  if(value===max && max>0) return 'high exact-high';
+  if(value===min && min>0 && max!==min) return 'low exact-low';
+  if(max===min) return 'mid';
+  const r=(value-min)/(max-min);
+  if(r>.72) return 'high';
+  if(r<.28) return 'low';
+  return 'mid';
+}
 function renderProductionPlantHeatmap(model){
   const node=$('#productionPlantHeatmap'); if(!node) return; const days=Object.keys(model.daily||{}).sort(); const plants=model.plants||[];
   if(!days.length || !plants.length){ node.innerHTML='<div class="empty-row">لا توجد بيانات إنتاج</div>'; return; }
-  const vals=[]; plants.forEach(p=>days.forEach(d=>vals.push(model.plantDaily[p.code]?.[d]||0))); const pos=vals.filter(v=>v>0), max=Math.max(...pos,0), min=pos.length?Math.min(...pos):0;
   const cols=`92px repeat(${days.length}, minmax(58px,1fr))`;
   const dayHead=days.map(d=>`<span>${escapeHtml(d.slice(5))}</span>`).join('');
-  const rows=plants.map(p=>`<div class="prod-heat-row" style="grid-template-columns:${cols}"><strong>${escapeHtml(p.code)}</strong>${days.map(d=>{const v=model.plantDaily[p.code]?.[d]||0; return `<i class="${heatClass(v,min,max)}" title="${escapeHtml(p.code)} / ${escapeHtml(d)} / ${fmt(v)} طن"><b>${fmt(v)}</b></i>`;}).join('')}</div>`).join('');
-  node.innerHTML=`<div class="prod-heat-head" style="grid-template-columns:${cols}"><strong>المصنع</strong>${dayHead}</div>${rows}<div class="prod-heat-scale"><span>الأقل</span><em></em><span>الأعلى</span></div>`;
+  const rows=plants.map(p=>{
+    const rowValues=days.map(d=>Math.abs(toNumber(model.plantDaily[p.code]?.[d]||0)));
+    const positives=rowValues.filter(v=>v>0);
+    const rowMax=Math.max(...positives,0);
+    const rowMin=positives.length?Math.min(...positives):0;
+    return `<div class="prod-heat-row" style="grid-template-columns:${cols}"><strong>${escapeHtml(p.code)}</strong>${days.map((d,idx)=>{const v=rowValues[idx]||0; return `<i class="${heatClass(v,rowMin,rowMax)}" title="${escapeHtml(p.code)} / ${escapeHtml(d)} / ${fmt(v)} طن"><b>${fmt(v)}</b></i>`;}).join('')}</div>`;
+  }).join('');
+  node.innerHTML=`<div class="prod-heat-head" style="grid-template-columns:${cols}"><strong>المصنع</strong>${dayHead}</div>${rows}<div class="prod-heat-scale"><span>أقل يوم داخل كل مصنع</span><em></em><span>أعلى يوم داخل كل مصنع</span></div>`;
 }
 function renderProductionAllHeatmap(model){
   const node=$('#productionAllHeatmap'); if(!node) return; const entries=Object.entries(model.daily||{}).sort(([a],[b])=>a.localeCompare(b));
   if(!entries.length){node.innerHTML='<div class="empty-row">لا توجد بيانات إنتاج</div>';return;}
-  const pos=entries.map(([,v])=>v).filter(v=>v>0), max=Math.max(...pos,0), min=pos.length?Math.min(...pos):0;
-  node.innerHTML=`<div class="production-all-grid">${entries.map(([d,v])=>`<div class="all-heat-cell ${heatClass(v,min,max)}" title="${escapeHtml(d)} - ${fmt(v)} طن"><b>${escapeHtml(d.slice(5))}</b><span>${fmt(v)}</span></div>`).join('')}</div><div class="prod-heat-scale"><span>الأقل إنتاجاً</span><em></em><span>الأعلى إنتاجاً</span></div>`;
+  const values=entries.map(([,v])=>Math.abs(toNumber(v))).filter(v=>v>0), max=Math.max(...values,0), min=values.length?Math.min(...values):0;
+  node.innerHTML=`<div class="production-all-grid">${entries.map(([d,v])=>{const val=Math.abs(toNumber(v)); return `<div class="all-heat-cell ${heatClass(val,min,max)}" title="${escapeHtml(d)} - ${fmt(val)} طن"><b>${escapeHtml(d.slice(5))}</b><span>${fmt(val)}</span></div>`;}).join('')}</div><div class="prod-heat-scale"><span>أقل يوم إنتاج</span><em></em><span>أعلى يوم إنتاج</span></div>`;
 }
 function renderProductionTopProducts(products){
   renderRankTable('#productionTopProductsTable',['#','كود الصنف','اسم الصنف','إجمالي الإنتاج','النسبة'],(products||[]).slice(0,10).map((p,i)=>[i+1,escapeHtml(p.code),escapeHtml(p.name),fmt(p.production),`${fmt(p.pct)}%`]));

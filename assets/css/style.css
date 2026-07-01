@@ -1374,3 +1374,19 @@ body.modal-open{overflow:hidden;}
 .all-heat-cell{min-height:64px}.all-heat-cell b{font-size:13px}.all-heat-cell span{font-size:12px;font-weight:900;margin-top:4px}
 .production-bottom-row{grid-template-columns:1.2fr .8fr}.production-top-wrap{max-height:420px;overflow:auto}.production-insights-list{display:grid;grid-template-columns:1fr;gap:10px}.production-insight{display:flex;gap:12px;align-items:center;justify-content:flex-start;background:rgba(255,255,255,.04);border:1px solid rgba(144,255,104,.18);border-radius:14px;padding:13px 14px;color:#eaffdf}.production-insight span{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:rgba(81,184,72,.18);font-size:20px}.production-insight b{font-size:13px;line-height:1.7}
 @media(max-width:1100px){.production-kpis{grid-template-columns:repeat(2,1fr)}.production-grid-main,.production-heatmap-row,.production-bottom-row{grid-template-columns:1fr}.production-title-card{flex-direction:column;align-items:stretch}}
+
+/* Heatmap exact-value fixes: highest = green, lowest = red, values from filtered dataset only */
+#dashboard .heat-cell.highest,
+.prod-heat-row i.exact-high,
+.all-heat-cell.exact-high{
+  background:linear-gradient(135deg,rgba(54,214,78,.98),rgba(22,148,92,.78)) !important;
+  border-color:rgba(135,255,120,.75) !important;
+  box-shadow:0 0 0 1px rgba(135,255,120,.22), inset 0 0 22px rgba(110,255,96,.18) !important;
+}
+#dashboard .heat-cell.lowest,
+.prod-heat-row i.exact-low,
+.all-heat-cell.exact-low{
+  background:linear-gradient(135deg,rgba(255,55,72,.95),rgba(215,112,34,.72)) !important;
+  border-color:rgba(255,116,116,.70) !important;
+  box-shadow:0 0 0 1px rgba(255,116,116,.20), inset 0 0 22px rgba(255,70,70,.15) !important;
+}
