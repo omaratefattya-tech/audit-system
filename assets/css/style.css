@@ -1368,28 +1368,42 @@ body.modal-open{overflow:hidden;}
 .prod-heat-row{margin-bottom:6px}
 .prod-heat-row strong{background:rgba(81,184,72,.16);border:1px solid rgba(144,255,104,.25);border-radius:10px;padding:10px 8px;text-align:center;color:#fff}
 .prod-heat-row i,.all-heat-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:48px;border-radius:10px;border:1px solid rgba(255,255,255,.10);font-style:normal;color:#fff;box-shadow:inset 0 0 18px rgba(0,0,0,.14)}
-.prod-heat-row i b{font-size:12px}.prod-heat-row i.zero,.all-heat-cell.zero{background:rgba(255,255,255,.035);color:#8eaa96}.prod-heat-row i.low,.all-heat-cell.low{background:linear-gradient(135deg,rgba(255,64,64,.78),rgba(255,164,40,.62))}.prod-heat-row i.mid,.all-heat-cell.mid{background:linear-gradient(135deg,rgba(255,201,54,.72),rgba(126,216,75,.62))}.prod-heat-row i.high,.all-heat-cell.high{background:linear-gradient(135deg,rgba(68,210,80,.95),rgba(26,160,115,.75))}
-.prod-heat-scale{display:flex;align-items:center;gap:9px;margin-top:10px;color:#d9ffd1;font-size:12px}.prod-heat-scale em{flex:1;height:8px;border-radius:999px;background:linear-gradient(90deg,#ef4444,#f4c542,#6ee24f)}
+.prod-heat-row i b{font-size:12px}.prod-heat-row i.zero,.all-heat-cell.zero{background:rgba(255,255,255,.035);color:#8eaa96}.prod-heat-row i.low,.all-heat-cell.low{background:linear-gradient(135deg,rgba(48,116,52,.45),rgba(88,174,74,.38))}.prod-heat-row i.mid,.all-heat-cell.mid{background:linear-gradient(135deg,rgba(70,158,66,.62),rgba(126,216,75,.52))}.prod-heat-row i.high,.all-heat-cell.high{background:linear-gradient(135deg,rgba(68,210,80,.95),rgba(26,160,115,.75))}
+.prod-heat-scale{display:flex;align-items:center;gap:9px;margin-top:10px;color:#d9ffd1;font-size:12px}.prod-heat-scale em{flex:1;height:8px;border-radius:999px;background:linear-gradient(90deg,#2f7d3a,#58b84a,#9be650)}
 .production-all-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(82px,1fr));gap:8px;max-height:340px;overflow:auto;padding:4px}
 .all-heat-cell{min-height:64px}.all-heat-cell b{font-size:13px}.all-heat-cell span{font-size:12px;font-weight:900;margin-top:4px}
 .production-bottom-row{grid-template-columns:1.2fr .8fr}.production-top-wrap{max-height:420px;overflow:auto}.production-insights-list{display:grid;grid-template-columns:1fr;gap:10px}.production-insight{display:flex;gap:12px;align-items:center;justify-content:flex-start;background:rgba(255,255,255,.04);border:1px solid rgba(144,255,104,.18);border-radius:14px;padding:13px 14px;color:#eaffdf}.production-insight span{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:rgba(81,184,72,.18);font-size:20px}.production-insight b{font-size:13px;line-height:1.7}
 @media(max-width:1100px){.production-kpis{grid-template-columns:repeat(2,1fr)}.production-grid-main,.production-heatmap-row,.production-bottom-row{grid-template-columns:1fr}.production-title-card{flex-direction:column;align-items:stretch}}
 
-/* Heatmap exact-value fixes: highest = green, lowest = red, values from filtered dataset only */
-#dashboard .heat-cell.highest,
-.prod-heat-row i.exact-high,
-.all-heat-cell.exact-high{
-  background:linear-gradient(135deg,rgba(54,214,78,.98),rgba(22,148,92,.78)) !important;
-  border-color:rgba(135,255,120,.75) !important;
-  box-shadow:0 0 0 1px rgba(135,255,120,.22), inset 0 0 22px rgba(110,255,96,.18) !important;
+/* Unified heatmap highlights: max = gold glow, min positive = red glow */
+#dashboard .heat-cell.heatmap-max-gold,
+.prod-heat-row i.heatmap-max-gold,
+.all-heat-cell.heatmap-max-gold{
+  background:linear-gradient(135deg,rgba(255,226,86,.98),rgba(245,168,34,.88)) !important;
+  border-color:rgba(255,232,130,.92) !important;
+  box-shadow:0 0 0 1px rgba(255,235,135,.35),0 0 22px rgba(255,202,54,.72),inset 0 0 24px rgba(255,255,210,.22) !important;
+  color:#111 !important;
+  text-shadow:0 1px 0 rgba(255,255,255,.32);
 }
-#dashboard .heat-cell.lowest,
-.prod-heat-row i.exact-low,
-.all-heat-cell.exact-low{
-  background:linear-gradient(135deg,rgba(255,55,72,.95),rgba(215,112,34,.72)) !important;
-  border-color:rgba(255,116,116,.70) !important;
-  box-shadow:0 0 0 1px rgba(255,116,116,.20), inset 0 0 22px rgba(255,70,70,.15) !important;
+#dashboard .heat-cell.heatmap-max-gold b,
+#dashboard .heat-cell.heatmap-max-gold span,
+.prod-heat-row i.heatmap-max-gold b,
+.all-heat-cell.heatmap-max-gold b,
+.all-heat-cell.heatmap-max-gold span{color:#111 !important}
+#dashboard .heat-cell.heatmap-min-red,
+.prod-heat-row i.heatmap-min-red,
+.all-heat-cell.heatmap-min-red{
+  background:linear-gradient(135deg,rgba(255,72,86,.98),rgba(180,23,42,.88)) !important;
+  border-color:rgba(255,128,128,.90) !important;
+  box-shadow:0 0 0 1px rgba(255,120,120,.30),0 0 22px rgba(255,62,82,.62),inset 0 0 24px rgba(255,160,160,.18) !important;
+  color:#fff !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.35);
 }
+#dashboard .heat-cell.heatmap-min-red b,
+#dashboard .heat-cell.heatmap-min-red span,
+.prod-heat-row i.heatmap-min-red b,
+.all-heat-cell.heatmap-min-red b,
+.all-heat-cell.heatmap-min-red span{color:#fff !important}
 
 
 /* Sales totals report */

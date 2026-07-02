@@ -835,6 +835,25 @@ function dashboardMonthKeyFromRows(rows,filters={}){
   if(dates.length) return dates[dates.length-1].slice(0,7);
   return normalizeDateISO(new Date().toISOString().slice(0,10)).slice(0,7);
 }
+function getHeatmapCellClass(value,minPositive,maxValue,options={}){
+  const val=toNumber(value);
+  const includeBase=options.includeBase===true;
+  if(!val) return includeBase?'zero':'';
+  const min=toNumber(minPositive);
+  const max=toNumber(maxValue);
+  let base='';
+  if(includeBase){
+    if(max>0 && min>0 && max!==min){
+      const ratio=(val-min)/(max-min);
+      base=ratio>.72?'high':(ratio<.28?'low':'mid');
+    }else{
+      base='mid';
+    }
+  }
+  if(max>0 && val===max) return [base,'heatmap-max-gold'].filter(Boolean).join(' ');
+  if(min>0 && val===min) return [base,'heatmap-min-red'].filter(Boolean).join(' ');
+  return base;
+}
 function renderDashboardSalesHeatmap(allRows,filters={}){
   const node=$('#alertsBox');
   if(!node) return;
@@ -871,8 +890,9 @@ function renderDashboardSalesHeatmap(allRows,filters={}){
     const date=`${monthKey}-${String(day).padStart(2,'0')}`;
     const val=daily[date]||0;
     const ratio=max?Math.max(.12,val/max):0;
-    const exactClass=val>0 && max>0 && val===max?' highest':(val>0 && min>0 && val===min?' lowest':'');
-    cells.push(`<div class="heat-cell${exactClass}" style="--heat:${ratio.toFixed(3)}" title="${date} - ${fmt(val)} طن"><b>${day}</b><span>${fmt(val)}</span></div>`);
+    const heatmapClass=getHeatmapCellClass(val,min,max);
+    const className=heatmapClass ? `heat-cell ${heatmapClass}` : 'heat-cell';
+    cells.push(`<div class="${className}" style="--heat:${ratio.toFixed(3)}" title="${date} - ${fmt(val)} طن"><b>${day}</b><span>${fmt(val)}</span></div>`);
   }
   node.innerHTML=`
     <div class="heatmap-head"><strong>${monthKey}</strong><span>الأقل</span><i></i><span>الأعلى</span></div>
@@ -4007,14 +4027,7 @@ function drawProductionContributionDonut(plants){
   if(legend) legend.innerHTML=entries.map((p,i)=>`<div><span style="background:${colors[i%colors.length]}"></span><b>${escapeHtml(p.code)}</b> ${fmt(p.pct)}% - ${fmt(p.production)} طن</div>`).join('');
 }
 function heatClass(value,min,max){
-  if(!value) return 'zero';
-  if(value===max && max>0) return 'high exact-high';
-  if(value===min && min>0 && max!==min) return 'low exact-low';
-  if(max===min) return 'mid';
-  const r=(value-min)/(max-min);
-  if(r>.72) return 'high';
-  if(r<.28) return 'low';
-  return 'mid';
+  return getHeatmapCellClass(value,min,max,{includeBase:true});
 }
 function renderProductionPlantHeatmap(model){
   const node=$('#productionPlantHeatmap'); if(!node) return; const days=Object.keys(model.daily||{}).sort(); const plants=model.plants||[];
