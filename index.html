@@ -274,6 +274,7 @@
           </div>
           <div class="report-tabs" role="tablist">
             <button class="report-tab active" type="button" data-report-tab="executive">التقرير التنفيذي</button>
+            <button class="report-tab" type="button" data-report-tab="salesTotals">ملخص مبيعات المخازن</button>
             <button class="report-tab" type="button" data-report-tab="items">تقرير الأصناف</button>
             <button class="report-tab" type="button" data-report-tab="warehouses">أداء المخازن</button>
             <button class="report-tab" type="button" data-report-tab="exceptions">الاستثناءات</button>
@@ -308,6 +309,14 @@
               <div id="executiveInsights" class="executive-insights"></div>
             </article>
             <table id="executiveExportTable" class="hidden-export-table"></table>
+          </div>
+          <div id="salesTotalsReportContent" class="sales-totals-report-content report-panel-content" style="display:none">
+            <div class="executive-title-card">
+              <h3>ملخص مبيعات المخازن</h3>
+              <p id="salesTotalsReportMeta">الفترة: --</p>
+            </div>
+            <div id="salesTotalsRows" class="sales-totals-rows"></div>
+            <table id="salesTotalsExportTable" class="hidden-export-table"></table>
           </div>
           <div id="itemsReportContent" class="items-report-content report-panel-content" style="display:none">
             <div class="executive-title-card">

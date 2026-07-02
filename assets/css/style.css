@@ -1390,3 +1390,16 @@ body.modal-open{overflow:hidden;}
   border-color:rgba(255,116,116,.70) !important;
   box-shadow:0 0 0 1px rgba(255,116,116,.20), inset 0 0 22px rgba(255,70,70,.15) !important;
 }
+
+
+/* Sales totals report */
+.sales-totals-report-content{display:flex;flex-direction:column;gap:16px}
+.sales-totals-rows{display:flex;flex-direction:column;gap:16px}
+.sales-totals-row-card{padding:18px}
+.sales-totals-row-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;border-bottom:1px solid rgba(123,255,91,.20);padding-bottom:10px}
+.sales-totals-row-head h3{margin:0;font-size:1.15rem;color:#fff}
+.sales-totals-row-head span{color:#a7ee73;font-weight:800;font-size:.9rem;direction:ltr;text-align:left}
+.sales-totals-kpis{grid-template-columns:repeat(5,minmax(160px,1fr));gap:12px}
+.sales-total-kpi{min-height:112px}
+@media(max-width:1100px){.sales-totals-kpis{grid-template-columns:repeat(2,minmax(160px,1fr))}}
+@media(max-width:680px){.sales-totals-row-head{flex-direction:column;align-items:flex-start}.sales-totals-kpis{grid-template-columns:1fr}}
