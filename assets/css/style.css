@@ -1375,6 +1375,26 @@ body.modal-open{overflow:hidden;}
 .production-bottom-row{grid-template-columns:1.2fr .8fr}.production-top-wrap{max-height:420px;overflow:auto}.production-insights-list{display:grid;grid-template-columns:1fr;gap:10px}.production-insight{display:flex;gap:12px;align-items:center;justify-content:flex-start;background:rgba(255,255,255,.04);border:1px solid rgba(144,255,104,.18);border-radius:14px;padding:13px 14px;color:#eaffdf}.production-insight span{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:rgba(81,184,72,.18);font-size:20px}.production-insight b{font-size:13px;line-height:1.7}
 @media(max-width:1100px){.production-kpis{grid-template-columns:repeat(2,1fr)}.production-grid-main,.production-heatmap-row,.production-bottom-row{grid-template-columns:1fr}.production-title-card{flex-direction:column;align-items:stretch}}
 
+/* Production Analytics layout refinement */
+#productionAnalyticsContent{max-width:100%;overflow-x:hidden}
+#productionAnalyticsContent .production-grid-main{min-width:0}
+#productionAnalyticsContent .production-chart-card,
+#productionAnalyticsContent .production-heatmap-card,
+#productionAnalyticsContent .production-top-card,
+#productionAnalyticsContent .production-insights-card{min-width:0;height:auto;overflow:visible}
+#productionAnalyticsContent .production-legend{max-height:none;overflow:visible}
+#productionAnalyticsContent .production-heatmap-row{grid-template-columns:minmax(0,1fr)}
+#productionAnalyticsContent .production-heatmap-row .production-heatmap-card{grid-column:1/-1;min-height:auto}
+#productionAnalyticsContent .production-heatmap-matrix{max-width:100%;max-height:none;overflow-x:auto;overflow-y:visible;padding:6px 0 10px}
+#productionAnalyticsContent .prod-heat-head,
+#productionAnalyticsContent .prod-heat-row{width:max-content;min-width:100%}
+#productionAnalyticsContent .production-all-grid{max-height:none;overflow:visible}
+#productionAnalyticsContent .production-bottom-row{grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr)}
+#productionAnalyticsContent .production-top-wrap{max-height:none;overflow-x:auto;overflow-y:visible}
+#productionAnalyticsContent .production-top-wrap table{min-width:620px}
+#productionAnalyticsContent .production-insights-list{align-content:start}
+@media(max-width:1100px){#productionAnalyticsContent .production-bottom-row{grid-template-columns:1fr}}
+
 /* Unified heatmap highlights: max = gold glow, min positive = red glow */
 #dashboard .heat-cell.heatmap-max-gold,
 .prod-heat-row i.heatmap-max-gold,
