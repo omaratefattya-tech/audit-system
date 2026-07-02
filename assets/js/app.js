@@ -885,25 +885,47 @@ function renderRankTable(selector,heads,rows,{totalLabel='الإجمالي'}={})
   }).join('')}</tr>`).join('') || `<tr><td colspan="${heads.length}" class="empty-row">لا توجد بيانات مطابقة</td></tr>`;
   node.innerHTML=`<thead><tr>${heads.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${body}</tbody>`;
 }
+const SALES_AUDIT_DASHBOARD_SELECT='report_date,warehouse_code,warehouse_name,plant_code,plant_name,material_code,material_name,sales_quantity,production_quantity,outgoing_transfer_quantity,incoming_transfer_quantity,total_loading_quantity';
+async function fetchAllSalesAuditRows(filters={}, options={}){
+  if(!WarehouseDB?.ready) return [];
+  const pageSize=1000;
+  const maxPages=200;
+  const orderBy=options.orderBy || 'report_date';
+  const ascending=options.ascending===true;
+  const selectCols=options.select || SALES_AUDIT_DASHBOARD_SELECT;
+  const all=[];
+  for(let page=0; page<maxPages; page++){
+    const from=page*pageSize;
+    const to=from+pageSize-1;
+    let query=WarehouseDB.client
+      .from('sales_audit_report')
+      .select(selectCols)
+      .order(orderBy,{ascending})
+      .range(from,to);
+    if(filters.from) query=query.gte('report_date',filters.from);
+    if(filters.to) query=query.lte('report_date',filters.to);
+    if(filters.plant && filters.plant!=='all') query=query.eq('plant_code',filters.plant);
+    if(filters.warehouse && filters.warehouse!=='all') query=query.eq('warehouse_code',String(filters.warehouse).toUpperCase());
+    const {data,error}=await query;
+    if(error) throw error;
+    const chunk=data||[];
+    all.push(...chunk);
+    if(chunk.length<pageSize) break;
+  }
+  return all;
+}
 async function loadDashboardRealData(options={}){
   if(!WarehouseDB?.ready) return;
   await ensureDashboardDefaultDate(options);
   const filters=getDashboardFilters();
-  let query=WarehouseDB.client
-    .from('sales_audit_report')
-    .select('report_date,warehouse_code,warehouse_name,plant_code,plant_name,material_code,material_name,sales_quantity,production_quantity,outgoing_transfer_quantity,incoming_transfer_quantity,total_loading_quantity')
-    .order('report_date',{ascending:false})
-    .range(0,9999);
-  if(filters.from) query=query.gte('report_date',filters.from);
-  if(filters.to) query=query.lte('report_date',filters.to);
-  if(filters.plant && filters.plant!=='all') query=query.eq('plant_code',filters.plant);
-  if(filters.warehouse && filters.warehouse!=='all') query=query.eq('warehouse_code',filters.warehouse);
-  const salesRes=await query;
-  if(salesRes.error){
-    console.warn('dashboard sales load error',salesRes.error);
+  let dashboardRows=[];
+  try{
+    dashboardRows=await fetchAllSalesAuditRows(filters,{ascending:false});
+  }catch(error){
+    console.warn('dashboard sales load error',error);
     return;
   }
-  const sales=applyDashboardSalesFilters(salesRes.data||[],filters);
+  const sales=applyDashboardSalesFilters(dashboardRows,filters);
   const whSet=new Set(), daily={}, warehouseSalesMap={}, warehouseActivityMap={}, productMap={}, plantStats={};
   APP_DATA.plants.forEach(p=>plantStats[p.code]={sales:0,production:0,outgoing:0,incoming:0,loading:0});
   const stats={rowsCount:sales.length,salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0};
@@ -4074,9 +4096,7 @@ async function exportActiveReportVisualPdf(){
 
 async function loadExecutiveReport(options={}){
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
-  let query=WarehouseDB.client.from('sales_audit_report').select('report_date,warehouse_code,warehouse_name,plant_code,plant_name,material_code,material_name,sales_quantity,production_quantity,outgoing_transfer_quantity,incoming_transfer_quantity,total_loading_quantity').order('report_date',{ascending:false}).range(0,9999);
-  if(filters.from) query=query.gte('report_date',filters.from); if(filters.to) query=query.lte('report_date',filters.to); if(filters.plant && filters.plant!=='all') query=query.eq('plant_code',filters.plant); if(filters.warehouse && filters.warehouse!=='all') query=query.eq('warehouse_code',filters.warehouse);
-  const {data,error}=await query; if(error){console.warn('executive report load error',error);return;} const rows=data||[];
+  let rows=[]; try{ rows=await fetchAllSalesAuditRows(filters,{ascending:false}); }catch(error){console.warn('executive report load error',error);return;}
   const stats={salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0}; const daily={}, productMap={}, whMap={}, whSalesMap={}, plantStats={}; APP_DATA.plants.forEach(p=>plantStats[p.code]={sales:0,production:0,outgoing:0,incoming:0,loading:0});
   rows.forEach(r=>{const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0}; const wh=String(r.warehouse_code||'').toUpperCase(); const meta=dashboardWhMeta(wh); const plant=r.plant_code||meta.plant||'غير محدد'; if(!plantStats[plant]) plantStats[plant]={sales:0,production:0,outgoing:0,incoming:0,loading:0}; const sales=toNumber(r.sales_quantity), prod=toNumber(r.production_quantity), out=toNumber(r.outgoing_transfer_quantity), inc=toNumber(r.incoming_transfer_quantity), load=toNumber(r.total_loading_quantity); stats.salesQty+=sales;stats.productionQty+=prod;stats.outgoingTransferQty+=out;stats.incomingTransferQty+=inc;stats.totalLoadingQty+=load; daily[d].sales+=Math.abs(sales);daily[d].production+=Math.abs(prod);daily[d].outgoing+=Math.abs(out);daily[d].incoming+=Math.abs(inc); plantStats[plant].sales+=sales;plantStats[plant].production+=prod;plantStats[plant].outgoing+=out;plantStats[plant].incoming+=inc;plantStats[plant].loading+=load; if(sales) whSalesMap[wh]=(whSalesMap[wh]||0)+Math.abs(sales); const pk=String(r.material_code||r.material_name||'غير محدد'); if(!productMap[pk]) productMap[pk]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0}; productMap[pk].sales+=sales;productMap[pk].production+=prod;productMap[pk].outgoing+=out;productMap[pk].incoming+=inc;productMap[pk].loading+=load; if(!whMap[wh]) whMap[wh]={code:wh,name:meta.name||r.warehouse_name||'-',plant:plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0}; whMap[wh].sales+=sales;whMap[wh].production+=prod;whMap[wh].outgoing+=out;whMap[wh].incoming+=inc;whMap[wh].loading+=load;whMap[wh].totalActivity+=Math.abs(sales)+Math.abs(prod)+Math.abs(out)+Math.abs(inc)+Math.abs(load);});
   const products=Object.values(productMap).sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales)); const warehouses=Object.values(whMap).sort((a,b)=>b.totalActivity-a.totalActivity);
