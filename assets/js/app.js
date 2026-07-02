@@ -4102,7 +4102,7 @@ function renderSalesTotalsReport(groups,filters){
   if(tbl){
     tbl.innerHTML=`<thead><tr><th>الصف</th><th>المخازن</th><th>إجمالي البيع</th><th>إجمالي الإنتاج</th><th>إجمالي التحويلات الصادرة</th><th>إجمالي التحويلات الواردة</th><th>إجمالي التحميل</th></tr></thead><tbody>${(groups||[]).map(g=>`<tr><td>${escapeHtml(g.title)}</td><td>${escapeHtml(g.codes.join(' / '))}</td><td>${fmt(g.stats.salesQty)}</td><td>${fmt(g.stats.productionQty)}</td><td>${fmt(g.stats.outgoingTransferQty)}</td><td>${fmt(g.stats.incomingTransferQty)}</td><td>${fmt(g.stats.totalLoadingQty)}</td></tr>`).join('')}</tbody>`;
   }
-  if($('#salesTotalsReportMeta')) $('#salesTotalsReportMeta').textContent=`الفترة: ${filters.from||'--'} → ${filters.to||'--'} / يعتمد على نفس تجميع مراجعة البيع والأصناف المعتمدة فقط`;
+  if($('#salesTotalsReportMeta')) $('#salesTotalsReportMeta').textContent=`الفترة: ${filters.from||'--'} → ${filters.to||'--'} `;
 }
 async function loadSalesTotalsReport(options={}){
   if(!WarehouseDB?.ready) return;
