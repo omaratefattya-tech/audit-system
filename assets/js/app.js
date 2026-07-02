@@ -794,6 +794,8 @@ function applyDashboardSalesFilters(rows,filters){
     if(filters.from && d<filters.from) return false;
     if(filters.to && d>filters.to) return false;
     if(!isSalesReviewRow(r)) return false;
+    // Keep dashboard aligned with the sales reports: only official sales warehouses are counted.
+    if(!SALES_WAREHOUSES.includes(wh)) return false;
     return true;
   });
 }
@@ -3942,6 +3944,7 @@ async function loadProductionAnalyticsReport(options={}){
 
 
 const SALES_TOTALS_GROUPS = [
+  {title:'إجمالي كل مخازن البيع', codes:['W401','N401','N411','N412','E401','W402','N402','E402']},
   {title:'مبيعات المنتج التام', codes:['W401','N401','N411','N412','E401']},
   {title:'مبيعات الدشيشة والخامات', codes:['W402','N402','E402']},
   {title:'مبيعات مخزن W401', codes:['W401']},
