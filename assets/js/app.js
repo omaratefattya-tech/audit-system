@@ -852,7 +852,7 @@ function renderDashboardSalesHeatmap(allRows,filters={}){
     if(filters.to && d>filters.to) return;
     if(filters.plant && filters.plant!=='all' && plant!==filters.plant) return;
     if(filters.warehouse && filters.warehouse!=='all' && wh!==String(filters.warehouse).toUpperCase()) return;
-    daily[d]=(daily[d]||0)+toNumber(r.sales_quantity);
+    daily[d]=(daily[d]||0)+computeUnifiedSalesMetrics(r).sales;
   });
   const values=Object.values(daily).filter(v=>v>0);
   const max=Math.max(...values,0);
@@ -936,71 +936,192 @@ async function fetchAllSalesAuditRows(filters={}, options={}){
   }
   return filterSalesReviewRows(all);
 }
+
+const SALES_RAW_AUDIT_SELECT='id,batch_id,material_code,material_name,quantity,uom,quantity_to,movement_type,movement_text,worker_group,warehouse_code,plant_code,plant_name,sales_upload_batches!inner(report_date,status)';
+function salesRowReportDate(row){
+  const batch=Array.isArray(row?.sales_upload_batches)?row.sales_upload_batches[0]:row?.sales_upload_batches;
+  return normalizeDateISO(row?.report_date || batch?.report_date || '');
+}
+function salesRowQuantityTo(row){
+  if(row && row.quantity_to!==undefined && row.quantity_to!==null) return toNumber(row.quantity_to);
+  const q=toNumber(row?.quantity);
+  return String(row?.uom||'').trim().toUpperCase()==='KG' ? q/1000 : q;
+}
+function salesMovementText(row){return String(row?.movement_text||'').replace(/\s+/g,' ').trim();}
+function salesWorkerGroup(row){return String(row?.worker_group||'').trim();}
+function emptyUnifiedSalesStats(rowsCount=0){
+  return {rowsCount,salesQty:0,actualReturnQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0};
+}
+function addUnifiedSalesStats(target,metrics){
+  target.salesQty+=metrics.sales;
+  target.actualReturnQty+=metrics.actualReturn;
+  target.productionQty+=metrics.production;
+  target.outgoingTransferQty+=metrics.outgoing;
+  target.incomingTransferQty+=metrics.incoming;
+  target.totalLoadingQty+=metrics.loading;
+}
+function computeUnifiedSalesMetrics(row){
+  const movement=String(row?.movement_type||'').trim().toUpperCase();
+  if(movement){
+    const q=salesRowQuantityTo(row);
+    const text=salesMovementText(row);
+    const worker=salesWorkerGroup(row);
+    const metrics={sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0};
+    if(['601','654'].includes(movement)) metrics.sales+=q;
+    if(movement==='602') metrics.sales-=q;
+    if(movement==='653'){
+      if(['9','16'].includes(worker)) metrics.actualReturn+=q;
+      else metrics.sales-=q;
+    }
+    if(movement==='101' && text==='استلام بضائع للأمر') metrics.production+=q;
+    if(movement==='102' && text==='ا.بضائع لإلغاء الأمر') metrics.production-=q;
+    if(['Z51','351','301','311'].includes(movement)) metrics.outgoing+=q;
+    if(['Z52','352','302','312'].includes(movement)) metrics.outgoing-=q;
+    if(movement==='101' && text==='ا.بضائع لمخزون منقول') metrics.incoming+=q;
+    if(movement==='Z13') metrics.incoming+=q;
+    if(movement==='102' && text==='GR:إلغاء مخزون منقول') metrics.incoming-=q;
+    if(movement==='Z14') metrics.incoming-=q;
+    metrics.loading=metrics.sales+metrics.outgoing;
+    return metrics;
+  }
+  const sales=toNumber(row?.sales_quantity);
+  const outgoing=toNumber(row?.outgoing_transfer_quantity);
+  return {
+    sales,
+    actualReturn:toNumber(row?.actual_return_quantity),
+    production:toNumber(row?.production_quantity),
+    outgoing,
+    incoming:toNumber(row?.incoming_transfer_quantity),
+    loading:sales+outgoing
+  };
+}
+function rowMatchesUnifiedSalesFilters(row,filters={}){
+  const wh=String(row?.warehouse_code||'').trim().toUpperCase();
+  const meta=dashboardWhMeta(wh);
+  const d=salesRowReportDate(row) || dashboardDateKey(row?.report_date);
+  const plant=String(row?.plant_code||meta.plant||'');
+  if(filters.plant && filters.plant!=='all' && plant!==filters.plant) return false;
+  if(filters.warehouse && filters.warehouse!=='all' && wh!==String(filters.warehouse).toUpperCase()) return false;
+  if(filters.from && d<filters.from) return false;
+  if(filters.to && d>filters.to) return false;
+  if(!isSalesReviewRow(row)) return false;
+  if(!SALES_WAREHOUSES.includes(wh)) return false;
+  return true;
+}
+function buildUnifiedSalesTotals(rows,options={}){
+  const filters=options.filters||{};
+  const groups=(options.groups||[]).map(g=>({...g,stats:emptyUnifiedSalesStats()}));
+  const groupSets=groups.map(g=>new Set((g.codes||[]).map(c=>String(c).toUpperCase())));
+  const filteredRows=(rows||[]).filter(r=>rowMatchesUnifiedSalesFilters(r,filters));
+  const daily={}, warehouseSalesMap={}, warehouseActivityMap={}, productMap={}, plantStats={};
+  APP_DATA.plants.forEach(p=>plantStats[p.code]={sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0});
+  const stats=emptyUnifiedSalesStats(filteredRows.length);
+  filteredRows.forEach(r=>{
+    const metrics=computeUnifiedSalesMetrics(r);
+    const d=salesRowReportDate(r) || dashboardDateKey(r.report_date);
+    daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0,loading:0};
+    const wh=String(r.warehouse_code||'').trim().toUpperCase();
+    const meta=dashboardWhMeta(wh);
+    const plant=r.plant_code||meta.plant||'غير محدد';
+    if(!plantStats[plant]) plantStats[plant]={sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0};
+    addUnifiedSalesStats(stats,metrics);
+    daily[d].sales+=Math.abs(metrics.sales);
+    daily[d].production+=Math.abs(metrics.production);
+    daily[d].outgoing+=Math.abs(metrics.outgoing);
+    daily[d].incoming+=Math.abs(metrics.incoming);
+    daily[d].loading+=Math.abs(metrics.loading);
+    plantStats[plant].sales+=metrics.sales;
+    plantStats[plant].actualReturn+=metrics.actualReturn;
+    plantStats[plant].production+=metrics.production;
+    plantStats[plant].outgoing+=metrics.outgoing;
+    plantStats[plant].incoming+=metrics.incoming;
+    plantStats[plant].loading+=metrics.loading;
+    if(metrics.sales) warehouseSalesMap[wh]=(warehouseSalesMap[wh]||0)+Math.abs(metrics.sales);
+    const pkey=String(r.material_code||r.material_name||'غير محدد');
+    if(!productMap[pkey]) productMap[pkey]={code:r.material_code||'-',name:r.material_name||'-',sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0};
+    productMap[pkey].sales+=metrics.sales;
+    productMap[pkey].actualReturn+=metrics.actualReturn;
+    productMap[pkey].production+=metrics.production;
+    productMap[pkey].outgoing+=metrics.outgoing;
+    productMap[pkey].incoming+=metrics.incoming;
+    productMap[pkey].loading+=metrics.loading;
+    if(!warehouseActivityMap[wh]) warehouseActivityMap[wh]={code:wh,name:meta.name||r.warehouse_name||'-',plant:plant,sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0};
+    warehouseActivityMap[wh].sales+=metrics.sales;
+    warehouseActivityMap[wh].actualReturn+=metrics.actualReturn;
+    warehouseActivityMap[wh].production+=metrics.production;
+    warehouseActivityMap[wh].outgoing+=metrics.outgoing;
+    warehouseActivityMap[wh].incoming+=metrics.incoming;
+    warehouseActivityMap[wh].loading+=metrics.loading;
+    warehouseActivityMap[wh].totalActivity+=Math.abs(metrics.sales)+Math.abs(metrics.production)+Math.abs(metrics.outgoing)+Math.abs(metrics.incoming)+Math.abs(metrics.loading);
+    groups.forEach((g,idx)=>{ if(groupSets[idx].has(wh)) addUnifiedSalesStats(g.stats,metrics); });
+  });
+  return {rows:filteredRows,stats,daily,warehouseSalesMap,warehouseActivityMap,productMap,plantStats,groups};
+}
+async function fetchAllSalesRawRows(filters={},options={}){
+  if(!WarehouseDB?.ready) return [];
+  const pageSize=1000;
+  const maxPages=200;
+  const ascending=options.ascending===true;
+  const all=[];
+  for(let page=0; page<maxPages; page++){
+    const from=page*pageSize;
+    const to=from+pageSize-1;
+    let query=WarehouseDB.client
+      .from('sales_raw_transactions')
+      .select(SALES_RAW_AUDIT_SELECT)
+      .eq('sales_upload_batches.status','active')
+      .order('id',{ascending})
+      .range(from,to);
+    if(filters.from) query=query.gte('sales_upload_batches.report_date',filters.from);
+    if(filters.to) query=query.lte('sales_upload_batches.report_date',filters.to);
+    if(filters.plant && filters.plant!=='all') query=query.eq('plant_code',filters.plant);
+    if(filters.warehouse && filters.warehouse!=='all') query=query.eq('warehouse_code',String(filters.warehouse).toUpperCase());
+    const {data,error}=await query;
+    if(error) throw error;
+    const chunk=(data||[]).map(r=>({
+      ...r,
+      report_date:salesRowReportDate(r),
+      warehouse_name:r.warehouse_name || dashboardWhMeta(r.warehouse_code).name || '',
+      uom:r.uom || 'TO'
+    }));
+    all.push(...chunk);
+    if(chunk.length<pageSize) break;
+  }
+  return all;
+}
+async function fetchUnifiedSalesRows(filters={},options={}){
+  try{
+    return await fetchAllSalesRawRows(filters,options);
+  }catch(error){
+    console.warn('raw sales rows load failed, using sales_audit_report view',error);
+    return await fetchAllSalesAuditRows(filters,options);
+  }
+}
+
 async function loadDashboardRealData(options={}){
   if(!WarehouseDB?.ready) return;
   await ensureDashboardDefaultDate(options);
   const filters=getDashboardFilters();
   let dashboardRows=[];
   try{
-    dashboardRows=await fetchAllSalesAuditRows(filters,{ascending:false});
+    dashboardRows=await fetchUnifiedSalesRows(filters,{ascending:false});
   }catch(error){
     console.warn('dashboard sales load error',error);
     return;
   }
-  const sales=applyDashboardSalesFilters(dashboardRows,filters);
-  const whSet=new Set(), daily={}, warehouseSalesMap={}, warehouseActivityMap={}, productMap={}, plantStats={};
-  APP_DATA.plants.forEach(p=>plantStats[p.code]={sales:0,production:0,outgoing:0,incoming:0,loading:0});
-  const stats={rowsCount:sales.length,salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0};
-  sales.forEach(r=>{
-    const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0};
-    const wh=String(r.warehouse_code||'').toUpperCase(); if(wh) whSet.add(wh);
-    const meta=dashboardWhMeta(wh);
-    const plant=r.plant_code||meta.plant||'غير محدد';
-    if(!plantStats[plant]) plantStats[plant]={sales:0,production:0,outgoing:0,incoming:0,loading:0};
-    const salesQty=toNumber(r.sales_quantity), prod=toNumber(r.production_quantity), outTr=toNumber(r.outgoing_transfer_quantity), inTr=toNumber(r.incoming_transfer_quantity), load=toNumber(r.total_loading_quantity);
-    stats.salesQty+=salesQty;
-    stats.productionQty+=prod;
-    stats.outgoingTransferQty+=outTr;
-    stats.incomingTransferQty+=inTr;
-    stats.totalLoadingQty+=load;
-    daily[d].sales+=Math.abs(salesQty);
-    daily[d].production+=Math.abs(prod);
-    daily[d].outgoing+=Math.abs(outTr);
-    daily[d].incoming+=Math.abs(inTr);
-    plantStats[plant].sales+=salesQty;
-    plantStats[plant].production+=prod;
-    plantStats[plant].outgoing+=outTr;
-    plantStats[plant].incoming+=inTr;
-    plantStats[plant].loading+=load;
-    if(salesQty) warehouseSalesMap[wh]=(warehouseSalesMap[wh]||0)+Math.abs(salesQty);
-    const pkey=String(r.material_code||r.material_name||'غير محدد');
-    if(!productMap[pkey]) productMap[pkey]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0};
-    productMap[pkey].sales+=salesQty;
-    productMap[pkey].production+=prod;
-    productMap[pkey].outgoing+=outTr;
-    productMap[pkey].incoming+=inTr;
-    productMap[pkey].loading+=load;
-    if(!warehouseActivityMap[wh]) warehouseActivityMap[wh]={code:wh,name:meta.name||'-',plant:plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0};
-    warehouseActivityMap[wh].sales+=salesQty;
-    warehouseActivityMap[wh].production+=prod;
-    warehouseActivityMap[wh].outgoing+=outTr;
-    warehouseActivityMap[wh].incoming+=inTr;
-    warehouseActivityMap[wh].loading+=load;
-    warehouseActivityMap[wh].totalActivity+=Math.abs(salesQty)+Math.abs(prod)+Math.abs(outTr)+Math.abs(inTr)+Math.abs(load);
-  });
+  const model=buildUnifiedSalesTotals(dashboardRows,{filters});
+  const sales=model.rows;
+  const stats=model.stats;
+  const daily=model.daily;
+  const plantStats=model.plantStats;
+  const warehouseSalesMap=model.warehouseSalesMap;
+  const warehouseActivityMap=model.warehouseActivityMap;
   renderDashboardKPIs(stats);
   renderDashboardSummary(stats);
   drawDashboardLine(daily);
   drawDashboardPlantBar(plantStats);
-  drawDashboardDonut(Object.entries(warehouseSalesMap).sort((a,b)=>b[1]-a[1]).map(([code,value])=>({label:`${code} - ${dashboardWhMeta(code).name||'مخزن بيع'}`,value})));
-  const products=Object.values(productMap);
-  const avgOutgoing=products.length ? products.reduce((a,p)=>a+Math.abs(p.outgoing),0)/products.length : 0;
-  const insights={
-    productionAboveSalesCount:products.filter(p=>p.production>p.sales && p.production>0).length,
-    noSalesCount:products.filter(p=>Math.abs(p.sales)===0 && (Math.abs(p.production)+Math.abs(p.outgoing)+Math.abs(p.incoming))>0).length,
-    highOutgoingCount:products.filter(p=>Math.abs(p.outgoing)>avgOutgoing && Math.abs(p.outgoing)>0).length,
-    reviewItemsCount:products.filter(p=>Math.abs(p.production-p.sales)>0 && Math.abs(p.production-p.sales)>Math.max(5,Math.abs(p.sales)*.25)).length
-  };
+  drawDashboardDonut(Object.entries(warehouseSalesMap).sort((a,b)=>b[1]-a[1]).map(([code,value])=>({label:code+' - '+(dashboardWhMeta(code).name||'مخزن بيع'),value})));
+  const products=Object.values(model.productMap);
   renderDashboardPlants(plantStats, stats.salesQty);
   renderDashboardSalesHeatmap(sales, filters);
   const topProducts=products.sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales)).slice(0,10).map((p,i)=>[
@@ -3958,16 +4079,6 @@ const SALES_TOTALS_GROUPS = [
   {title:'مبيعات مخزن E401', codes:['E401']},
   {title:'مبيعات مخزن E402', codes:['E402']}
 ];
-function emptySalesTotalsStats(){
-  return {salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0};
-}
-function addSalesTotalsRow(stats,row){
-  stats.salesQty+=toNumber(row.sales_quantity);
-  stats.productionQty+=toNumber(row.production_quantity);
-  stats.outgoingTransferQty+=toNumber(row.outgoing_transfer_quantity);
-  stats.incomingTransferQty+=toNumber(row.incoming_transfer_quantity);
-  stats.totalLoadingQty+=toNumber(row.total_loading_quantity);
-}
 function salesTotalsCardHtml(title,value,unit,icon){
   return `<article class="kpi glass sales-total-kpi"><h3>${escapeHtml(title)}</h3><div class="num">${fmt(value)}</div><small>${escapeHtml(unit||'طن')}</small><div class="icon">${icon||''}</div></article>`;
 }
@@ -3999,14 +4110,9 @@ async function loadSalesTotalsReport(options={}){
   await ensureReportDefaultDates(options);
   const filters=getReportFilters();
   let rows=[];
-  try{ rows=await fetchAllSalesAuditRows(filters,{ascending:true}); }catch(error){ console.warn('sales totals report load error',error); return; }
-  const groups=SALES_TOTALS_GROUPS.map(g=>({...g,stats:emptySalesTotalsStats()}));
-  const groupSets=groups.map(g=>new Set(g.codes));
-  (rows||[]).forEach(r=>{
-    const wh=String(r.warehouse_code||'').trim().toUpperCase();
-    groups.forEach((g,idx)=>{ if(groupSets[idx].has(wh)) addSalesTotalsRow(g.stats,r); });
-  });
-  renderSalesTotalsReport(groups,filters);
+  try{ rows=await fetchUnifiedSalesRows(filters,{ascending:true}); }catch(error){ console.warn('sales totals report load error',error); return; }
+  const model=buildUnifiedSalesTotals(rows,{filters,groups:SALES_TOTALS_GROUPS});
+  renderSalesTotalsReport(model.groups,filters);
 }
 
 function switchReportTab(tab){
