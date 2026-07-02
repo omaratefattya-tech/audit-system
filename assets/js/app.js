@@ -833,28 +833,26 @@ function dashboardMonthKeyFromRows(rows,filters={}){
   if(dates.length) return dates[dates.length-1].slice(0,7);
   return normalizeDateISO(new Date().toISOString().slice(0,10)).slice(0,7);
 }
-function renderDashboardSalesHeatmap(allRows,filters={}){
+function renderDashboardSalesHeatmap(dailySummary={},filters={}){
   const node=$('#alertsBox');
   if(!node) return;
-  const monthKey=dashboardMonthKeyFromRows(allRows,filters);
+  const sourceDays=Object.keys(dailySummary||{}).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+  const explicit=normalizeDateISO(filters.to||filters.from||'');
+  const monthKey=(explicit || sourceDays[sourceDays.length-1] || normalizeDateISO(new Date().toISOString().slice(0,10))).slice(0,7);
   const [year,month]=monthKey.split('-').map(Number);
   const days=monthDaysCount(year,month-1);
-  const daily={};
-  (allRows||[]).forEach(r=>{
-    const wh=String(r.warehouse_code||'').trim().toUpperCase();
-    const meta=dashboardWhMeta(wh);
-    const plant=String(r.plant_code||meta.plant||'');
-    const d=dashboardDateKey(r.report_date);
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(d) || !d.startsWith(monthKey)) return;
-    if(filters.from && d<filters.from) return;
-    if(filters.to && d>filters.to) return;
-    if(filters.plant && filters.plant!=='all' && plant!==filters.plant) return;
-    if(filters.warehouse && filters.warehouse!=='all' && wh!==String(filters.warehouse).toUpperCase()) return;
-    const prod=productCatalog[String(r.material_code||'').trim()];
-    if(!prod) return;
-    daily[d]=(daily[d]||0)+Math.abs(toNumber(r.sales_quantity));
-  });
-  const values=Object.values(daily).filter(v=>v>0);
+
+  // مهم: الخريطة الحرارية لا تعيد الحساب من sales_audit_report.
+  // هي تعرض نفس تجميع البيع اليومي الذي تُبنى منه كروت الشاشة الرئيسية والرسم البياني.
+  const getDaySales=(date)=>toNumber(dailySummary?.[date]?.sales);
+  const values=[];
+  for(let day=1; day<=days; day++){
+    const date=`${monthKey}-${String(day).padStart(2,'0')}`;
+    if(filters.from && date<filters.from) continue;
+    if(filters.to && date>filters.to) continue;
+    const val=getDaySales(date);
+    if(val>0) values.push(val);
+  }
   const max=Math.max(...values,0);
   const min=values.length?Math.min(...values):0;
   const weekDayOrder=[6,0,1,2,3,4,5];
@@ -869,16 +867,18 @@ function renderDashboardSalesHeatmap(allRows,filters={}){
       continue;
     }
     const date=`${monthKey}-${String(day).padStart(2,'0')}`;
-    const val=daily[date]||0;
+    const filteredOut=(filters.from && date<filters.from) || (filters.to && date>filters.to);
+    const val=filteredOut ? 0 : getDaySales(date);
     const ratio=max?Math.max(.12,val/max):0;
     const exactClass=val>0 && max>0 && val===max?' highest':(val>0 && min>0 && val===min?' lowest':'');
     cells.push(`<div class="heat-cell${exactClass}" style="--heat:${ratio.toFixed(3)}" title="${date} - ${fmt(val)} طن"><b>${day}</b><span>${fmt(val)}</span></div>`);
   }
+  const visibleTotal=values.reduce((a,b)=>a+b,0);
   node.innerHTML=`
     <div class="heatmap-head"><strong>${monthKey}</strong><span>الأقل</span><i></i><span>الأعلى</span></div>
     <div class="heatmap-weekdays">${weekDayLabels.map(d=>`<span>${d}</span>`).join('')}</div>
     <div class="heatmap-grid">${cells.join('')}</div>
-    <div class="heatmap-footer"><b>${fmt(values.reduce((a,b)=>a+b,0))}</b><span>إجمالي البيع للأيام المعروضة حسب الفلتر</span></div>`;
+    <div class="heatmap-footer"><b>${fmt(visibleTotal)}</b><span>إجمالي البيع للأيام المعروضة حسب الفلتر</span></div>`;
 }
 function renderRankTable(selector,heads,rows,{totalLabel='الإجمالي'}={}){
   const node=$(selector); if(!node) return;
@@ -963,7 +963,7 @@ async function loadDashboardRealData(options={}){
     stats.outgoingTransferQty+=outTr;
     stats.incomingTransferQty+=inTr;
     stats.totalLoadingQty+=load;
-    daily[d].sales+=Math.abs(salesQty);
+    daily[d].sales+=salesQty;
     daily[d].production+=Math.abs(prod);
     daily[d].outgoing+=Math.abs(outTr);
     daily[d].incoming+=Math.abs(inTr);
@@ -1002,7 +1002,7 @@ async function loadDashboardRealData(options={}){
     reviewItemsCount:products.filter(p=>Math.abs(p.production-p.sales)>0 && Math.abs(p.production-p.sales)>Math.max(5,Math.abs(p.sales)*.25)).length
   };
   renderDashboardPlants(plantStats, stats.salesQty);
-  renderDashboardSalesHeatmap(sales, filters);
+  renderDashboardSalesHeatmap(daily, filters);
   const topProducts=products.sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales)).slice(0,10).map((p,i)=>[
     i+1,
     escapeHtml(p.code||'-'),
