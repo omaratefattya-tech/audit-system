@@ -41,6 +41,17 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 @media (max-width:850px){.profile-settings{grid-template-columns:1fr}.profile-form{grid-template-columns:1fr}.user-card{grid-template-columns:50px 1fr auto}.clock{grid-column:1/-1;border-right:0;border-top:1px solid rgba(255,255,255,.12);padding:8px 0 0}.top-logout{grid-column:3}}
 
 
+/* Settings tabs */
+#settings .settings-tabs{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-start;margin:18px 0 16px;direction:rtl}
+#settings .settings-tab{border:1px solid rgba(141,220,89,.42);border-radius:12px;background:rgba(0,55,38,.72);color:#eaffdf;padding:11px 18px;font-family:inherit;font-weight:900;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.08);transition:background .18s ease,border-color .18s ease,box-shadow .18s ease}
+#settings .settings-tab:hover{border-color:rgba(155,230,80,.72);background:rgba(28,111,49,.72)}
+#settings .settings-tab.active,#settings .settings-tab[aria-selected="true"]{background:linear-gradient(135deg,#68ba45,#1e7432);border-color:#9be650;color:#fff;box-shadow:0 0 0 1px rgba(155,230,80,.25),0 10px 28px rgba(104,186,69,.22),inset 0 1px 0 rgba(255,255,255,.18)}
+#settings .settings-tab-panels{min-width:0}
+#settings .settings-tab-panel{display:none}
+#settings .settings-tab-panel.active{display:block}
+#settings .profile-settings{margin-top:0}
+@media (max-width:650px){#settings .settings-tabs{display:grid;grid-template-columns:1fr}#settings .settings-tab{width:100%}}
+
 /* Header layout refinement - 2026-06 */
 .topbar{
   direction:ltr;

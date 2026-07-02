@@ -2513,6 +2513,18 @@ function initProfileSettings(){
   }
 }
 
+function initSettingsTabs(){
+  const root=$('#settings');
+  if(!root) return;
+  const tabs=[...root.querySelectorAll('[data-settings-tab]')];
+  const panels=[...root.querySelectorAll('[data-settings-panel]')];
+  tabs.forEach(tab=>tab.addEventListener('click',()=>{
+    const key=tab.dataset.settingsTab;
+    tabs.forEach(t=>{const active=t===tab;t.classList.toggle('active',active);t.setAttribute('aria-selected',active?'true':'false');});
+    panels.forEach(panel=>panel.classList.toggle('active',panel.dataset.settingsPanel===key));
+  }));
+}
+
 
 
 // === Permissions Engine ===
@@ -3174,7 +3186,7 @@ function initMainLoginGate(){
   }
   checkMainSession();
 }
-document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initUsersManagement();initPermissionsManagement();});
+document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initUsersManagement();initPermissionsManagement();});
 
 // Upload reports tabs controller
 function initUploadReportTabs(){

@@ -712,6 +712,11 @@
         <article class="panel glass">
           <h2>الإعدادات</h2>
           <p class="hint">بيانات صاحب الحساب تظهر في الهيدر ويتم حفظها في Supabase لتظهر على أي جهاز.</p>
+          <div class="settings-tabs" role="tablist" aria-label="تبويبات الإعدادات">
+            <button class="settings-tab active" id="settingsProfileTab" type="button" role="tab" aria-selected="true" aria-controls="settingsProfilePanel" data-settings-tab="profile">البيانات الشخصية</button>
+          </div>
+          <div class="settings-tab-panels">
+            <section class="settings-tab-panel active" id="settingsProfilePanel" role="tabpanel" aria-labelledby="settingsProfileTab" data-settings-panel="profile">
           <div class="profile-settings">
             <div class="profile-preview-card">
               <div class="avatar profile-preview-avatar" id="profilePreviewAvatar">أ</div>
@@ -735,6 +740,8 @@
               <button class="primary" id="saveProfileBtn" type="submit">حفظ بيانات الحساب</button>
               <div class="upload-status" id="profileSaveStatus"></div>
             </form>
+          </div>
+            </section>
           </div>
         </article>
       </section>
