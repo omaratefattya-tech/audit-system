@@ -850,6 +850,8 @@ function renderDashboardSalesHeatmap(allRows,filters={}){
     if(filters.to && d>filters.to) return;
     if(filters.plant && filters.plant!=='all' && plant!==filters.plant) return;
     if(filters.warehouse && filters.warehouse!=='all' && wh!==String(filters.warehouse).toUpperCase()) return;
+    const prod=productCatalog[String(r.material_code||'').trim()];
+    if(!prod) return;
     daily[d]=(daily[d]||0)+Math.abs(toNumber(r.sales_quantity));
   });
   const values=Object.values(daily).filter(v=>v>0);
