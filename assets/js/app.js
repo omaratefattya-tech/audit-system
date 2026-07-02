@@ -3997,8 +3997,7 @@ async function loadSalesTotalsReport(options={}){
   if(!WarehouseDB?.ready) return;
   fillReportFilters();
   await ensureReportDefaultDates(options);
-  const base=getReportFilters();
-  const filters={from:base.from,to:base.to};
+  const filters=getReportFilters();
   let rows=[];
   try{ rows=await fetchAllSalesAuditRows(filters,{ascending:true}); }catch(error){ console.warn('sales totals report load error',error); return; }
   const groups=SALES_TOTALS_GROUPS.map(g=>({...g,stats:emptySalesTotalsStats()}));
