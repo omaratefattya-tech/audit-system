@@ -747,10 +747,13 @@ function initDashboardFilters(){
       );
     if([...wf.options].some(o=>o.value===old)) wf.value=old;
   }
-  pf.onchange=fillWh;
+  pf.onchange=()=>{clearUnifiedSalesRowsCache();fillWh();};
+  wf.addEventListener('change',clearUnifiedSalesRowsCache);
+  ['dashboardFromDate','dashboardToDate'].forEach(id=>document.getElementById(id)?.addEventListener('change',clearUnifiedSalesRowsCache));
   fillWh();
   $('#dashboardSearchBtn')?.addEventListener('click',()=>loadDashboardRealData({keepDates:true}));
   $('#dashboardResetBtn')?.addEventListener('click',()=>{
+    clearUnifiedSalesRowsCache();
     pf.value='all';
     fillWh();
     wf.value='all';
@@ -920,6 +923,21 @@ function isSalesReviewRow(row){
 }
 function filterSalesReviewRows(rows){
   return (rows||[]).filter(isSalesReviewRow);
+}
+
+const UNIFIED_SALES_ROWS_CACHE=new Map();
+const UNIFIED_SALES_ROWS_PENDING=new Map();
+function unifiedSalesRowsCacheKey(filters={}){
+  return [
+    normalizeDateISO(filters.from||''),
+    normalizeDateISO(filters.to||''),
+    String(filters.plant||'all'),
+    String(filters.warehouse||'all').toUpperCase()
+  ].join('|');
+}
+function clearUnifiedSalesRowsCache(){
+  UNIFIED_SALES_ROWS_CACHE.clear();
+  UNIFIED_SALES_ROWS_PENDING.clear();
 }
 
 const SALES_AUDIT_DASHBOARD_SELECT='report_date,warehouse_code,warehouse_name,plant_code,plant_name,material_code,material_name,sales_quantity,actual_return_quantity,production_quantity,outgoing_transfer_quantity,incoming_transfer_quantity,total_loading_quantity';
@@ -1105,11 +1123,24 @@ async function fetchAllSalesRawRows(filters={},options={}){
   return all;
 }
 async function fetchUnifiedSalesRows(filters={},options={}){
+  const key=unifiedSalesRowsCacheKey(filters);
+  if(UNIFIED_SALES_ROWS_CACHE.has(key)) return UNIFIED_SALES_ROWS_CACHE.get(key);
+  if(UNIFIED_SALES_ROWS_PENDING.has(key)) return UNIFIED_SALES_ROWS_PENDING.get(key);
+  const request=(async()=>{
+    try{
+      return await fetchAllSalesRawRows(filters,options);
+    }catch(error){
+      console.warn('raw sales rows load failed, using sales_audit_report view',error);
+      return await fetchAllSalesAuditRows(filters,options);
+    }
+  })();
+  UNIFIED_SALES_ROWS_PENDING.set(key,request);
   try{
-    return await fetchAllSalesRawRows(filters,options);
-  }catch(error){
-    console.warn('raw sales rows load failed, using sales_audit_report view',error);
-    return await fetchAllSalesAuditRows(filters,options);
+    const rows=await request;
+    UNIFIED_SALES_ROWS_CACHE.set(key,rows);
+    return rows;
+  }finally{
+    UNIFIED_SALES_ROWS_PENDING.delete(key);
   }
 }
 
@@ -1697,6 +1728,7 @@ async function handleSalesFile(file){
       const ids=existing.map(x=>x.id);
       const {error:deleteError}=await WarehouseDB.client.from('sales_upload_batches').delete().in('id',ids);
       if(deleteError) throw deleteError;
+      clearUnifiedSalesRowsCache();
     }
 
     status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء نسخة يومية بتاريخ ${reportDate}...`;
@@ -1715,6 +1747,7 @@ async function handleSalesFile(file){
     const payload=payloadPreview.map(r=>({...r,batch_id:batch.id}));
     status.textContent=`جاري رفع ${payload.length} سطر إلى Supabase...`;
     await insertChunks('sales_raw_transactions',payload,400);
+    clearUnifiedSalesRowsCache();
     activeSalesReportDate=reportDate;
     status.textContent=`تم رفع ${payload.length} سطر بنجاح لتاريخ ${reportDate}.`;
     status.className='upload-status ok';
@@ -1795,6 +1828,7 @@ async function handleSalesBatchAction(btn){
     if(!confirm(`سيتم حذف تقرير المبيعات بتاريخ ${date} وكل بياناته الخام. هل أنت متأكد؟`)) return;
     const {error:delError}=await WarehouseDB.client.from('sales_upload_batches').delete().eq('id',btn.dataset.id);
     if(delError){ alert('خطأ أثناء الحذف: '+delError.message); return; }
+    clearUnifiedSalesRowsCache();
     await loadSalesBatches();
     await refreshSalesReportDates();
     await loadSalesReport(activeSalesWarehouse);
@@ -3219,7 +3253,9 @@ function fillReportFilters(){
       .forEach(p=>p.warehouses.filter(w=>saleWhCodes.includes(w[0])).forEach(w=>wf.add(new Option(`${w[0]} - ${w[1]}`,w[0]))));
     if([...wf.options].some(o=>o.value===old)) wf.value=old;
   }
-  pf.addEventListener('change',fillWh);
+  pf.addEventListener('change',()=>{clearUnifiedSalesRowsCache();fillWh();});
+  wf.addEventListener('change',clearUnifiedSalesRowsCache);
+  ['reportFromDate','reportToDate'].forEach(id=>document.getElementById(id)?.addEventListener('change',clearUnifiedSalesRowsCache));
   fillWh();
   pf.dataset.ready='1';
 }
@@ -4399,6 +4435,7 @@ function initExecutiveReports(){
   });
   $('#reportSearchBtn')?.addEventListener('click',()=>loadActiveReport({keepDates:true}));
   $('#reportResetBtn')?.addEventListener('click',()=>{
+    clearUnifiedSalesRowsCache();
     if($('#reportPlantFilter')) $('#reportPlantFilter').value='all';
     fillReportFilters();
     if($('#reportWarehouseFilter')) $('#reportWarehouseFilter').value='all';
