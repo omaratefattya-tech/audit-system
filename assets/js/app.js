@@ -940,6 +940,13 @@ function clearUnifiedSalesRowsCache(){
   UNIFIED_SALES_ROWS_PENDING.clear();
 }
 
+const SALES_REVIEW_MOVEMENT_TYPES=['601','602','653','654','101','102','Z51','Z52','351','352','301','302','311','312','Z13','Z14'];
+function salesPerfNow(){return window.performance?.now ? performance.now() : Date.now();}
+function salesPerfMs(start){return Math.round((salesPerfNow()-start)*100)/100;}
+function salesPerfLog(stage,start,details={}){
+  console.log('[sales-performance]',stage,{...details,durationMs:salesPerfMs(start)});
+}
+
 const SALES_AUDIT_DASHBOARD_SELECT='report_date,warehouse_code,warehouse_name,plant_code,plant_name,material_code,material_name,sales_quantity,actual_return_quantity,production_quantity,outgoing_transfer_quantity,incoming_transfer_quantity,total_loading_quantity';
 async function fetchAllSalesAuditRows(filters={}, options={}){
   if(!WarehouseDB?.ready) return [];
@@ -970,7 +977,7 @@ async function fetchAllSalesAuditRows(filters={}, options={}){
   return filterSalesReviewRows(all);
 }
 
-const SALES_RAW_AUDIT_SELECT='id,batch_id,material_code,material_name,quantity,uom,quantity_to,movement_type,movement_text,worker_group,warehouse_code,plant_code,plant_name,sales_upload_batches!inner(report_date,status)';
+const SALES_RAW_AUDIT_SELECT='id,material_code,material_name,quantity,uom,quantity_to,movement_type,movement_text,worker_group,warehouse_code,plant_code,plant_name,sales_upload_batches!inner(report_date,status)';
 function salesRowReportDate(row){
   const batch=Array.isArray(row?.sales_upload_batches)?row.sales_upload_batches[0]:row?.sales_upload_batches;
   return normalizeDateISO(row?.report_date || batch?.report_date || '');
@@ -1042,10 +1049,16 @@ function rowMatchesUnifiedSalesFilters(row,filters={}){
   return true;
 }
 function buildUnifiedSalesTotals(rows,options={}){
+  const perfLabel=`buildUnifiedSalesTotals ${unifiedSalesRowsCacheKey(options.filters||{})}`;
+  const perfStart=salesPerfNow();
+  console.time(perfLabel);
   const filters=options.filters||{};
+  const sourceRows=rows||[];
+  const materialRows=sourceRows.filter(isSalesReviewRow);
+  const salesWarehouseRows=materialRows.filter(r=>SALES_WAREHOUSES.includes(String(r?.warehouse_code||'').trim().toUpperCase()));
   const groups=(options.groups||[]).map(g=>({...g,stats:emptyUnifiedSalesStats()}));
   const groupSets=groups.map(g=>new Set((g.codes||[]).map(c=>String(c).toUpperCase())));
-  const filteredRows=(rows||[]).filter(r=>rowMatchesUnifiedSalesFilters(r,filters));
+  const filteredRows=salesWarehouseRows.filter(r=>rowMatchesUnifiedSalesFilters(r,filters));
   const daily={}, warehouseSalesMap={}, warehouseActivityMap={}, productMap={}, plantStats={};
   APP_DATA.plants.forEach(p=>plantStats[p.code]={sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0});
   const stats=emptyUnifiedSalesStats(filteredRows.length);
@@ -1088,44 +1101,87 @@ function buildUnifiedSalesTotals(rows,options={}){
     warehouseActivityMap[wh].totalActivity+=Math.abs(metrics.sales)+Math.abs(metrics.production)+Math.abs(metrics.outgoing)+Math.abs(metrics.incoming)+Math.abs(metrics.loading);
     groups.forEach((g,idx)=>{ if(groupSets[idx].has(wh)) addUnifiedSalesStats(g.stats,metrics); });
   });
+  console.timeEnd(perfLabel);
+  salesPerfLog('buildUnifiedSalesTotals',perfStart,{
+    sourceRows:sourceRows.length,
+    afterMaterialFilter:materialRows.length,
+    afterSalesWarehouseFilter:salesWarehouseRows.length,
+    afterAllFilters:filteredRows.length
+  });
   return {rows:filteredRows,stats,daily,warehouseSalesMap,warehouseActivityMap,productMap,plantStats,groups};
 }
 async function fetchAllSalesRawRows(filters={},options={}){
   if(!WarehouseDB?.ready) return [];
+  const perfLabel=`fetchAllSalesRawRows ${unifiedSalesRowsCacheKey(filters)}`;
+  const perfStart=salesPerfNow();
+  console.time(perfLabel);
   const pageSize=1000;
   const maxPages=200;
   const ascending=options.ascending===true;
   const all=[];
-  for(let page=0; page<maxPages; page++){
-    const from=page*pageSize;
-    const to=from+pageSize-1;
-    let query=WarehouseDB.client
-      .from('sales_raw_transactions')
-      .select(SALES_RAW_AUDIT_SELECT)
-      .eq('sales_upload_batches.status','active')
-      .order('id',{ascending})
-      .range(from,to);
-    if(filters.from) query=query.gte('sales_upload_batches.report_date',filters.from);
-    if(filters.to) query=query.lte('sales_upload_batches.report_date',filters.to);
-    if(filters.plant && filters.plant!=='all') query=query.eq('plant_code',filters.plant);
-    if(filters.warehouse && filters.warehouse!=='all') query=query.eq('warehouse_code',String(filters.warehouse).toUpperCase());
-    const {data,error}=await query;
-    if(error) throw error;
-    const chunk=(data||[]).map(r=>({
-      ...r,
-      report_date:salesRowReportDate(r),
-      warehouse_name:r.warehouse_name || dashboardWhMeta(r.warehouse_code).name || '',
-      uom:r.uom || 'TO'
-    }));
-    all.push(...chunk);
-    if(chunk.length<pageSize) break;
+  const pageDurations=[];
+  try{
+    for(let page=0; page<maxPages; page++){
+      const pageStart=salesPerfNow();
+      const from=page*pageSize;
+      const to=from+pageSize-1;
+      let query=WarehouseDB.client
+        .from('sales_raw_transactions')
+        .select(SALES_RAW_AUDIT_SELECT)
+        .eq('sales_upload_batches.status','active')
+        .in('material_code',[...SALES_REVIEW_MATERIAL_CODES])
+        .in('movement_type',SALES_REVIEW_MOVEMENT_TYPES)
+        .order('id',{ascending})
+        .range(from,to);
+      if(filters.from) query=query.gte('sales_upload_batches.report_date',filters.from);
+      if(filters.to) query=query.lte('sales_upload_batches.report_date',filters.to);
+      if(filters.plant && filters.plant!=='all') query=query.eq('plant_code',filters.plant);
+      if(filters.warehouse && filters.warehouse!=='all') query=query.eq('warehouse_code',String(filters.warehouse).toUpperCase());
+      else query=query.in('warehouse_code',SALES_WAREHOUSES);
+      const {data,error}=await query;
+      if(error) throw error;
+      const chunk=(data||[]).map(r=>({
+        ...r,
+        report_date:salesRowReportDate(r),
+        warehouse_name:r.warehouse_name || dashboardWhMeta(r.warehouse_code).name || '',
+        uom:r.uom || 'TO'
+      }));
+      all.push(...chunk);
+      pageDurations.push({page:page+1,rows:chunk.length,durationMs:salesPerfMs(pageStart)});
+      if(chunk.length<pageSize) break;
+    }
+    return all;
+  }finally{
+    console.timeEnd(perfLabel);
+    salesPerfLog('fetchAllSalesRawRows',perfStart,{
+      supabaseRows:all.length,
+      pages:pageDurations.length,
+      pageDurations,
+      dbFilters:{
+        materialCodes:SALES_REVIEW_MATERIAL_CODES.size,
+        warehouses:(filters.warehouse && filters.warehouse!=='all') ? 1 : SALES_WAREHOUSES.length,
+        movements:SALES_REVIEW_MOVEMENT_TYPES.length
+      }
+    });
   }
-  return all;
 }
 async function fetchUnifiedSalesRows(filters={},options={}){
   const key=unifiedSalesRowsCacheKey(filters);
-  if(UNIFIED_SALES_ROWS_CACHE.has(key)) return UNIFIED_SALES_ROWS_CACHE.get(key);
-  if(UNIFIED_SALES_ROWS_PENDING.has(key)) return UNIFIED_SALES_ROWS_PENDING.get(key);
+  const perfLabel=`fetchUnifiedSalesRows ${key}`;
+  const perfStart=salesPerfNow();
+  console.time(perfLabel);
+  if(UNIFIED_SALES_ROWS_CACHE.has(key)){
+    const rows=UNIFIED_SALES_ROWS_CACHE.get(key);
+    console.timeEnd(perfLabel);
+    salesPerfLog('fetchUnifiedSalesRows cache-hit',perfStart,{cacheKey:key,rows:rows.length});
+    return rows;
+  }
+  if(UNIFIED_SALES_ROWS_PENDING.has(key)){
+    const rows=await UNIFIED_SALES_ROWS_PENDING.get(key);
+    console.timeEnd(perfLabel);
+    salesPerfLog('fetchUnifiedSalesRows pending-hit',perfStart,{cacheKey:key,rows:rows.length});
+    return rows;
+  }
   const request=(async()=>{
     try{
       return await fetchAllSalesRawRows(filters,options);
@@ -1138,12 +1194,13 @@ async function fetchUnifiedSalesRows(filters={},options={}){
   try{
     const rows=await request;
     UNIFIED_SALES_ROWS_CACHE.set(key,rows);
+    console.timeEnd(perfLabel);
+    salesPerfLog('fetchUnifiedSalesRows fetch',perfStart,{cacheKey:key,rows:rows.length});
     return rows;
   }finally{
     UNIFIED_SALES_ROWS_PENDING.delete(key);
   }
 }
-
 async function loadDashboardRealData(options={}){
   if(!WarehouseDB?.ready) return;
   await ensureDashboardDefaultDate(options);
@@ -1156,6 +1213,9 @@ async function loadDashboardRealData(options={}){
     return;
   }
   const model=buildUnifiedSalesTotals(dashboardRows,{filters});
+  const renderPerfLabel='renderDashboard '+unifiedSalesRowsCacheKey(filters);
+  const renderPerfStart=salesPerfNow();
+  console.time(renderPerfLabel);
   const sales=model.rows;
   const stats=model.stats;
   const daily=model.daily;
@@ -1189,6 +1249,8 @@ async function loadDashboardRealData(options={}){
   ]);
   renderRankTable('#topWarehousesTable',['#','كود المخزن','اسم المخزن','المصنع','البيع','التحميل'],topWarehouses);
   ensureDashboardPngButtons();
+  console.timeEnd(renderPerfLabel);
+  salesPerfLog('renderDashboard',renderPerfStart,{rows:sales.length,topProducts:topProducts.length,topWarehouses:topWarehouses.length});
 }
 
 
@@ -4161,13 +4223,23 @@ function renderSalesTotalsReport(groups,filters){
 }
 async function loadSalesTotalsReport(options={}){
   if(!WarehouseDB?.ready) return;
+  const reportPerfStart=salesPerfNow();
+  const reportPerfLabel='loadSalesTotalsReport';
+  console.time(reportPerfLabel);
   fillReportFilters();
   await ensureReportDefaultDates(options);
   const filters=getReportFilters();
   let rows=[];
   try{ rows=await fetchUnifiedSalesRows(filters,{ascending:true}); }catch(error){ console.warn('sales totals report load error',error); return; }
   const model=buildUnifiedSalesTotals(rows,{filters,groups:SALES_TOTALS_GROUPS});
+  const renderPerfLabel='renderSalesTotalsReport '+unifiedSalesRowsCacheKey(filters);
+  const renderPerfStart=salesPerfNow();
+  console.time(renderPerfLabel);
   renderSalesTotalsReport(model.groups,filters);
+  console.timeEnd(renderPerfLabel);
+  salesPerfLog('renderSalesTotalsReport',renderPerfStart,{groups:model.groups.length,rows:model.rows.length});
+  console.timeEnd(reportPerfLabel);
+  salesPerfLog('loadSalesTotalsReport',reportPerfStart,{sourceRows:rows.length,filteredRows:model.rows.length,groups:model.groups.length});
 }
 
 function switchReportTab(tab){
