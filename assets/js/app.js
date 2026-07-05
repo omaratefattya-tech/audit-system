@@ -2995,7 +2995,7 @@ function parseWarehouseBoolean(value){
   return String(value).trim().toLowerCase()==='true';
 }
 function warehouseTypeLabel(type){
-  const map={finished:'\u0645\u0646\u062A\u062C \u062A\u0627\u0645',raw:'\u062E\u0627\u0645\u0627\u062A / \u062A\u0635\u0646\u064A\u0639',other:'\u0623\u062E\u0631\u0649'};
+  const map={finished:'\u0645\u0646\u062A\u062C \u062A\u0627\u0645',bulk_raw:'\u062E\u0627\u0645\u0627\u062A \u0635\u0628',raw:'\u062E\u0627\u0645\u0627\u062A',manufacturing:'\u062A\u0635\u0646\u064A\u0639',other:'\u0623\u062E\u0631\u0649'};
   return map[String(type||'').trim()] || String(type||'-');
 }
 function warehousePlantOptionsHtml(selected=''){
@@ -3034,7 +3034,7 @@ function renderWarehousesSettingsTable(rows=[]){
       +'<td><span class="warehouse-code-readonly">'+code+'</span></td>'
       +'<td><input type="text" class="warehouse-name-edit" value="'+name+'" /></td>'
       +'<td><select class="warehouse-plant-edit">'+warehousePlantOptionsHtml(row.plant_code)+'</select></td>'
-      +'<td><select class="warehouse-type-edit"><option value="finished" '+(type==='finished'?'selected':'')+'>\u0645\u0646\u062A\u062C \u062A\u0627\u0645</option><option value="raw" '+(type==='raw'?'selected':'')+'>\u062E\u0627\u0645\u0627\u062A / \u062A\u0635\u0646\u064A\u0639</option><option value="other" '+(type==='other'?'selected':'')+'>\u0623\u062E\u0631\u0649</option></select></td>'
+      +'<td><select class="warehouse-type-edit"><option value="finished" '+(type==='finished'?'selected':'')+'>\u0645\u0646\u062A\u062C \u062A\u0627\u0645</option><option value="bulk_raw" '+(type==='bulk_raw'?'selected':'')+'>\u062E\u0627\u0645\u0627\u062A \u0635\u0628</option><option value="raw" '+(type==='raw'?'selected':'')+'>\u062E\u0627\u0645\u0627\u062A</option><option value="manufacturing" '+(type==='manufacturing'?'selected':'')+'>\u062A\u0635\u0646\u064A\u0639</option><option value="other" '+(type==='other'?'selected':'')+'>\u0623\u062E\u0631\u0649</option></select></td>'
       +'<td><select class="warehouse-sales-edit"><option value="true" '+(sales?'selected':'')+'>\u0646\u0639\u0645</option><option value="false" '+(!sales?'selected':'')+'>\u0644\u0627</option></select></td>'
       +'<td><select class="warehouse-receiving-edit"><option value="true" '+(receiving?'selected':'')+'>\u0646\u0639\u0645</option><option value="false" '+(!receiving?'selected':'')+'>\u0644\u0627</option></select></td>'
       +'<td><select class="warehouse-active-edit"><option value="true" '+(active?'selected':'')+'>\u0646\u0634\u0637</option><option value="false" '+(!active?'selected':'')+'>\u063A\u064A\u0631 \u0646\u0634\u0637</option></select><div class="'+statusClass+'">'+statusText+'</div></td>'
