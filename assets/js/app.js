@@ -2823,7 +2823,7 @@ function renderPlantsSettingsTable(rows=[]){
       +'<td><input type="text" class="plant-name-edit" value="'+name+'" /></td>'
       +'<td><select class="plant-active-edit"><option value="true" '+(active?'selected':'')+'>\u0646\u0634\u0637</option><option value="false" '+(!active?'selected':'')+'>\u063A\u064A\u0631 \u0646\u0634\u0637</option></select><div class="'+statusClass+'">'+statusText+'</div></td>'
       +'<td><input type="number" class="plant-sort-edit" value="'+sort+'" step="1" /></td>'
-      +'<td><div class="plant-row-actions"><button class="secondary save-plant-row-btn" type="button">\u062D\u0641\u0638</button></div></td>'
+      +'<td><div class="plant-row-actions"><button class="secondary save-plant-row-btn" type="button" data-action="save-plant">\u062D\u0641\u0638</button></div></td>'
       +'</tr>';
   }).join('');
 }
@@ -2903,9 +2903,9 @@ async function addPlantSettingsRow(e){
   }
 }
 async function savePlantSettingsRow(source){
-  const row=source?.closest ? source.closest('[data-plant-code]') : source;
+  const row=source?.closest ? (source.closest('[data-plant-code]') || source.closest('tr')) : source;
   if(!row || !WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
-  const plantCode=normalizePlantSettingsCode(row.dataset.plantCode || '');
+  const plantCode=normalizePlantSettingsCode(row.dataset.plantCode || row.querySelector('.plant-code-readonly')?.textContent || '');
   const plant_name=String(row.querySelector('.plant-name-edit')?.value||'').trim();
   const activeSelect=row.querySelector('.plant-active-edit');
   const activeValue=activeSelect?.value || 'false';
@@ -2957,9 +2957,25 @@ async function savePlantSettingsRow(source){
 }
 function initPlantsSettings(){
   $('#plantSettingsForm')?.addEventListener('submit',addPlantSettingsRow);
-  $('#plantsSettingsTable')?.addEventListener('click',e=>{
-    const btn=e.target.closest('.save-plant-row-btn');
-    if(btn) savePlantSettingsRow(btn);
+  const table=$('#plantsSettingsTable');
+  if(!table || table.dataset.plantsSettingsBound==='1') return;
+  table.dataset.noUniversalTable='1';
+  table.dataset.plantsSettingsBound='1';
+  table.addEventListener('click',e=>{
+    const target=e.target?.closest ? e.target : e.target?.parentElement;
+    const btn=target?.closest('[data-action="save-plant"]');
+    if(!btn || !table.contains(btn)) return;
+    console.log('[plants-settings] save button clicked',e.target);
+    e.preventDefault();
+    const row=btn.closest('[data-plant-code]') || btn.closest('tr');
+    console.info('[plants-settings] save button context',{
+      row,
+      plant_code:normalizePlantSettingsCode(row?.dataset?.plantCode || row?.querySelector('.plant-code-readonly')?.textContent || ''),
+      activeSelect:row?.querySelector('.plant-active-edit') || null,
+      nameInput:row?.querySelector('.plant-name-edit') || null,
+      sortInput:row?.querySelector('.plant-sort-edit') || null
+    });
+    savePlantSettingsRow(btn);
   });
 }
 
