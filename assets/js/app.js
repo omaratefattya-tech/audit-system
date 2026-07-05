@@ -2538,20 +2538,54 @@ function snapshotLocalStorageForPasswordCheck(){
   }
   return JSON.stringify(snapshot);
 }
+function summarizeAuthSessionResult(result){
+  const session=result?.data?.session || null;
+  return {
+    session:session ? 'present' : null,
+    hasAccessToken:Boolean(session?.access_token),
+    hasUser:Boolean(session?.user),
+    userId:session?.user?.id || null,
+    userEmail:session?.user?.email || null,
+    expiresAt:session?.expires_at || null,
+    error:result?.error?.message || null
+  };
+}
+async function getAuthSessionSummary(client){
+  if(!client?.auth?.getSession) return {session:null,hasAccessToken:false,hasUser:false,error:'Auth client is not ready'};
+  try{
+    return summarizeAuthSessionResult(await client.auth.getSession());
+  }catch(err){
+    return {session:null,hasAccessToken:false,hasUser:false,error:err?.message || String(err)};
+  }
+}
+async function logPasswordAuthSessionComparison(label,tempClient){
+  const [mainSession,tempSession]=await Promise.all([
+    getAuthSessionSummary(WarehouseDB?.client),
+    getAuthSessionSummary(tempClient)
+  ]);
+  console.info('[password-check] '+label,{
+    'Main Client Session':mainSession,
+    'Temporary Client Session':tempSession
+  });
+  return {mainSession,tempSession};
+}
 async function verifyCurrentPasswordWithTemporaryClient(email,password){
   const mainClientBefore=WarehouseDB?.client || null;
   const localStorageBefore=snapshotLocalStorageForPasswordCheck();
   let tempClient=createTemporaryPasswordAuthClient();
   if(!tempClient) return {error:new Error('Supabase config is not ready')};
+  await logPasswordAuthSessionComparison('before temporary verify',tempClient);
   try{
     const {error}=await tempClient.auth.signInWithPassword({email,password});
+    await logPasswordAuthSessionComparison('after temporary verify',tempClient);
     return {error};
   }finally{
-    try{ await tempClient.auth.signOut(); }catch(_){}
+    try{ await tempClient.auth.signOut({scope:'local'}); }catch(_){}
+    await logPasswordAuthSessionComparison('after temporary local signOut',tempClient);
     tempClient=null;
     const localStorageUnchanged=localStorageBefore===snapshotLocalStorageForPasswordCheck();
     const warehouseClientUnchanged=mainClientBefore===(WarehouseDB?.client || null);
-    console.info('[password-check] temporary client isolation',{localStorageUnchanged,warehouseClientUnchanged});
+    console.info('[password-check] temporary client isolation',{localStorageUnchanged,warehouseClientUnchanged,temporarySignOutScope:'local'});
   }
 }
 async function handlePasswordChangeSubmit(e){
@@ -2567,6 +2601,12 @@ async function handlePasswordChangeSubmit(e){
     const verify=await verifyCurrentPasswordWithTemporaryClient(CURRENT_AUTH_USER.email,currentPassword);
     if(verify?.error){ setPasswordChangeStatus('كلمة المرور الحالية غير صحيحة.','err'); return; }
     setPasswordChangeStatus('جاري تغيير كلمة المرور...');
+    const mainSessionBeforeUpdate=await WarehouseDB.client.auth.getSession();
+    console.info('[password-change] WarehouseDB.client.auth.getSession() before updateUser',summarizeAuthSessionResult(mainSessionBeforeUpdate));
+    if(mainSessionBeforeUpdate?.error || !mainSessionBeforeUpdate?.data?.session?.access_token){
+      setPasswordChangeStatus('جلسة الدخول غير صالحة. سجل الدخول مرة أخرى.','err');
+      return;
+    }
     const {data,error}=await WarehouseDB.client.auth.updateUser({password:newPassword});
     if(error) throw error;
     if(data?.user) CURRENT_AUTH_USER=data.user;
