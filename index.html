@@ -216,6 +216,7 @@
               <p class="hint">الصفوف النشطة المستخدمة حالياً في مطابقة النولون.</p>
               <div class="table-wrap"><table id="freightRatesTable"></table></div>
             </div>
+            
           </div>
         </article>
       </section>
@@ -717,6 +718,7 @@
             <button class="settings-tab" id="settingsAccountTab" type="button" role="tab" aria-selected="false" aria-controls="settingsAccountPanel" data-settings-tab="account">بيانات المستخدم وكلمة المرور</button>
             <button class="settings-tab" id="settingsSystemTab" type="button" role="tab" aria-selected="false" aria-controls="settingsSystemPanel" data-settings-tab="system">&#x2699;&#xFE0F; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0646;&#x0638;&#x0627;&#x0645;</button>
             <button class="settings-tab" id="settingsPlantsTab" type="button" role="tab" aria-selected="false" aria-controls="settingsPlantsPanel" data-settings-tab="plants-settings">&#x1F3ED; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x0635;&#x0627;&#x0646;&#x0639;</button>
+            <button class="settings-tab" id="settingsWarehousesTab" type="button" role="tab" aria-selected="false" aria-controls="settingsWarehousesPanel" data-settings-tab="warehouses-settings">&#x1F3EC; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x062E;&#x0627;&#x0632;&#x0646;</button>
           </div>
           <div class="settings-tab-panels">
             <section class="settings-tab-panel active" id="settingsProfilePanel" role="tabpanel" aria-labelledby="settingsProfileTab" data-settings-panel="profile">
@@ -878,6 +880,42 @@
                   </table>
                 </div>
                 <div class="upload-status" id="plantsSettingsStatus"></div>
+              </div>
+            </section>
+<section class="settings-tab-panel" id="settingsWarehousesPanel" role="tabpanel" aria-labelledby="settingsWarehousesTab" data-settings-panel="warehouses-settings">
+              <div class="settings-warehouses-wrap">
+                <form id="warehouseSettingsForm" class="warehouse-settings-form">
+                  <label>&#x0643;&#x0648;&#x062F; &#x0627;&#x0644;&#x0645;&#x062E;&#x0632;&#x0646;
+                    <input type="text" id="warehouseCodeInput" placeholder="W401" autocomplete="off" />
+                  </label>
+                  <label>&#x0627;&#x0633;&#x0645; &#x0627;&#x0644;&#x0645;&#x062E;&#x0632;&#x0646;
+                    <input type="text" id="warehouseNameInput" placeholder="&#x0627;&#x0633;&#x0645; &#x0627;&#x0644;&#x0645;&#x062E;&#x0632;&#x0646;" autocomplete="off" />
+                  </label>
+                  <label>&#x0627;&#x0644;&#x0645;&#x0635;&#x0646;&#x0639;
+                    <select id="warehousePlantInput"></select>
+                  </label>
+                  <label>&#x0646;&#x0648;&#x0639; &#x0627;&#x0644;&#x0645;&#x062E;&#x0632;&#x0646;
+                    <select id="warehouseTypeInput">
+                      <option value="finished">&#x0645;&#x0646;&#x062A;&#x062C; &#x062A;&#x0627;&#x0645;</option>
+                      <option value="raw">&#x062E;&#x0627;&#x0645;&#x0627;&#x062A; / &#x062A;&#x0635;&#x0646;&#x064A;&#x0639;</option>
+                      <option value="other">&#x0623;&#x062E;&#x0631;&#x0649;</option>
+                    </select>
+                  </label>
+                  <label>&#x062A;&#x0631;&#x062A;&#x064A;&#x0628; &#x0627;&#x0644;&#x0638;&#x0647;&#x0648;&#x0631;
+                    <input type="number" id="warehouseSortOrderInput" value="0" step="1" />
+                  </label>
+                  <label class="settings-check warehouse-flag-check"><input type="checkbox" id="warehouseUseSalesInput" /> <span>&#x0645;&#x0631;&#x0627;&#x062C;&#x0639;&#x0629; &#x0627;&#x0644;&#x0628;&#x064A;&#x0639;</span></label>
+                  <label class="settings-check warehouse-flag-check"><input type="checkbox" id="warehouseUseReceivingInput" /> <span>&#x0645;&#x0631;&#x0627;&#x062C;&#x0639;&#x0629; &#x0627;&#x0644;&#x0648;&#x0627;&#x0631;&#x062F;</span></label>
+                  <label class="settings-check warehouse-flag-check"><input type="checkbox" id="warehouseActiveInput" checked /> <span>&#x0646;&#x0634;&#x0637;</span></label>
+                  <button class="primary" id="addWarehouseBtn" type="submit">&#x0625;&#x0636;&#x0627;&#x0641;&#x0629; &#x0645;&#x062E;&#x0632;&#x0646;</button>
+                </form>
+                <div class="table-wrap warehouses-settings-table-wrap">
+                  <table id="warehousesSettingsTable" data-no-universal-table="1">
+                    <thead><tr><th>&#x0643;&#x0648;&#x062F; &#x0627;&#x0644;&#x0645;&#x062E;&#x0632;&#x0646;</th><th>&#x0627;&#x0633;&#x0645; &#x0627;&#x0644;&#x0645;&#x062E;&#x0632;&#x0646;</th><th>&#x0627;&#x0644;&#x0645;&#x0635;&#x0646;&#x0639;</th><th>&#x0646;&#x0648;&#x0639; &#x0627;&#x0644;&#x0645;&#x062E;&#x0632;&#x0646;</th><th>&#x0645;&#x0631;&#x0627;&#x062C;&#x0639;&#x0629; &#x0627;&#x0644;&#x0628;&#x064A;&#x0639;</th><th>&#x0645;&#x0631;&#x0627;&#x062C;&#x0639;&#x0629; &#x0627;&#x0644;&#x0648;&#x0627;&#x0631;&#x062F;</th><th>&#x0627;&#x0644;&#x062D;&#x0627;&#x0644;&#x0629;</th><th>&#x062A;&#x0631;&#x062A;&#x064A;&#x0628; &#x0627;&#x0644;&#x0638;&#x0647;&#x0648;&#x0631;</th><th>&#x0627;&#x0644;&#x0625;&#x062C;&#x0631;&#x0627;&#x0621;&#x0627;&#x062A;</th></tr></thead>
+                    <tbody><tr><td colspan="9" class="empty-row">&#x064A;&#x062A;&#x0645; &#x062A;&#x062D;&#x0645;&#x064A;&#x0644; &#x0628;&#x064A;&#x0627;&#x0646;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x062E;&#x0627;&#x0632;&#x0646; &#x0639;&#x0646;&#x062F; &#x0641;&#x062A;&#x062D; &#x0627;&#x0644;&#x062A;&#x0628;&#x0648;&#x064A;&#x0628;.</td></tr></tbody>
+                  </table>
+                </div>
+                <div class="upload-status" id="warehousesSettingsStatus"></div>
               </div>
             </section>
           </div>

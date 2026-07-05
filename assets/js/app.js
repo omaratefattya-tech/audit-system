@@ -2979,6 +2979,199 @@ function initPlantsSettings(){
   });
 }
 
+
+let WAREHOUSES_SETTINGS_LOADED=false;
+let WAREHOUSES_SETTINGS_ROWS=[];
+function setWarehousesSettingsStatus(message,type=''){
+  const status=$('#warehousesSettingsStatus');
+  if(!status) return;
+  status.className='upload-status '+(type||'');
+  status.textContent=message || '';
+}
+function normalizeWarehouseSettingsCode(value){return String(value||'').trim().toUpperCase();}
+function parseWarehouseBoolean(value){
+  if(value===true || value===1) return true;
+  if(value===false || value===0 || value==null) return false;
+  return String(value).trim().toLowerCase()==='true';
+}
+function warehouseTypeLabel(type){
+  const map={finished:'\u0645\u0646\u062A\u062C \u062A\u0627\u0645',raw:'\u062E\u0627\u0645\u0627\u062A / \u062A\u0635\u0646\u064A\u0639',other:'\u0623\u062E\u0631\u0649'};
+  return map[String(type||'').trim()] || String(type||'-');
+}
+function warehousePlantOptionsHtml(selected=''){
+  const current=String(selected||'').trim().toUpperCase();
+  return getPlantsCatalog().map(p=>{
+    const code=escapeHtml(p.code||'');
+    const label=escapeHtml((p.code||'')+' - '+(p.name||p.code||''));
+    return '<option value="'+code+'" '+(String(p.code||'').toUpperCase()===current?'selected':'')+'>'+label+'</option>';
+  }).join('');
+}
+function fillWarehousePlantInput(){
+  const select=$('#warehousePlantInput');
+  if(!select) return;
+  const current=select.value;
+  select.innerHTML=warehousePlantOptionsHtml(current);
+}
+function renderWarehousesSettingsTable(rows=[]){
+  const tbody=$('#warehousesSettingsTable tbody');
+  if(!tbody) return;
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="9" class="empty-row">\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u062E\u0627\u0632\u0646 \u0645\u062D\u0641\u0648\u0638\u0629.</td></tr>';
+    return;
+  }
+  tbody.innerHTML=rows.map(row=>{
+    const id=escapeHtml(row.id||'');
+    const code=escapeHtml(row.warehouse_code||'');
+    const name=escapeHtml(row.warehouse_name||'');
+    const type=String(row.warehouse_type||'other').trim() || 'other';
+    const sales=parseWarehouseBoolean(row.use_in_sales_review);
+    const receiving=parseWarehouseBoolean(row.use_in_receiving_review);
+    const active=parseWarehouseBoolean(row.is_active);
+    const sort=Number(row.sort_order||0);
+    const statusText=active?'\u0646\u0634\u0637':'\u063A\u064A\u0631 \u0646\u0634\u0637';
+    const statusClass=active?'warehouse-status-active':'warehouse-status-inactive';
+    return '<tr data-warehouse-id="'+id+'" data-warehouse-code="'+code+'">'
+      +'<td><span class="warehouse-code-readonly">'+code+'</span></td>'
+      +'<td><input type="text" class="warehouse-name-edit" value="'+name+'" /></td>'
+      +'<td><select class="warehouse-plant-edit">'+warehousePlantOptionsHtml(row.plant_code)+'</select></td>'
+      +'<td><select class="warehouse-type-edit"><option value="finished" '+(type==='finished'?'selected':'')+'>\u0645\u0646\u062A\u062C \u062A\u0627\u0645</option><option value="raw" '+(type==='raw'?'selected':'')+'>\u062E\u0627\u0645\u0627\u062A / \u062A\u0635\u0646\u064A\u0639</option><option value="other" '+(type==='other'?'selected':'')+'>\u0623\u062E\u0631\u0649</option></select></td>'
+      +'<td><select class="warehouse-sales-edit"><option value="true" '+(sales?'selected':'')+'>\u0646\u0639\u0645</option><option value="false" '+(!sales?'selected':'')+'>\u0644\u0627</option></select></td>'
+      +'<td><select class="warehouse-receiving-edit"><option value="true" '+(receiving?'selected':'')+'>\u0646\u0639\u0645</option><option value="false" '+(!receiving?'selected':'')+'>\u0644\u0627</option></select></td>'
+      +'<td><select class="warehouse-active-edit"><option value="true" '+(active?'selected':'')+'>\u0646\u0634\u0637</option><option value="false" '+(!active?'selected':'')+'>\u063A\u064A\u0631 \u0646\u0634\u0637</option></select><div class="'+statusClass+'">'+statusText+'</div></td>'
+      +'<td><input type="number" class="warehouse-sort-edit" value="'+sort+'" step="1" /></td>'
+      +'<td><div class="warehouse-row-actions"><button class="secondary save-warehouse-row-btn" type="button" data-action="save-warehouse">\u062D\u0641\u0638</button></div></td>'
+      +'</tr>';
+  }).join('');
+}
+async function fetchWarehousesSettingsRowsDirect(){
+  return WarehouseDB.client
+    .from('warehouses')
+    .select('id,warehouse_code,warehouse_name,plant_code,warehouse_type,use_in_sales_review,use_in_receiving_review,is_active,sort_order',{count:'exact'})
+    .order('sort_order',{ascending:true})
+    .order('warehouse_code',{ascending:true});
+}
+async function fetchWarehouseSettingsRowDirect(warehouseCode){
+  return WarehouseDB.client
+    .from('warehouses')
+    .select('id,warehouse_code,warehouse_name,plant_code,warehouse_type,use_in_sales_review,use_in_receiving_review,is_active,sort_order,updated_at,updated_by',{count:'exact'})
+    .eq('warehouse_code',warehouseCode);
+}
+async function loadWarehousesSettings(){
+  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
+  fillWarehousePlantInput();
+  setWarehousesSettingsStatus('\u062C\u0627\u0631\u064A \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u062E\u0627\u0632\u0646...');
+  try{
+    const {data,error}=await fetchWarehousesSettingsRowsDirect();
+    if(error) throw error;
+    WAREHOUSES_SETTINGS_ROWS=data || [];
+    WAREHOUSES_SETTINGS_LOADED=true;
+    renderWarehousesSettingsTable(WAREHOUSES_SETTINGS_ROWS);
+    setWarehousesSettingsStatus('\u062A\u0645 \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u062E\u0627\u0632\u0646.','ok');
+  }catch(err){
+    WAREHOUSES_SETTINGS_LOADED=false;
+    WAREHOUSES_SETTINGS_ROWS=[];
+    renderWarehousesSettingsTable([]);
+    setWarehousesSettingsStatus('\u062A\u0639\u0630\u0631 \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u062E\u0627\u0632\u0646: '+(err.message||err),'err');
+  }
+}
+async function ensureWarehousesSettingsLoaded(){
+  if(WAREHOUSES_SETTINGS_LOADED) return;
+  await loadWarehousesSettings();
+}
+function readWarehouseSettingsForm(){
+  return {
+    warehouse_code:normalizeWarehouseSettingsCode($('#warehouseCodeInput')?.value),
+    warehouse_name:String($('#warehouseNameInput')?.value||'').trim(),
+    plant_code:normalizePlantSettingsCode($('#warehousePlantInput')?.value),
+    warehouse_type:String($('#warehouseTypeInput')?.value||'other').trim(),
+    use_in_sales_review:Boolean($('#warehouseUseSalesInput')?.checked),
+    use_in_receiving_review:Boolean($('#warehouseUseReceivingInput')?.checked),
+    is_active:Boolean($('#warehouseActiveInput')?.checked),
+    sort_order:parseInt($('#warehouseSortOrderInput')?.value||'0',10)||0
+  };
+}
+function clearWarehouseSettingsForm(){
+  if($('#warehouseCodeInput')) $('#warehouseCodeInput').value='';
+  if($('#warehouseNameInput')) $('#warehouseNameInput').value='';
+  if($('#warehouseTypeInput')) $('#warehouseTypeInput').value='finished';
+  if($('#warehouseUseSalesInput')) $('#warehouseUseSalesInput').checked=false;
+  if($('#warehouseUseReceivingInput')) $('#warehouseUseReceivingInput').checked=false;
+  if($('#warehouseActiveInput')) $('#warehouseActiveInput').checked=true;
+  if($('#warehouseSortOrderInput')) $('#warehouseSortOrderInput').value='0';
+}
+async function addWarehouseSettingsRow(e){
+  e?.preventDefault();
+  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setWarehousesSettingsStatus('\u0633\u062C\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0623\u0648\u0644\u0627\u064B \u0644\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u062E\u0627\u0632\u0646.','err'); return; }
+  const payload=readWarehouseSettingsForm();
+  if(!payload.warehouse_code || !payload.warehouse_name || !payload.plant_code){ setWarehousesSettingsStatus('\u0643\u0648\u062F \u0627\u0644\u0645\u062E\u0632\u0646 \u0648\u0627\u0633\u0645\u0647 \u0648\u0627\u0644\u0645\u0635\u0646\u0639 \u0645\u0637\u0644\u0648\u0628\u0629.','err'); return; }
+  setWarehousesSettingsStatus('\u062C\u0627\u0631\u064A \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u062E\u0632\u0646...');
+  try{
+    const {error}=await WarehouseDB.client.from('warehouses').insert(payload);
+    if(error) throw error;
+    clearWarehouseSettingsForm();
+    WAREHOUSES_SETTINGS_LOADED=false;
+    await loadWarehousesSettings();
+    setWarehousesSettingsStatus('\u062A\u0645\u062A \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u062E\u0632\u0646 \u0628\u0646\u062C\u0627\u062D.','ok');
+  }catch(err){
+    setWarehousesSettingsStatus('\u062A\u0639\u0630\u0631 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u062E\u0632\u0646: '+(err.message||err),'err');
+  }
+}
+async function saveWarehouseSettingsRow(source){
+  const row=source?.closest ? (source.closest('[data-warehouse-code]') || source.closest('tr')) : source;
+  if(!row || !WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
+  const warehouseCode=normalizeWarehouseSettingsCode(row.dataset.warehouseCode || row.querySelector('.warehouse-code-readonly')?.textContent || '');
+  const payload={
+    warehouse_name:String(row.querySelector('.warehouse-name-edit')?.value||'').trim(),
+    plant_code:normalizePlantSettingsCode(row.querySelector('.warehouse-plant-edit')?.value),
+    warehouse_type:String(row.querySelector('.warehouse-type-edit')?.value||'other').trim(),
+    use_in_sales_review:row.querySelector('.warehouse-sales-edit')?.value === 'true',
+    use_in_receiving_review:row.querySelector('.warehouse-receiving-edit')?.value === 'true',
+    is_active:row.querySelector('.warehouse-active-edit')?.value === 'true',
+    sort_order:parseInt(row.querySelector('.warehouse-sort-edit')?.value||'0',10)||0
+  };
+  if(!payload.warehouse_name || !payload.plant_code){ setWarehousesSettingsStatus('\u0627\u0633\u0645 \u0627\u0644\u0645\u062E\u0632\u0646 \u0648\u0627\u0644\u0645\u0635\u0646\u0639 \u0645\u0637\u0644\u0648\u0628\u0627\u0646.','err'); return; }
+  setWarehousesSettingsStatus('\u062C\u0627\u0631\u064A \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u062E\u0632\u0646...');
+  try{
+    const before=await fetchWarehouseSettingsRowDirect(warehouseCode);
+    if(before.error) throw before.error;
+    if(before.count !== 1) throw new Error('\u0643\u0648\u062F \u0627\u0644\u0645\u062E\u0632\u0646 \u063A\u064A\u0631 \u0641\u0631\u064A\u062F \u0623\u0648 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F.');
+    const updateResult=await WarehouseDB.client
+      .from('warehouses')
+      .update(payload,{count:'exact'})
+      .eq('warehouse_code',warehouseCode)
+      .select('id,warehouse_code,warehouse_name,plant_code,warehouse_type,use_in_sales_review,use_in_receiving_review,is_active,sort_order,updated_at,updated_by');
+    if(updateResult.error) throw updateResult.error;
+    if(updateResult.count !== 1 || !updateResult.data?.length) throw new Error('\u0644\u0645 \u064A\u062A\u0645 \u062A\u0639\u062F\u064A\u0644 \u0623\u064A \u0635\u0641.');
+    const verify=await fetchWarehouseSettingsRowDirect(warehouseCode);
+    if(verify.error) throw verify.error;
+    if(verify.count !== 1) throw new Error('\u0644\u0645 \u064A\u062A\u0645 \u062A\u0623\u0643\u064A\u062F \u0627\u0644\u062D\u0641\u0638.');
+    const saved=verify.data?.[0];
+    if(!saved || parseWarehouseBoolean(saved.is_active)!==payload.is_active || parseWarehouseBoolean(saved.use_in_sales_review)!==payload.use_in_sales_review || parseWarehouseBoolean(saved.use_in_receiving_review)!==payload.use_in_receiving_review || String(saved.plant_code||'')!==payload.plant_code){
+      throw new Error('\u0644\u0645 \u062A\u062A\u063A\u064A\u0631 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u062E\u0632\u0646 \u0641\u0639\u0644\u064A\u0627\u064B \u0641\u064A Supabase.');
+    }
+    WAREHOUSES_SETTINGS_LOADED=false;
+    await loadWarehousesSettings();
+    setWarehousesSettingsStatus('\u062A\u0645 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u062E\u0632\u0646 \u0628\u0646\u062C\u0627\u062D.','ok');
+  }catch(err){
+    setWarehousesSettingsStatus('\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u062E\u0632\u0646: '+(err.message||err),'err');
+  }
+}
+function initWarehousesSettings(){
+  fillWarehousePlantInput();
+  $('#warehouseSettingsForm')?.addEventListener('submit',addWarehouseSettingsRow);
+  const table=$('#warehousesSettingsTable');
+  if(!table || table.dataset.warehousesSettingsBound==='1') return;
+  table.dataset.noUniversalTable='1';
+  table.dataset.warehousesSettingsBound='1';
+  table.addEventListener('click',e=>{
+    const target=e.target?.closest ? e.target : e.target?.parentElement;
+    const btn=target?.closest('[data-action="save-warehouse"]');
+    if(!btn || !table.contains(btn)) return;
+    e.preventDefault();
+    saveWarehouseSettingsRow(btn);
+  });
+}
+
 function initPasswordVisibilityToggles(){
   document.querySelectorAll('[data-password-toggle]').forEach(btn=>{
     btn.addEventListener('click',()=>{
@@ -3126,6 +3319,7 @@ function initSettingsTabs(){
     panels.forEach(panel=>panel.classList.toggle('active',panel.dataset.settingsPanel===key));
     if(key==='system') ensureSystemSettingsLoaded();
     if(key==='plants-settings') ensurePlantsSettingsLoaded();
+    if(key==='warehouses-settings') ensureWarehousesSettingsLoaded();
   }));
 }
 
@@ -3790,7 +3984,7 @@ function initMainLoginGate(){
   }
   checkMainSession();
 }
-document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initUsersManagement();initPermissionsManagement();});
+document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initUsersManagement();initPermissionsManagement();});
 
 // Upload reports tabs controller
 function initUploadReportTabs(){

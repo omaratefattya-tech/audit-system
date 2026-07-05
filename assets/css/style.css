@@ -92,6 +92,20 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 #settings .plant-status-inactive{color:#ffc2c2;font-weight:900}
 @media (max-width:1050px){#settings .plant-settings-form{grid-template-columns:1fr 1fr}#settings .plant-settings-form .primary{grid-column:1/-1}}
 @media (max-width:650px){#settings .plant-settings-form{grid-template-columns:1fr}#settings .plant-active-check{margin-top:0}}
+#settings .settings-warehouses-wrap{display:grid;gap:16px;text-align:right}
+#settings .warehouse-settings-form{display:grid;grid-template-columns:.85fr 1.3fr .95fr .95fr .7fr auto auto auto auto;gap:12px;align-items:end;border:1px solid rgba(141,220,89,.28);border-radius:14px;background:rgba(0,35,27,.46);padding:18px}
+#settings .warehouse-settings-form label{display:flex;flex-direction:column;gap:7px;color:#f5fff1;font-weight:700}
+#settings .warehouse-settings-form input,#settings .warehouse-settings-form select{width:100%}
+#settings .warehouse-flag-check{align-self:center;margin-top:22px}
+#settings .warehouses-settings-table-wrap{border:1px solid rgba(141,220,89,.22);border-radius:14px;background:rgba(0,35,27,.3)}
+#settings #warehousesSettingsTable input,#settings #warehousesSettingsTable select{min-width:110px;width:100%;padding:8px 10px}
+#settings #warehousesSettingsTable .warehouse-code-readonly{font-weight:900;color:#d8ffd1;direction:ltr}
+#settings #warehousesSettingsTable .warehouse-row-actions{display:flex;gap:8px;justify-content:center;align-items:center}
+#settings #warehousesSettingsTable .warehouse-row-actions button{padding:8px 14px;white-space:nowrap}
+#settings .warehouse-status-active{color:#9be650;font-weight:900}
+#settings .warehouse-status-inactive{color:#ffc2c2;font-weight:900}
+@media (max-width:1250px){#settings .warehouse-settings-form{grid-template-columns:1fr 1fr 1fr}#settings .warehouse-settings-form .primary{grid-column:1/-1}}
+@media (max-width:700px){#settings .warehouse-settings-form{grid-template-columns:1fr}#settings .warehouse-flag-check{margin-top:0}}
 
 
 
