@@ -2495,6 +2495,103 @@ function fillProfileForm(profile,user){
   if($('#profilePreviewEmail')) $('#profilePreviewEmail').textContent=user?.email || '';
   paintAvatar($('#profilePreviewAvatar'), profile);
 }
+function fillSettingsAccountPanel(profile,user){
+  const role=profile?.role || (isSystemOwnerEmail(user?.email) ? 'super_admin' : 'authenticated');
+  if($('#settingsUserEmail')) $('#settingsUserEmail').value=user?.email || profile?.email || '';
+  if($('#settingsUserName')) $('#settingsUserName').value=profile?.full_name || user?.email || '';
+  if($('#settingsUserRole')) $('#settingsUserRole').value=(USER_ROLE_LABELS?.[role] || role || '');
+}
+function setPasswordChangeStatus(message,type=''){
+  const status=$('#passwordChangeStatus');
+  if(!status) return;
+  status.className='upload-status '+(type||'');
+  status.textContent=message || '';
+}
+function validatePasswordChangeFields(currentPassword,newPassword,confirmPassword){
+  if(!currentPassword) return 'كلمة المرور الحالية غير صحيحة.';
+  if((newPassword||'').length<7) return 'كلمة المرور الجديدة يجب ألا تقل عن 7 خانات.';
+  if(/\s/.test(newPassword||'') || /\s/.test(confirmPassword||'')) return 'لا يسمح بوجود مسافات داخل كلمة المرور.';
+  if(newPassword!==confirmPassword) return 'كلمة المرور الجديدة وتأكيدها غير متطابقتين.';
+  return '';
+}
+function clearPasswordChangeFields(){
+  ['currentPasswordInput','newPasswordInput','confirmPasswordInput'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+}
+function createTemporaryPasswordAuthClient(){
+  const cfg=window.WAREHOUSE_SUPABASE_CONFIG || {};
+  if(!window.supabase || !cfg.url || !cfg.anonKey) return null;
+  return window.supabase.createClient(cfg.url,cfg.anonKey,{
+    auth:{
+      persistSession:false,
+      autoRefreshToken:false,
+      detectSessionInUrl:false,
+      storageKey:'temporary-password-check'
+    }
+  });
+}
+function snapshotLocalStorageForPasswordCheck(){
+  if(typeof localStorage==='undefined') return '';
+  const snapshot={};
+  for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i);
+    if(key) snapshot[key]=localStorage.getItem(key);
+  }
+  return JSON.stringify(snapshot);
+}
+async function verifyCurrentPasswordWithTemporaryClient(email,password){
+  const mainClientBefore=WarehouseDB?.client || null;
+  const localStorageBefore=snapshotLocalStorageForPasswordCheck();
+  let tempClient=createTemporaryPasswordAuthClient();
+  if(!tempClient) return {error:new Error('Supabase config is not ready')};
+  try{
+    const {error}=await tempClient.auth.signInWithPassword({email,password});
+    return {error};
+  }finally{
+    try{ await tempClient.auth.signOut(); }catch(_){}
+    tempClient=null;
+    const localStorageUnchanged=localStorageBefore===snapshotLocalStorageForPasswordCheck();
+    const warehouseClientUnchanged=mainClientBefore===(WarehouseDB?.client || null);
+    console.info('[password-check] temporary client isolation',{localStorageUnchanged,warehouseClientUnchanged});
+  }
+}
+async function handlePasswordChangeSubmit(e){
+  e.preventDefault();
+  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.email){ setPasswordChangeStatus('سجل الدخول أولاً.','err'); return; }
+  const currentPassword=$('#currentPasswordInput')?.value || '';
+  const newPassword=$('#newPasswordInput')?.value || '';
+  const confirmPassword=$('#confirmPasswordInput')?.value || '';
+  const validationMessage=validatePasswordChangeFields(currentPassword,newPassword,confirmPassword);
+  if(validationMessage){ setPasswordChangeStatus(validationMessage,'err'); return; }
+  setPasswordChangeStatus('جاري التحقق من كلمة المرور الحالية...');
+  try{
+    const verify=await verifyCurrentPasswordWithTemporaryClient(CURRENT_AUTH_USER.email,currentPassword);
+    if(verify?.error){ setPasswordChangeStatus('كلمة المرور الحالية غير صحيحة.','err'); return; }
+    setPasswordChangeStatus('جاري تغيير كلمة المرور...');
+    const {data,error}=await WarehouseDB.client.auth.updateUser({password:newPassword});
+    if(error) throw error;
+    if(data?.user) CURRENT_AUTH_USER=data.user;
+    clearPasswordChangeFields();
+    setPasswordChangeStatus('تم تغيير كلمة المرور بنجاح.','ok');
+  }catch(err){
+    setPasswordChangeStatus('تعذر تغيير كلمة المرور: '+(err.message || err),'err');
+  }
+}
+function initPasswordVisibilityToggles(){
+  document.querySelectorAll('[data-password-toggle]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const input=document.getElementById(btn.dataset.passwordToggle||'');
+      if(!input) return;
+      const show=input.type==='password';
+      input.type=show?'text':'password';
+      btn.textContent=show?'إخفاء':'إظهار';
+    });
+  });
+}
+function initSettingsAccountSecurity(){
+  $('#passwordChangeForm')?.addEventListener('submit',handlePasswordChangeSubmit);
+  initPasswordVisibilityToggles();
+  fillSettingsAccountPanel(CURRENT_APP_PROFILE,CURRENT_AUTH_USER);
+}
 function setMainAuthMessage(message,type=''){
   const el=$('#mainLoginStatus');
   if(!el) return;
@@ -2520,6 +2617,7 @@ async function showApplication(user){
   $('#appShell')?.classList.remove('app-hidden');
   applyProfileToHeader(profile);
   fillProfileForm(profile,user);
+  fillSettingsAccountPanel(profile,user);
   applyNavigationPermissions();
   setTimeout(()=>{
     loadSalesBatches();
@@ -2581,6 +2679,7 @@ async function saveCurrentProfile(){
     CURRENT_APP_PROFILE={...data,email:CURRENT_AUTH_USER.email};
     applyProfileToHeader(CURRENT_APP_PROFILE);
     fillProfileForm(CURRENT_APP_PROFILE,CURRENT_AUTH_USER);
+    fillSettingsAccountPanel(CURRENT_APP_PROFILE,CURRENT_AUTH_USER);
     if(status){ status.className='upload-status ok'; status.textContent='تم حفظ بيانات الحساب بنجاح.'; }
   }catch(err){
     if(status){ status.className='upload-status err'; status.textContent='خطأ أثناء الحفظ: '+(err.message || err); }
@@ -3282,7 +3381,7 @@ function initMainLoginGate(){
   }
   checkMainSession();
 }
-document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initUsersManagement();initPermissionsManagement();});
+document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initUsersManagement();initPermissionsManagement();});
 
 // Upload reports tabs controller
 function initUploadReportTabs(){

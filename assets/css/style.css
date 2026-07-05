@@ -51,6 +51,19 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 #settings .settings-tab-panel.active{display:block}
 #settings .profile-settings{margin-top:0}
 @media (max-width:650px){#settings .settings-tabs{display:grid;grid-template-columns:1fr}#settings .settings-tab{width:100%}}
+#settings .settings-account-grid{display:grid;grid-template-columns:minmax(240px,.85fr) minmax(320px,1.15fr);gap:18px;align-items:start}
+#settings .settings-readonly-card,#settings .settings-password-card{border:1px solid rgba(141,220,89,.28);border-radius:14px;background:rgba(0,35,27,.46);padding:18px;min-width:0}
+#settings .settings-readonly-card h3,#settings .settings-password-card h3{margin:0 0 14px;text-align:right;color:#f4fff5}
+#settings .settings-readonly-fields,#settings .settings-password-form{display:grid;grid-template-columns:1fr;gap:14px;text-align:right}
+#settings .settings-readonly-fields label,#settings .settings-password-form label{display:flex;flex-direction:column;gap:7px;color:#f5fff1;font-weight:700}
+#settings .settings-readonly-fields input,#settings .settings-password-form input{width:100%}
+#settings .settings-readonly-fields input[readonly]{color:#d8ffd1;background:rgba(0,28,23,.72);cursor:not-allowed}
+#settings .password-input-wrap{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+#settings .password-toggle-btn{height:42px;border:1px solid rgba(141,220,89,.42);border-radius:8px;background:rgba(0,55,38,.82);color:#fff;padding:0 12px;font-family:inherit;font-weight:800;cursor:pointer;white-space:nowrap}
+#settings .password-toggle-btn:hover{border-color:rgba(155,230,80,.72);background:rgba(28,111,49,.72)}
+#settings .settings-password-form .primary,#settings .settings-password-form .upload-status{grid-column:1/-1}
+@media (max-width:850px){#settings .settings-account-grid{grid-template-columns:1fr}}
+@media (max-width:520px){#settings .password-input-wrap{grid-template-columns:1fr}#settings .password-toggle-btn{width:100%}}
 
 /* Header layout refinement - 2026-06 */
 .topbar{

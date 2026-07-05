@@ -714,6 +714,7 @@
           <p class="hint">بيانات صاحب الحساب تظهر في الهيدر ويتم حفظها في Supabase لتظهر على أي جهاز.</p>
           <div class="settings-tabs" role="tablist" aria-label="تبويبات الإعدادات">
             <button class="settings-tab active" id="settingsProfileTab" type="button" role="tab" aria-selected="true" aria-controls="settingsProfilePanel" data-settings-tab="profile">البيانات الشخصية</button>
+            <button class="settings-tab" id="settingsAccountTab" type="button" role="tab" aria-selected="false" aria-controls="settingsAccountPanel" data-settings-tab="account">بيانات المستخدم وكلمة المرور</button>
           </div>
           <div class="settings-tab-panels">
             <section class="settings-tab-panel active" id="settingsProfilePanel" role="tabpanel" aria-labelledby="settingsProfileTab" data-settings-panel="profile">
@@ -741,6 +742,49 @@
               <div class="upload-status" id="profileSaveStatus"></div>
             </form>
           </div>
+            </section>
+            <section class="settings-tab-panel" id="settingsAccountPanel" role="tabpanel" aria-labelledby="settingsAccountTab" data-settings-panel="account">
+              <div class="settings-account-grid">
+                <article class="settings-readonly-card">
+                  <h3>بيانات المستخدم</h3>
+                  <div class="settings-readonly-fields">
+                    <label>البريد الإلكتروني
+                      <input type="email" id="settingsUserEmail" readonly />
+                    </label>
+                    <label>اسم المستخدم
+                      <input type="text" id="settingsUserName" readonly />
+                    </label>
+                    <label>الصلاحية / الدور
+                      <input type="text" id="settingsUserRole" readonly />
+                    </label>
+                  </div>
+                </article>
+                <article class="settings-password-card">
+                  <h3>تغيير كلمة المرور</h3>
+                  <form id="passwordChangeForm" class="settings-password-form">
+                    <label>كلمة المرور الحالية
+                      <span class="password-input-wrap">
+                        <input type="password" id="currentPasswordInput" autocomplete="current-password" />
+                        <button type="button" class="password-toggle-btn" id="toggleCurrentPassword" data-password-toggle="currentPasswordInput">إظهار</button>
+                      </span>
+                    </label>
+                    <label>كلمة المرور الجديدة
+                      <span class="password-input-wrap">
+                        <input type="password" id="newPasswordInput" autocomplete="new-password" />
+                        <button type="button" class="password-toggle-btn" id="toggleNewPassword" data-password-toggle="newPasswordInput">إظهار</button>
+                      </span>
+                    </label>
+                    <label>تأكيد كلمة المرور الجديدة
+                      <span class="password-input-wrap">
+                        <input type="password" id="confirmPasswordInput" autocomplete="new-password" />
+                        <button type="button" class="password-toggle-btn" id="toggleConfirmPassword" data-password-toggle="confirmPasswordInput">إظهار</button>
+                      </span>
+                    </label>
+                    <button class="primary" id="savePasswordBtn" type="submit">تغيير كلمة المرور</button>
+                    <div class="upload-status" id="passwordChangeStatus"></div>
+                  </form>
+                </article>
+              </div>
             </section>
           </div>
         </article>
