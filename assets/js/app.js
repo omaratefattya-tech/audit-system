@@ -2883,7 +2883,7 @@ async function addPlantSettingsRow(e){
 async function savePlantSettingsRow(row){
   if(!row || !WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   const plantId=row.dataset.plantId || '';
-  const plantCode=row.dataset.plantCode || '';
+  const plantCode=normalizePlantSettingsCode(row.dataset.plantCode || '');
   const plant_name=String(row.querySelector('.plant-name-edit')?.value||'').trim();
   const activeSelect=row.querySelector('.plant-active-edit');
   const activeValue=activeSelect?.value || 'false';
@@ -2893,10 +2893,35 @@ async function savePlantSettingsRow(row){
   setPlantsSettingsStatus('\u062C\u0627\u0631\u064A \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0635\u0646\u0639...');
   try{
     console.info('[plants-settings] before update',{plant_code:plantCode,selectValue:activeValue,is_active,typeof_is_active:typeof is_active});
-    let query=WarehouseDB.client.from('plants').update({plant_name,is_active,sort_order});
-    query=plantId ? query.eq('id',plantId) : query.eq('plant_code',plantCode);
-    const {error}=await query;
-    if(error) throw error;
+
+    const beforeSelect=await WarehouseDB.client
+      .from('plants')
+      .select('id,plant_code,is_active,updated_at,updated_by',{count:'exact'})
+      .eq('plant_code',plantCode);
+    console.info('[plants-settings] before update select',{data:beforeSelect.data,error:beforeSelect.error,count:beforeSelect.count,plantId});
+    if(beforeSelect.error) throw beforeSelect.error;
+    if(beforeSelect.count !== 1) throw new Error('\u0644\u0645 \u064A\u062A\u0645 \u0627\u0644\u062D\u0641\u0638: \u0643\u0648\u062F \u0627\u0644\u0645\u0635\u0646\u0639 \u063A\u064A\u0631 \u0641\u0631\u064A\u062F \u0623\u0648 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F.');
+
+    const updateResult=await WarehouseDB.client
+      .from('plants')
+      .update({plant_name,is_active,sort_order},{count:'exact'})
+      .eq('plant_code',plantCode)
+      .select('id,plant_code,is_active,updated_at,updated_by');
+    console.info('[plants-settings] update result',{data:updateResult.data,error:updateResult.error,count:updateResult.count});
+    if(updateResult.error) throw updateResult.error;
+    if(updateResult.count !== 1 || !updateResult.data?.length) throw new Error('\u0644\u0645 \u064A\u062A\u0645 \u062A\u0639\u062F\u064A\u0644 \u0623\u064A \u0635\u0641. \u0631\u0627\u062C\u0639 \u0635\u0644\u0627\u062D\u064A\u0627\u062A RLS \u0623\u0648 \u0643\u0648\u062F \u0627\u0644\u0645\u0635\u0646\u0639.');
+
+    const verify=await WarehouseDB.client
+      .from('plants')
+      .select('plant_code,is_active,updated_at,updated_by',{count:'exact'})
+      .eq('plant_code',plantCode);
+    const verifyRows=(verify.data||[]).map(r=>({plant_code:r.plant_code,is_active:r.is_active,typeof_is_active:typeof r.is_active,updated_at:r.updated_at,updated_by:r.updated_by}));
+    console.info('[plants-settings] after update select',{data:verifyRows,error:verify.error,count:verify.count});
+    if(verify.error) throw verify.error;
+    if(verify.count !== 1) throw new Error('\u0644\u0645 \u064A\u062A\u0645 \u062A\u0623\u0643\u064A\u062F \u0627\u0644\u062D\u0641\u0638: \u0647\u0646\u0627\u0643 \u0623\u0643\u062B\u0631 \u0645\u0646 \u0633\u062C\u0644 \u0623\u0648 \u0644\u0627 \u064A\u0648\u062C\u062F \u0633\u062C\u0644 \u0644\u0647\u0630\u0627 \u0627\u0644\u0643\u0648\u062F.');
+    const savedActive=parsePlantActiveValue(verify.data?.[0]?.is_active);
+    if(savedActive !== is_active) throw new Error('\u0644\u0645 \u062A\u062A\u063A\u064A\u0631 \u062D\u0627\u0644\u0629 \u0627\u0644\u0645\u0635\u0646\u0639 \u0641\u0639\u0644\u064A\u0627\u064B \u0641\u064A Supabase.');
+
     PLANTS_SETTINGS_LOADED=false;
     clearPlantsCatalogCache();
     await loadPlantsSettings();
