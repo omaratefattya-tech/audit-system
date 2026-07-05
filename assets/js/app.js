@@ -2827,15 +2827,36 @@ function renderPlantsSettingsTable(rows=[]){
       +'</tr>';
   }).join('');
 }
+async function fetchPlantsSettingsRowsDirect(){
+  return WarehouseDB.client
+    .from('plants')
+    .select('id,plant_code,plant_name,is_active,sort_order',{count:'exact'})
+    .order('sort_order',{ascending:true})
+    .order('plant_code',{ascending:true});
+}
+async function fetchPlantSettingsRowDirect(plantCode){
+  return WarehouseDB.client
+    .from('plants')
+    .select('id,plant_code,plant_name,is_active,sort_order,updated_at,updated_by',{count:'exact'})
+    .eq('plant_code',plantCode);
+}
+function applyVerifiedPlantSettingsRow(verifiedRow, rows=[]){
+  const code=normalizePlantSettingsCode(verifiedRow?.plant_code);
+  if(!code) return rows;
+  let found=false;
+  const merged=(rows||[]).map(row=>{
+    if(normalizePlantSettingsCode(row.plant_code)!==code) return row;
+    found=true;
+    return {...row,...verifiedRow};
+  });
+  if(!found) merged.push(verifiedRow);
+  return merged.sort((a,b)=>(Number(a.sort_order||0)-Number(b.sort_order||0)) || String(a.plant_code||'').localeCompare(String(b.plant_code||'')));
+}
 async function loadPlantsSettings(){
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   setPlantsSettingsStatus('\u062C\u0627\u0631\u064A \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u0635\u0627\u0646\u0639...');
   try{
-    const {data,error}=await WarehouseDB.client
-      .from('plants')
-      .select('id,plant_code,plant_name,is_active,sort_order')
-      .order('sort_order',{ascending:true})
-      .order('plant_code',{ascending:true});
+    const {data,error}=await fetchPlantsSettingsRowsDirect();
     if(error) throw error;
     PLANTS_SETTINGS_ROWS=data || [];
     PLANTS_SETTINGS_LOADED=true;
@@ -2843,6 +2864,7 @@ async function loadPlantsSettings(){
     setPlantsSettingsStatus('\u062A\u0645 \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u0635\u0627\u0646\u0639.','ok');
   }catch(err){
     PLANTS_SETTINGS_LOADED=false;
+    PLANTS_SETTINGS_ROWS=[];
     renderPlantsSettingsTable([]);
     setPlantsSettingsStatus('\u062A\u0639\u0630\u0631 \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u0635\u0627\u0646\u0639: '+(err.message||err),'err');
   }
@@ -2880,9 +2902,9 @@ async function addPlantSettingsRow(e){
     setPlantsSettingsStatus('\u062A\u0639\u0630\u0631 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0635\u0646\u0639: '+(err.message||err),'err');
   }
 }
-async function savePlantSettingsRow(row){
+async function savePlantSettingsRow(source){
+  const row=source?.closest ? source.closest('[data-plant-code]') : source;
   if(!row || !WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
-  const plantId=row.dataset.plantId || '';
   const plantCode=normalizePlantSettingsCode(row.dataset.plantCode || '');
   const plant_name=String(row.querySelector('.plant-name-edit')?.value||'').trim();
   const activeSelect=row.querySelector('.plant-active-edit');
@@ -2892,13 +2914,12 @@ async function savePlantSettingsRow(row){
   if(!plant_name){ setPlantsSettingsStatus('\u0627\u0633\u0645 \u0627\u0644\u0645\u0635\u0646\u0639 \u0645\u0637\u0644\u0648\u0628.','err'); return; }
   setPlantsSettingsStatus('\u062C\u0627\u0631\u064A \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0635\u0646\u0639...');
   try{
-    console.info('[plants-settings] before update',{plant_code:plantCode,selectValue:activeValue,is_active,typeof_is_active:typeof is_active});
+    const selectOptions=[...(activeSelect?.options||[])].map(option=>({value:option.value,text:option.textContent,selected:option.selected}));
+    console.info('[plants-settings] selected row before update',{rowDataset:{...row.dataset},plant_code:plantCode,selectOuterHTML:activeSelect?.outerHTML||'',selectOptions,selectValue:activeValue,is_active,typeof_is_active:typeof is_active});
+    console.info('[plants-settings] update query',{table:'public.plants',where:{plant_code:plantCode},payload:{plant_name,is_active,sort_order}});
 
-    const beforeSelect=await WarehouseDB.client
-      .from('plants')
-      .select('id,plant_code,is_active,updated_at,updated_by',{count:'exact'})
-      .eq('plant_code',plantCode);
-    console.info('[plants-settings] before update select',{data:beforeSelect.data,error:beforeSelect.error,count:beforeSelect.count,plantId});
+    const beforeSelect=await fetchPlantSettingsRowDirect(plantCode);
+    console.info('[plants-settings] before update select',{data:beforeSelect.data,error:beforeSelect.error,count:beforeSelect.count});
     if(beforeSelect.error) throw beforeSelect.error;
     if(beforeSelect.count !== 1) throw new Error('\u0644\u0645 \u064A\u062A\u0645 \u0627\u0644\u062D\u0641\u0638: \u0643\u0648\u062F \u0627\u0644\u0645\u0635\u0646\u0639 \u063A\u064A\u0631 \u0641\u0631\u064A\u062F \u0623\u0648 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F.');
 
@@ -2906,25 +2927,27 @@ async function savePlantSettingsRow(row){
       .from('plants')
       .update({plant_name,is_active,sort_order},{count:'exact'})
       .eq('plant_code',plantCode)
-      .select('id,plant_code,is_active,updated_at,updated_by');
+      .select('id,plant_code,plant_name,is_active,sort_order,updated_at,updated_by');
     console.info('[plants-settings] update result',{data:updateResult.data,error:updateResult.error,count:updateResult.count});
     if(updateResult.error) throw updateResult.error;
     if(updateResult.count !== 1 || !updateResult.data?.length) throw new Error('\u0644\u0645 \u064A\u062A\u0645 \u062A\u0639\u062F\u064A\u0644 \u0623\u064A \u0635\u0641. \u0631\u0627\u062C\u0639 \u0635\u0644\u0627\u062D\u064A\u0627\u062A RLS \u0623\u0648 \u0643\u0648\u062F \u0627\u0644\u0645\u0635\u0646\u0639.');
 
-    const verify=await WarehouseDB.client
-      .from('plants')
-      .select('plant_code,is_active,updated_at,updated_by',{count:'exact'})
-      .eq('plant_code',plantCode);
+    const verify=await fetchPlantSettingsRowDirect(plantCode);
     const verifyRows=(verify.data||[]).map(r=>({plant_code:r.plant_code,is_active:r.is_active,typeof_is_active:typeof r.is_active,updated_at:r.updated_at,updated_by:r.updated_by}));
-    console.info('[plants-settings] after update select',{data:verifyRows,error:verify.error,count:verify.count});
+    console.info('[plants-settings] after update direct select',{data:verifyRows,error:verify.error,count:verify.count});
     if(verify.error) throw verify.error;
     if(verify.count !== 1) throw new Error('\u0644\u0645 \u064A\u062A\u0645 \u062A\u0623\u0643\u064A\u062F \u0627\u0644\u062D\u0641\u0638: \u0647\u0646\u0627\u0643 \u0623\u0643\u062B\u0631 \u0645\u0646 \u0633\u062C\u0644 \u0623\u0648 \u0644\u0627 \u064A\u0648\u062C\u062F \u0633\u062C\u0644 \u0644\u0647\u0630\u0627 \u0627\u0644\u0643\u0648\u062F.');
-    const savedActive=parsePlantActiveValue(verify.data?.[0]?.is_active);
+    const verifiedRow=verify.data?.[0];
+    const savedActive=parsePlantActiveValue(verifiedRow?.is_active);
     if(savedActive !== is_active) throw new Error('\u0644\u0645 \u062A\u062A\u063A\u064A\u0631 \u062D\u0627\u0644\u0629 \u0627\u0644\u0645\u0635\u0646\u0639 \u0641\u0639\u0644\u064A\u0627\u064B \u0641\u064A Supabase.');
 
-    PLANTS_SETTINGS_LOADED=false;
+    const freshRows=await fetchPlantsSettingsRowsDirect();
+    console.info('[plants-settings] reload after verified update',{data:freshRows.data,error:freshRows.error,count:freshRows.count});
+    if(freshRows.error) throw freshRows.error;
+    PLANTS_SETTINGS_ROWS=applyVerifiedPlantSettingsRow(verifiedRow,freshRows.data||[]);
+    PLANTS_SETTINGS_LOADED=true;
+    renderPlantsSettingsTable(PLANTS_SETTINGS_ROWS);
     clearPlantsCatalogCache();
-    await loadPlantsSettings();
     await loadPlantsCatalog({force:true});
     refreshPlantsCatalogConsumers();
     setPlantsSettingsStatus('\u062A\u0645 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0635\u0646\u0639 \u0628\u0646\u062C\u0627\u062D.','ok');
@@ -2936,7 +2959,7 @@ function initPlantsSettings(){
   $('#plantSettingsForm')?.addEventListener('submit',addPlantSettingsRow);
   $('#plantsSettingsTable')?.addEventListener('click',e=>{
     const btn=e.target.closest('.save-plant-row-btn');
-    if(btn) savePlantSettingsRow(btn.closest('tr'));
+    if(btn) savePlantSettingsRow(btn);
   });
 }
 
