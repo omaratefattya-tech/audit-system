@@ -65,6 +65,20 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 @media (max-width:850px){#settings .settings-account-grid{grid-template-columns:1fr}}
 @media (max-width:520px){#settings .password-input-wrap{grid-template-columns:1fr}#settings .password-toggle-btn{width:100%}}
 
+#settings .system-settings-form{display:grid;gap:16px;text-align:right}
+#settings .system-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:18px;align-items:start}
+#settings .settings-system-card{border:1px solid rgba(141,220,89,.28);border-radius:14px;background:rgba(0,35,27,.46);padding:18px;min-width:0;display:grid;gap:13px}
+#settings .settings-system-card h3{margin:0 0 2px;text-align:right;color:#f4fff5}
+#settings .settings-system-card label{display:flex;flex-direction:column;gap:7px;color:#f5fff1;font-weight:700}
+#settings .settings-system-card select{width:100%}
+#settings .settings-check{display:grid!important;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;cursor:pointer}
+#settings .settings-check input{width:18px;height:18px;accent-color:#68ba45}
+#settings .settings-check span{min-width:0;line-height:1.5}
+#settings #clearSystemCacheBtn{width:max-content;min-width:150px}
+#settings #saveSystemSettingsBtn,#settings #systemSettingsStatus{justify-self:stretch}
+@media (max-width:850px){#settings .system-settings-grid{grid-template-columns:1fr}#settings #clearSystemCacheBtn{width:100%}}
+
+
 /* Header layout refinement - 2026-06 */
 .topbar{
   direction:ltr;

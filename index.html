@@ -715,6 +715,7 @@
           <div class="settings-tabs" role="tablist" aria-label="تبويبات الإعدادات">
             <button class="settings-tab active" id="settingsProfileTab" type="button" role="tab" aria-selected="true" aria-controls="settingsProfilePanel" data-settings-tab="profile">البيانات الشخصية</button>
             <button class="settings-tab" id="settingsAccountTab" type="button" role="tab" aria-selected="false" aria-controls="settingsAccountPanel" data-settings-tab="account">بيانات المستخدم وكلمة المرور</button>
+            <button class="settings-tab" id="settingsSystemTab" type="button" role="tab" aria-selected="false" aria-controls="settingsSystemPanel" data-settings-tab="system">&#x2699;&#xFE0F; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0646;&#x0638;&#x0627;&#x0645;</button>
           </div>
           <div class="settings-tab-panels">
             <section class="settings-tab-panel active" id="settingsProfilePanel" role="tabpanel" aria-labelledby="settingsProfileTab" data-settings-panel="profile">
@@ -785,6 +786,74 @@
                   </form>
                 </article>
               </div>
+            </section>
+            <section class="settings-tab-panel" id="settingsSystemPanel" role="tabpanel" aria-labelledby="settingsSystemTab" data-settings-panel="system">
+              <form id="systemSettingsForm" class="system-settings-form">
+                <div class="system-settings-grid">
+                  <article class="settings-system-card">
+                    <h3>&#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x062A;&#x0642;&#x0627;&#x0631;&#x064A;&#x0631;</h3>
+                    <label class="settings-check"><input type="checkbox" id="showDecimalsSetting" /> <span>&#x0625;&#x0638;&#x0647;&#x0627;&#x0631; &#x0627;&#x0644;&#x0643;&#x0633;&#x0648;&#x0631; &#x0627;&#x0644;&#x0639;&#x0634;&#x0631;&#x064A;&#x0629;</span></label>
+                    <label class="settings-check"><input type="checkbox" id="showZeroValuesSetting" /> <span>&#x0625;&#x0638;&#x0647;&#x0627;&#x0631; &#x0627;&#x0644;&#x0642;&#x064A;&#x0645; &#x0635;&#x0641;&#x0631;</span></label>
+                    <label class="settings-check"><input type="checkbox" id="colorMaxValueSetting" /> <span>&#x062A;&#x0644;&#x0648;&#x064A;&#x0646; &#x0623;&#x0639;&#x0644;&#x0649; &#x0642;&#x064A;&#x0645;&#x0629;</span></label>
+                    <label class="settings-check"><input type="checkbox" id="colorMinValueSetting" /> <span>&#x062A;&#x0644;&#x0648;&#x064A;&#x0646; &#x0623;&#x0642;&#x0644; &#x0642;&#x064A;&#x0645;&#x0629;</span></label>
+                    <label class="settings-check"><input type="checkbox" id="showAveragesSetting" /> <span>&#x0625;&#x0638;&#x0647;&#x0627;&#x0631; &#x0627;&#x0644;&#x0645;&#x062A;&#x0648;&#x0633;&#x0637;&#x0627;&#x062A;</span></label>
+                  </article>
+                  <article class="settings-system-card">
+                    <h3>&#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x062A;&#x0635;&#x062F;&#x064A;&#x0631;</h3>
+                    <label>&#x062C;&#x0648;&#x062F;&#x0629; &#x0635;&#x0648;&#x0631; PNG
+                      <select id="exportPngQualitySetting">
+                        <option value="high">&#x0639;&#x0627;&#x0644;&#x064A;&#x0629;</option>
+                        <option value="medium">&#x0645;&#x062A;&#x0648;&#x0633;&#x0637;&#x0629;</option>
+                        <option value="low">&#x0645;&#x0646;&#x062E;&#x0641;&#x0636;&#x0629;</option>
+                      </select>
+                    </label>
+                    <label>&#x0627;&#x062A;&#x062C;&#x0627;&#x0647; PDF
+                      <select id="exportPdfOrientationSetting">
+                        <option value="portrait">Portrait</option>
+                        <option value="landscape">Landscape</option>
+                      </select>
+                    </label>
+                    <label>&#x062D;&#x062C;&#x0645; &#x0627;&#x0644;&#x0648;&#x0631;&#x0642;
+                      <select id="exportPaperSizeSetting">
+                        <option value="a4">A4</option>
+                        <option value="a3">A3</option>
+                      </select>
+                    </label>
+                  </article>
+                  <article class="settings-system-card">
+                    <h3>&#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0623;&#x062F;&#x0627;&#x0621;</h3>
+                    <label>&#x0645;&#x062F;&#x0629; &#x0627;&#x0644;&#x0627;&#x062D;&#x062A;&#x0641;&#x0627;&#x0638; &#x0628;&#x0627;&#x0644;&#x0643;&#x0627;&#x0634;
+                      <select id="cacheRetentionSetting">
+                        <option value="5">5 &#x062F;&#x0642;&#x0627;&#x0626;&#x0642;</option>
+                        <option value="10">10 &#x062F;&#x0642;&#x0627;&#x0626;&#x0642;</option>
+                        <option value="30">30 &#x062F;&#x0642;&#x064A;&#x0642;&#x0629;</option>
+                        <option value="60">&#x0633;&#x0627;&#x0639;&#x0629;</option>
+                      </select>
+                    </label>
+                    <button class="secondary" id="clearSystemCacheBtn" type="button">&#x1F5D1;&#xFE0F; &#x0645;&#x0633;&#x062D; &#x0627;&#x0644;&#x0643;&#x0627;&#x0634;</button>
+                  </article>
+                  <article class="settings-system-card">
+                    <h3>&#x062A;&#x062D;&#x062F;&#x064A;&#x062B; &#x0627;&#x0644;&#x0628;&#x064A;&#x0627;&#x0646;&#x0627;&#x062A;</h3>
+                    <label class="settings-check"><input type="checkbox" id="autoRefreshSetting" /> <span>&#x062A;&#x062D;&#x062F;&#x064A;&#x062B; &#x062A;&#x0644;&#x0642;&#x0627;&#x0626;&#x064A;</span></label>
+                    <label>&#x0645;&#x062F;&#x0629; &#x0627;&#x0644;&#x062A;&#x062D;&#x062F;&#x064A;&#x062B;
+                      <select id="refreshIntervalSetting">
+                        <option value="1">&#x062F;&#x0642;&#x064A;&#x0642;&#x0629;</option>
+                        <option value="5">5 &#x062F;&#x0642;&#x0627;&#x0626;&#x0642;</option>
+                        <option value="10">10 &#x062F;&#x0642;&#x0627;&#x0626;&#x0642;</option>
+                        <option value="manual">&#x064A;&#x062F;&#x0648;&#x064A; &#x0641;&#x0642;&#x0637;</option>
+                      </select>
+                    </label>
+                  </article>
+                  <article class="settings-system-card">
+                    <h3>&#x0627;&#x0644;&#x0625;&#x0634;&#x0639;&#x0627;&#x0631;&#x0627;&#x062A;</h3>
+                    <label class="settings-check"><input type="checkbox" id="notifyUploadCompleteSetting" /> <span>&#x0625;&#x0634;&#x0639;&#x0627;&#x0631; &#x0628;&#x0639;&#x062F; &#x0631;&#x0641;&#x0639; &#x0627;&#x0644;&#x062A;&#x0642;&#x0631;&#x064A;&#x0631;</span></label>
+                    <label class="settings-check"><input type="checkbox" id="notifyAuditErrorsSetting" /> <span>&#x0625;&#x0634;&#x0639;&#x0627;&#x0631; &#x0639;&#x0646;&#x062F; &#x0648;&#x062C;&#x0648;&#x062F; &#x0623;&#x062E;&#x0637;&#x0627;&#x0621; &#x0628;&#x0627;&#x0644;&#x0645;&#x0631;&#x0627;&#x062C;&#x0639;&#x0629;</span></label>
+                    <label class="settings-check"><input type="checkbox" id="notifyDataLoadCompleteSetting" /> <span>&#x0625;&#x0634;&#x0639;&#x0627;&#x0631; &#x0639;&#x0646;&#x062F; &#x0627;&#x0643;&#x062A;&#x0645;&#x0627;&#x0644; &#x062A;&#x062D;&#x0645;&#x064A;&#x0644; &#x0627;&#x0644;&#x0628;&#x064A;&#x0627;&#x0646;&#x0627;&#x062A;</span></label>
+                  </article>
+                </div>
+                <button class="primary" id="saveSystemSettingsBtn" type="submit">&#x1F4BE; &#x062D;&#x0641;&#x0638; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0646;&#x0638;&#x0627;&#x0645;</button>
+                <div class="upload-status" id="systemSettingsStatus"></div>
+              </form>
             </section>
           </div>
         </article>

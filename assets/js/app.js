@@ -2616,6 +2616,125 @@ async function handlePasswordChangeSubmit(e){
     setPasswordChangeStatus('تعذر تغيير كلمة المرور: '+(err.message || err),'err');
   }
 }
+
+const DEFAULT_SYSTEM_SETTINGS={
+  show_decimals:false,
+  show_zero_values:true,
+  color_max_value:true,
+  color_min_value:true,
+  show_averages:false,
+  export_png_quality:'high',
+  export_pdf_orientation:'portrait',
+  export_paper_size:'a4',
+  cache_retention_minutes:'10',
+  auto_refresh:false,
+  refresh_interval:'manual',
+  notify_upload_complete:true,
+  notify_audit_errors:true,
+  notify_data_load_complete:false
+};
+let APP_SYSTEM_SETTINGS={...DEFAULT_SYSTEM_SETTINGS};
+let SYSTEM_SETTINGS_LOADED_USER_ID=null;
+function setSystemSettingsStatus(message,type=''){
+  const status=$('#systemSettingsStatus');
+  if(!status) return;
+  status.className='upload-status '+(type||'');
+  status.textContent=message || '';
+}
+function getSystemSettingElement(id){return document.getElementById(id);}
+function setSystemCheckbox(id,value){const el=getSystemSettingElement(id); if(el) el.checked=Boolean(value);}
+function setSystemSelect(id,value){const el=getSystemSettingElement(id); if(el) el.value=String(value ?? '');}
+function fillSystemSettingsForm(settings={}){
+  const merged={...DEFAULT_SYSTEM_SETTINGS,...settings};
+  APP_SYSTEM_SETTINGS=merged;
+  setSystemCheckbox('showDecimalsSetting',merged.show_decimals);
+  setSystemCheckbox('showZeroValuesSetting',merged.show_zero_values);
+  setSystemCheckbox('colorMaxValueSetting',merged.color_max_value);
+  setSystemCheckbox('colorMinValueSetting',merged.color_min_value);
+  setSystemCheckbox('showAveragesSetting',merged.show_averages);
+  setSystemSelect('exportPngQualitySetting',merged.export_png_quality);
+  setSystemSelect('exportPdfOrientationSetting',merged.export_pdf_orientation);
+  setSystemSelect('exportPaperSizeSetting',merged.export_paper_size);
+  setSystemSelect('cacheRetentionSetting',merged.cache_retention_minutes);
+  setSystemCheckbox('autoRefreshSetting',merged.auto_refresh);
+  setSystemSelect('refreshIntervalSetting',merged.refresh_interval);
+  setSystemCheckbox('notifyUploadCompleteSetting',merged.notify_upload_complete);
+  setSystemCheckbox('notifyAuditErrorsSetting',merged.notify_audit_errors);
+  setSystemCheckbox('notifyDataLoadCompleteSetting',merged.notify_data_load_complete);
+}
+function readSystemSettingsForm(){
+  const checked=id=>Boolean(getSystemSettingElement(id)?.checked);
+  const value=id=>getSystemSettingElement(id)?.value || '';
+  return {
+    show_decimals:checked('showDecimalsSetting'),
+    show_zero_values:checked('showZeroValuesSetting'),
+    color_max_value:checked('colorMaxValueSetting'),
+    color_min_value:checked('colorMinValueSetting'),
+    show_averages:checked('showAveragesSetting'),
+    export_png_quality:value('exportPngQualitySetting') || DEFAULT_SYSTEM_SETTINGS.export_png_quality,
+    export_pdf_orientation:value('exportPdfOrientationSetting') || DEFAULT_SYSTEM_SETTINGS.export_pdf_orientation,
+    export_paper_size:value('exportPaperSizeSetting') || DEFAULT_SYSTEM_SETTINGS.export_paper_size,
+    cache_retention_minutes:value('cacheRetentionSetting') || DEFAULT_SYSTEM_SETTINGS.cache_retention_minutes,
+    auto_refresh:checked('autoRefreshSetting'),
+    refresh_interval:value('refreshIntervalSetting') || DEFAULT_SYSTEM_SETTINGS.refresh_interval,
+    notify_upload_complete:checked('notifyUploadCompleteSetting'),
+    notify_audit_errors:checked('notifyAuditErrorsSetting'),
+    notify_data_load_complete:checked('notifyDataLoadCompleteSetting')
+  };
+}
+async function loadSystemSettings(){
+  fillSystemSettingsForm(APP_SYSTEM_SETTINGS);
+  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
+  try{
+    const {data,error}=await WarehouseDB.client
+      .from('system_settings')
+      .select('settings')
+      .eq('user_id',CURRENT_AUTH_USER.id)
+      .maybeSingle();
+    if(error) throw error;
+    fillSystemSettingsForm(data?.settings || DEFAULT_SYSTEM_SETTINGS);
+    SYSTEM_SETTINGS_LOADED_USER_ID=CURRENT_AUTH_USER.id;
+  }catch(err){
+    setSystemSettingsStatus('\u062A\u0639\u0630\u0631 \u062A\u062D\u0645\u064A\u0644 \u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u0646\u0638\u0627\u0645: '+(err.message||err),'err');
+  }
+}
+async function ensureSystemSettingsLoaded(){
+  if(SYSTEM_SETTINGS_LOADED_USER_ID && SYSTEM_SETTINGS_LOADED_USER_ID===CURRENT_AUTH_USER?.id) return;
+  await loadSystemSettings();
+}
+async function saveSystemSettings(e){
+  e?.preventDefault();
+  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setSystemSettingsStatus('\u0633\u062C\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0623\u0648\u0644\u0627\u064B \u0644\u062D\u0641\u0638 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A.','err'); return; }
+  const settings=readSystemSettingsForm();
+  setSystemSettingsStatus('\u062C\u0627\u0631\u064A \u062D\u0641\u0638 \u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u0646\u0638\u0627\u0645...');
+  try{
+    const payload={user_id:CURRENT_AUTH_USER.id,settings};
+    const {data,error}=await WarehouseDB.client
+      .from('system_settings')
+      .upsert(payload,{onConflict:'user_id'})
+      .select('settings')
+      .maybeSingle();
+    if(error) throw error;
+    fillSystemSettingsForm(data?.settings || settings);
+    SYSTEM_SETTINGS_LOADED_USER_ID=CURRENT_AUTH_USER.id;
+    setSystemSettingsStatus('\u062A\u0645 \u062D\u0641\u0638 \u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u0646\u0638\u0627\u0645 \u0628\u0646\u062C\u0627\u062D.','ok');
+  }catch(err){
+    setSystemSettingsStatus('\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u0646\u0638\u0627\u0645: '+(err.message||err),'err');
+  }
+}
+function initSystemSettings(){
+  fillSystemSettingsForm(DEFAULT_SYSTEM_SETTINGS);
+  $('#systemSettingsForm')?.addEventListener('submit',saveSystemSettings);
+  $('#clearSystemCacheBtn')?.addEventListener('click',()=>{
+    if(typeof clearUnifiedSalesRowsCache==='function'){
+      clearUnifiedSalesRowsCache();
+      setSystemSettingsStatus('\u062A\u0645 \u0645\u0633\u062D \u0627\u0644\u0643\u0627\u0634.','ok');
+      return;
+    }
+    setSystemSettingsStatus('\u0644\u0627 \u062A\u0648\u062C\u062F \u062F\u0627\u0644\u0629 \u0645\u0633\u062D \u0643\u0627\u0634 \u062C\u0627\u0647\u0632\u0629.','err');
+  });
+}
+
 function initPasswordVisibilityToggles(){
   document.querySelectorAll('[data-password-toggle]').forEach(btn=>{
     btn.addEventListener('click',()=>{
@@ -2658,6 +2777,7 @@ async function showApplication(user){
   applyProfileToHeader(profile);
   fillProfileForm(profile,user);
   fillSettingsAccountPanel(profile,user);
+  SYSTEM_SETTINGS_LOADED_USER_ID=null;
   applyNavigationPermissions();
   setTimeout(()=>{
     loadSalesBatches();
@@ -2757,6 +2877,7 @@ function initSettingsTabs(){
     const key=tab.dataset.settingsTab;
     tabs.forEach(t=>{const active=t===tab;t.classList.toggle('active',active);t.setAttribute('aria-selected',active?'true':'false');});
     panels.forEach(panel=>panel.classList.toggle('active',panel.dataset.settingsPanel===key));
+    if(key==='system') ensureSystemSettingsLoaded();
   }));
 }
 
@@ -3421,7 +3542,7 @@ function initMainLoginGate(){
   }
   checkMainSession();
 }
-document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initUsersManagement();initPermissionsManagement();});
+document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initUsersManagement();initPermissionsManagement();});
 
 // Upload reports tabs controller
 function initUploadReportTabs(){
