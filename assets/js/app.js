@@ -2798,6 +2798,11 @@ function setPlantsSettingsStatus(message,type=''){
   status.textContent=message || '';
 }
 function normalizePlantSettingsCode(value){return String(value||'').trim().toUpperCase();}
+function parsePlantActiveValue(value){
+  if(value===true || value===1) return true;
+  if(value===false || value===0 || value==null) return false;
+  return String(value).trim().toLowerCase()==='true';
+}
 function renderPlantsSettingsTable(rows=[]){
   const tbody=$('#plantsSettingsTable tbody');
   if(!tbody) return;
@@ -2810,7 +2815,7 @@ function renderPlantsSettingsTable(rows=[]){
     const code=escapeHtml(row.plant_code||'');
     const name=escapeHtml(row.plant_name||'');
     const sort=Number(row.sort_order||0);
-    const active=row.is_active!==false;
+    const active=parsePlantActiveValue(row.is_active);
     const statusText=active?'\u0646\u0634\u0637':'\u063A\u064A\u0631 \u0646\u0634\u0637';
     const statusClass=active?'plant-status-active':'plant-status-inactive';
     return '<tr data-plant-id="'+id+'" data-plant-code="'+code+'">'
@@ -2880,11 +2885,14 @@ async function savePlantSettingsRow(row){
   const plantId=row.dataset.plantId || '';
   const plantCode=row.dataset.plantCode || '';
   const plant_name=String(row.querySelector('.plant-name-edit')?.value||'').trim();
-  const is_active=row.querySelector('.plant-active-edit')?.value==='true';
+  const activeSelect=row.querySelector('.plant-active-edit');
+  const activeValue=activeSelect?.value || 'false';
+  const is_active=activeValue === 'true';
   const sort_order=parseInt(row.querySelector('.plant-sort-edit')?.value||'0',10)||0;
   if(!plant_name){ setPlantsSettingsStatus('\u0627\u0633\u0645 \u0627\u0644\u0645\u0635\u0646\u0639 \u0645\u0637\u0644\u0648\u0628.','err'); return; }
   setPlantsSettingsStatus('\u062C\u0627\u0631\u064A \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0635\u0646\u0639...');
   try{
+    console.info('[plants-settings] before update',{plant_code:plantCode,selectValue:activeValue,is_active,typeof_is_active:typeof is_active});
     let query=WarehouseDB.client.from('plants').update({plant_name,is_active,sort_order});
     query=plantId ? query.eq('id',plantId) : query.eq('plant_code',plantCode);
     const {error}=await query;
