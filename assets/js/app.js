@@ -2735,6 +2735,119 @@ function initSystemSettings(){
   });
 }
 
+
+let PLANTS_SETTINGS_LOADED=false;
+let PLANTS_SETTINGS_ROWS=[];
+function setPlantsSettingsStatus(message,type=''){
+  const status=$('#plantsSettingsStatus');
+  if(!status) return;
+  status.className='upload-status '+(type||'');
+  status.textContent=message || '';
+}
+function normalizePlantSettingsCode(value){return String(value||'').trim().toUpperCase();}
+function renderPlantsSettingsTable(rows=[]){
+  const tbody=$('#plantsSettingsTable tbody');
+  if(!tbody) return;
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="5" class="empty-row">\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0635\u0627\u0646\u0639 \u0645\u062D\u0641\u0648\u0638\u0629.</td></tr>';
+    return;
+  }
+  tbody.innerHTML=rows.map(row=>{
+    const id=escapeHtml(row.id||'');
+    const code=escapeHtml(row.plant_code||'');
+    const name=escapeHtml(row.plant_name||'');
+    const sort=Number(row.sort_order||0);
+    const active=row.is_active!==false;
+    const statusText=active?'\u0646\u0634\u0637':'\u063A\u064A\u0631 \u0646\u0634\u0637';
+    const statusClass=active?'plant-status-active':'plant-status-inactive';
+    return '<tr data-plant-id="'+id+'" data-plant-code="'+code+'">'
+      +'<td><span class="plant-code-readonly">'+code+'</span></td>'
+      +'<td><input type="text" class="plant-name-edit" value="'+name+'" /></td>'
+      +'<td><select class="plant-active-edit"><option value="true" '+(active?'selected':'')+'>\u0646\u0634\u0637</option><option value="false" '+(!active?'selected':'')+'>\u063A\u064A\u0631 \u0646\u0634\u0637</option></select><div class="'+statusClass+'">'+statusText+'</div></td>'
+      +'<td><input type="number" class="plant-sort-edit" value="'+sort+'" step="1" /></td>'
+      +'<td><div class="plant-row-actions"><button class="secondary save-plant-row-btn" type="button">\u062D\u0641\u0638</button></div></td>'
+      +'</tr>';
+  }).join('');
+}
+async function loadPlantsSettings(){
+  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
+  setPlantsSettingsStatus('\u062C\u0627\u0631\u064A \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u0635\u0627\u0646\u0639...');
+  try{
+    const {data,error}=await WarehouseDB.client
+      .from('plants')
+      .select('id,plant_code,plant_name,is_active,sort_order')
+      .order('sort_order',{ascending:true})
+      .order('plant_code',{ascending:true});
+    if(error) throw error;
+    PLANTS_SETTINGS_ROWS=data || [];
+    PLANTS_SETTINGS_LOADED=true;
+    renderPlantsSettingsTable(PLANTS_SETTINGS_ROWS);
+    setPlantsSettingsStatus('\u062A\u0645 \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u0635\u0627\u0646\u0639.','ok');
+  }catch(err){
+    PLANTS_SETTINGS_LOADED=false;
+    renderPlantsSettingsTable([]);
+    setPlantsSettingsStatus('\u062A\u0639\u0630\u0631 \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u0635\u0627\u0646\u0639: '+(err.message||err),'err');
+  }
+}
+async function ensurePlantsSettingsLoaded(){
+  if(PLANTS_SETTINGS_LOADED) return;
+  await loadPlantsSettings();
+}
+function clearPlantSettingsForm(){
+  if($('#plantCodeInput')) $('#plantCodeInput').value='';
+  if($('#plantNameInput')) $('#plantNameInput').value='';
+  if($('#plantSortOrderInput')) $('#plantSortOrderInput').value='0';
+  if($('#plantActiveInput')) $('#plantActiveInput').checked=true;
+}
+async function addPlantSettingsRow(e){
+  e?.preventDefault();
+  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setPlantsSettingsStatus('\u0633\u062C\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0623\u0648\u0644\u0627\u064B \u0644\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u0635\u0627\u0646\u0639.','err'); return; }
+  const plant_code=normalizePlantSettingsCode($('#plantCodeInput')?.value);
+  const plant_name=String($('#plantNameInput')?.value||'').trim();
+  const sort_order=parseInt($('#plantSortOrderInput')?.value||'0',10)||0;
+  const is_active=Boolean($('#plantActiveInput')?.checked);
+  if(!plant_code || !plant_name){ setPlantsSettingsStatus('\u0643\u0648\u062F \u0627\u0644\u0645\u0635\u0646\u0639 \u0648\u0627\u0633\u0645 \u0627\u0644\u0645\u0635\u0646\u0639 \u0645\u0637\u0644\u0648\u0628\u0627\u0646.','err'); return; }
+  setPlantsSettingsStatus('\u062C\u0627\u0631\u064A \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0635\u0646\u0639...');
+  try{
+    const {error}=await WarehouseDB.client.from('plants').insert({plant_code,plant_name,is_active,sort_order});
+    if(error) throw error;
+    clearPlantSettingsForm();
+    PLANTS_SETTINGS_LOADED=false;
+    await loadPlantsSettings();
+    setPlantsSettingsStatus('\u062A\u0645\u062A \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0635\u0646\u0639 \u0628\u0646\u062C\u0627\u062D.','ok');
+  }catch(err){
+    setPlantsSettingsStatus('\u062A\u0639\u0630\u0631 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0635\u0646\u0639: '+(err.message||err),'err');
+  }
+}
+async function savePlantSettingsRow(row){
+  if(!row || !WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
+  const plantId=row.dataset.plantId || '';
+  const plantCode=row.dataset.plantCode || '';
+  const plant_name=String(row.querySelector('.plant-name-edit')?.value||'').trim();
+  const is_active=row.querySelector('.plant-active-edit')?.value==='true';
+  const sort_order=parseInt(row.querySelector('.plant-sort-edit')?.value||'0',10)||0;
+  if(!plant_name){ setPlantsSettingsStatus('\u0627\u0633\u0645 \u0627\u0644\u0645\u0635\u0646\u0639 \u0645\u0637\u0644\u0648\u0628.','err'); return; }
+  setPlantsSettingsStatus('\u062C\u0627\u0631\u064A \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0635\u0646\u0639...');
+  try{
+    let query=WarehouseDB.client.from('plants').update({plant_name,is_active,sort_order});
+    query=plantId ? query.eq('id',plantId) : query.eq('plant_code',plantCode);
+    const {error}=await query;
+    if(error) throw error;
+    PLANTS_SETTINGS_LOADED=false;
+    await loadPlantsSettings();
+    setPlantsSettingsStatus('\u062A\u0645 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0635\u0646\u0639 \u0628\u0646\u062C\u0627\u062D.','ok');
+  }catch(err){
+    setPlantsSettingsStatus('\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0635\u0646\u0639: '+(err.message||err),'err');
+  }
+}
+function initPlantsSettings(){
+  $('#plantSettingsForm')?.addEventListener('submit',addPlantSettingsRow);
+  $('#plantsSettingsTable')?.addEventListener('click',e=>{
+    const btn=e.target.closest('.save-plant-row-btn');
+    if(btn) savePlantSettingsRow(btn.closest('tr'));
+  });
+}
+
 function initPasswordVisibilityToggles(){
   document.querySelectorAll('[data-password-toggle]').forEach(btn=>{
     btn.addEventListener('click',()=>{
@@ -2778,6 +2891,7 @@ async function showApplication(user){
   fillProfileForm(profile,user);
   fillSettingsAccountPanel(profile,user);
   SYSTEM_SETTINGS_LOADED_USER_ID=null;
+  PLANTS_SETTINGS_LOADED=false;
   applyNavigationPermissions();
   setTimeout(()=>{
     loadSalesBatches();
@@ -2878,6 +2992,7 @@ function initSettingsTabs(){
     tabs.forEach(t=>{const active=t===tab;t.classList.toggle('active',active);t.setAttribute('aria-selected',active?'true':'false');});
     panels.forEach(panel=>panel.classList.toggle('active',panel.dataset.settingsPanel===key));
     if(key==='system') ensureSystemSettingsLoaded();
+    if(key==='plants-settings') ensurePlantsSettingsLoaded();
   }));
 }
 
@@ -3542,7 +3657,7 @@ function initMainLoginGate(){
   }
   checkMainSession();
 }
-document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initUsersManagement();initPermissionsManagement();});
+document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initUsersManagement();initPermissionsManagement();});
 
 // Upload reports tabs controller
 function initUploadReportTabs(){

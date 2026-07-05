@@ -78,6 +78,22 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 #settings #saveSystemSettingsBtn,#settings #systemSettingsStatus{justify-self:stretch}
 @media (max-width:850px){#settings .system-settings-grid{grid-template-columns:1fr}#settings #clearSystemCacheBtn{width:100%}}
 
+#settings .settings-plants-wrap{display:grid;gap:16px;text-align:right}
+#settings .plant-settings-form{display:grid;grid-template-columns:1fr 1.4fr .75fr auto auto;gap:12px;align-items:end;border:1px solid rgba(141,220,89,.28);border-radius:14px;background:rgba(0,35,27,.46);padding:18px}
+#settings .plant-settings-form label{display:flex;flex-direction:column;gap:7px;color:#f5fff1;font-weight:700}
+#settings .plant-settings-form input{width:100%}
+#settings .plant-active-check{align-self:center;margin-top:22px}
+#settings .plants-settings-table-wrap{border:1px solid rgba(141,220,89,.22);border-radius:14px;background:rgba(0,35,27,.3)}
+#settings #plantsSettingsTable input,#settings #plantsSettingsTable select{min-width:120px;width:100%;padding:8px 10px}
+#settings #plantsSettingsTable .plant-code-readonly{font-weight:900;color:#d8ffd1;direction:ltr}
+#settings #plantsSettingsTable .plant-row-actions{display:flex;gap:8px;justify-content:center;align-items:center}
+#settings #plantsSettingsTable .plant-row-actions button{padding:8px 14px;white-space:nowrap}
+#settings .plant-status-active{color:#9be650;font-weight:900}
+#settings .plant-status-inactive{color:#ffc2c2;font-weight:900}
+@media (max-width:1050px){#settings .plant-settings-form{grid-template-columns:1fr 1fr}#settings .plant-settings-form .primary{grid-column:1/-1}}
+@media (max-width:650px){#settings .plant-settings-form{grid-template-columns:1fr}#settings .plant-active-check{margin-top:0}}
+
+
 
 /* Header layout refinement - 2026-06 */
 .topbar{
