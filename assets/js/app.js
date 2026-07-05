@@ -9,10 +9,63 @@ function fmt(n){return Number(n).toLocaleString('en-US',{maximumFractionDigits:3
 function setDefaultDates(){const now=new Date();const cairo=new Date(now.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));const first=new Date(cairo.getFullYear(),cairo.getMonth(),1);const last=new Date(cairo.getFullYear(),cairo.getMonth()+1,0);const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;$('#fromDate').value=iso(first);$('#toDate').value=iso(last)}
 function startCairoClock(){const time=$('#cairoTime'),date=$('#cairoDate');function tick(){const now=new Date();time.textContent=new Intl.DateTimeFormat('ar-EG',{timeZone:'Africa/Cairo',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(now);date.textContent=new Intl.DateTimeFormat('ar-EG',{timeZone:'Africa/Cairo',weekday:'long',year:'numeric',month:'long',day:'numeric'}).format(now)}tick();setInterval(tick,1000)}
 function dbBadge(){const box=document.createElement('span');box.className='db-status'+(window.WarehouseDB?.ready?' ready':'');box.textContent=window.WarehouseDB?.ready?'Supabase متصل':'Supabase جاهز للإعداد';document.querySelector('.page-title div').appendChild(box)}
+let PLANTS_CATALOG_CACHE=null;
+let PLANTS_CATALOG_PENDING=null;
+function fallbackPlantsCatalog(){
+  return (APP_DATA.plants||[]).map((p,index)=>({
+    code:String(p.code||'').trim().toUpperCase(),
+    name:p.name||p.code||'',
+    is_active:true,
+    sort_order:index,
+    source:'fallback',
+    warehouses:p.warehouses||[]
+  })).filter(p=>p.code);
+}
+function normalizePlantCatalogRow(row,index=0){
+  const code=String(row?.plant_code||row?.code||'').trim().toUpperCase();
+  const fallback=(APP_DATA.plants||[]).find(p=>String(p.code||'').toUpperCase()===code)||{};
+  return {code,name:row?.plant_name||row?.name||fallback.name||code,is_active:row?.is_active!==false,sort_order:Number(row?.sort_order??index)||0,source:row?.source||'supabase',warehouses:fallback.warehouses||[]};
+}
+function getPlantsCatalog(){return Array.isArray(PLANTS_CATALOG_CACHE)?PLANTS_CATALOG_CACHE:fallbackPlantsCatalog();}
+async function loadPlantsCatalog(options={}){
+  if(!options.force&&PLANTS_CATALOG_CACHE) return PLANTS_CATALOG_CACHE;
+  if(!options.force&&PLANTS_CATALOG_PENDING) return PLANTS_CATALOG_PENDING;
+  if(!WarehouseDB?.ready){PLANTS_CATALOG_CACHE=fallbackPlantsCatalog();return PLANTS_CATALOG_CACHE;}
+  PLANTS_CATALOG_PENDING=(async()=>{
+    try{
+      const {data,error}=await WarehouseDB.client.from('plants').select('plant_code,plant_name,is_active,sort_order').eq('is_active',true).order('sort_order',{ascending:true}).order('plant_code',{ascending:true});
+      if(error) throw error;
+      PLANTS_CATALOG_CACHE=(data||[]).map(normalizePlantCatalogRow).filter(p=>p.code&&p.is_active);
+      return PLANTS_CATALOG_CACHE;
+    }catch(err){
+      console.warn('[plants-catalog] fallback to APP_DATA.plants',err);
+      PLANTS_CATALOG_CACHE=fallbackPlantsCatalog();
+      return PLANTS_CATALOG_CACHE;
+    }finally{PLANTS_CATALOG_PENDING=null;}
+  })();
+  return PLANTS_CATALOG_PENDING;
+}
+function clearPlantsCatalogCache(){PLANTS_CATALOG_CACHE=null;PLANTS_CATALOG_PENDING=null;}
+function plantNameFromCatalog(code){const plant=getPlantsCatalog().find(p=>p.code===String(code||'').trim().toUpperCase());return plant?.name||code||'';}
+function fillPlantSelectFromCatalog(select,allLabel){
+  if(!select) return;
+  const current=select.value||'all';
+  select.innerHTML='';
+  select.add(new Option(allLabel,'all'));
+  getPlantsCatalog().forEach(p=>select.add(new Option(p.code+' - '+p.name,p.code)));
+  select.value=[...select.options].some(o=>o.value===current)?current:'all';
+}
+function refreshPlantsCatalogConsumers(){
+  fillPlantSelectFromCatalog($('#plantFilter'),'\u0627\u0644\u0643\u0644');
+  fillPlantSelectFromCatalog($('#dashboardPlantFilter'),'\u0643\u0644 \u0627\u0644\u0645\u0635\u0627\u0646\u0639');
+  fillPlantSelectFromCatalog($('#reportPlantFilter'),'\u0643\u0644 \u0627\u0644\u0645\u0635\u0627\u0646\u0639');
+  renderPlants();
+  renderTabs();
+}
 function initFilters(){
   const pf=$('#plantFilter'),wf=$('#warehouseFilter'),typeFilter=$('#warehouseTypeFilter'),movementFilter=$('#movementFilter'),statusFilter=$('#inboundStatusFilter'),fromDate=$('#fromDate'),toDate=$('#toDate');
   if(!pf || !wf) return;
-  APP_DATA.plants.forEach(p=>pf.add(new Option(`${p.code} - ${p.name}`,p.code)));
+  getPlantsCatalog().forEach(p=>pf.add(new Option(`${p.code} - ${p.name}`,p.code)));
   function fillWh(){
     wf.innerHTML='<option value="all">الكل</option>';
     APP_DATA.plants
@@ -64,7 +117,7 @@ function initFilters(){
     else renderAll();
   };
 }
-function renderPlants(){const node=$('#plantsFull');if(!node)return;node.innerHTML=APP_DATA.plants.map(p=>`<div class="plant-card"><div class="plant-icon"><img src="assets/img/logo.png" alt=""></div><h3>${p.name}</h3><span class="plant-code">${p.code}</span><ul class="warehouse-list">${p.warehouses.map(w=>`<li><b>${w[0]}</b> - ${w[1]}</li>`).join('')}</ul></div>`).join('')}
+function renderPlants(){const node=$('#plantsFull');if(!node)return;node.innerHTML=getPlantsCatalog().map(p=>`<div class="plant-card"><div class="plant-icon"><img src="assets/img/logo.png" alt=""></div><h3>${p.name}</h3><span class="plant-code">${p.code}</span><ul class="warehouse-list">${(p.warehouses||[]).map(w=>`<li><b>${w[0]}</b> - ${w[1]}</li>`).join('')}</ul></div>`).join('')}
 const TABLE_STATE={};
 function escapeHtml(v){return String(v??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));}
 function stripHtml(v){const tmp=document.createElement('div');tmp.innerHTML=String(v??'');return (tmp.textContent||tmp.innerText||'').trim();}
@@ -496,7 +549,7 @@ function initReportExportButtons(){
 }
 
 function renderTables(){table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']));table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحويل'],APP_DATA.salesReviewSample);table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample)}
-function renderTabs(){const salesWh=APP_DATA.plants.flatMap(p=>p.warehouses.filter(w=>['W401','W402','N401','N402','N411','N412','E401','E402'].includes(w[0])).map(w=>w[0]));$('#salesTabs').innerHTML=salesWh.map((w,i)=>`<button class="${i===0?'active':''}">${w}</button>`).join('');$('#inboundTabs').innerHTML=APP_DATA.plants.map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('')}
+function renderTabs(){const salesWh=APP_DATA.plants.flatMap(p=>p.warehouses.filter(w=>['W401','W402','N401','N402','N411','N412','E401','E402'].includes(w[0])).map(w=>w[0]));$('#salesTabs').innerHTML=salesWh.map((w,i)=>`<button class="${i===0?'active':''}">${w}</button>`).join('');$('#inboundTabs').innerHTML=getPlantsCatalog().map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('')}
 
 
 // === Real Dashboard From Uploaded/Audited Data ===
@@ -623,7 +676,7 @@ function drawDashboardPlantBar(plantStats){
   const ctx=canvas.getContext('2d');
   const w=canvas.width, h=canvas.height;
   ctx.clearRect(0,0,w,h);
-  const plants=APP_DATA.plants.map(p=>p.code);
+  const plants=getPlantsCatalog().map(p=>p.code);
   const series=[
     {key:'sales',label:'البيع',color:'#74c54a'},
     {key:'production',label:'الإنتاج',color:'#2aa6e8'},
@@ -665,11 +718,11 @@ function drawDashboardPlantBar(plantStats){
 function renderPlantPerformanceTable(plantStats){
   const node=$('#stockSummary');
   if(!node) return;
-  const rows=APP_DATA.plants.map(p=>{
+  const rows=getPlantsCatalog().map(p=>{
     const st=plantStats[p.code]||{};
     return `<tr><td>${p.code}</td><td>${fmt(st.sales||0)}</td><td>${fmt(st.production||0)}</td><td>${fmt(st.outgoing||0)}</td><td>${fmt(st.incoming||0)}</td><td>${fmt(st.loading||0)}</td></tr>`;
   }).join('');
-  const total=APP_DATA.plants.reduce((a,p)=>{const st=plantStats[p.code]||{};a.sales+=(st.sales||0);a.production+=(st.production||0);a.outgoing+=(st.outgoing||0);a.incoming+=(st.incoming||0);a.loading+=(st.loading||0);return a;},{sales:0,production:0,outgoing:0,incoming:0,loading:0});
+  const total=getPlantsCatalog().reduce((a,p)=>{const st=plantStats[p.code]||{};a.sales+=(st.sales||0);a.production+=(st.production||0);a.outgoing+=(st.outgoing||0);a.incoming+=(st.incoming||0);a.loading+=(st.loading||0);return a;},{sales:0,production:0,outgoing:0,incoming:0,loading:0});
   node.innerHTML=`<div class="plant-performance-table"><table><thead><tr><th>المصنع</th><th>البيع</th><th>الإنتاج</th><th>الصادرة</th><th>الواردة</th><th>التحميل</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>الإجمالي</td><td>${fmt(total.sales)}</td><td>${fmt(total.production)}</td><td>${fmt(total.outgoing)}</td><td>${fmt(total.incoming)}</td><td>${fmt(total.loading)}</td></tr></tfoot></table></div>`;
 }
 
@@ -733,7 +786,7 @@ function initDashboardFilters(){
   const pf=$('#dashboardPlantFilter'), wf=$('#dashboardWarehouseFilter');
   if(!pf || !wf) return;
   if(pf.options.length<=1){
-    APP_DATA.plants.forEach(p=>pf.add(new Option(`${p.code} - ${p.name}`,p.code)));
+    getPlantsCatalog().forEach(p=>pf.add(new Option(`${p.code} - ${p.name}`,p.code)));
   }
   function fillWh(){
     const old=wf.value;
@@ -811,7 +864,7 @@ function renderDashboardSummary(stats){
 function renderDashboardPlants(plantStats, totalSales=0){
   const node=$('#plantsCards');
   if(!node) return;
-  const rows=APP_DATA.plants.map(p=>{
+  const rows=getPlantsCatalog().map(p=>{
     const st=plantStats[p.code]||{sales:0,production:0,outgoing:0,incoming:0,loading:0};
     const pct=totalSales?Math.max(0,(st.sales/totalSales)*100):0;
     return {code:p.code,name:p.name,st,pct};
@@ -1060,7 +1113,7 @@ function buildUnifiedSalesTotals(rows,options={}){
   const groupSets=groups.map(g=>new Set((g.codes||[]).map(c=>String(c).toUpperCase())));
   const filteredRows=salesWarehouseRows.filter(r=>rowMatchesUnifiedSalesFilters(r,filters));
   const daily={}, warehouseSalesMap={}, warehouseActivityMap={}, productMap={}, plantStats={};
-  APP_DATA.plants.forEach(p=>plantStats[p.code]={sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0});
+  getPlantsCatalog().forEach(p=>plantStats[p.code]={sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0});
   const stats=emptyUnifiedSalesStats(filteredRows.length);
   filteredRows.forEach(r=>{
     const metrics=computeUnifiedSalesMetrics(r);
@@ -2423,7 +2476,7 @@ async function loadSalesReport(warehouseCode){
 renderTabs = function(){
   $('#salesTabs').innerHTML=SALES_WAREHOUSES.map((w,i)=>`<button class="${i===0?'active':''}" data-warehouse="${w}">${w}</button>`).join('');
   $$('#salesTabs button').forEach(btn=>btn.onclick=()=>{ $$('#salesTabs button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); loadSalesReport(btn.dataset.warehouse); });
-  if($('#inboundTabs')) $('#inboundTabs').innerHTML=APP_DATA.plants.map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('');
+  if($('#inboundTabs')) $('#inboundTabs').innerHTML=getPlantsCatalog().map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('');
 };
 renderTables = function(){
   table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']));
@@ -2813,7 +2866,10 @@ async function addPlantSettingsRow(e){
     if(error) throw error;
     clearPlantSettingsForm();
     PLANTS_SETTINGS_LOADED=false;
+    clearPlantsCatalogCache();
     await loadPlantsSettings();
+    await loadPlantsCatalog({force:true});
+    refreshPlantsCatalogConsumers();
     setPlantsSettingsStatus('\u062A\u0645\u062A \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0635\u0646\u0639 \u0628\u0646\u062C\u0627\u062D.','ok');
   }catch(err){
     setPlantsSettingsStatus('\u062A\u0639\u0630\u0631 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0635\u0646\u0639: '+(err.message||err),'err');
@@ -2834,7 +2890,10 @@ async function savePlantSettingsRow(row){
     const {error}=await query;
     if(error) throw error;
     PLANTS_SETTINGS_LOADED=false;
+    clearPlantsCatalogCache();
     await loadPlantsSettings();
+    await loadPlantsCatalog({force:true});
+    refreshPlantsCatalogConsumers();
     setPlantsSettingsStatus('\u062A\u0645 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0635\u0646\u0639 \u0628\u0646\u062C\u0627\u062D.','ok');
   }catch(err){
     setPlantsSettingsStatus('\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0635\u0646\u0639: '+(err.message||err),'err');
@@ -2890,6 +2949,8 @@ async function showApplication(user){
   applyProfileToHeader(profile);
   fillProfileForm(profile,user);
   fillSettingsAccountPanel(profile,user);
+  await loadPlantsCatalog({force:true});
+  refreshPlantsCatalogConsumers();
   SYSTEM_SETTINGS_LOADED_USER_ID=null;
   PLANTS_SETTINGS_LOADED=false;
   applyNavigationPermissions();
@@ -3680,7 +3741,7 @@ let EXECUTIVE_REPORT_STATE={rows:[], stats:null, filters:null};
 function fillReportFilters(){
   const pf=$('#reportPlantFilter'), wf=$('#reportWarehouseFilter');
   if(!pf || !wf || pf.dataset.ready==='1') return;
-  APP_DATA.plants.forEach(p=>pf.add(new Option(`${p.code} - ${p.name}`,p.code)));
+  getPlantsCatalog().forEach(p=>pf.add(new Option(`${p.code} - ${p.name}`,p.code)));
   const saleWhCodes=['W401','W402','N401','N402','N411','N412','E401','E402'];
   function fillWh(){
     const old=wf.value;
@@ -3736,7 +3797,7 @@ function drawReportLine(daily){
 }
 function drawReportPlantBar(plantStats){
   const canvas=$('#reportPlantChart'); if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
-  const plants=APP_DATA.plants.map(p=>p.code); const series=[{key:'sales',label:'البيع',color:'#74c54a'},{key:'production',label:'الإنتاج',color:'#2aa6e8'},{key:'outgoing',label:'الصادرة',color:'#ff9f2f'},{key:'incoming',label:'الواردة',color:'#b45cff'},{key:'loading',label:'التحميل',color:'#28c7bd'}];
+  const plants=getPlantsCatalog().map(p=>p.code); const series=[{key:'sales',label:'البيع',color:'#74c54a'},{key:'production',label:'الإنتاج',color:'#2aa6e8'},{key:'outgoing',label:'الصادرة',color:'#ff9f2f'},{key:'incoming',label:'الواردة',color:'#b45cff'},{key:'loading',label:'التحميل',color:'#28c7bd'}];
   const max=Math.max(1,...plants.flatMap(c=>series.map(s=>Math.abs((plantStats[c]||{})[s.key]||0)))); const pad={l:50,r:20,t:30,b:42}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
   ctx.strokeStyle='rgba(255,255,255,.12)';ctx.font='bold 11px Cairo';ctx.fillStyle='#cfe8d0';ctx.textAlign='right'; for(let i=0;i<=4;i++){const y=pad.t+ch-(i/4)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmt(max*i/4),pad.l-8,y+4);}
   const groupW=cw/plants.length, barW=Math.min(17,(groupW-30)/series.length); plants.forEach((code,pi)=>{const baseX=pad.l+pi*groupW+groupW/2-((barW+4)*series.length)/2;series.forEach((s,si)=>{const v=Math.abs((plantStats[code]||{})[s.key]||0);const bh=(v/max)*ch;const x=baseX+si*(barW+4),y=pad.t+ch-bh;ctx.fillStyle=s.color;ctx.fillRect(x,y,barW,bh);});ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 13px Cairo';ctx.fillText(code,pad.l+pi*groupW+groupW/2,pad.t+ch+25);});
@@ -3759,7 +3820,7 @@ function renderExecutiveInsights(products, warehouses, plantStats, stats){
 }
 function renderExecutiveExportTable(stats, products, warehouses, plantStats){
   const tbl=$('#executiveExportTable'); if(!tbl) return;
-  const plantRows=APP_DATA.plants.map(p=>`<tr><td>أداء مصنع</td><td>${p.code}</td><td>${p.name}</td><td>${fmt((plantStats[p.code]||{}).sales||0)}</td><td>${fmt((plantStats[p.code]||{}).production||0)}</td><td>${fmt((plantStats[p.code]||{}).outgoing||0)}</td><td>${fmt((plantStats[p.code]||{}).incoming||0)}</td><td>${fmt((plantStats[p.code]||{}).loading||0)}</td></tr>`).join('');
+  const plantRows=getPlantsCatalog().map(p=>`<tr><td>\u0623\u062F\u0627\u0621 \u0645\u0635\u0646\u0639</td><td>${p.code}</td><td>${p.name}</td><td>${fmt((plantStats[p.code]||{}).sales||0)}</td><td>${fmt((plantStats[p.code]||{}).production||0)}</td><td>${fmt((plantStats[p.code]||{}).outgoing||0)}</td><td>${fmt((plantStats[p.code]||{}).incoming||0)}</td><td>${fmt((plantStats[p.code]||{}).loading||0)}</td></tr>`).join('');
   const productRows=products.slice(0,10).map(p=>`<tr><td>أفضل صنف</td><td>${escapeHtml(p.code)}</td><td>${escapeHtml(p.name)}</td><td>${fmt(p.sales)}</td><td>${fmt(p.production)}</td><td>${fmt(p.outgoing)}</td><td>${fmt(p.incoming)}</td><td>${fmt(p.loading)}</td></tr>`).join('');
   const whRows=warehouses.slice(0,10).map(w=>`<tr><td>أفضل مخزن</td><td>${escapeHtml(w.code)}</td><td>${escapeHtml(w.name)}</td><td>${fmt(w.sales)}</td><td>${fmt(w.production)}</td><td>${fmt(w.outgoing)}</td><td>${fmt(w.incoming)}</td><td>${fmt(w.loading)}</td></tr>`).join('');
   tbl.innerHTML=`<thead><tr><th>القسم</th><th>الكود</th><th>البيان</th><th>البيع</th><th>الإنتاج</th><th>الصادرة</th><th>الواردة</th><th>التحميل</th></tr></thead><tbody><tr><td>إجمالي</td><td>-</td><td>إجمالي الفترة</td><td>${fmt(stats.salesQty)}</td><td>${fmt(stats.productionQty)}</td><td>${fmt(stats.outgoingTransferQty)}</td><td>${fmt(stats.incomingTransferQty)}</td><td>${fmt(stats.totalLoadingQty)}</td></tr>${plantRows}${productRows}${whRows}</tbody>`;
@@ -4102,7 +4163,7 @@ function calculateAuditScoreForPlant(plantCode,modelBase){
   return {plant:plantCode,score:total,status,parts:{dataQuality,salesBalance,transferScore,loadingScore,exceptionScore,activityScore},stats:st,exceptions:{high,medium,low,total:exceptions.length},reasons};
 }
 function calculateAuditScores(modelBase){
-  const plantScores=APP_DATA.plants.map(p=>({...(calculateAuditScoreForPlant(p.code,modelBase)),name:p.name}));
+  const plantScores=getPlantsCatalog().map(p=>({...(calculateAuditScoreForPlant(p.code,modelBase)),name:p.name}));
   const active=plantScores.filter(s=>Math.abs((s.stats||{}).activity||0)>0 || s.exceptions.total>0);
   const weightedBase=active.length?active:plantScores;
   const overall=weightedBase.length?weightedBase.reduce((sum,r)=>sum+r.score,0)/weightedBase.length:100;
@@ -4114,7 +4175,7 @@ function calculateAuditScores(modelBase){
 function buildSmartAnalyticsModel(rows,filters){
   const stats={salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0};
   const daily={}, whMap={}, productMap={}, plantStats={};
-  APP_DATA.plants.forEach(p=>plantStats[p.code]={sales:0,production:0,outgoing:0,incoming:0,loading:0,activity:0});
+  getPlantsCatalog().forEach(p=>plantStats[p.code]={sales:0,production:0,outgoing:0,incoming:0,loading:0,activity:0});
   (rows||[]).forEach(r=>{
     const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0,loading:0};
     const wh=String(r.warehouse_code||'').toUpperCase();
@@ -4180,7 +4241,7 @@ function drawSmartMixChart(model){
 function drawSmartPlantScoreChart(model){
   const canvas=$('#smartPlantScoreChart'); if(!canvas) return;
   const ctx=canvas.getContext('2d'), w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h);
-  const rows=(model?.auditScores?.plantScores||APP_DATA.plants.map(p=>({...p,score:100,status:auditScoreStatus(100)}))).map(r=>({code:r.plant||r.code,name:r.name,score:r.score,status:r.status}));
+  const rows=(model?.auditScores?.plantScores||getPlantsCatalog().map(p=>({...p,score:100,status:auditScoreStatus(100)}))).map(r=>({code:r.plant||r.code,name:r.name,score:r.score,status:r.status}));
   const pad={l:105,r:28,t:22,b:34}, rowH=(h-pad.t-pad.b)/Math.max(1,rows.length);
   ctx.font='bold 14px Cairo';
   rows.forEach((r,i)=>{
@@ -4315,7 +4376,7 @@ function scoreModalData(target){
   const scores=model?.auditScores?.plantScores||[];
   const stats=model?.stats||{};
   if(!model || !model.auditScores) return null;
-  if(APP_DATA.plants.some(p=>p.code===target)){
+  if(getPlantsCatalog().some(p=>p.code===target)){
     const r=scores.find(x=>x.plant===target);
     if(!r) return null;
     return {
@@ -4434,7 +4495,7 @@ function buildProductionAnalyticsModel(rows,filters){
     const prod=toNumber(r.production_quantity);
     const date=productionDayKey(r.report_date);
     const plant=String(r.plant_code||dashboardPlantFromWarehouse(r.warehouse_code)||'غير محدد').toUpperCase();
-    const plantName=r.plant_name || (APP_DATA.plants.find(p=>p.code===plant)||{}).name || plant;
+    const plantName=r.plant_name || plantNameFromCatalog(plant) || plant;
     const code=String(r.material_code||'-');
     const name=r.material_name||'-';
     summary.total+=prod;
@@ -4790,7 +4851,7 @@ async function exportActiveReportVisualPdf(){
 async function loadExecutiveReport(options={}){
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
   let rows=[]; try{ rows=await fetchAllSalesAuditRows(filters,{ascending:false}); }catch(error){console.warn('executive report load error',error);return;}
-  const stats={salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0}; const daily={}, productMap={}, whMap={}, whSalesMap={}, plantStats={}; APP_DATA.plants.forEach(p=>plantStats[p.code]={sales:0,production:0,outgoing:0,incoming:0,loading:0});
+  const stats={salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0}; const daily={}, productMap={}, whMap={}, whSalesMap={}, plantStats={}; getPlantsCatalog().forEach(p=>plantStats[p.code]={sales:0,production:0,outgoing:0,incoming:0,loading:0});
   rows.forEach(r=>{const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0}; const wh=String(r.warehouse_code||'').toUpperCase(); const meta=dashboardWhMeta(wh); const plant=r.plant_code||meta.plant||'غير محدد'; if(!plantStats[plant]) plantStats[plant]={sales:0,production:0,outgoing:0,incoming:0,loading:0}; const sales=toNumber(r.sales_quantity), prod=toNumber(r.production_quantity), out=toNumber(r.outgoing_transfer_quantity), inc=toNumber(r.incoming_transfer_quantity), load=toNumber(r.total_loading_quantity); stats.salesQty+=sales;stats.productionQty+=prod;stats.outgoingTransferQty+=out;stats.incomingTransferQty+=inc;stats.totalLoadingQty+=load; daily[d].sales+=Math.abs(sales);daily[d].production+=Math.abs(prod);daily[d].outgoing+=Math.abs(out);daily[d].incoming+=Math.abs(inc); plantStats[plant].sales+=sales;plantStats[plant].production+=prod;plantStats[plant].outgoing+=out;plantStats[plant].incoming+=inc;plantStats[plant].loading+=load; if(sales) whSalesMap[wh]=(whSalesMap[wh]||0)+Math.abs(sales); const pk=String(r.material_code||r.material_name||'غير محدد'); if(!productMap[pk]) productMap[pk]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0}; productMap[pk].sales+=sales;productMap[pk].production+=prod;productMap[pk].outgoing+=out;productMap[pk].incoming+=inc;productMap[pk].loading+=load; if(!whMap[wh]) whMap[wh]={code:wh,name:meta.name||r.warehouse_name||'-',plant:plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0}; whMap[wh].sales+=sales;whMap[wh].production+=prod;whMap[wh].outgoing+=out;whMap[wh].incoming+=inc;whMap[wh].loading+=load;whMap[wh].totalActivity+=Math.abs(sales)+Math.abs(prod)+Math.abs(out)+Math.abs(inc)+Math.abs(load);});
   const products=Object.values(productMap).sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales)); const warehouses=Object.values(whMap).sort((a,b)=>b.totalActivity-a.totalActivity);
   EXECUTIVE_REPORT_STATE={rows,stats,filters}; if($('#executiveReportMeta')) $('#executiveReportMeta').textContent=reportFilterLabel(filters); renderExecutiveKPIs(stats); drawReportLine(daily); drawReportPlantBar(plantStats); drawReportDonut(whSalesMap); renderRankTable('#executiveTopProductsTable',['#','كود الصنف','اسم الصنف','البيع','الإنتاج','التحميل'],products.slice(0,10).map((p,i)=>[i+1,escapeHtml(p.code),escapeHtml(p.name),fmt(p.sales),fmt(p.production),fmt(p.loading)])); renderRankTable('#executiveTopWarehousesTable',['#','كود المخزن','اسم المخزن','المصنع','البيع','التحميل'],warehouses.slice(0,10).map((w,i)=>[i+1,escapeHtml(w.code),escapeHtml(w.name),escapeHtml(w.plant),fmt(w.sales),fmt(w.loading)])); renderExecutiveInsights(products,warehouses,plantStats,stats); renderExecutiveExportTable(stats,products,warehouses,plantStats);
