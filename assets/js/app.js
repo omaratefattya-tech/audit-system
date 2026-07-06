@@ -3275,11 +3275,162 @@ function parseSalesProductBoolean(value){
   if(value===false || value===0 || value==null) return false;
   return String(value).trim().toLowerCase()==='true';
 }
+
+let SALES_PRODUCT_WAREHOUSES_STATE={materialCode:'',materialName:'',warehouses:[],links:[]};
+function setSalesProductWarehousesStatus(message,type=''){
+  const status=$('#salesProductWarehousesStatus');
+  if(!status) return;
+  status.className='upload-status '+(type||'');
+  status.textContent=message || '';
+}
+function fallbackSalesProductWarehousesCatalog(){
+  const rows=[];
+  (APP_DATA.plants||[]).forEach(plant=>{
+    const plantCode=String(plant.code||'').trim().toUpperCase();
+    const plantName=plant.name||plantCode;
+    (plant.warehouses||[]).forEach((w,index)=>{
+      const warehouseCode=String(w[0]||'').trim().toUpperCase();
+      if(!warehouseCode) return;
+      rows.push({warehouse_code:warehouseCode,warehouse_name:w[1]||warehouseCode,plant_code:plantCode,plant_name:plantName,sort_order:index+1,source:'fallback'});
+    });
+  });
+  return rows.sort((a,b)=>String(a.plant_code).localeCompare(String(b.plant_code)) || (a.sort_order-b.sort_order) || String(a.warehouse_code).localeCompare(String(b.warehouse_code)));
+}
+function normalizeSalesProductWarehouseCatalogRow(row,index=0){
+  const plantCode=String(row?.plant_code||'').trim().toUpperCase();
+  const plantMeta=getPlantsCatalog().find(p=>String(p.code||'').toUpperCase()===plantCode)||{};
+  return {
+    warehouse_code:String(row?.warehouse_code||'').trim().toUpperCase(),
+    warehouse_name:row?.warehouse_name||row?.name||row?.warehouse_code||'',
+    plant_code:plantCode,
+    plant_name:row?.plant_name||plantMeta.name||plantCode,
+    sort_order:Number(row?.sort_order??index)||0,
+    source:row?.source||'supabase'
+  };
+}
+async function loadSalesProductWarehousesCatalog(){
+  if(!WarehouseDB?.ready) return fallbackSalesProductWarehousesCatalog();
+  try{
+    const {data,error}=await WarehouseDB.client
+      .from('warehouses')
+      .select('warehouse_code,warehouse_name,plant_code,is_active,sort_order')
+      .eq('is_active',true)
+      .order('plant_code',{ascending:true})
+      .order('sort_order',{ascending:true})
+      .order('warehouse_code',{ascending:true});
+    if(error) throw error;
+    return (data||[]).map(normalizeSalesProductWarehouseCatalogRow).filter(w=>w.warehouse_code);
+  }catch(err){
+    console.warn('[sales-product-warehouses] fallback to APP_DATA warehouses',err);
+    return fallbackSalesProductWarehousesCatalog();
+  }
+}
+async function fetchSalesProductWarehouseLinks(materialCode){
+  if(!WarehouseDB?.ready) return [];
+  const {data,error}=await WarehouseDB.client
+    .from('sales_product_warehouses')
+    .select('warehouse_code,is_active')
+    .eq('material_code',materialCode);
+  if(error) throw error;
+  return data||[];
+}
+function renderSalesProductWarehousesPanel(){
+  const panel=$('#salesProductWarehousesPanel');
+  const title=$('#salesProductWarehousesTitle');
+  const list=$('#salesProductWarehousesList');
+  if(!panel || !list) return;
+  const materialCode=SALES_PRODUCT_WAREHOUSES_STATE.materialCode;
+  const materialName=SALES_PRODUCT_WAREHOUSES_STATE.materialName;
+  if(title) title.textContent='مخازن الصنف: '+materialCode+' - '+materialName;
+  const activeLinks=new Set((SALES_PRODUCT_WAREHOUSES_STATE.links||[]).filter(l=>parseSalesProductBoolean(l.is_active)).map(l=>String(l.warehouse_code||'').toUpperCase()));
+  const warehouses=SALES_PRODUCT_WAREHOUSES_STATE.warehouses||[];
+  if(!warehouses.length){
+    list.innerHTML='<div class="empty-row">لا توجد مخازن نشطة متاحة.</div>';
+    return;
+  }
+  list.innerHTML=warehouses.map(w=>{
+    const code=escapeHtml(w.warehouse_code||'');
+    const name=escapeHtml(w.warehouse_name||'');
+    const plant=escapeHtml((w.plant_code||'')+' - '+(w.plant_name||w.plant_code||''));
+    const checked=activeLinks.has(String(w.warehouse_code||'').toUpperCase())?'checked':'';
+    return '<label class="sales-product-warehouse-option">'
+      +'<input type="checkbox" class="sales-product-warehouse-check" value="'+code+'" '+checked+' />'
+      +'<span><b>'+code+'</b><span>'+name+'</span><small>'+plant+'</small></span>'
+      +'</label>';
+  }).join('');
+}
+async function openSalesProductWarehousesPanel(source){
+  const row=source?.closest ? (source.closest('[data-material-code]') || source.closest('tr')) : source;
+  const panel=$('#salesProductWarehousesPanel');
+  if(!row || !panel) return;
+  const materialCode=normalizeSalesProductCode(row.dataset.materialCode || row.querySelector('.sales-product-code-readonly')?.textContent || '');
+  const materialName=String(row.querySelector('.sales-product-name-edit')?.value || '').trim();
+  SALES_PRODUCT_WAREHOUSES_STATE={materialCode,materialName,warehouses:[],links:[]};
+  panel.hidden=false;
+  setSalesProductWarehousesStatus('جاري تحميل مخازن الصنف...');
+  renderSalesProductWarehousesPanel();
+  try{
+    const [warehouses,links]=await Promise.all([
+      loadSalesProductWarehousesCatalog(),
+      fetchSalesProductWarehouseLinks(materialCode)
+    ]);
+    SALES_PRODUCT_WAREHOUSES_STATE={materialCode,materialName,warehouses,links};
+    renderSalesProductWarehousesPanel();
+    setSalesProductWarehousesStatus('تم تحميل مخازن الصنف.','ok');
+    panel.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(err){
+    renderSalesProductWarehousesPanel();
+    setSalesProductWarehousesStatus('تعذر تحميل مخازن الصنف: '+(err.message||err),'err');
+  }
+}
+function closeSalesProductWarehousesPanel(){
+  const panel=$('#salesProductWarehousesPanel');
+  if(panel) panel.hidden=true;
+  SALES_PRODUCT_WAREHOUSES_STATE={materialCode:'',materialName:'',warehouses:[],links:[]};
+  setSalesProductWarehousesStatus('');
+}
+async function saveSalesProductWarehouses(){
+  const materialCode=normalizeSalesProductCode(SALES_PRODUCT_WAREHOUSES_STATE.materialCode);
+  if(!materialCode){ setSalesProductWarehousesStatus('اختر صنفًا أولاً.','err'); return; }
+  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setSalesProductWarehousesStatus('سجل الدخول أولاً لحفظ مخازن الصنف.','err'); return; }
+  const selected=[...$$('#salesProductWarehousesList .sales-product-warehouse-check')]
+    .filter(input=>input.checked)
+    .map(input=>normalizeWarehouseSettingsCode(input.value));
+  setSalesProductWarehousesStatus('جاري حفظ مخازن الصنف...');
+  try{
+    const existing=await fetchSalesProductWarehouseLinks(materialCode);
+    const existingCodes=(existing||[]).map(l=>normalizeWarehouseSettingsCode(l.warehouse_code)).filter(Boolean);
+    if(selected.length){
+      const payload=selected.map(warehouse_code=>({material_code:materialCode,warehouse_code,is_active:true}));
+      const {error}=await WarehouseDB.client
+        .from('sales_product_warehouses')
+        .upsert(payload,{onConflict:'material_code,warehouse_code'});
+      if(error) throw error;
+    }
+    const selectedSet=new Set(selected);
+    const toDisable=existingCodes.filter(code=>!selectedSet.has(code));
+    if(toDisable.length){
+      const {error}=await WarehouseDB.client
+        .from('sales_product_warehouses')
+        .update({is_active:false})
+        .eq('material_code',materialCode)
+        .in('warehouse_code',toDisable);
+      if(error) throw error;
+    }
+    const links=await fetchSalesProductWarehouseLinks(materialCode);
+    SALES_PRODUCT_WAREHOUSES_STATE.links=links;
+    renderSalesProductWarehousesPanel();
+    setSalesProductWarehousesStatus('تم حفظ مخازن الصنف بنجاح.','ok');
+  }catch(err){
+    setSalesProductWarehousesStatus('تعذر حفظ مخازن الصنف: '+(err.message||err),'err');
+  }
+}
+
 function renderSalesProductsSettingsTable(rows=[]){
   const tbody=$('#salesProductsSettingsTable tbody');
   if(!tbody) return;
   if(!rows.length){
-    tbody.innerHTML='<tr><td colspan="7" class="empty-row">\u0644\u0627 \u062A\u0648\u062C\u062F \u0623\u0635\u0646\u0627\u0641 \u0628\u064A\u0639 \u0645\u062D\u0641\u0648\u0638\u0629.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="8" class="empty-row">\u0644\u0627 \u062A\u0648\u062C\u062F \u0623\u0635\u0646\u0627\u0641 \u0628\u064A\u0639 \u0645\u062D\u0641\u0648\u0638\u0629.</td></tr>';
     return;
   }
   tbody.innerHTML=rows.map(row=>{
@@ -3299,6 +3450,7 @@ function renderSalesProductsSettingsTable(rows=[]){
       +'<td><select class="sales-product-use-edit"><option value="true" '+(useReports?'selected':'')+'>\u0646\u0639\u0645</option><option value="false" '+(!useReports?'selected':'')+'>\u0644\u0627</option></select></td>'
       +'<td><select class="sales-product-active-edit"><option value="true" '+(active?'selected':'')+'>\u0646\u0634\u0637</option><option value="false" '+(!active?'selected':'')+'>\u063A\u064A\u0631 \u0646\u0634\u0637</option></select><div class="'+statusClass+'">'+statusText+'</div></td>'
       +'<td><input type="number" class="sales-product-sort-edit" value="'+sort+'" step="1" /></td>'
+      +'<td><button class="secondary sales-product-warehouses-btn" type="button" data-action="sales-product-warehouses">\u0627\u0644\u0645\u062E\u0627\u0632\u0646</button></td>'
       +'<td><div class="sales-product-row-actions"><button class="secondary save-sales-product-row-btn" type="button" data-action="save-sales-product">\u062D\u0641\u0638</button></div></td>'
       +'</tr>';
   }).join('');
@@ -3409,12 +3561,20 @@ async function saveSalesProductSettingsRow(source){
 }
 function initSalesProductsSettings(){
   $('#salesProductSettingsForm')?.addEventListener('submit',addSalesProductSettingsRow);
+  $('#saveSalesProductWarehousesBtn')?.addEventListener('click',saveSalesProductWarehouses);
+  $('#closeSalesProductWarehousesPanel')?.addEventListener('click',closeSalesProductWarehousesPanel);
   const table=$('#salesProductsSettingsTable');
   if(!table || table.dataset.salesProductsSettingsBound==='1') return;
   table.dataset.noUniversalTable='1';
   table.dataset.salesProductsSettingsBound='1';
   table.addEventListener('click',e=>{
     const target=e.target?.closest ? e.target : e.target?.parentElement;
+    const warehousesBtn=target?.closest('[data-action="sales-product-warehouses"]');
+    if(warehousesBtn && table.contains(warehousesBtn)){
+      e.preventDefault();
+      openSalesProductWarehousesPanel(warehousesBtn);
+      return;
+    }
     const btn=target?.closest('[data-action="save-sales-product"]');
     if(!btn || !table.contains(btn)) return;
     e.preventDefault();
