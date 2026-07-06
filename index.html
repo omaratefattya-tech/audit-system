@@ -719,6 +719,7 @@
             <button class="settings-tab" id="settingsSystemTab" type="button" role="tab" aria-selected="false" aria-controls="settingsSystemPanel" data-settings-tab="system">&#x2699;&#xFE0F; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0646;&#x0638;&#x0627;&#x0645;</button>
             <button class="settings-tab" id="settingsPlantsTab" type="button" role="tab" aria-selected="false" aria-controls="settingsPlantsPanel" data-settings-tab="plants-settings">&#x1F3ED; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x0635;&#x0627;&#x0646;&#x0639;</button>
             <button class="settings-tab" id="settingsWarehousesTab" type="button" role="tab" aria-selected="false" aria-controls="settingsWarehousesPanel" data-settings-tab="warehouses-settings">&#x1F3EC; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x062E;&#x0627;&#x0632;&#x0646;</button>
+            <button class="settings-tab" id="settingsSalesProductsTab" type="button" role="tab" aria-selected="false" aria-controls="settingsSalesProductsPanel" data-settings-tab="sales-products-settings">&#x1F4E6; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0623;&#x0635;&#x0646;&#x0627;&#x0641; &#x0627;&#x0644;&#x0628;&#x064A;&#x0639;</button>
           </div>
           <div class="settings-tab-panels">
             <section class="settings-tab-panel active" id="settingsProfilePanel" role="tabpanel" aria-labelledby="settingsProfileTab" data-settings-panel="profile">
@@ -920,6 +921,35 @@
                 <div class="upload-status" id="warehousesSettingsStatus"></div>
               </div>
             </section>
+            <section class="settings-tab-panel" id="settingsSalesProductsPanel" role="tabpanel" aria-labelledby="settingsSalesProductsTab" data-settings-panel="sales-products-settings">
+              <div class="settings-sales-products-wrap">
+                <form id="salesProductSettingsForm" class="sales-product-settings-form">
+                  <label>&#x0643;&#x0648;&#x062F; &#x0627;&#x0644;&#x0635;&#x0646;&#x0641;
+                    <input type="text" id="salesProductCodeInput" placeholder="211000001" autocomplete="off" />
+                  </label>
+                  <label>&#x0627;&#x0633;&#x0645; &#x0627;&#x0644;&#x0635;&#x0646;&#x0641;
+                    <input type="text" id="salesProductNameInput" placeholder="&#x0627;&#x0633;&#x0645; &#x0627;&#x0644;&#x0635;&#x0646;&#x0641;" autocomplete="off" />
+                  </label>
+                  <label>&#x0627;&#x0644;&#x0648;&#x062D;&#x062F;&#x0629; &#x0627;&#x0644;&#x0627;&#x0641;&#x062A;&#x0631;&#x0627;&#x0636;&#x064A;&#x0629;
+                    <input type="text" id="salesProductUnitInput" value="TO" autocomplete="off" />
+                  </label>
+                  <label>&#x062A;&#x0631;&#x062A;&#x064A;&#x0628; &#x0627;&#x0644;&#x0638;&#x0647;&#x0648;&#x0631;
+                    <input type="number" id="salesProductSortOrderInput" value="0" step="1" />
+                  </label>
+                  <label class="settings-check sales-product-flag-check"><input type="checkbox" id="salesProductUseReportsInput" checked /> <span>&#x064A;&#x062F;&#x062E;&#x0644; &#x0641;&#x064A; &#x062A;&#x0642;&#x0627;&#x0631;&#x064A;&#x0631; &#x0627;&#x0644;&#x0628;&#x064A;&#x0639;</span></label>
+                  <label class="settings-check sales-product-flag-check"><input type="checkbox" id="salesProductActiveInput" checked /> <span>&#x0646;&#x0634;&#x0637;</span></label>
+                  <button class="primary" id="addSalesProductBtn" type="submit">&#x0625;&#x0636;&#x0627;&#x0641;&#x0629; &#x0635;&#x0646;&#x0641;</button>
+                </form>
+                <div class="table-wrap sales-products-settings-table-wrap">
+                  <table id="salesProductsSettingsTable" data-no-universal-table="1">
+                    <thead><tr><th>&#x0643;&#x0648;&#x062F; &#x0627;&#x0644;&#x0635;&#x0646;&#x0641;</th><th>&#x0627;&#x0633;&#x0645; &#x0627;&#x0644;&#x0635;&#x0646;&#x0641;</th><th>&#x0627;&#x0644;&#x0648;&#x062D;&#x062F;&#x0629; &#x0627;&#x0644;&#x0627;&#x0641;&#x062A;&#x0631;&#x0627;&#x0636;&#x064A;&#x0629;</th><th>&#x064A;&#x062F;&#x062E;&#x0644; &#x0641;&#x064A; &#x062A;&#x0642;&#x0627;&#x0631;&#x064A;&#x0631; &#x0627;&#x0644;&#x0628;&#x064A;&#x0639;</th><th>&#x0627;&#x0644;&#x062D;&#x0627;&#x0644;&#x0629;</th><th>&#x062A;&#x0631;&#x062A;&#x064A;&#x0628; &#x0627;&#x0644;&#x0638;&#x0647;&#x0648;&#x0631;</th><th>&#x0627;&#x0644;&#x0625;&#x062C;&#x0631;&#x0627;&#x0621;&#x0627;&#x062A;</th></tr></thead>
+                    <tbody><tr><td colspan="7" class="empty-row">&#x064A;&#x062A;&#x0645; &#x062A;&#x062D;&#x0645;&#x064A;&#x0644; &#x0628;&#x064A;&#x0627;&#x0646;&#x0627;&#x062A; &#x0623;&#x0635;&#x0646;&#x0627;&#x0641; &#x0627;&#x0644;&#x0628;&#x064A;&#x0639; &#x0639;&#x0646;&#x062F; &#x0641;&#x062A;&#x062D; &#x0627;&#x0644;&#x062A;&#x0628;&#x0648;&#x064A;&#x0628;.</td></tr></tbody>
+                  </table>
+                </div>
+                <div class="upload-status" id="salesProductsSettingsStatus"></div>
+              </div>
+            </section>
+
           </div>
         </article>
       </section>

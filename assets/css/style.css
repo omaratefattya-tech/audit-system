@@ -107,6 +107,22 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 @media (max-width:1250px){#settings .warehouse-settings-form{grid-template-columns:1fr 1fr 1fr}#settings .warehouse-settings-form .primary{grid-column:1/-1}}
 @media (max-width:700px){#settings .warehouse-settings-form{grid-template-columns:1fr}#settings .warehouse-flag-check{margin-top:0}}
 
+#settings .settings-sales-products-wrap{display:grid;gap:16px;text-align:right}
+#settings .sales-product-settings-form{display:grid;grid-template-columns:.9fr 1.4fr .7fr .7fr auto auto auto;gap:12px;align-items:end;border:1px solid rgba(141,220,89,.28);border-radius:14px;background:rgba(0,35,27,.46);padding:18px}
+#settings .sales-product-settings-form label{display:flex;flex-direction:column;gap:7px;color:#f5fff1;font-weight:700}
+#settings .sales-product-settings-form input{width:100%}
+#settings .sales-product-flag-check{align-self:center;margin-top:22px}
+#settings .sales-products-settings-table-wrap{border:1px solid rgba(141,220,89,.22);border-radius:14px;background:rgba(0,35,27,.3)}
+#settings #salesProductsSettingsTable input,#settings #salesProductsSettingsTable select{min-width:110px;width:100%;padding:8px 10px}
+#settings #salesProductsSettingsTable .sales-product-code-readonly{font-weight:900;color:#d8ffd1;direction:ltr}
+#settings #salesProductsSettingsTable .sales-product-row-actions{display:flex;gap:8px;justify-content:center;align-items:center}
+#settings #salesProductsSettingsTable .sales-product-row-actions button{padding:8px 14px;white-space:nowrap}
+#settings .sales-product-status-active{color:#9be650;font-weight:900}
+#settings .sales-product-status-inactive{color:#ffc2c2;font-weight:900}
+@media (max-width:1250px){#settings .sales-product-settings-form{grid-template-columns:1fr 1fr 1fr}#settings .sales-product-settings-form .primary{grid-column:1/-1}}
+@media (max-width:700px){#settings .sales-product-settings-form{grid-template-columns:1fr}#settings .sales-product-flag-check{margin-top:0}}
+
+
 
 
 /* Header layout refinement - 2026-06 */

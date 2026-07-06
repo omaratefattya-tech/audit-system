@@ -3258,6 +3258,170 @@ function initWarehousesSettings(){
   });
 }
 
+
+
+let SALES_PRODUCTS_SETTINGS_LOADED=false;
+let SALES_PRODUCTS_SETTINGS_ROWS=[];
+function setSalesProductsSettingsStatus(message,type=''){
+  const status=$('#salesProductsSettingsStatus');
+  if(!status) return;
+  status.className='upload-status '+(type||'');
+  status.textContent=message || '';
+}
+function normalizeSalesProductCode(value){return normalizeMaterialCode(value).toUpperCase();}
+function normalizeSalesProductUnit(value){return String(value||'TO').trim().toUpperCase() || 'TO';}
+function parseSalesProductBoolean(value){
+  if(value===true || value===1) return true;
+  if(value===false || value===0 || value==null) return false;
+  return String(value).trim().toLowerCase()==='true';
+}
+function renderSalesProductsSettingsTable(rows=[]){
+  const tbody=$('#salesProductsSettingsTable tbody');
+  if(!tbody) return;
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="7" class="empty-row">\u0644\u0627 \u062A\u0648\u062C\u062F \u0623\u0635\u0646\u0627\u0641 \u0628\u064A\u0639 \u0645\u062D\u0641\u0648\u0638\u0629.</td></tr>';
+    return;
+  }
+  tbody.innerHTML=rows.map(row=>{
+    const id=escapeHtml(row.id||'');
+    const code=escapeHtml(row.material_code||'');
+    const name=escapeHtml(row.material_name||'');
+    const unit=escapeHtml(normalizeSalesProductUnit(row.default_unit));
+    const useReports=parseSalesProductBoolean(row.use_in_sales_reports);
+    const active=parseSalesProductBoolean(row.is_active);
+    const sort=Number(row.sort_order||0);
+    const statusText=active?'\u0646\u0634\u0637':'\u063A\u064A\u0631 \u0646\u0634\u0637';
+    const statusClass=active?'sales-product-status-active':'sales-product-status-inactive';
+    return '<tr data-sales-product-id="'+id+'" data-material-code="'+code+'">'
+      +'<td><span class="sales-product-code-readonly">'+code+'</span></td>'
+      +'<td><input type="text" class="sales-product-name-edit" value="'+name+'" /></td>'
+      +'<td><input type="text" class="sales-product-unit-edit" value="'+unit+'" /></td>'
+      +'<td><select class="sales-product-use-edit"><option value="true" '+(useReports?'selected':'')+'>\u0646\u0639\u0645</option><option value="false" '+(!useReports?'selected':'')+'>\u0644\u0627</option></select></td>'
+      +'<td><select class="sales-product-active-edit"><option value="true" '+(active?'selected':'')+'>\u0646\u0634\u0637</option><option value="false" '+(!active?'selected':'')+'>\u063A\u064A\u0631 \u0646\u0634\u0637</option></select><div class="'+statusClass+'">'+statusText+'</div></td>'
+      +'<td><input type="number" class="sales-product-sort-edit" value="'+sort+'" step="1" /></td>'
+      +'<td><div class="sales-product-row-actions"><button class="secondary save-sales-product-row-btn" type="button" data-action="save-sales-product">\u062D\u0641\u0638</button></div></td>'
+      +'</tr>';
+  }).join('');
+}
+async function fetchSalesProductsSettingsRowsDirect(){
+  return WarehouseDB.client
+    .from('sales_products')
+    .select('id,material_code,material_name,default_unit,use_in_sales_reports,is_active,sort_order',{count:'exact'})
+    .order('sort_order',{ascending:true})
+    .order('material_code',{ascending:true});
+}
+async function fetchSalesProductSettingsRowDirect(materialCode){
+  return WarehouseDB.client
+    .from('sales_products')
+    .select('id,material_code,material_name,default_unit,use_in_sales_reports,is_active,sort_order,updated_at,updated_by',{count:'exact'})
+    .eq('material_code',materialCode);
+}
+async function loadSalesProductsSettings(){
+  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
+  setSalesProductsSettingsStatus('\u062C\u0627\u0631\u064A \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0635\u0646\u0627\u0641 \u0627\u0644\u0628\u064A\u0639...');
+  try{
+    const {data,error}=await fetchSalesProductsSettingsRowsDirect();
+    if(error) throw error;
+    SALES_PRODUCTS_SETTINGS_ROWS=data || [];
+    SALES_PRODUCTS_SETTINGS_LOADED=true;
+    renderSalesProductsSettingsTable(SALES_PRODUCTS_SETTINGS_ROWS);
+    setSalesProductsSettingsStatus('\u062A\u0645 \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0635\u0646\u0627\u0641 \u0627\u0644\u0628\u064A\u0639.','ok');
+  }catch(err){
+    SALES_PRODUCTS_SETTINGS_LOADED=false;
+    SALES_PRODUCTS_SETTINGS_ROWS=[];
+    renderSalesProductsSettingsTable([]);
+    setSalesProductsSettingsStatus('\u062A\u0639\u0630\u0631 \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0635\u0646\u0627\u0641 \u0627\u0644\u0628\u064A\u0639: '+(err.message||err),'err');
+  }
+}
+async function ensureSalesProductsSettingsLoaded(){
+  if(SALES_PRODUCTS_SETTINGS_LOADED) return;
+  await loadSalesProductsSettings();
+}
+function readSalesProductSettingsForm(){
+  return {
+    material_code:normalizeSalesProductCode($('#salesProductCodeInput')?.value),
+    material_name:String($('#salesProductNameInput')?.value||'').trim(),
+    default_unit:normalizeSalesProductUnit($('#salesProductUnitInput')?.value),
+    use_in_sales_reports:Boolean($('#salesProductUseReportsInput')?.checked),
+    is_active:Boolean($('#salesProductActiveInput')?.checked),
+    sort_order:parseInt($('#salesProductSortOrderInput')?.value||'0',10)||0
+  };
+}
+function clearSalesProductSettingsForm(){
+  if($('#salesProductCodeInput')) $('#salesProductCodeInput').value='';
+  if($('#salesProductNameInput')) $('#salesProductNameInput').value='';
+  if($('#salesProductUnitInput')) $('#salesProductUnitInput').value='TO';
+  if($('#salesProductUseReportsInput')) $('#salesProductUseReportsInput').checked=true;
+  if($('#salesProductActiveInput')) $('#salesProductActiveInput').checked=true;
+  if($('#salesProductSortOrderInput')) $('#salesProductSortOrderInput').value='0';
+}
+async function addSalesProductSettingsRow(e){
+  e?.preventDefault();
+  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setSalesProductsSettingsStatus('\u0633\u062C\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0623\u0648\u0644\u0627\u064B \u0644\u0625\u062F\u0627\u0631\u0629 \u0623\u0635\u0646\u0627\u0641 \u0627\u0644\u0628\u064A\u0639.','err'); return; }
+  const payload=readSalesProductSettingsForm();
+  if(!payload.material_code || !payload.material_name){ setSalesProductsSettingsStatus('\u0643\u0648\u062F \u0627\u0644\u0635\u0646\u0641 \u0648\u0627\u0633\u0645\u0647 \u0645\u0637\u0644\u0648\u0628\u0627\u0646.','err'); return; }
+  setSalesProductsSettingsStatus('\u062C\u0627\u0631\u064A \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0635\u0646\u0641...');
+  try{
+    const {error}=await WarehouseDB.client.from('sales_products').insert(payload);
+    if(error) throw error;
+    clearSalesProductSettingsForm();
+    SALES_PRODUCTS_SETTINGS_LOADED=false;
+    await loadSalesProductsSettings();
+    setSalesProductsSettingsStatus('\u062A\u0645\u062A \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0635\u0646\u0641 \u0628\u0646\u062C\u0627\u062D.','ok');
+  }catch(err){
+    setSalesProductsSettingsStatus('\u062A\u0639\u0630\u0631 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0635\u0646\u0641: '+(err.message||err),'err');
+  }
+}
+async function saveSalesProductSettingsRow(source){
+  const row=source?.closest ? (source.closest('[data-material-code]') || source.closest('tr')) : source;
+  if(!row || !WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
+  const materialCode=normalizeSalesProductCode(row.dataset.materialCode || row.querySelector('.sales-product-code-readonly')?.textContent || '');
+  const payload={
+    material_name:String(row.querySelector('.sales-product-name-edit')?.value||'').trim(),
+    default_unit:normalizeSalesProductUnit(row.querySelector('.sales-product-unit-edit')?.value),
+    use_in_sales_reports:row.querySelector('.sales-product-use-edit')?.value === 'true',
+    is_active:row.querySelector('.sales-product-active-edit')?.value === 'true',
+    sort_order:parseInt(row.querySelector('.sales-product-sort-edit')?.value||'0',10)||0
+  };
+  if(!payload.material_name){ setSalesProductsSettingsStatus('\u0627\u0633\u0645 \u0627\u0644\u0635\u0646\u0641 \u0645\u0637\u0644\u0648\u0628.','err'); return; }
+  setSalesProductsSettingsStatus('\u062C\u0627\u0631\u064A \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0635\u0646\u0641...');
+  try{
+    const updateResult=await WarehouseDB.client
+      .from('sales_products')
+      .update(payload,{count:'exact'})
+      .eq('material_code',materialCode)
+      .select('id,material_code,material_name,default_unit,use_in_sales_reports,is_active,sort_order,updated_at,updated_by');
+    if(updateResult.error) throw updateResult.error;
+    if(updateResult.count !== 1 || !updateResult.data?.length) throw new Error('\u0644\u0645 \u064A\u062A\u0645 \u062A\u0639\u062F\u064A\u0644 \u0623\u064A \u0635\u0641.');
+    const verify=await fetchSalesProductSettingsRowDirect(materialCode);
+    if(verify.error) throw verify.error;
+    if(verify.count !== 1) throw new Error('\u0644\u0645 \u064A\u062A\u0645 \u062A\u0623\u0643\u064A\u062F \u0627\u0644\u062D\u0641\u0638.');
+    const saved=verify.data?.[0];
+    if(!saved || String(saved.material_name||'').trim()!==payload.material_name || normalizeSalesProductUnit(saved.default_unit)!==payload.default_unit || parseSalesProductBoolean(saved.use_in_sales_reports)!==payload.use_in_sales_reports || parseSalesProductBoolean(saved.is_active)!==payload.is_active){
+      throw new Error('\u0644\u0645 \u062A\u062A\u063A\u064A\u0631 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0635\u0646\u0641 \u0641\u0639\u0644\u064A\u0627\u064B \u0641\u064A Supabase.');
+    }
+    SALES_PRODUCTS_SETTINGS_LOADED=false;
+    await loadSalesProductsSettings();
+    setSalesProductsSettingsStatus('\u062A\u0645 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0635\u0646\u0641 \u0628\u0646\u062C\u0627\u062D.','ok');
+  }catch(err){
+    setSalesProductsSettingsStatus('\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0635\u0646\u0641: '+(err.message||err),'err');
+  }
+}
+function initSalesProductsSettings(){
+  $('#salesProductSettingsForm')?.addEventListener('submit',addSalesProductSettingsRow);
+  const table=$('#salesProductsSettingsTable');
+  if(!table || table.dataset.salesProductsSettingsBound==='1') return;
+  table.dataset.noUniversalTable='1';
+  table.dataset.salesProductsSettingsBound='1';
+  table.addEventListener('click',e=>{
+    const target=e.target?.closest ? e.target : e.target?.parentElement;
+    const btn=target?.closest('[data-action="save-sales-product"]');
+    if(!btn || !table.contains(btn)) return;
+    e.preventDefault();
+    saveSalesProductSettingsRow(btn);
+  });
+}
+
 function initPasswordVisibilityToggles(){
   document.querySelectorAll('[data-password-toggle]').forEach(btn=>{
     btn.addEventListener('click',()=>{
@@ -3406,6 +3570,7 @@ function initSettingsTabs(){
     if(key==='system') ensureSystemSettingsLoaded();
     if(key==='plants-settings') ensurePlantsSettingsLoaded();
     if(key==='warehouses-settings') ensureWarehousesSettingsLoaded();
+    if(key==='sales-products-settings') ensureSalesProductsSettingsLoaded();
   }));
 }
 
@@ -4070,7 +4235,7 @@ function initMainLoginGate(){
   }
   checkMainSession();
 }
-document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initUsersManagement();initPermissionsManagement();});
+document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initUsersManagement();initPermissionsManagement();});
 
 // Upload reports tabs controller
 function initUploadReportTabs(){
