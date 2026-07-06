@@ -1216,6 +1216,190 @@ function salesReviewEngineDebug(rows,catalog,stage,filters={}){
     currentMonthTotalsMatch:salesReviewTotalsMatch(legacyCurrentMonthTotals,dynamicCurrentMonthTotals)
   });
 }
+function salesReviewCurrentMonthFilters(base={}){
+  if(base.from || base.to) return base;
+  const now=new Date();
+  const cairo=new Date(now.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));
+  const first=new Date(cairo.getFullYear(),cairo.getMonth(),1);
+  const last=new Date(cairo.getFullYear(),cairo.getMonth()+1,0);
+  const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  return {...base,from:iso(first),to:iso(last)};
+}
+async function fetchSalesReviewVerificationSourceRows(filters={},options={}){
+  if(!WarehouseDB?.ready) return [];
+  const pageSize=1000;
+  const maxPages=options.maxPages||200;
+  const ascending=options.ascending!==false;
+  const all=[];
+  for(let page=0;page<maxPages;page++){
+    const from=page*pageSize;
+    const to=from+pageSize-1;
+    let query=WarehouseDB.client
+      .from('sales_raw_transactions')
+      .select(SALES_RAW_AUDIT_SELECT)
+      .eq('sales_upload_batches.status','active')
+      .in('movement_type',SALES_REVIEW_MOVEMENT_TYPES)
+      .order('id',{ascending})
+      .range(from,to);
+    if(filters.from) query=query.gte('sales_upload_batches.report_date',filters.from);
+    if(filters.to) query=query.lte('sales_upload_batches.report_date',filters.to);
+    if(filters.plant && filters.plant!=='all') query=query.eq('plant_code',filters.plant);
+    if(filters.warehouse && filters.warehouse!=='all') query=query.eq('warehouse_code',String(filters.warehouse).toUpperCase());
+    const {data,error}=await query;
+    if(error) throw error;
+    const chunk=(data||[]).map(r=>({
+      ...r,
+      report_date:salesRowReportDate(r),
+      warehouse_name:r.warehouse_name || dashboardWhMeta(r.warehouse_code).name || '',
+      uom:r.uom || 'TO'
+    }));
+    all.push(...chunk);
+    if(chunk.length<pageSize) break;
+  }
+  return all;
+}
+function salesReviewVerificationBuild(engine,sourceRows,catalog){
+  const materialRows=sourceRows.filter(row=>engine==='legacy'
+    ? isSalesReviewMaterialCode(row?.material_code)
+    : isSalesReviewMaterialCodeInCatalog(row?.material_code,catalog));
+  const warehouseRows=materialRows.filter(row=>{
+    const wh=String(row?.warehouse_code||'').trim().toUpperCase();
+    return engine==='legacy'
+      ? SALES_WAREHOUSES.includes(wh)
+      : salesReviewWarehouseAllowedForMaterial(row?.material_code,wh,catalog);
+  });
+  const totals=salesReviewDebugTotals(warehouseRows);
+  const materials=new Set(warehouseRows.map(r=>normalizeMaterialCode(r.material_code)).filter(Boolean));
+  const warehouses=new Set(warehouseRows.map(r=>String(r.warehouse_code||'').trim().toUpperCase()).filter(Boolean));
+  return {
+    engine,
+    beforeMaterialFilter:sourceRows.length,
+    afterMaterialFilter:materialRows.length,
+    afterWarehouseFilter:warehouseRows.length,
+    sales:totals.sales,
+    outbound:totals.outgoing,
+    inbound:totals.incoming,
+    production:totals.production,
+    loading:totals.loading,
+    transferTotal:totals.outgoing+totals.incoming,
+    actualReturn:totals.actualReturn,
+    materialCount:materials.size,
+    warehouseCount:warehouses.size,
+    rows:warehouseRows,
+    materials,
+    warehouses
+  };
+}
+function salesReviewVerificationRowKey(row){
+  return [
+    normalizeMaterialCode(row?.material_code),
+    String(row?.warehouse_code||'').trim().toUpperCase()
+  ].join('|');
+}
+function salesReviewVerificationReason(row,catalog,direction){
+  const code=normalizeMaterialCode(row?.material_code);
+  const wh=String(row?.warehouse_code||'').trim().toUpperCase();
+  if(direction==='legacy-only'){
+    if(!isSalesReviewMaterialCodeInCatalog(code,catalog)) return 'الصنف موجود في Legacy لكنه غير نشط أو غير مدرج في sales_products لتقارير البيع';
+    if(!salesReviewWarehouseAllowedForMaterial(code,wh,catalog)) return 'المخزن موجود في Legacy لكنه غير مرتبط بالصنف في sales_product_warehouses';
+    return 'فرق غير متوقع بعد تطبيق قواعد Dynamic';
+  }
+  if(!isSalesReviewMaterialCode(code)) return 'الصنف موجود في Dynamic لكنه غير موجود في SALES_REVIEW_MATERIAL_CODES';
+  if(!SALES_WAREHOUSES.includes(wh)) return 'المخزن موجود في Dynamic لكنه خارج مخازن البيع الرسمية القديمة';
+  return 'فرق غير متوقع بعد تطبيق قواعد Legacy';
+}
+function salesReviewVerificationGroupRows(rows,catalog,direction){
+  const map=new Map();
+  rows.forEach(row=>{
+    const key=salesReviewVerificationRowKey(row);
+    if(!map.has(key)){
+      map.set(key,{
+        material_code:normalizeMaterialCode(row?.material_code),
+        material_name:row?.material_name||'-',
+        warehouse_code:String(row?.warehouse_code||'').trim().toUpperCase()||'-',
+        reason:salesReviewVerificationReason(row,catalog,direction),
+        rows:0,
+        totals:{sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0}
+      });
+    }
+    const item=map.get(key);
+    item.rows++;
+    const metrics=computeUnifiedSalesMetrics(row);
+    item.totals.sales+=metrics.sales;
+    item.totals.actualReturn+=metrics.actualReturn;
+    item.totals.production+=metrics.production;
+    item.totals.outgoing+=metrics.outgoing;
+    item.totals.incoming+=metrics.incoming;
+    item.totals.loading+=metrics.loading;
+  });
+  return [...map.values()].sort((a,b)=>String(a.material_code).localeCompare(String(b.material_code)) || String(a.warehouse_code).localeCompare(String(b.warehouse_code)));
+}
+function salesReviewVerificationDifferences(legacyRows,dynamicRows,catalog){
+  const legacyKeys=new Set(legacyRows.map(salesReviewVerificationRowKey));
+  const dynamicKeys=new Set(dynamicRows.map(salesReviewVerificationRowKey));
+  const legacyOnly=legacyRows.filter(row=>!dynamicKeys.has(salesReviewVerificationRowKey(row)));
+  const dynamicOnly=dynamicRows.filter(row=>!legacyKeys.has(salesReviewVerificationRowKey(row)));
+  return {
+    legacyOnly:salesReviewVerificationGroupRows(legacyOnly,catalog,'legacy-only'),
+    dynamicOnly:salesReviewVerificationGroupRows(dynamicOnly,catalog,'dynamic-only')
+  };
+}
+function salesReviewVerificationValuesMatch(legacy,dynamic){
+  return ['beforeMaterialFilter','afterMaterialFilter','afterWarehouseFilter','sales','outbound','inbound','production','loading','transferTotal','materialCount','warehouseCount']
+    .every(key=>Math.abs((legacy?.[key]||0)-(dynamic?.[key]||0))<0.000001);
+}
+async function runSalesReviewEngineVerification(filters={},options={}){
+  const verificationFilters=salesReviewCurrentMonthFilters(filters||{});
+  const catalog=await loadSalesReviewCatalog(options.catalogOptions||{});
+  const sourceRows=await fetchSalesReviewVerificationSourceRows(verificationFilters,options);
+  const legacy=salesReviewVerificationBuild('legacy',sourceRows,catalog);
+  const dynamic=salesReviewVerificationBuild('dynamic',sourceRows,catalog);
+  const differences=salesReviewVerificationDifferences(legacy.rows,dynamic.rows,catalog);
+  const currentMonthTotalsMatch=salesReviewVerificationValuesMatch(legacy,dynamic);
+  const report={
+    filters:verificationFilters,
+    catalogSource:catalog?.source||'legacy',
+    catalogSignature:catalog?.signature||'none',
+    sourceRowsBeforeMaterialFilter:sourceRows.length,
+    legacy:{
+      beforeMaterialFilter:legacy.beforeMaterialFilter,
+      afterMaterialFilter:legacy.afterMaterialFilter,
+      afterWarehouseFilter:legacy.afterWarehouseFilter,
+      sales:legacy.sales,
+      outbound:legacy.outbound,
+      inbound:legacy.inbound,
+      production:legacy.production,
+      loading:legacy.loading,
+      transferTotal:legacy.transferTotal,
+      actualReturn:legacy.actualReturn,
+      materialCount:legacy.materialCount,
+      warehouseCount:legacy.warehouseCount
+    },
+    dynamic:{
+      beforeMaterialFilter:dynamic.beforeMaterialFilter,
+      afterMaterialFilter:dynamic.afterMaterialFilter,
+      afterWarehouseFilter:dynamic.afterWarehouseFilter,
+      sales:dynamic.sales,
+      outbound:dynamic.outbound,
+      inbound:dynamic.inbound,
+      production:dynamic.production,
+      loading:dynamic.loading,
+      transferTotal:dynamic.transferTotal,
+      actualReturn:dynamic.actualReturn,
+      materialCount:dynamic.materialCount,
+      warehouseCount:dynamic.warehouseCount
+    },
+    currentMonthTotalsMatch,
+    differences
+  };
+  console.log('[sales-review-enterprise-verification]',report);
+  if(currentMonthTotalsMatch){
+    console.log('[sales-review-enterprise-verification] Dynamic Sales Review Engine is the official data source. Legacy remains as emergency fallback only.');
+  }else{
+    console.warn('[sales-review-enterprise-verification] Differences detected. Do not promote Dynamic as official until reviewed.',differences);
+  }
+  return report;
+}
 
 const UNIFIED_SALES_ROWS_CACHE=new Map();
 const UNIFIED_SALES_ROWS_PENDING=new Map();
@@ -1241,6 +1425,7 @@ if(typeof window!=='undefined'){
   window.loadSalesReviewCatalog=loadSalesReviewCatalog;
   window.buildLegacySalesReviewCatalog=buildLegacySalesReviewCatalog;
   window.clearSalesReviewEngineCache=clearSalesReviewEngineCache;
+  window.runSalesReviewEngineVerification=runSalesReviewEngineVerification;
 }
 
 const SALES_REVIEW_MOVEMENT_TYPES=['601','602','653','654','101','102','Z51','Z52','351','352','301','302','311','312','Z13','Z14'];
