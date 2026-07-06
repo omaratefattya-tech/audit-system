@@ -46,6 +46,65 @@ async function loadPlantsCatalog(options={}){
   return PLANTS_CATALOG_PENDING;
 }
 function clearPlantsCatalogCache(){PLANTS_CATALOG_CACHE=null;PLANTS_CATALOG_PENDING=null;}
+let PLANTS_SCREEN_WAREHOUSES_CACHE=null;
+let PLANTS_SCREEN_WAREHOUSES_PENDING=null;
+function fallbackPlantsScreenWarehouses(){
+  const map={};
+  (APP_DATA.plants||[]).forEach(plant=>{
+    const code=String(plant.code||'').trim().toUpperCase();
+    map[code]=(plant.warehouses||[]).map((w,index)=>({
+      warehouse_code:String(w[0]||'').trim().toUpperCase(),
+      warehouse_name:w[1]||w[0]||'',
+      plant_code:code,
+      warehouse_type:w[2]||'',
+      sort_order:index+1,
+      source:'fallback'
+    }));
+  });
+  return map;
+}
+function normalizePlantsScreenWarehouse(row,index=0){
+  return {
+    warehouse_code:String(row?.warehouse_code||'').trim().toUpperCase(),
+    warehouse_name:row?.warehouse_name||row?.name||row?.warehouse_code||'',
+    plant_code:String(row?.plant_code||'').trim().toUpperCase(),
+    warehouse_type:row?.warehouse_type||'',
+    sort_order:Number(row?.sort_order??index)||0,
+    source:row?.source||'supabase'
+  };
+}
+function getPlantsScreenWarehouses(){
+  return PLANTS_SCREEN_WAREHOUSES_CACHE || fallbackPlantsScreenWarehouses();
+}
+async function loadPlantsScreenWarehouses(options={}){
+  if(!options.force && PLANTS_SCREEN_WAREHOUSES_CACHE) return PLANTS_SCREEN_WAREHOUSES_CACHE;
+  if(!options.force && PLANTS_SCREEN_WAREHOUSES_PENDING) return PLANTS_SCREEN_WAREHOUSES_PENDING;
+  if(!WarehouseDB?.ready){PLANTS_SCREEN_WAREHOUSES_CACHE=fallbackPlantsScreenWarehouses();return PLANTS_SCREEN_WAREHOUSES_CACHE;}
+  PLANTS_SCREEN_WAREHOUSES_PENDING=(async()=>{
+    try{
+      const {data,error}=await WarehouseDB.client
+        .from('warehouses')
+        .select('warehouse_code,warehouse_name,plant_code,warehouse_type,is_active,sort_order')
+        .eq('is_active',true)
+        .order('sort_order',{ascending:true})
+        .order('warehouse_code',{ascending:true});
+      if(error) throw error;
+      const map={};
+      (data||[]).map(normalizePlantsScreenWarehouse).filter(w=>w.warehouse_code&&w.plant_code).forEach(w=>{
+        map[w.plant_code]=map[w.plant_code]||[];
+        map[w.plant_code].push(w);
+      });
+      PLANTS_SCREEN_WAREHOUSES_CACHE=map;
+      return map;
+    }catch(err){
+      console.warn('[plants-screen-warehouses] fallback to APP_DATA.plants',err);
+      PLANTS_SCREEN_WAREHOUSES_CACHE=fallbackPlantsScreenWarehouses();
+      return PLANTS_SCREEN_WAREHOUSES_CACHE;
+    }finally{PLANTS_SCREEN_WAREHOUSES_PENDING=null;}
+  })();
+  return PLANTS_SCREEN_WAREHOUSES_PENDING;
+}
+function clearPlantsScreenWarehousesCache(){PLANTS_SCREEN_WAREHOUSES_CACHE=null;PLANTS_SCREEN_WAREHOUSES_PENDING=null;}
 function plantNameFromCatalog(code){const plant=getPlantsCatalog().find(p=>p.code===String(code||'').trim().toUpperCase());return plant?.name||code||'';}
 function fillPlantSelectFromCatalog(select,allLabel){
   if(!select) return;
@@ -117,7 +176,20 @@ function initFilters(){
     else renderAll();
   };
 }
-function renderPlants(){const node=$('#plantsFull');if(!node)return;node.innerHTML=getPlantsCatalog().map(p=>`<div class="plant-card"><div class="plant-icon"><img src="assets/img/logo.png" alt=""></div><h3>${p.name}</h3><span class="plant-code">${p.code}</span><ul class="warehouse-list">${(p.warehouses||[]).map(w=>`<li><b>${w[0]}</b> - ${w[1]}</li>`).join('')}</ul></div>`).join('')}
+function renderPlants(){
+  const node=$('#plantsFull');
+  if(!node) return;
+  const warehousesByPlant=getPlantsScreenWarehouses();
+  node.innerHTML=getPlantsCatalog().map(p=>{
+    const code=String(p.code||'').trim().toUpperCase();
+    const warehouses=warehousesByPlant[code] || [];
+    const rows=warehouses.map(w=>'<li><b>'+escapeHtml(w.warehouse_code||'')+'</b> - '+escapeHtml(w.warehouse_name||'')+'</li>').join('');
+    return '<div class="plant-card"><div class="plant-icon"><img src="assets/img/logo.png" alt=""></div><h3>'+escapeHtml(p.name)+'</h3><span class="plant-code">'+escapeHtml(code)+'</span><ul class="warehouse-list">'+rows+'</ul></div>';
+  }).join('');
+  if(WarehouseDB?.ready && !PLANTS_SCREEN_WAREHOUSES_CACHE && !PLANTS_SCREEN_WAREHOUSES_PENDING){
+    loadPlantsScreenWarehouses().then(()=>{ if($('#plantsFull')) renderPlants(); });
+  }
+}
 const TABLE_STATE={};
 function escapeHtml(v){return String(v??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));}
 function stripHtml(v){const tmp=document.createElement('div');tmp.innerHTML=String(v??'');return (tmp.textContent||tmp.innerText||'').trim();}
@@ -3118,7 +3190,10 @@ async function addWarehouseSettingsRow(e){
     if(error) throw error;
     clearWarehouseSettingsForm();
     WAREHOUSES_SETTINGS_LOADED=false;
+    clearPlantsScreenWarehousesCache();
     await loadWarehousesSettings();
+    await loadPlantsScreenWarehouses({force:true});
+    if($('#plants')?.classList.contains('active-section')) renderPlants();
     setWarehousesSettingsStatus('\u062A\u0645\u062A \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u062E\u0632\u0646 \u0628\u0646\u062C\u0627\u062D.','ok');
   }catch(err){
     setWarehousesSettingsStatus('\u062A\u0639\u0630\u0631 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u062E\u0632\u0646: '+(err.message||err),'err');
@@ -3158,7 +3233,10 @@ async function saveWarehouseSettingsRow(source){
       throw new Error('\u0644\u0645 \u062A\u062A\u063A\u064A\u0631 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u062E\u0632\u0646 \u0641\u0639\u0644\u064A\u0627\u064B \u0641\u064A Supabase.');
     }
     WAREHOUSES_SETTINGS_LOADED=false;
+    clearPlantsScreenWarehousesCache();
     await loadWarehousesSettings();
+    await loadPlantsScreenWarehouses({force:true});
+    if($('#plants')?.classList.contains('active-section')) renderPlants();
     setWarehousesSettingsStatus('\u062A\u0645 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u062E\u0632\u0646 \u0628\u0646\u062C\u0627\u062D.','ok');
   }catch(err){
     setWarehousesSettingsStatus('\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u062E\u0632\u0646: '+(err.message||err),'err');
