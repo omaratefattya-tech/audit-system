@@ -108,10 +108,11 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 @media (max-width:700px){#settings .warehouse-settings-form{grid-template-columns:1fr}#settings .warehouse-flag-check{margin-top:0}}
 
 #settings .settings-sales-products-wrap{display:grid;gap:16px;text-align:right}
-#settings .sales-product-settings-form{display:grid;grid-template-columns:.9fr 1.4fr .7fr .7fr auto auto auto;gap:12px;align-items:end;border:1px solid rgba(141,220,89,.28);border-radius:14px;background:rgba(0,35,27,.46);padding:18px}
+#settings .sales-product-settings-form{display:grid;grid-template-columns:.9fr 1.4fr .7fr .7fr auto auto auto auto;gap:12px;align-items:end;border:1px solid rgba(141,220,89,.28);border-radius:14px;background:rgba(0,35,27,.46);padding:18px}
 #settings .sales-product-settings-form label{display:flex;flex-direction:column;gap:7px;color:#f5fff1;font-weight:700}
 #settings .sales-product-settings-form input{width:100%}
 #settings .sales-product-flag-check{align-self:center;margin-top:22px}
+#settings #selectSalesProductWarehousesBeforeAddBtn{white-space:nowrap}
 #settings .sales-products-settings-table-wrap{border:1px solid rgba(141,220,89,.22);border-radius:14px;background:rgba(0,35,27,.3)}
 #settings #salesProductsSettingsTable input,#settings #salesProductsSettingsTable select{min-width:110px;width:100%;padding:8px 10px}
 #settings #salesProductsSettingsTable .sales-product-code-readonly{font-weight:900;color:#d8ffd1;direction:ltr}
