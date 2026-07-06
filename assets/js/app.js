@@ -2998,6 +2998,10 @@ function warehouseTypeLabel(type){
   const map={finished:'\u0645\u0646\u062A\u062C \u062A\u0627\u0645',bulk_raw:'\u062E\u0627\u0645\u0627\u062A \u0635\u0628',raw:'\u062E\u0627\u0645\u0627\u062A',manufacturing:'\u062A\u0635\u0646\u064A\u0639',other:'\u0623\u062E\u0631\u0649'};
   return map[String(type||'').trim()] || String(type||'-');
 }
+function warehouseCategoryFromType(type){
+  const map={finished:'finished_goods',bulk_raw:'bulk_raw_materials',raw:'raw_materials',manufacturing:'manufacturing',other:'other'};
+  return map[String(type||'').trim()] || 'other';
+}
 function warehousePlantOptionsHtml(selected=''){
   const current=String(selected||'').trim().toUpperCase();
   return getPlantsCatalog().map(p=>{
@@ -3079,13 +3083,17 @@ async function ensureWarehousesSettingsLoaded(){
   await loadWarehousesSettings();
 }
 function readWarehouseSettingsForm(){
+  const warehouse_type=String($('#warehouseTypeInput')?.value||'other').trim();
+  const use_in_sales_review=Boolean($('#warehouseUseSalesInput')?.checked);
   return {
     warehouse_code:normalizeWarehouseSettingsCode($('#warehouseCodeInput')?.value),
     warehouse_name:String($('#warehouseNameInput')?.value||'').trim(),
     plant_code:normalizePlantSettingsCode($('#warehousePlantInput')?.value),
-    warehouse_type:String($('#warehouseTypeInput')?.value||'other').trim(),
-    use_in_sales_review:Boolean($('#warehouseUseSalesInput')?.checked),
+    warehouse_type,
+    warehouse_category:warehouseCategoryFromType(warehouse_type),
+    use_in_sales_review,
     use_in_receiving_review:Boolean($('#warehouseUseReceivingInput')?.checked),
+    is_sales_warehouse:use_in_sales_review,
     is_active:Boolean($('#warehouseActiveInput')?.checked),
     sort_order:parseInt($('#warehouseSortOrderInput')?.value||'0',10)||0
   };
