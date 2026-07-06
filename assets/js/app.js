@@ -307,8 +307,8 @@ function numericCellValue(v){
   return Number.isFinite(n)?n:0;
 }
 let footerHtml='';
-  if(key==='salesTable' && heads.length>=8){
-    const totalIndexes=[3,4,5,6,7];
+  if(key==='salesTable' && heads.length>3){
+    const totalIndexes=Array.from({length:heads.length-3},(_,i)=>i+3);
     const totals=totalIndexes.map(idx=>visible.reduce((sum,row)=>sum+numericCellValue(row[idx]),0));
     footerHtml=`<tfoot><tr class="sales-total-row"><td colspan="3">الإجمالي</td>${totals.map(v=>`<td>${fmt(v)}</td>`).join('')}</tr></tfoot>`;
   }
