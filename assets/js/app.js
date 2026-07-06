@@ -1235,6 +1235,13 @@ function clearSalesReviewEngineCache(){
   clearSalesReviewCatalogCache();
   clearUnifiedSalesRowsCache();
 }
+if(typeof window!=='undefined'){
+  window.salesReviewEngineDebug=salesReviewEngineDebug;
+  window.salesReviewDebugTotals=salesReviewDebugTotals;
+  window.loadSalesReviewCatalog=loadSalesReviewCatalog;
+  window.buildLegacySalesReviewCatalog=buildLegacySalesReviewCatalog;
+  window.clearSalesReviewEngineCache=clearSalesReviewEngineCache;
+}
 
 const SALES_REVIEW_MOVEMENT_TYPES=['601','602','653','654','101','102','Z51','Z52','351','352','301','302','311','312','Z13','Z14'];
 function salesPerfNow(){return window.performance?.now ? performance.now() : Date.now();}
@@ -1479,12 +1486,14 @@ async function fetchUnifiedSalesRows(filters={},options={}){
   console.time(perfLabel);
   if(UNIFIED_SALES_ROWS_CACHE.has(key)){
     const rows=UNIFIED_SALES_ROWS_CACHE.get(key);
+    salesReviewEngineDebug(rows,catalog,'fetchUnifiedSalesRows cache-hit',filters);
     console.timeEnd(perfLabel);
     salesPerfLog('fetchUnifiedSalesRows cache-hit',perfStart,{cacheKey:key,rows:rows.length});
     return rows;
   }
   if(UNIFIED_SALES_ROWS_PENDING.has(key)){
     const rows=await UNIFIED_SALES_ROWS_PENDING.get(key);
+    salesReviewEngineDebug(rows,catalog,'fetchUnifiedSalesRows pending-hit',filters);
     console.timeEnd(perfLabel);
     salesPerfLog('fetchUnifiedSalesRows pending-hit',perfStart,{cacheKey:key,rows:rows.length});
     return rows;
