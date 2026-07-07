@@ -3326,6 +3326,7 @@ async function verifyCurrentPasswordWithTemporaryClient(email,password){
 }
 async function handlePasswordChangeSubmit(e){
   e.preventDefault();
+  if(!hasPermission('settings_account','edit')){ alert('غير متاح للصلاحية الحالية'); return; }
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.email){ setPasswordChangeStatus('سجل الدخول أولاً.','err'); return; }
   const currentPassword=$('#currentPasswordInput')?.value || '';
   const newPassword=$('#newPasswordInput')?.value || '';
@@ -3441,6 +3442,7 @@ async function ensureSystemSettingsLoaded(){
 }
 async function saveSystemSettings(e){
   e?.preventDefault();
+  if(!hasPermission('settings_system','edit')){ setSystemSettingsStatus('غير متاح للصلاحية الحالية','err'); return; }
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setSystemSettingsStatus('\u0633\u062C\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0623\u0648\u0644\u0627\u064B \u0644\u062D\u0641\u0638 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A.','err'); return; }
   const settings=readSystemSettingsForm();
   setSystemSettingsStatus('\u062C\u0627\u0631\u064A \u062D\u0641\u0638 \u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u0646\u0638\u0627\u0645...');
@@ -3578,6 +3580,74 @@ function initAllSettingsTableControls(){
   initSettingsTableControls('warehousesSettingsTable');
   initSettingsTableControls('salesProductsSettingsTable');
 }
+
+const SETTINGS_TAB_PERMISSION_MAP={
+  profile:'settings_profile',
+  account:'settings_account',
+  system:'settings_system',
+  'plants-settings':'settings_plants',
+  'warehouses-settings':'settings_warehouses',
+  'sales-products-settings':'settings_sales_products',
+  'activity-log':'settings_activity_log'
+};
+function canViewSettingsTab(key){
+  return hasPermission(SETTINGS_TAB_PERMISSION_MAP[key]||'settings','view');
+}
+function setElementsDisabled(selector,disabled,hide=false){
+  $$(selector).forEach(el=>{
+    el.disabled=!!disabled;
+    el.classList.toggle('permission-disabled',!!disabled);
+    if(hide) el.classList.toggle('permission-hidden',!!disabled);
+    if(disabled) el.title='غير متاح للصلاحية الحالية';
+  });
+}
+function applySettingsSubPermissions(){
+  const root=$('#settings');
+  if(!root) return;
+  const tabs=[...root.querySelectorAll('[data-settings-tab]')];
+  const panels=[...root.querySelectorAll('[data-settings-panel]')];
+  tabs.forEach(tab=>{
+    const allowed=canViewSettingsTab(tab.dataset.settingsTab);
+    tab.hidden=!allowed;
+    tab.disabled=!allowed;
+  });
+  panels.forEach(panel=>{
+    const allowed=canViewSettingsTab(panel.dataset.settingsPanel);
+    if(!allowed) panel.classList.remove('active');
+  });
+  const activeTab=tabs.find(tab=>tab.classList.contains('active') && !tab.hidden);
+  if(!activeTab){
+    const first=tabs.find(tab=>!tab.hidden);
+    if(first) first.click();
+  }
+
+  setElementsDisabled('#saveProfileBtn,#profileForm input',!hasPermission('settings_profile','edit'));
+  setElementsDisabled('#savePasswordBtn,#passwordChangeForm input,#passwordChangeForm button',!hasPermission('settings_account','edit'));
+  setElementsDisabled('#systemSettingsForm input,#systemSettingsForm select,#saveSystemSettingsBtn,#clearSystemCacheBtn',!hasPermission('settings_system','edit'));
+
+  const canAddPlants=hasPermission('settings_plants','add');
+  const canEditPlants=hasPermission('settings_plants','edit');
+  setElementsDisabled('#plantSettingsForm input,#addPlantBtn',!canAddPlants,true);
+  setElementsDisabled('#plantsSettingsTable .plant-name-edit,#plantsSettingsTable .plant-active-edit,#plantsSettingsTable .plant-sort-edit,#plantsSettingsTable [data-action="save-plant"]',!canEditPlants,true);
+
+  const canAddWarehouses=hasPermission('settings_warehouses','add');
+  const canEditWarehouses=hasPermission('settings_warehouses','edit');
+  setElementsDisabled('#warehouseSettingsForm input,#warehouseSettingsForm select,#addWarehouseBtn',!canAddWarehouses,true);
+  setElementsDisabled('#warehousesSettingsTable input,#warehousesSettingsTable select,#warehousesSettingsTable [data-action="save-warehouse"]',!canEditWarehouses,true);
+
+  const canAddProducts=hasPermission('settings_sales_products','add');
+  const canEditProducts=hasPermission('settings_sales_products','edit');
+  const canViewLinks=hasPermission('settings_sales_product_warehouses','view');
+  const canEditLinks=hasPermission('settings_sales_product_warehouses','add') || hasPermission('settings_sales_product_warehouses','delete');
+  setElementsDisabled('#salesProductSettingsForm input,#addSalesProductBtn',!canAddProducts,true);
+  setElementsDisabled('#selectSalesProductWarehousesBeforeAddBtn',!canAddProducts || !canViewLinks,true);
+  setElementsDisabled('#salesProductsSettingsTable .sales-product-name-edit,#salesProductsSettingsTable .sales-product-unit-edit,#salesProductsSettingsTable .sales-product-use-edit,#salesProductsSettingsTable .sales-product-active-edit,#salesProductsSettingsTable .sales-product-sort-edit,#salesProductsSettingsTable [data-action="save-sales-product"]',!canEditProducts,true);
+  setElementsDisabled('#salesProductsSettingsTable [data-action="sales-product-warehouses"]',!canViewLinks,true);
+  setElementsDisabled('#salesProductWarehousesList input,#saveSalesProductWarehousesBtn',!canEditLinks,true);
+
+  setElementsDisabled('#activityLogExportExcelBtn',!hasPermission('settings_activity_log','export_excel'),true);
+  setElementsDisabled('#activityLogExportPdfBtn',!hasPermission('settings_activity_log','export_pdf'),true);
+}
 let PLANTS_SETTINGS_LOADED=false;
 let PLANTS_SETTINGS_ROWS=[];
 function setPlantsSettingsStatus(message,type=''){
@@ -3616,6 +3686,7 @@ function renderPlantsSettingsTable(rows=[]){
       +'</tr>';
   }).join('');
   refreshSettingsTableControls('plantsSettingsTable');
+  applySettingsSubPermissions();
 }
 async function fetchPlantsSettingsRowsDirect(){
   return WarehouseDB.client
@@ -3672,6 +3743,7 @@ function clearPlantSettingsForm(){
 }
 async function addPlantSettingsRow(e){
   e?.preventDefault();
+  if(!hasPermission('settings_plants','add')){ setPlantsSettingsStatus('غير متاح للصلاحية الحالية','err'); return; }
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setPlantsSettingsStatus('\u0633\u062C\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0623\u0648\u0644\u0627\u064B \u0644\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u0635\u0627\u0646\u0639.','err'); return; }
   const plant_code=normalizePlantSettingsCode($('#plantCodeInput')?.value);
   const plant_name=String($('#plantNameInput')?.value||'').trim();
@@ -3695,6 +3767,7 @@ async function addPlantSettingsRow(e){
   }
 }
 async function savePlantSettingsRow(source){
+  if(!hasPermission('settings_plants','edit')){ setPlantsSettingsStatus('غير متاح للصلاحية الحالية','err'); return; }
   const row=source?.closest ? (source.closest('[data-plant-code]') || source.closest('tr')) : source;
   if(!row || !WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   const plantCode=normalizePlantSettingsCode(row.dataset.plantCode || row.querySelector('.plant-code-readonly')?.textContent || '');
@@ -3840,6 +3913,7 @@ function renderWarehousesSettingsTable(rows=[]){
       +'</tr>';
   }).join('');
   refreshSettingsTableControls('warehousesSettingsTable');
+  applySettingsSubPermissions();
 }
 async function fetchWarehousesSettingsRowsDirect(){
   return WarehouseDB.client
@@ -3903,6 +3977,7 @@ function clearWarehouseSettingsForm(){
 }
 async function addWarehouseSettingsRow(e){
   e?.preventDefault();
+  if(!hasPermission('settings_warehouses','add')){ setWarehousesSettingsStatus('غير متاح للصلاحية الحالية','err'); return; }
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setWarehousesSettingsStatus('\u0633\u062C\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0623\u0648\u0644\u0627\u064B \u0644\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u062E\u0627\u0632\u0646.','err'); return; }
   const payload=readWarehouseSettingsForm();
   if(!payload.warehouse_code || !payload.warehouse_name || !payload.plant_code){ setWarehousesSettingsStatus('\u0643\u0648\u062F \u0627\u0644\u0645\u062E\u0632\u0646 \u0648\u0627\u0633\u0645\u0647 \u0648\u0627\u0644\u0645\u0635\u0646\u0639 \u0645\u0637\u0644\u0648\u0628\u0629.','err'); return; }
@@ -3923,6 +3998,7 @@ async function addWarehouseSettingsRow(e){
   }
 }
 async function saveWarehouseSettingsRow(source){
+  if(!hasPermission('settings_warehouses','edit')){ setWarehousesSettingsStatus('غير متاح للصلاحية الحالية','err'); return; }
   const row=source?.closest ? (source.closest('[data-warehouse-code]') || source.closest('tr')) : source;
   if(!row || !WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   const warehouseCode=normalizeWarehouseSettingsCode(row.dataset.warehouseCode || row.querySelector('.warehouse-code-readonly')?.textContent || '');
@@ -4075,7 +4151,16 @@ function getSelectedSalesProductWarehouseCodes(){
 async function saveSalesProductWarehouseCodes(materialCode,selectedCodes=[]){
   const selected=[...new Set((selectedCodes||[]).map(normalizeWarehouseSettingsCode).filter(Boolean))];
   const existing=await fetchSalesProductWarehouseLinks(materialCode);
-  const existingCodes=(existing||[]).map(l=>normalizeWarehouseSettingsCode(l.warehouse_code)).filter(Boolean);
+  const existingActiveCodes=(existing||[]).filter(l=>parseSalesProductBoolean(l.is_active)).map(l=>normalizeWarehouseSettingsCode(l.warehouse_code)).filter(Boolean);
+  const selectedSet=new Set(selected);
+  const toEnable=selected.filter(code=>!existingActiveCodes.includes(code));
+  const toDisable=existingActiveCodes.filter(code=>!selectedSet.has(code));
+  if(toEnable.length && !hasPermission('settings_sales_product_warehouses','add')){
+    throw new Error('غير متاح للصلاحية الحالية');
+  }
+  if(toDisable.length && !hasPermission('settings_sales_product_warehouses','delete')){
+    throw new Error('غير متاح للصلاحية الحالية');
+  }
   if(selected.length){
     const payload=selected.map(warehouse_code=>({material_code:materialCode,warehouse_code,is_active:true}));
     const {error}=await WarehouseDB.client
@@ -4083,9 +4168,6 @@ async function saveSalesProductWarehouseCodes(materialCode,selectedCodes=[]){
       .upsert(payload,{onConflict:'material_code,warehouse_code'});
     if(error) throw error;
   }
-  const selectedSet=new Set(selected);
-  const toEnable=selected.filter(code=>!existingCodes.includes(code));
-  const toDisable=existingCodes.filter(code=>!selectedSet.has(code));
   if(toDisable.length){
     const {error}=await WarehouseDB.client
       .from('sales_product_warehouses')
@@ -4140,6 +4222,7 @@ function renderSalesProductWarehousesPanel(){
   }).join('');
 }
 async function openSalesProductWarehousesPanel(source){
+  if(!hasPermission('settings_sales_product_warehouses','view')){ setSalesProductWarehousesStatus('غير متاح للصلاحية الحالية','err'); return; }
   const row=source?.closest ? (source.closest('[data-material-code]') || source.closest('tr')) : source;
   const panel=$('#salesProductWarehousesPanel');
   if(!row || !panel) return;
@@ -4164,6 +4247,7 @@ async function openSalesProductWarehousesPanel(source){
   }
 }
 async function openNewSalesProductWarehousesPanel(){
+  if(!hasPermission('settings_sales_product_warehouses','view') || !hasPermission('settings_sales_products','add')){ setSalesProductWarehousesStatus('غير متاح للصلاحية الحالية','err'); return; }
   const panel=$('#salesProductWarehousesPanel');
   if(!panel) return;
   const materialCode=normalizeSalesProductCode($('#salesProductCodeInput')?.value) || 'NEW';
@@ -4193,6 +4277,7 @@ function closeSalesProductWarehousesPanel(){
   setSalesProductWarehousesStatus('');
 }
 async function saveSalesProductWarehouses(){
+  if(!hasPermission('settings_sales_product_warehouses','add') && !hasPermission('settings_sales_product_warehouses','delete')){ setSalesProductWarehousesStatus('غير متاح للصلاحية الحالية','err'); return; }
   const materialCode=normalizeSalesProductCode(SALES_PRODUCT_WAREHOUSES_STATE.materialCode);
   if(!materialCode){ setSalesProductWarehousesStatus('اختر صنفًا أولاً.','err'); return; }
   const selected=getSelectedSalesProductWarehouseCodes();
@@ -4243,6 +4328,7 @@ function renderSalesProductsSettingsTable(rows=[]){
       +'</tr>';
   }).join('');
   refreshSettingsTableControls('salesProductsSettingsTable');
+  applySettingsSubPermissions();
 }
 async function fetchSalesProductsSettingsRowsDirect(){
   return WarehouseDB.client
@@ -4298,6 +4384,7 @@ function clearSalesProductSettingsForm(){
 }
 async function addSalesProductSettingsRow(e){
   e?.preventDefault();
+  if(!hasPermission('settings_sales_products','add')){ setSalesProductsSettingsStatus('غير متاح للصلاحية الحالية','err'); return; }
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setSalesProductsSettingsStatus('\u0633\u062C\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0623\u0648\u0644\u0627\u064B \u0644\u0625\u062F\u0627\u0631\u0629 \u0623\u0635\u0646\u0627\u0641 \u0627\u0644\u0628\u064A\u0639.','err'); return; }
   const payload=readSalesProductSettingsForm();
   if(!payload.material_code || !payload.material_name){ setSalesProductsSettingsStatus('\u0643\u0648\u062F \u0627\u0644\u0635\u0646\u0641 \u0648\u0627\u0633\u0645\u0647 \u0645\u0637\u0644\u0648\u0628\u0627\u0646.','err'); return; }
@@ -4305,6 +4392,10 @@ async function addSalesProductSettingsRow(e){
   let selectedWarehouseCodes=[];
   try{
     selectedWarehouseCodes=await getNewSalesProductWarehouseSelection();
+    if(selectedWarehouseCodes.length && !hasPermission('settings_sales_product_warehouses','add')){
+      setSalesProductsSettingsStatus('غير متاح للصلاحية الحالية','err');
+      return;
+    }
     const {error}=await WarehouseDB.client.from('sales_products').insert(payload);
     if(error) throw error;
     try{
@@ -4325,6 +4416,7 @@ async function addSalesProductSettingsRow(e){
   }
 }
 async function saveSalesProductSettingsRow(source){
+  if(!hasPermission('settings_sales_products','edit')){ setSalesProductsSettingsStatus('غير متاح للصلاحية الحالية','err'); return; }
   const row=source?.closest ? (source.closest('[data-material-code]') || source.closest('tr')) : source;
   if(!row || !WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   const materialCode=normalizeSalesProductCode(row.dataset.materialCode || row.querySelector('.sales-product-code-readonly')?.textContent || '');
@@ -4460,6 +4552,7 @@ function fileToDataUrl(file){
   });
 }
 async function saveCurrentProfile(){
+  if(!hasPermission('settings_profile','edit')){ alert('غير متاح للصلاحية الحالية'); return; }
   const status=$('#profileSaveStatus');
   if(status){ status.className='upload-status'; status.textContent='جاري حفظ البيانات...'; }
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){
@@ -4636,6 +4729,7 @@ function renderActivityLogTable(){
     }).join('')+'</tr>';
   }).join('') : '<tr><td colspan="8" class="empty-row">لا توجد حركات مطابقة.</td></tr>';
   tableEl.innerHTML=`<thead><tr>${head}</tr><tr class="activity-log-filter-row">${filters}</tr></thead><tbody>${body}</tbody>`;
+  applySettingsSubPermissions();
   const pager=$('#activityLogPagination');
   if(pager){
     pager.innerHTML=`<button type="button" data-activity-page="prev" ${ACTIVITY_LOG_STATE.page<=1?'disabled':''}>السابق</button><span>صفحة ${ACTIVITY_LOG_STATE.page} من ${totalPages} - ${filtered.length.toLocaleString('en-US')} حركة</span><button type="button" data-activity-page="next" ${ACTIVITY_LOG_STATE.page>=totalPages?'disabled':''}>التالي</button>`;
@@ -4666,6 +4760,7 @@ function activityLogExportMatrix(){
   return [ACTIVITY_LOG_COLUMNS.map(c=>c.label),...rows.map((row,idx)=>ACTIVITY_LOG_COLUMNS.map(col=>activityLogRowValue(row,col.key,idx)))];
 }
 async function exportActivityLogExcel(){
+  if(!hasPermission('settings_activity_log','export_excel')){ alert('غير متاح للصلاحية الحالية'); return; }
   if(!window.XLSX){ alert('مكتبة Excel غير محملة.'); return; }
   const matrix=activityLogExportMatrix();
   if(matrix.length<=1){ alert('لا توجد بيانات للتصدير.'); return; }
@@ -4680,6 +4775,7 @@ async function exportActivityLogExcel(){
   await logSystemActivity('النظام','تصدير Excel','تصدير سجل الحركات Excel');
 }
 async function exportActivityLogPdf(){
+  if(!hasPermission('settings_activity_log','export_pdf')){ alert('غير متاح للصلاحية الحالية'); return; }
   const matrix=activityLogExportMatrix();
   if(matrix.length<=1){ alert('لا توجد بيانات للتصدير.'); return; }
   const previousPage=ACTIVITY_LOG_STATE.page;
@@ -4736,6 +4832,11 @@ function initSettingsTabs(){
   const panels=[...root.querySelectorAll('[data-settings-panel]')];
   tabs.forEach(tab=>tab.addEventListener('click',()=>{
     const key=tab.dataset.settingsTab;
+    if(!canViewSettingsTab(key)){
+      alert('غير متاح للصلاحية الحالية');
+      applySettingsSubPermissions();
+      return;
+    }
     tabs.forEach(t=>{const active=t===tab;t.classList.toggle('active',active);t.setAttribute('aria-selected',active?'true':'false');});
     panels.forEach(panel=>panel.classList.toggle('active',panel.dataset.settingsPanel===key));
     if(key==='system') ensureSystemSettingsLoaded();
@@ -4744,6 +4845,7 @@ function initSettingsTabs(){
     if(key==='sales-products-settings') ensureSalesProductsSettingsLoaded();
     if(key==='activity-log') ensureActivityLogLoaded();
     initAllSettingsTableControls();
+    applySettingsSubPermissions();
   }));
 }
 
@@ -4772,6 +4874,14 @@ const PERMISSION_SCREENS = [
   {key:'reports', label:'التقارير', description:'مركز التقارير التنفيذية والتحليلات'},
   {key:'users', label:'إدارة المستخدمين', description:'إنشاء وتعديل وتعطيل وحذف المستخدمين'},
   {key:'permissions', label:'إدارة الصلاحيات', description:'تعديل صلاحيات الأدوار والشاشات'},
+  {key:'settings_profile', label:'الإعدادات / البيانات الشخصية', description:'عرض وتعديل بيانات الحساب الشخصية'},
+  {key:'settings_account', label:'الإعدادات / بيانات المستخدم وكلمة المرور', description:'عرض وتعديل بيانات المستخدم وكلمة المرور'},
+  {key:'settings_system', label:'الإعدادات / إعدادات النظام', description:'عرض وتعديل إعدادات النظام'},
+  {key:'settings_plants', label:'الإعدادات / إعدادات المصانع', description:'عرض وإضافة وتعديل وحذف إعدادات المصانع'},
+  {key:'settings_warehouses', label:'الإعدادات / إعدادات المخازن', description:'عرض وإضافة وتعديل وحذف إعدادات المخازن'},
+  {key:'settings_sales_products', label:'الإعدادات / إعدادات أصناف البيع', description:'عرض وإضافة وتعديل وحذف إعدادات أصناف البيع'},
+  {key:'settings_activity_log', label:'الإعدادات / سجل الحركات', description:'عرض وتصدير سجل الحركات'},
+  {key:'settings_sales_product_warehouses', label:'الإعدادات / ربط أصناف البيع بالمخازن', description:'عرض وإضافة وحذف ربط أصناف البيع بالمخازن'},
   {key:'settings', label:'الإعدادات', description:'بيانات الحساب وإعدادات النظام'}
 ];
 const PERMISSION_ROLE_LABELS={admin:'Admin',auditor:'Auditor',viewer:'Viewer'};
@@ -4781,6 +4891,7 @@ function permissionColumn(action){ return 'can_'+action; }
 function defaultPermissionValue(role,screen,action){
   if(role==='admin') return true;
   if(role==='auditor'){
+    if(String(screen||'').startsWith('settings_')) return false;
     if(['users','permissions','settings'].includes(screen)) return false;
     if(['delete','manage','approve'].includes(action)) return false;
     if(action==='add') return ['upload'].includes(screen);
@@ -4788,6 +4899,7 @@ function defaultPermissionValue(role,screen,action){
     return ['view','upload','export_excel','export_pdf','export_png'].includes(action);
   }
   if(role==='viewer'){
+    if(String(screen||'').startsWith('settings_')) return false;
     if(['users','permissions','settings','upload'].includes(screen)) return false;
     return ['view','export_excel','export_pdf','export_png'].includes(action);
   }
@@ -4832,13 +4944,14 @@ function showPermissionDenied(section){
   alert(`غير مسموح بالوصول إلى: ${label}\nراجع مدير النظام لتعديل الصلاحيات.`);
 }
 async function loadCurrentUserPermissions(){
-  if(isSuperAdmin()){ CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions('admin'); return; }
+  if(isSuperAdmin()){ CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions('admin'); applySettingsSubPermissions(); return; }
   const role=CURRENT_APP_PROFILE?.role || 'viewer';
-  if(!WarehouseDB?.ready){ CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions(role); return; }
+  if(!WarehouseDB?.ready){ CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions(role); applySettingsSubPermissions(); return; }
   try{
     const {data,error}=await WarehouseDB.client.from('app_role_permissions').select('*').eq('role',role);
     CURRENT_ROLE_PERMISSIONS = error ? buildDefaultPermissions(role) : permissionsForRoleFromRows(role,data||[]);
   }catch(_){ CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions(role); }
+  applySettingsSubPermissions();
 }
 function applyNavigationPermissions(){
   $$('.nav-item').forEach(btn=>{
@@ -4865,6 +4978,10 @@ function disableByPermission(selector, section, action, message){
 function applyPermissionActionGuards(section){
   applyNavigationPermissions();
   if(!section) return;
+  if(section==='settings'){
+    applySettingsSubPermissions();
+    return;
+  }
   disableByPermission('button[id*="ExportExcel"],button[id*="Excel"],button[id*="exportExcel"],button[id*="ExcelBtn"]',section,'export_excel','لا تملك صلاحية تصدير Excel');
   disableByPermission('button[id*="ExportPdf"],button[id*="Pdf"],button[id*="exportPdf"],button[id*="PdfBtn"]',section,'export_pdf','لا تملك صلاحية تصدير PDF');
   disableByPermission('button[id*="ExportPng"],button[id*="Png"],.png-export-btn',section,'export_png','لا تملك صلاحية تصدير PNG');
@@ -5414,7 +5531,7 @@ function initMainLoginGate(){
   }
   checkMainSession();
 }
-document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initAllSettingsTableControls();initActivityLogSettings();initUsersManagement();initPermissionsManagement();});
+document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initAllSettingsTableControls();initActivityLogSettings();applySettingsSubPermissions();initUsersManagement();initPermissionsManagement();});
 
 // Upload reports tabs controller
 function initUploadReportTabs(){
