@@ -3474,6 +3474,110 @@ function initSystemSettings(){
 }
 
 
+const SETTINGS_TABLE_CONTROLS=new Map();
+function settingsTableCellText(cell){
+  if(!cell) return '';
+  const controls=[...cell.querySelectorAll('input,select,textarea')].map(el=>{
+    if(el.tagName==='SELECT') return [el.value,el.options[el.selectedIndex]?.textContent||''].join(' ');
+    if(el.type==='checkbox') return el.checked ? 'true نعم نشط' : 'false لا غير نشط';
+    return el.value||'';
+  }).join(' ');
+  return (controls+' '+(cell.textContent||'')).replace(/\s+/g,' ').trim();
+}
+function settingsTableRowText(row){
+  return [...(row?.cells||[])].map(settingsTableCellText).join(' ').toLowerCase();
+}
+function ensureSettingsTableFilterRow(table,state){
+  const thead=table.tHead;
+  if(!thead || !thead.rows.length) return;
+  if(thead.querySelector('.settings-table-filter-row')) return;
+  const headerCells=[...thead.rows[0].cells];
+  const filterRow=document.createElement('tr');
+  filterRow.className='settings-table-filter-row';
+  filterRow.innerHTML=headerCells.map((th,idx)=>{
+    const label=(th.textContent||'').replace(/\s+/g,' ').trim() || 'بحث';
+    return `<th><input class="settings-table-col-filter" data-settings-col="${idx}" placeholder="${escapeHtml(label)}" /></th>`;
+  }).join('');
+  thead.appendChild(filterRow);
+}
+function settingsTableSortValue(row,colIndex){
+  const text=settingsTableCellText(row.cells[colIndex]);
+  const numeric=Number(String(text).replace(/,/g,''));
+  return Number.isFinite(numeric) && String(text).trim()!=='' ? numeric : text.toLowerCase();
+}
+function applySettingsTableControls(tableId){
+  const table=document.getElementById(tableId);
+  const state=SETTINGS_TABLE_CONTROLS.get(tableId);
+  if(!table || !state) return;
+  ensureSettingsTableFilterRow(table,state);
+  const tbody=table.tBodies[0];
+  if(!tbody) return;
+  const rows=[...tbody.rows];
+  if(state.sortCol!=null){
+    const dir=state.sortDir==='asc' ? 1 : -1;
+    rows.sort((a,b)=>{
+      const av=settingsTableSortValue(a,state.sortCol);
+      const bv=settingsTableSortValue(b,state.sortCol);
+      if(typeof av==='number' && typeof bv==='number') return (av-bv)*dir;
+      return String(av).localeCompare(String(bv),'ar',{numeric:true,sensitivity:'base'})*dir;
+    }).forEach(row=>tbody.appendChild(row));
+  }
+  const filters=state.filters||{};
+  const global=(state.globalSearch||'').trim().toLowerCase();
+  [...tbody.rows].forEach(row=>{
+    if(row.querySelector('.empty-row')){ row.style.display=''; return; }
+    const globalMatch=!global || settingsTableRowText(row).includes(global);
+    const colsMatch=Object.entries(filters).every(([idx,value])=>{
+      const q=String(value||'').trim().toLowerCase();
+      return !q || settingsTableCellText(row.cells[Number(idx)]).toLowerCase().includes(q);
+    });
+    row.style.display=globalMatch && colsMatch ? '' : 'none';
+  });
+}
+function refreshSettingsTableControls(tableId){ applySettingsTableControls(tableId); }
+function initSettingsTableControls(tableId,options={}){
+  const table=document.getElementById(tableId);
+  if(!table || SETTINGS_TABLE_CONTROLS.has(tableId)) return;
+  const state={globalSearch:'',filters:{},sortCol:null,sortDir:'asc',...options};
+  SETTINGS_TABLE_CONTROLS.set(tableId,state);
+  const wrap=table.closest('.table-wrap') || table.parentElement;
+  if(wrap && !document.getElementById(`${tableId}GlobalSearch`)){
+    const toolbar=document.createElement('div');
+    toolbar.className='settings-table-controls glass-soft';
+    toolbar.innerHTML=`<div class="users-search-box settings-table-search-box"><span>🔍</span><input id="${tableId}GlobalSearch" type="search" placeholder="بحث عام داخل الجدول..." /></div>`;
+    wrap.parentElement?.insertBefore(toolbar,wrap);
+    toolbar.querySelector('input')?.addEventListener('input',e=>{
+      state.globalSearch=e.target.value||'';
+      applySettingsTableControls(tableId);
+    });
+  }
+  ensureSettingsTableFilterRow(table,state);
+  table.addEventListener('click',e=>{
+    const th=e.target.closest('thead tr:first-child th');
+    if(!th || !table.contains(th)) return;
+    const col=[...th.parentElement.children].indexOf(th);
+    if(col<0) return;
+    state.sortDir=state.sortCol===col && state.sortDir==='asc' ? 'desc' : 'asc';
+    state.sortCol=col;
+    table.querySelectorAll('thead tr:first-child th').forEach((h,i)=>{
+      h.classList.toggle('settings-sort-active',i===col);
+      h.dataset.sortDir=i===col ? state.sortDir : '';
+    });
+    applySettingsTableControls(tableId);
+  });
+  table.addEventListener('input',e=>{
+    const input=e.target.closest('.settings-table-col-filter');
+    if(!input) return;
+    state.filters[input.dataset.settingsCol]=input.value||'';
+    applySettingsTableControls(tableId);
+  });
+  applySettingsTableControls(tableId);
+}
+function initAllSettingsTableControls(){
+  initSettingsTableControls('plantsSettingsTable');
+  initSettingsTableControls('warehousesSettingsTable');
+  initSettingsTableControls('salesProductsSettingsTable');
+}
 let PLANTS_SETTINGS_LOADED=false;
 let PLANTS_SETTINGS_ROWS=[];
 function setPlantsSettingsStatus(message,type=''){
@@ -3511,6 +3615,7 @@ function renderPlantsSettingsTable(rows=[]){
       +'<td><div class="plant-row-actions"><button class="secondary save-plant-row-btn" type="button" data-action="save-plant">\u062D\u0641\u0638</button></div></td>'
       +'</tr>';
   }).join('');
+  refreshSettingsTableControls('plantsSettingsTable');
 }
 async function fetchPlantsSettingsRowsDirect(){
   return WarehouseDB.client
@@ -3734,6 +3839,7 @@ function renderWarehousesSettingsTable(rows=[]){
       +'<td><div class="warehouse-row-actions"><button class="secondary save-warehouse-row-btn" type="button" data-action="save-warehouse">\u062D\u0641\u0638</button></div></td>'
       +'</tr>';
   }).join('');
+  refreshSettingsTableControls('warehousesSettingsTable');
 }
 async function fetchWarehousesSettingsRowsDirect(){
   return WarehouseDB.client
@@ -4136,6 +4242,7 @@ function renderSalesProductsSettingsTable(rows=[]){
       +'<td><div class="sales-product-row-actions"><button class="secondary save-sales-product-row-btn" type="button" data-action="save-sales-product">\u062D\u0641\u0638</button></div></td>'
       +'</tr>';
   }).join('');
+  refreshSettingsTableControls('salesProductsSettingsTable');
 }
 async function fetchSalesProductsSettingsRowsDirect(){
   return WarehouseDB.client
@@ -4487,7 +4594,8 @@ function activityLogRowValue(row,key,index=0){
 function filteredActivityLogRows(){
   const q=ACTIVITY_LOG_STATE.globalSearch.trim().toLowerCase();
   const filters=ACTIVITY_LOG_STATE.filters||{};
-  let rows=(ACTIVITY_LOG_STATE.rows||[]).filter(row=>{
+  let rows=(ACTIVITY_LOG_STATE.rows||[]).map((row,sourceIndex)=>({row,sourceIndex})).filter(item=>{
+    const row=item.row;
     const hay=ACTIVITY_LOG_COLUMNS.slice(1).map(c=>activityLogRowValue(row,c.key)).join(' ').toLowerCase();
     if(q && !hay.includes(q)) return false;
     return ACTIVITY_LOG_COLUMNS.slice(1).every(col=>{
@@ -4497,8 +4605,11 @@ function filteredActivityLogRows(){
   });
   const key=ACTIVITY_LOG_STATE.sortKey;
   const dir=ACTIVITY_LOG_STATE.sortDir==='asc' ? 1 : -1;
-  rows=rows.sort((a,b)=>String(activityLogRowValue(a,key)).localeCompare(String(activityLogRowValue(b,key)))*dir);
-  return rows;
+  rows=rows.sort((a,b)=>{
+    if(key==='index') return (a.sourceIndex-b.sourceIndex)*dir;
+    return String(activityLogRowValue(a.row,key)).localeCompare(String(activityLogRowValue(b.row,key)))*dir;
+  });
+  return rows.map(item=>item.row);
 }
 function renderActivityLogTable(){
   const tableEl=$('#activityLogTable');
@@ -4632,6 +4743,7 @@ function initSettingsTabs(){
     if(key==='warehouses-settings') ensureWarehousesSettingsLoaded();
     if(key==='sales-products-settings') ensureSalesProductsSettingsLoaded();
     if(key==='activity-log') ensureActivityLogLoaded();
+    initAllSettingsTableControls();
   }));
 }
 
@@ -5302,7 +5414,7 @@ function initMainLoginGate(){
   }
   checkMainSession();
 }
-document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initActivityLogSettings();initUsersManagement();initPermissionsManagement();});
+document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initAllSettingsTableControls();initActivityLogSettings();initUsersManagement();initPermissionsManagement();});
 
 // Upload reports tabs controller
 function initUploadReportTabs(){

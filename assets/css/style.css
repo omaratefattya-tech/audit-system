@@ -1549,3 +1549,13 @@ body.modal-open{overflow:hidden;}
 #settings .activity-log-pagination button{border:1px solid rgba(141,220,89,.42);border-radius:10px;background:rgba(0,55,38,.82);color:#fff;padding:8px 14px;font-family:inherit;cursor:pointer}
 #settings .activity-log-pagination button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:720px){#settings .activity-log-toolbar{grid-template-columns:1fr}#settings .activity-log-toolbar .secondary{width:100%}}
+
+#settings .settings-table-controls{border-radius:16px;padding:10px 12px;margin:10px 0;display:flex;align-items:center;gap:10px;justify-content:flex-start}
+#settings .settings-table-search-box{min-height:40px;min-width:min(100%,320px);max-width:520px;width:100%}
+#settings .settings-table-search-box input{border:0;background:transparent;outline:none;width:100%;min-width:0}
+#settings .settings-table-filter-row th{top:39px;background:rgba(0,44,34,.94);z-index:2;padding:6px}
+#settings .settings-table-col-filter{width:100%;min-width:88px;padding:7px 8px;font-size:12px;border-radius:8px}
+#settings table[data-no-universal-table="1"] thead tr:first-child th{cursor:pointer;user-select:none}
+#settings table[data-no-universal-table="1"] thead tr:first-child th.settings-sort-active{color:#fff;background:linear-gradient(135deg,rgba(104,186,69,.92),rgba(30,116,50,.92))}
+#settings table[data-no-universal-table="1"] thead tr:first-child th.settings-sort-active::after{content:attr(data-sort-dir);display:inline-block;margin-inline-start:6px;color:#f1bb30;font-size:11px;text-transform:uppercase}
+@media(max-width:720px){#settings .settings-table-controls{display:block}#settings .settings-table-search-box{max-width:none}}
