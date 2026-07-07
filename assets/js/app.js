@@ -1032,6 +1032,7 @@ function renderRankTable(selector,heads,rows,{totalLabel='الإجمالي'}={})
   node.innerHTML=`<thead><tr>${heads.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${body}</tbody>`;
 }
 
+// Emergency fallback only: Dynamic Sales Review uses public.sales_products and public.sales_product_warehouses.
 const SALES_REVIEW_MATERIAL_CODES = new Set([
   '211000001','211000002','211000003','211000004','211000007','211000008','211000009',
   '211000011','211000012','211000013','211000016','211000018','211000019','211000020','211000021','211000022','211000023','211000024','211000025','211000029','211000030','211000031','211000032','211000033','211000034','211000035','211000036','211000037','211000038','211000039','211000041','211000042','211000044','211000045','211000046','211000047','211000049','211000050','211000051','211000054','211000055','211000056','211000057','211000058','211000060','211000061','211000062','211000063','211000065','211000067','211000069','211000086','211000087','211000088','211000089',
@@ -1108,9 +1109,7 @@ async function loadSalesReviewCatalog(options={}){
         allowedWarehousesByMaterial.get(code).add(wh);
       });
       materialCodes.forEach(code=>{
-        if(!allowedWarehousesByMaterial.has(code) || !allowedWarehousesByMaterial.get(code).size){
-          allowedWarehousesByMaterial.set(code,new Set(SALES_WAREHOUSES));
-        }
+        if(!allowedWarehousesByMaterial.has(code)) allowedWarehousesByMaterial.set(code,new Set());
       });
       const allAllowedWarehouseCodes=new Set();
       allowedWarehousesByMaterial.forEach(set=>set.forEach(wh=>allAllowedWarehouseCodes.add(wh)));
@@ -1147,7 +1146,8 @@ function salesReviewWarehouseAllowedForMaterial(materialCode,warehouseCode,catal
   if(!code || !wh) return false;
   const allowed=catalog?.allowedWarehousesByMaterial?.get(code);
   if(allowed && allowed.size) return allowed.has(wh);
-  return SALES_WAREHOUSES.includes(wh);
+  if(catalog?.fallback) return SALES_WAREHOUSES.includes(wh);
+  return false;
 }
 function isSalesReviewMaterialCodeInCatalog(code,catalog){
   const normalized=normalizeMaterialCode(code);
@@ -1428,6 +1428,7 @@ if(typeof window!=='undefined'){
   window.runSalesReviewEngineVerification=runSalesReviewEngineVerification;
   window.normalizeWorkerGroup=normalizeWorkerGroup;
   window.debugActualReturnRows=debugActualReturnRows;
+  window.verifyDashboardProductMapAgainstSalesAudit=verifyDashboardProductMapAgainstSalesAudit;
 }
 
 const SALES_REVIEW_MOVEMENT_TYPES=['601','602','653','654','101','102','Z51','Z52','351','352','301','302','Z13','Z14'];
@@ -1636,6 +1637,69 @@ function buildUnifiedSalesTotals(rows,options={}){
   });
   return {rows:filteredRows,stats,daily,warehouseSalesMap,warehouseActivityMap,productMap,plantStats,groups};
 }
+async function verifyDashboardProductMapAgainstSalesAudit(filters={},options={}){
+  const catalog=await loadSalesReviewCatalog(options.catalogOptions||{});
+  const dashboardRows=await fetchUnifiedSalesRows(filters,{...options,source:'sales_audit_report'});
+  const dashboardModel=buildUnifiedSalesTotals(dashboardRows,{filters,catalog});
+  const auditRows=await fetchAllSalesAuditRows(filters,{ascending:true,orderBy:'material_code'});
+  const dashboardMap=new Map();
+  Object.values(dashboardModel.productMap||{}).forEach(item=>{
+    const code=normalizeMaterialCode(item.code);
+    if(!code) return;
+    dashboardMap.set(code,{
+      material_code:code,
+      material_name:item.name||'',
+      sales:toNumber(item.sales),
+      actualReturn:toNumber(item.actualReturn),
+      production:toNumber(item.production),
+      outgoing:toNumber(item.outgoing),
+      incoming:toNumber(item.incoming),
+      loading:toNumber(item.loading)
+    });
+  });
+  const auditMap=new Map();
+  (auditRows||[]).forEach(row=>{
+    if(!rowMatchesUnifiedSalesFilters(row,filters,catalog)) return;
+    const code=normalizeMaterialCode(row.material_code);
+    if(!code) return;
+    if(!auditMap.has(code)) auditMap.set(code,{material_code:code,material_name:row.material_name||'',sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0});
+    const item=auditMap.get(code);
+    item.sales+=toNumber(row.sales_quantity);
+    item.actualReturn+=toNumber(row.actual_return_quantity);
+    item.production+=toNumber(row.production_quantity);
+    item.outgoing+=toNumber(row.outgoing_transfer_quantity);
+    item.incoming+=toNumber(row.incoming_transfer_quantity);
+    item.loading+=toNumber(row.total_loading_quantity);
+  });
+  const metrics=['sales','actualReturn','production','outgoing','incoming','loading'];
+  const codes=[...new Set([...dashboardMap.keys(),...auditMap.keys()])].sort();
+  const differences=[];
+  codes.forEach(code=>{
+    const dashboard=dashboardMap.get(code)||{material_code:code,sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0};
+    const audit=auditMap.get(code)||{material_code:code,sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0};
+    const diff={material_code:code,material_name:dashboard.material_name||audit.material_name||''};
+    let changed=false;
+    metrics.forEach(metric=>{
+      const delta=(dashboard[metric]||0)-(audit[metric]||0);
+      if(Math.abs(delta)>0.000001){
+        diff[metric]={dashboard:dashboard[metric]||0,salesAuditReport:audit[metric]||0,difference:delta};
+        changed=true;
+      }
+    });
+    if(changed) differences.push(diff);
+  });
+  const report={
+    source:'sales_audit_report',
+    filters,
+    dashboardProducts:dashboardMap.size,
+    salesAuditProducts:auditMap.size,
+    differencesCount:differences.length,
+    totalsMatch:differences.length===0,
+    differences
+  };
+  console.log('[dashboard-vs-sales-audit-product-verification]',report);
+  return report;
+}
 async function fetchAllSalesRawRows(filters={},options={}){
   if(!WarehouseDB?.ready) return [];
   const catalog=options.catalog || await loadSalesReviewCatalog();
@@ -1646,8 +1710,13 @@ async function fetchAllSalesRawRows(filters={},options={}){
   const maxPages=200;
   const ascending=options.ascending===true;
   const all=[];
-  const materialQueryCodes=[...new Set([...SALES_REVIEW_MATERIAL_CODES,...(catalog.materialCodes||[])])];
-  const warehouseQueryCodes=[...new Set([...SALES_WAREHOUSES,...(catalog.allAllowedWarehouseCodes||[])])];
+  const materialQueryCodes=[...new Set(catalog.fallback ? [...SALES_REVIEW_MATERIAL_CODES] : [...(catalog.materialCodes||[])])];
+  const warehouseQueryCodes=[...new Set(catalog.fallback ? [...SALES_WAREHOUSES] : [...(catalog.allAllowedWarehouseCodes||[])])];
+  if(!materialQueryCodes.length || (!(filters.warehouse && filters.warehouse!=='all') && !warehouseQueryCodes.length)){
+    salesPerfLog('fetchAllSalesRawRows-skipped-empty-dynamic-catalog',perfStart,{catalogSource:catalog.source,materialCodes:materialQueryCodes.length,warehouses:warehouseQueryCodes.length});
+    console.timeEnd(perfLabel);
+    return [];
+  }
   const pageDurations=[];
   try{
     for(let page=0; page<maxPages; page++){
@@ -1700,38 +1769,34 @@ async function fetchAllSalesRawRows(filters={},options={}){
 }
 async function fetchUnifiedSalesRows(filters={},options={}){
   const catalog=await loadSalesReviewCatalog();
-  const key=unifiedSalesRowsCacheKey(filters)+'|'+(catalog.signature||'legacy');
+  const source=options.rawDebug===true || options.source==='raw-debug' ? 'raw-debug' : 'sales_audit_report';
+  const key=unifiedSalesRowsCacheKey(filters)+'|'+(catalog.signature||'legacy')+'|'+source;
   const perfLabel=`fetchUnifiedSalesRows ${key}`;
   const perfStart=salesPerfNow();
   console.time(perfLabel);
   if(UNIFIED_SALES_ROWS_CACHE.has(key)){
     const rows=UNIFIED_SALES_ROWS_CACHE.get(key);
-    salesReviewEngineDebug(rows,catalog,'fetchUnifiedSalesRows cache-hit',filters);
+    salesReviewEngineDebug(rows,catalog,'fetchUnifiedSalesRows cache-hit '+source,filters);
     console.timeEnd(perfLabel);
-    salesPerfLog('fetchUnifiedSalesRows cache-hit',perfStart,{cacheKey:key,rows:rows.length});
+    salesPerfLog('fetchUnifiedSalesRows cache-hit',perfStart,{cacheKey:key,source,rows:rows.length});
     return rows;
   }
   if(UNIFIED_SALES_ROWS_PENDING.has(key)){
     const rows=await UNIFIED_SALES_ROWS_PENDING.get(key);
-    salesReviewEngineDebug(rows,catalog,'fetchUnifiedSalesRows pending-hit',filters);
+    salesReviewEngineDebug(rows,catalog,'fetchUnifiedSalesRows pending-hit '+source,filters);
     console.timeEnd(perfLabel);
-    salesPerfLog('fetchUnifiedSalesRows pending-hit',perfStart,{cacheKey:key,rows:rows.length});
+    salesPerfLog('fetchUnifiedSalesRows pending-hit',perfStart,{cacheKey:key,source,rows:rows.length});
     return rows;
   }
-  const request=(async()=>{
-    try{
-      return await fetchAllSalesRawRows(filters,{...options,catalog});
-    }catch(error){
-      console.warn('raw sales rows load failed, using sales_audit_report view',error);
-      return await fetchAllSalesAuditRows(filters,options);
-    }
-  })();
+  const request=source==='raw-debug'
+    ? fetchAllSalesRawRows(filters,{...options,catalog})
+    : fetchAllSalesAuditRows(filters,options);
   UNIFIED_SALES_ROWS_PENDING.set(key,request);
   try{
     const rows=await request;
     UNIFIED_SALES_ROWS_CACHE.set(key,rows);
     console.timeEnd(perfLabel);
-    salesPerfLog('fetchUnifiedSalesRows fetch',perfStart,{cacheKey:key,rows:rows.length});
+    salesPerfLog('fetchUnifiedSalesRows fetch',perfStart,{cacheKey:key,source,rows:rows.length});
     return rows;
   }finally{
     UNIFIED_SALES_ROWS_PENDING.delete(key);
