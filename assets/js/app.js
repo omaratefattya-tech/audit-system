@@ -994,7 +994,7 @@ function renderDashboardSalesHeatmap(allRows,filters={}){
     if(filters.to && d>filters.to) return;
     if(filters.plant && filters.plant!=='all' && plant!==filters.plant) return;
     if(filters.warehouse && filters.warehouse!=='all' && wh!==String(filters.warehouse).toUpperCase()) return;
-    daily[d]=(daily[d]||0)+computeUnifiedSalesMetrics(r).sales;
+    daily[d]=(daily[d]||0)+unifiedSalesRowMetrics(r).sales;
   });
   const values=Object.values(daily).filter(v=>v>0);
   const max=Math.max(...values,0);
@@ -1171,7 +1171,7 @@ function salesReviewSetDiff(a,b){
 }
 function salesReviewDebugTotals(rows=[]){
   return rows.reduce((totals,row)=>{
-    const metrics=computeUnifiedSalesMetrics(row);
+    const metrics=unifiedSalesRowMetrics(row);
     totals.sales+=metrics.sales;
     totals.actualReturn+=metrics.actualReturn;
     totals.production+=metrics.production;
@@ -1324,7 +1324,7 @@ function salesReviewVerificationGroupRows(rows,catalog,direction){
     }
     const item=map.get(key);
     item.rows++;
-    const metrics=computeUnifiedSalesMetrics(row);
+    const metrics=unifiedSalesRowMetrics(row);
     item.totals.sales+=metrics.sales;
     item.totals.actualReturn+=metrics.actualReturn;
     item.totals.production+=metrics.production;
@@ -1429,6 +1429,8 @@ if(typeof window!=='undefined'){
   window.normalizeWorkerGroup=normalizeWorkerGroup;
   window.debugActualReturnRows=debugActualReturnRows;
   window.verifyDashboardProductMapAgainstSalesAudit=verifyDashboardProductMapAgainstSalesAudit;
+  window.verifySalesAggregationAgainstSalesReviewTable=verifySalesAggregationAgainstSalesReviewTable;
+  window.aggregateSalesAuditReportRows=aggregateSalesAuditReportRows;
 }
 
 const SALES_REVIEW_MOVEMENT_TYPES=['601','602','653','654','101','102','Z51','Z52','351','352','301','302','Z13','Z14'];
@@ -1574,11 +1576,20 @@ function rowMatchesUnifiedSalesFilters(row,filters={},catalog=null){
   if(!isSalesReviewRow(row,catalog)) return false;
   return true;
 }
-function buildUnifiedSalesTotals(rows,options={}){
-  const perfLabel=`buildUnifiedSalesTotals ${unifiedSalesRowsCacheKey(options.filters||{})}`;
-  const perfStart=salesPerfNow();
-  console.time(perfLabel);
-  const filters=options.filters||{};
+function isSalesAuditReportRow(row){
+  return !!row && row.sales_quantity!==undefined && row.outgoing_transfer_quantity!==undefined && row.total_loading_quantity!==undefined && row.movement_type===undefined;
+}
+function salesAuditReportRowMetrics(row){
+  return {
+    sales:toNumber(row?.sales_quantity),
+    actualReturn:toNumber(row?.actual_return_quantity),
+    production:toNumber(row?.production_quantity),
+    outgoing:toNumber(row?.outgoing_transfer_quantity),
+    incoming:toNumber(row?.incoming_transfer_quantity),
+    loading:toNumber(row?.total_loading_quantity)
+  };
+}
+function aggregateSalesRowsWithMetrics(rows,filters={},options={},metricsResolver=computeUnifiedSalesMetrics){
   const catalog=options.catalog||null;
   const sourceRows=rows||[];
   const materialRows=sourceRows.filter(r=>isSalesReviewMaterialCodeInCatalog(r?.material_code,catalog));
@@ -1590,12 +1601,12 @@ function buildUnifiedSalesTotals(rows,options={}){
   getPlantsCatalog().forEach(p=>plantStats[p.code]={sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0});
   const stats=emptyUnifiedSalesStats(filteredRows.length);
   filteredRows.forEach(r=>{
-    const metrics=computeUnifiedSalesMetrics(r);
+    const metrics=metricsResolver(r);
     const d=salesRowReportDate(r) || dashboardDateKey(r.report_date);
     daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0,loading:0};
     const wh=String(r.warehouse_code||'').trim().toUpperCase();
     const meta=dashboardWhMeta(wh);
-    const plant=r.plant_code||meta.plant||'ØºÙŠØ± Ù…Ø­Ø¯Ø¯';
+    const plant=r.plant_code||meta.plant||'ÛíÑ ãÍÏÏ';
     if(!plantStats[plant]) plantStats[plant]={sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0};
     addUnifiedSalesStats(stats,metrics);
     daily[d].sales+=Math.abs(metrics.sales);
@@ -1610,7 +1621,7 @@ function buildUnifiedSalesTotals(rows,options={}){
     plantStats[plant].incoming+=metrics.incoming;
     plantStats[plant].loading+=metrics.loading;
     if(metrics.sales) warehouseSalesMap[wh]=(warehouseSalesMap[wh]||0)+Math.abs(metrics.sales);
-    const pkey=String(r.material_code||r.material_name||'ØºÙŠØ± Ù…Ø­Ø¯Ø¯');
+    const pkey=String(r.material_code||r.material_name||'ÛíÑ ãÍÏÏ');
     if(!productMap[pkey]) productMap[pkey]={code:r.material_code||'-',name:r.material_name||'-',sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0};
     productMap[pkey].sales+=metrics.sales;
     productMap[pkey].actualReturn+=metrics.actualReturn;
@@ -1628,19 +1639,38 @@ function buildUnifiedSalesTotals(rows,options={}){
     warehouseActivityMap[wh].totalActivity+=Math.abs(metrics.sales)+Math.abs(metrics.production)+Math.abs(metrics.outgoing)+Math.abs(metrics.incoming)+Math.abs(metrics.loading);
     groups.forEach((g,idx)=>{ if(groupSets[idx].has(wh)) addUnifiedSalesStats(g.stats,metrics); });
   });
+  return {rows:filteredRows,stats,daily,warehouseSalesMap,warehouseActivityMap,productMap,plantStats,groups,counts:{sourceRows:sourceRows.length,afterMaterialFilter:materialRows.length,afterSalesWarehouseFilter:salesWarehouseRows.length,afterAllFilters:filteredRows.length}};
+}
+function aggregateSalesAuditReportRows(rows,filters={},options={}){
+  return aggregateSalesRowsWithMetrics(rows,filters,options,salesAuditReportRowMetrics);
+}
+function unifiedSalesRowMetrics(row){
+  return isSalesAuditReportRow(row) ? salesAuditReportRowMetrics(row) : computeUnifiedSalesMetrics(row);
+}
+function buildUnifiedSalesTotals(rows,options={}){
+  const perfLabel=`buildUnifiedSalesTotals ${unifiedSalesRowsCacheKey(options.filters||{})}`;
+  const perfStart=salesPerfNow();
+  console.time(perfLabel);
+  const filters=options.filters||{};
+  const sourceRows=rows||[];
+  const isAuditRows=options.source==='raw-debug' ? false : (options.source==='sales_audit_report' || sourceRows.length===0 || sourceRows.every(isSalesAuditReportRow));
+  const model=isAuditRows
+    ? aggregateSalesAuditReportRows(sourceRows,filters,options)
+    : aggregateSalesRowsWithMetrics(sourceRows,filters,options,computeUnifiedSalesMetrics);
   console.timeEnd(perfLabel);
   salesPerfLog('buildUnifiedSalesTotals',perfStart,{
-    sourceRows:sourceRows.length,
-    afterMaterialFilter:materialRows.length,
-    afterSalesWarehouseFilter:salesWarehouseRows.length,
-    afterAllFilters:filteredRows.length
+    source:isAuditRows?'sales_audit_report':'raw-debug',
+    sourceRows:model.counts.sourceRows,
+    afterMaterialFilter:model.counts.afterMaterialFilter,
+    afterSalesWarehouseFilter:model.counts.afterSalesWarehouseFilter,
+    afterAllFilters:model.counts.afterAllFilters
   });
-  return {rows:filteredRows,stats,daily,warehouseSalesMap,warehouseActivityMap,productMap,plantStats,groups};
-}
-async function verifyDashboardProductMapAgainstSalesAudit(filters={},options={}){
+  delete model.counts;
+  return model;
+}async function verifyDashboardProductMapAgainstSalesAudit(filters={},options={}){
   const catalog=await loadSalesReviewCatalog(options.catalogOptions||{});
   const dashboardRows=await fetchUnifiedSalesRows(filters,{...options,source:'sales_audit_report'});
-  const dashboardModel=buildUnifiedSalesTotals(dashboardRows,{filters,catalog});
+  const dashboardModel=buildUnifiedSalesTotals(dashboardRows,{filters,catalog,source:'sales_audit_report'});
   const auditRows=await fetchAllSalesAuditRows(filters,{ascending:true,orderBy:'material_code'});
   const dashboardMap=new Map();
   Object.values(dashboardModel.productMap||{}).forEach(item=>{
@@ -1698,6 +1728,84 @@ async function verifyDashboardProductMapAgainstSalesAudit(filters={},options={})
     differences
   };
   console.log('[dashboard-vs-sales-audit-product-verification]',report);
+  return report;
+}
+async function verifySalesAggregationAgainstSalesReviewTable(params={},options={}){
+  const date=normalizeDateISO(params.date || params.report_date || activeSalesReportDate || '');
+  const warehouse=String(params.warehouse || params.warehouse_code || activeSalesWarehouse || '').trim().toUpperCase();
+  if(!date || !warehouse) throw new Error('verifySalesAggregationAgainstSalesReviewTable requires {date, warehouse}.');
+  const filters={from:date,to:date,warehouse};
+  if(params.plant && params.plant!=='all') filters.plant=params.plant;
+  const catalog=await loadSalesReviewCatalog(options.catalogOptions||{});
+  const dashboardRows=await fetchUnifiedSalesRows(filters,{...options,source:'sales_audit_report'});
+  const dashboardModel=buildUnifiedSalesTotals(dashboardRows,{filters,catalog,source:'sales_audit_report',groups:options.groups||[]});
+  let query=WarehouseDB.client
+    .from('sales_audit_report')
+    .select(SALES_AUDIT_DASHBOARD_SELECT)
+    .eq('report_date',date)
+    .eq('warehouse_code',warehouse)
+    .order('material_code',{ascending:true});
+  if(filters.plant) query=query.eq('plant_code',filters.plant);
+  const {data,error}=await query;
+  if(error) throw error;
+  const salesReviewRows=filterSalesReviewRows(data||[],catalog);
+  const dashboardMap=new Map();
+  Object.values(dashboardModel.productMap||{}).forEach(item=>{
+    const code=normalizeMaterialCode(item.code);
+    if(!code) return;
+    dashboardMap.set(code,{
+      material_code:code,
+      material_name:item.name||'',
+      sales:toNumber(item.sales),
+      actualReturn:toNumber(item.actualReturn),
+      production:toNumber(item.production),
+      outgoing:toNumber(item.outgoing),
+      incoming:toNumber(item.incoming),
+      loading:toNumber(item.loading)
+    });
+  });
+  const reviewMap=new Map();
+  salesReviewRows.forEach(row=>{
+    const code=normalizeMaterialCode(row.material_code);
+    if(!code) return;
+    if(!reviewMap.has(code)) reviewMap.set(code,{material_code:code,material_name:row.material_name||'',sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0});
+    const item=reviewMap.get(code);
+    item.sales+=toNumber(row.sales_quantity);
+    item.actualReturn+=toNumber(row.actual_return_quantity);
+    item.production+=toNumber(row.production_quantity);
+    item.outgoing+=toNumber(row.outgoing_transfer_quantity);
+    item.incoming+=toNumber(row.incoming_transfer_quantity);
+    item.loading+=toNumber(row.total_loading_quantity);
+  });
+  const metrics=['sales','actualReturn','production','outgoing','incoming','loading'];
+  const codes=[...new Set([...dashboardMap.keys(),...reviewMap.keys()])].sort();
+  const differences=[];
+  codes.forEach(code=>{
+    const dashboard=dashboardMap.get(code)||{material_code:code,sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0};
+    const review=reviewMap.get(code)||{material_code:code,sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0};
+    const diff={date,warehouse,material_code:code,material_name:dashboard.material_name||review.material_name||''};
+    let changed=false;
+    metrics.forEach(metric=>{
+      const delta=(dashboard[metric]||0)-(review[metric]||0);
+      if(Math.abs(delta)>0.000001){
+        diff[metric]={dashboard:dashboard[metric]||0,salesReviewTable:review[metric]||0,difference:delta};
+        changed=true;
+      }
+    });
+    if(changed) differences.push(diff);
+  });
+  const report={
+    source:'sales_audit_report',
+    date,
+    warehouse,
+    plant:filters.plant||'all',
+    dashboardProducts:dashboardMap.size,
+    salesReviewProducts:reviewMap.size,
+    differencesCount:differences.length,
+    totalsMatch:differences.length===0,
+    differences
+  };
+  console.log('[sales-aggregation-vs-sales-review-table]',report);
   return report;
 }
 async function fetchAllSalesRawRows(filters={},options={}){
@@ -1814,7 +1922,7 @@ async function loadDashboardRealData(options={}){
     return;
   }
   const catalog=await loadSalesReviewCatalog();
-  const model=buildUnifiedSalesTotals(dashboardRows,{filters,catalog});
+  const model=buildUnifiedSalesTotals(dashboardRows,{filters,catalog,source:'sales_audit_report'});
   const renderPerfLabel='renderDashboard '+unifiedSalesRowsCacheKey(filters);
   const renderPerfStart=salesPerfNow();
   console.time(renderPerfLabel);
@@ -5892,7 +6000,7 @@ async function loadSalesTotalsReport(options={}){
   let rows=[];
   try{ rows=await fetchUnifiedSalesRows(filters,{ascending:true}); }catch(error){ console.warn('sales totals report load error',error); return; }
   const catalog=await loadSalesReviewCatalog();
-  const model=buildUnifiedSalesTotals(rows,{filters,groups:SALES_TOTALS_GROUPS,catalog});
+  const model=buildUnifiedSalesTotals(rows,{filters,groups:SALES_TOTALS_GROUPS,catalog,source:'sales_audit_report'});
   const renderPerfLabel='renderSalesTotalsReport '+unifiedSalesRowsCacheKey(filters);
   const renderPerfStart=salesPerfNow();
   console.time(renderPerfLabel);
