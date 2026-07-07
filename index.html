@@ -720,6 +720,7 @@
             <button class="settings-tab" id="settingsPlantsTab" type="button" role="tab" aria-selected="false" aria-controls="settingsPlantsPanel" data-settings-tab="plants-settings">&#x1F3ED; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x0635;&#x0627;&#x0646;&#x0639;</button>
             <button class="settings-tab" id="settingsWarehousesTab" type="button" role="tab" aria-selected="false" aria-controls="settingsWarehousesPanel" data-settings-tab="warehouses-settings">&#x1F3EC; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x062E;&#x0627;&#x0632;&#x0646;</button>
             <button class="settings-tab" id="settingsSalesProductsTab" type="button" role="tab" aria-selected="false" aria-controls="settingsSalesProductsPanel" data-settings-tab="sales-products-settings">&#x1F4E6; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0623;&#x0635;&#x0646;&#x0627;&#x0641; &#x0627;&#x0644;&#x0628;&#x064A;&#x0639;</button>
+            <button class="settings-tab" id="settingsActivityLogTab" type="button" role="tab" aria-selected="false" aria-controls="settingsActivityLogPanel" data-settings-tab="activity-log">&#x0633;&#x062C;&#x0644; &#x0627;&#x0644;&#x062D;&#x0631;&#x0643;&#x0627;&#x062A;</button>
           </div>
           <div class="settings-tab-panels">
             <section class="settings-tab-panel active" id="settingsProfilePanel" role="tabpanel" aria-labelledby="settingsProfileTab" data-settings-panel="profile">
@@ -961,7 +962,27 @@
                 <div class="upload-status" id="salesProductsSettingsStatus"></div>
               </div>
             </section>
-
+            <section class="settings-tab-panel" id="settingsActivityLogPanel" role="tabpanel" aria-labelledby="settingsActivityLogTab" data-settings-panel="activity-log">
+              <div class="settings-activity-log-wrap">
+                <div class="activity-log-toolbar glass-soft">
+                  <div class="users-search-box activity-log-search-box">
+                    <span>&#x1F50D;</span>
+                    <input id="activityLogSearchInput" type="search" placeholder="&#x0628;&#x062D;&#x062B; &#x0641;&#x064A; &#x0633;&#x062C;&#x0644; &#x0627;&#x0644;&#x062D;&#x0631;&#x0643;&#x0627;&#x062A;..." />
+                  </div>
+                  <button class="secondary" id="activityLogRefreshBtn" type="button">&#x062A;&#x062D;&#x062F;&#x064A;&#x062B;</button>
+                  <button class="secondary export-btn" id="activityLogExportExcelBtn" type="button">Excel</button>
+                  <button class="secondary export-btn" id="activityLogExportPdfBtn" type="button">PDF</button>
+                </div>
+                <div class="upload-status" id="activityLogStatus"></div>
+                <div class="table-wrap activity-log-table-wrap">
+                  <table id="activityLogTable" data-no-universal-table="1">
+                    <thead></thead>
+                    <tbody><tr><td colspan="8" class="empty-row">&#x064A;&#x062A;&#x0645; &#x062A;&#x062D;&#x0645;&#x064A;&#x0644; &#x0633;&#x062C;&#x0644; &#x0627;&#x0644;&#x062D;&#x0631;&#x0643;&#x0627;&#x062A; &#x0639;&#x0646;&#x062F; &#x0641;&#x062A;&#x062D; &#x0627;&#x0644;&#x062A;&#x0628;&#x0648;&#x064A;&#x0628;.</td></tr></tbody>
+                  </table>
+                </div>
+                <div class="activity-log-pagination" id="activityLogPagination"></div>
+              </div>
+            </section>
           </div>
         </article>
       </section>

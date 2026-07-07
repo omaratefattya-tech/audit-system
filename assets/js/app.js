@@ -1,4 +1,3 @@
-﻿
 function roundRect(ctx,x,y,w,h,r,fill,stroke){
   const rr=Math.min(r||0, Math.abs(w)/2, Math.abs(h)/2);
   ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.lineTo(x+w-rr,y); ctx.quadraticCurveTo(x+w,y,x+w,y+rr); ctx.lineTo(x+w,y+h-rr); ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h); ctx.lineTo(x+rr,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-rr); ctx.lineTo(x,y+rr); ctx.quadraticCurveTo(x,y,x+rr,y); ctx.closePath(); if(fill)ctx.fill(); if(stroke)ctx.stroke();
@@ -521,6 +520,7 @@ async function exportTableToExcel(tableId,reportTitle){
   const out=XLSX.write(wb,{bookType:'xlsx',type:'array',cellStyles:true});
   const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   await saveBlobWithPicker(blob,`${safeTitle}-${stamp}.xlsx`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  await logSystemActivity(activityExportSection(reportTitle),'تصدير Excel',`تصدير ${reportTitle} Excel`);
 }
 async function exportTableToPdf(tableId,reportTitle){
   const matrix=tableExportMatrix(tableId);
@@ -606,6 +606,7 @@ async function exportTableToPdf(tableId,reportTitle){
 
     const blob=pdf.output('blob');
     await saveBlobWithPicker(blob,`${safeTitle}-${stamp}.pdf`,'application/pdf');
+    await logSystemActivity(activityExportSection(reportTitle),'تصدير PDF',`تصدير ${reportTitle} PDF`);
   }catch(err){
     console.error(err);
     alert('تعذر تصدير PDF. حاول مرة أخرى.');
@@ -2082,8 +2083,9 @@ function initAuthPanel(){
     const {error}=await WarehouseDB.signIn(email,password);
     status.textContent=error ? `خطأ: ${error.message}` : 'تم تسجيل الدخول بنجاح.';
     updateAuthStatus();
+    if(!error) await logSystemActivity('المستخدمين','تسجيل دخول',`تسجيل دخول: ${email}`);
   };
-  logoutBtn.onclick=async()=>{ await WarehouseDB.signOut(); updateAuthStatus(); };
+  logoutBtn.onclick=async()=>{ await logSystemActivity('المستخدمين','تسجيل خروج',`تسجيل خروج: ${CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'المستخدم الحالي'}`); await WarehouseDB.signOut(); updateAuthStatus(); };
   updateAuthStatus();
 }
 function rowsFromWorkbook(workbook){
@@ -2161,7 +2163,7 @@ function mapScaleRows(rows,batchId){
       net_weight_kg: parseArabicNumber(getRowValue(normalized,['صافي الميزان','صافى الميزان','صافي الوزن','Net Weight'])),
       plant_code: String(getRowValue(normalized,['المصنع','Plant'])).trim(),
       warehouse_code: String(getRowValue(normalized,['المخزن','Storage Location','SLoc'])).trim(),
-      purchase_order: String(getRowValue(normalized,['أمر الشراء','رقم أمر الشراء','Purchase Order','PO'])).trim(),
+      purchase_order: String(getRowValue(normalized,['Purchasing Document','Purchase Order','PO','أمر الشراء','رقم أمر الشراء'])).trim(),
       transaction_date: typeof trxDateValue === 'number' ? excelDateToISO(trxDateValue) : excelDateToISO(trxDateValue),
       vehicle_number: String(getRowValue(normalized,['رقم العربية','رقم السياره','رقم السيارة','Vehicle Number','Truck No'])).trim(),
       vehicle_description: String(getRowValue(normalized,['وصف العربية','وصف السياره','وصف السيارة','Vehicle Description'])).trim(),
@@ -2193,6 +2195,21 @@ function stripHiddenUnicode(v){return String(v||'').replace(/[\u200E\u200F\u202A
 function normText(v){return stripHiddenUnicode(v).replace(/\s+/g,' ').trim();}
 function normKeepSapSpaces(v){return stripHiddenUnicode(v).trim();}
 function normKey(v){return normText(v).toLowerCase();}
+function normalizeIncomingMatchKeyPart(value){
+  const raw=stripHiddenUnicode(value)
+    .trim()
+    .replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/\s+/g,'')
+    .replace(/[٬،,]/g,'');
+  if(!raw) return '';
+  const normalizedNumber=raw.replace(/\.0+$/,'');
+  if(/^\d+$/.test(normalizedNumber)) return normalizedNumber.replace(/^0+(?=\d)/,'') || '0';
+  return raw.toLowerCase();
+}
+function incomingAuditMatchKey(row){
+  return [row?.material_code,row?.purchase_order,row?.vehicle_number].map(normalizeIncomingMatchKeyPart).join('|');
+}
 function normKeyKeepSapSpaces(v){return normKeepSapSpaces(v).toLowerCase();}
 function containsNormalizedText(full,part){
   const f=normKey(full);
@@ -2347,13 +2364,13 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
   ]);
   const scaleIndex=new Map();
   scaleRows.forEach(s=>{
-    const key=[s.material_code,s.purchase_order,s.vehicle_number].map(normKey).join('|');
+    const key=incomingAuditMatchKey(s);
     if(!scaleIndex.has(key)) scaleIndex.set(key,[]);
     scaleIndex.get(key).push(s);
   });
   const movementGroupIndex=new Map();
   incomingRows.forEach(row=>{
-    const key=[row.material_code,row.purchase_order,row.vehicle_number].map(normKey).join('|');
+    const key=incomingAuditMatchKey(row);
     if(!movementGroupIndex.has(key)) movementGroupIndex.set(key,{has101:false,has102:false,hasZ13:false});
     const group=movementGroupIndex.get(key);
     const mt=normKey(getIncomingMovementType(row)).toUpperCase();
@@ -2364,7 +2381,7 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
   const movementStatusIndex=buildMovementCellStatusIndex(incomingRows);
   await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',reportDate);
   const results=incomingRows.map(r=>{
-    const key=[r.material_code,r.purchase_order,r.vehicle_number].map(normKey).join('|');
+    const key=incomingAuditMatchKey(r);
     const matches=scaleIndex.get(key)||[];
     const scale=matches.length===1?matches[0]:null;
     const quantityTo=String(r.uom||'').toUpperCase()==='KG' ? Number(r.quantity||0)/1000 : Number(r.quantity_to ?? r.quantity ?? 0);
@@ -2523,6 +2540,7 @@ async function handleSalesFile(file){
     activeSalesReportDate=reportDate;
     status.textContent=`تم رفع ${payload.length} سطر بنجاح لتاريخ ${reportDate}.`;
     status.className='upload-status ok';
+    await logSystemActivity('التقارير',existing?.length?'استبدال تقرير':'رفع تقرير',`${existing?.length?'استبدال':'رفع'} تقرير مراجعة البيع بتاريخ ${reportDate} (${payload.length} حركة)`);
     await loadSalesBatches();
     await refreshSalesReportDates(reportDate);
     await loadSalesReport(activeSalesWarehouse);
@@ -2601,6 +2619,7 @@ async function handleSalesBatchAction(btn){
     const {error:delError}=await WarehouseDB.client.from('sales_upload_batches').delete().eq('id',btn.dataset.id);
     if(delError){ alert('خطأ أثناء الحذف: '+delError.message); return; }
     clearUnifiedSalesRowsCache();
+    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير مراجعة البيع بتاريخ ${date}`);
     await loadSalesBatches();
     await refreshSalesReportDates();
     await loadSalesReport(activeSalesWarehouse);
@@ -2669,6 +2688,7 @@ async function handleIncomingFile(file){
     await insertChunks('incoming_raw_transactions',payload,400);
     status.textContent=`تم رفع ${payload.length} سطر وارد بنجاح لتاريخ ${reportDate}.`;
     status.className='upload-status ok';
+    await logSystemActivity('التقارير',existing?.length?'استبدال تقرير':'رفع تقرير',`${existing?.length?'استبدال':'رفع'} تقرير MB51 بتاريخ ${reportDate} (${payload.length} حركة)`);
     await loadIncomingBatches();
     await tryBuildIncomingAudit(reportDate,status);
   }catch(err){
@@ -2721,6 +2741,7 @@ async function handleIncomingBatchAction(btn){
     if(rawDeleteError){ alert('خطأ أثناء حذف بيانات الوارد: '+rawDeleteError.message); return; }
     const {error:delError}=await WarehouseDB.client.from('incoming_upload_batches').delete().eq('id',btn.dataset.id);
     if(delError){ alert('خطأ أثناء حذف نسخة الوارد: '+delError.message); return; }
+    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير MB51 بتاريخ ${date}`);
     await loadIncomingBatches();
   }
 }
@@ -2778,6 +2799,7 @@ async function handleScaleFile(file){
     await insertChunks('scale_raw_transactions',payload,400);
     status.textContent=`تم رفع ${payload.length} سطر ميزان بنجاح لتاريخ ${reportDate}.`;
     status.className='upload-status ok';
+    await logSystemActivity('التقارير',existing?.length?'استبدال تقرير':'رفع تقرير',`${existing?.length?'استبدال':'رفع'} تقرير الميزان بتاريخ ${reportDate} (${payload.length} حركة)`);
     await loadScaleBatches();
     await tryBuildIncomingAudit(reportDate,status);
   }catch(err){
@@ -2830,6 +2852,7 @@ async function handleScaleBatchAction(btn){
     if(rawDeleteError){ alert('خطأ أثناء حذف بيانات الميزان: '+rawDeleteError.message); return; }
     const {error:delError}=await WarehouseDB.client.from('scale_upload_batches').delete().eq('id',btn.dataset.id);
     if(delError){ alert('خطأ أثناء حذف نسخة الميزان: '+delError.message); return; }
+    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير الميزان بتاريخ ${date}`);
     await loadScaleBatches();
     await refreshInboundReportDates();
     await loadInboundAuditReport();
@@ -2990,6 +3013,7 @@ async function handleFreightFile(file){
     await upsertChunks('incoming_freight_rates',payload,400,'freight_description,goods_type,plant_code,vehicle_description');
     status.textContent=`تم تحديث مرجع نولون الوارد بنجاح بعدد ${payload.length} صف.`;
     status.className='upload-status ok';
+    await logSystemActivity('التقارير','رفع تقرير',`رفع تقرير النولون بتاريخ ${referenceDate} (${payload.length} صف)`);
     await loadFreightBatches();
     await loadFreightRates();
   }catch(err){
@@ -3015,7 +3039,7 @@ async function loadFreightBatches(){
     b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
     b.status || '-',
     `<button class="small-action view" data-action="view">عرض المرجع الحالي</button>
-     <button class="small-action delete" data-action="delete" data-id="${b.id}">حذف</button>`
+     <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.reference_date)}">حذف</button>`
   ]);
   table('#freightBatchesTable',['تاريخ المرجع','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الحالة','الإجراءات'],rows);
 }
@@ -3052,6 +3076,7 @@ async function handleFreightBatchAction(btn){
     if(disableError){ alert('خطأ أثناء تعطيل صفوف النولون: '+disableError.message); return; }
     const {error:batchError}=await WarehouseDB.client.from('freight_upload_batches').update({status:'deleted'}).eq('id',id);
     if(batchError){ alert('خطأ أثناء حذف سجل التحديث: '+batchError.message); return; }
+    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير النولون بتاريخ ${btn.dataset.date || '-'}`);
     await loadFreightBatches();
     await loadFreightRates();
   }
@@ -3323,6 +3348,7 @@ async function handlePasswordChangeSubmit(e){
     if(data?.user) CURRENT_AUTH_USER=data.user;
     clearPasswordChangeFields();
     setPasswordChangeStatus('تم تغيير كلمة المرور بنجاح.','ok');
+    await logSystemActivity('المستخدمين','تغيير كلمة المرور',`تغيير كلمة المرور: ${CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'المستخدم الحالي'}`);
   }catch(err){
     setPasswordChangeStatus('تعذر تغيير كلمة المرور: '+(err.message || err),'err');
   }
@@ -3429,6 +3455,7 @@ async function saveSystemSettings(e){
     fillSystemSettingsForm(data?.settings || settings);
     SYSTEM_SETTINGS_LOADED_USER_ID=CURRENT_AUTH_USER.id;
     setSystemSettingsStatus('\u062A\u0645 \u062D\u0641\u0638 \u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u0646\u0638\u0627\u0645 \u0628\u0646\u062C\u0627\u062D.','ok');
+    await logSystemActivity('الإعدادات','تعديل إعدادات النظام','تعديل إعدادات النظام');
   }catch(err){
     setSystemSettingsStatus('\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u0646\u0638\u0627\u0645: '+(err.message||err),'err');
   }
@@ -3522,6 +3549,7 @@ async function loadPlantsSettings(){
     setPlantsSettingsStatus('\u062A\u0645 \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u0635\u0627\u0646\u0639.','ok');
   }catch(err){
     PLANTS_SETTINGS_LOADED=false;
+  ACTIVITY_LOG_STATE.loaded=false;
     PLANTS_SETTINGS_ROWS=[];
     renderPlantsSettingsTable([]);
     setPlantsSettingsStatus('\u062A\u0639\u0630\u0631 \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u0635\u0627\u0646\u0639: '+(err.message||err),'err');
@@ -3556,6 +3584,7 @@ async function addPlantSettingsRow(e){
     await loadPlantsCatalog({force:true});
     refreshPlantsCatalogConsumers();
     setPlantsSettingsStatus('\u062A\u0645\u062A \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0635\u0646\u0639 \u0628\u0646\u062C\u0627\u062D.','ok');
+    await logSystemActivity('الإعدادات','إضافة',`إضافة مصنع: ${plant_code}`);
   }catch(err){
     setPlantsSettingsStatus('\u062A\u0639\u0630\u0631 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0635\u0646\u0639: '+(err.message||err),'err');
   }
@@ -3609,6 +3638,7 @@ async function savePlantSettingsRow(source){
     await loadPlantsCatalog({force:true});
     refreshPlantsCatalogConsumers();
     setPlantsSettingsStatus('\u062A\u0645 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0635\u0646\u0639 \u0628\u0646\u062C\u0627\u062D.','ok');
+    await logSystemActivity('الإعدادات','تعديل',`تعديل مصنع: ${plantCode}`);
   }catch(err){
     setPlantsSettingsStatus('\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0635\u0646\u0639: '+(err.message||err),'err');
   }
@@ -3781,6 +3811,7 @@ async function addWarehouseSettingsRow(e){
     await loadPlantsScreenWarehouses({force:true});
     if($('#plants')?.classList.contains('active-section')) renderPlants();
     setWarehousesSettingsStatus('\u062A\u0645\u062A \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u062E\u0632\u0646 \u0628\u0646\u062C\u0627\u062D.','ok');
+    await logSystemActivity('الإعدادات','إضافة',`إضافة مخزن: ${payload.warehouse_code}`);
   }catch(err){
     setWarehousesSettingsStatus('\u062A\u0639\u0630\u0631 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u062E\u0632\u0646: '+(err.message||err),'err');
   }
@@ -3824,6 +3855,7 @@ async function saveWarehouseSettingsRow(source){
     await loadPlantsScreenWarehouses({force:true});
     if($('#plants')?.classList.contains('active-section')) renderPlants();
     setWarehousesSettingsStatus('\u062A\u0645 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u062E\u0632\u0646 \u0628\u0646\u062C\u0627\u062D.','ok');
+    await logSystemActivity('الإعدادات','تعديل',`تعديل مخزن: ${warehouseCode}`);
   }catch(err){
     setWarehousesSettingsStatus('\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u062E\u0632\u0646: '+(err.message||err),'err');
   }
@@ -3946,6 +3978,7 @@ async function saveSalesProductWarehouseCodes(materialCode,selectedCodes=[]){
     if(error) throw error;
   }
   const selectedSet=new Set(selected);
+  const toEnable=selected.filter(code=>!existingCodes.includes(code));
   const toDisable=existingCodes.filter(code=>!selectedSet.has(code));
   if(toDisable.length){
     const {error}=await WarehouseDB.client
@@ -3954,6 +3987,12 @@ async function saveSalesProductWarehouseCodes(materialCode,selectedCodes=[]){
       .eq('material_code',materialCode)
       .in('warehouse_code',toDisable);
     if(error) throw error;
+  }
+  for(const warehouseCode of toEnable){
+    await logSystemActivity('الإعدادات','إضافة ربط',`ربط الصنف: ${materialCode} بالمخزن: ${warehouseCode}`);
+  }
+  for(const warehouseCode of toDisable){
+    await logSystemActivity('الإعدادات','حذف ربط',`حذف ربط الصنف: ${materialCode} من المخزن: ${warehouseCode}`);
   }
   clearSalesReviewEngineCache();
   return await fetchSalesProductWarehouseLinks(materialCode);
@@ -4173,6 +4212,7 @@ async function addSalesProductSettingsRow(e){
     SALES_PRODUCTS_SETTINGS_LOADED=false;
     await loadSalesProductsSettings();
     setSalesProductsSettingsStatus('\u062A\u0645\u062A \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0635\u0646\u0641 \u0648\u0645\u062E\u0627\u0632\u0646\u0647 \u0628\u0646\u062C\u0627\u062D.','ok');
+    await logSystemActivity('الإعدادات','إضافة',`إضافة صنف بيع: ${payload.material_code}`);
   }catch(err){
     setSalesProductsSettingsStatus('\u062A\u0639\u0630\u0631 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0635\u0646\u0641: '+(err.message||err),'err');
   }
@@ -4209,6 +4249,7 @@ async function saveSalesProductSettingsRow(source){
     SALES_PRODUCTS_SETTINGS_LOADED=false;
     await loadSalesProductsSettings();
     setSalesProductsSettingsStatus('\u062A\u0645 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0635\u0646\u0641 \u0628\u0646\u062C\u0627\u062D.','ok');
+    await logSystemActivity('الإعدادات','تعديل',`تعديل صنف بيع: ${materialCode}`);
   }catch(err){
     setSalesProductsSettingsStatus('\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0635\u0646\u0641: '+(err.message||err),'err');
   }
@@ -4373,6 +4414,210 @@ function initProfileSettings(){
   }
 }
 
+const ACTIVITY_LOG_COLUMNS=[
+  {key:'index',label:'م'},
+  {key:'user_name',label:'المستخدم'},
+  {key:'user_role',label:'الصلاحية'},
+  {key:'section',label:'القسم'},
+  {key:'operation_type',label:'نوع العملية'},
+  {key:'details',label:'التفاصيل'},
+  {key:'created_date',label:'التاريخ'},
+  {key:'created_time',label:'الوقت'}
+];
+const ACTIVITY_LOG_STATE={rows:[],filters:{},globalSearch:'',sortKey:'created_at',sortDir:'desc',page:1,pageSize:25,loaded:false};
+function activityDateTimeParts(date=new Date()){
+  const cairo=new Date(date.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));
+  const pad=n=>String(n).padStart(2,'0');
+  return {
+    created_date:`${cairo.getFullYear()}-${pad(cairo.getMonth()+1)}-${pad(cairo.getDate())}`,
+    created_time:`${pad(cairo.getHours())}:${pad(cairo.getMinutes())}:${pad(cairo.getSeconds())}`
+  };
+}
+function currentActivityUserInfo(){
+  const profile=CURRENT_APP_PROFILE||{};
+  const user=CURRENT_AUTH_USER||{};
+  return {
+    user_id:user.id||null,
+    user_name:profile.full_name||profile.name||user.email||'غير محدد',
+    user_role:profile.role||'غير محدد'
+  };
+}
+async function logSystemActivity(section,operationType,details,options={}){
+  if(!WarehouseDB?.ready || !WarehouseDB.client?.from) return;
+  const cleanDetails=String(details||'').trim();
+  if(!cleanDetails) return;
+  try{
+    const actor={...currentActivityUserInfo(),...(options.user||{})};
+    const parts=activityDateTimeParts();
+    const payload={
+      user_id:actor.user_id,
+      user_name:actor.user_name||'غير محدد',
+      user_role:actor.user_role||'غير محدد',
+      section,
+      operation_type:operationType,
+      details:cleanDetails,
+      created_date:parts.created_date,
+      created_time:parts.created_time
+    };
+    const {error}=await WarehouseDB.client.from('system_activity_log').insert(payload);
+    if(error) throw error;
+    if(ACTIVITY_LOG_STATE.loaded) loadActivityLog({silent:true});
+  }catch(err){
+    console.warn('[activity-log] failed to write system activity',err);
+  }
+}
+function activityExportSection(reportTitle=''){
+  const title=String(reportTitle||'');
+  if(title.includes('مستخدم')) return 'المستخدمين';
+  if(title.includes('صلاحيات')) return 'الصلاحيات';
+  if(title.includes('سجل الحركات')) return 'النظام';
+  return 'التقارير';
+}
+function setActivityLogStatus(message,type=''){
+  const el=$('#activityLogStatus');
+  if(!el) return;
+  el.textContent=message||'';
+  el.className='upload-status '+(type||'');
+}
+function activityLogRowValue(row,key,index=0){
+  if(key==='index') return String(index+1);
+  if(key==='created_time') return String(row.created_time||'').slice(0,8);
+  return row[key] == null ? '' : String(row[key]);
+}
+function filteredActivityLogRows(){
+  const q=ACTIVITY_LOG_STATE.globalSearch.trim().toLowerCase();
+  const filters=ACTIVITY_LOG_STATE.filters||{};
+  let rows=(ACTIVITY_LOG_STATE.rows||[]).filter(row=>{
+    const hay=ACTIVITY_LOG_COLUMNS.slice(1).map(c=>activityLogRowValue(row,c.key)).join(' ').toLowerCase();
+    if(q && !hay.includes(q)) return false;
+    return ACTIVITY_LOG_COLUMNS.slice(1).every(col=>{
+      const f=String(filters[col.key]||'').trim().toLowerCase();
+      return !f || activityLogRowValue(row,col.key).toLowerCase().includes(f);
+    });
+  });
+  const key=ACTIVITY_LOG_STATE.sortKey;
+  const dir=ACTIVITY_LOG_STATE.sortDir==='asc' ? 1 : -1;
+  rows=rows.sort((a,b)=>String(activityLogRowValue(a,key)).localeCompare(String(activityLogRowValue(b,key)))*dir);
+  return rows;
+}
+function renderActivityLogTable(){
+  const tableEl=$('#activityLogTable');
+  if(!tableEl) return;
+  const filtered=filteredActivityLogRows();
+  const totalPages=Math.max(1,Math.ceil(filtered.length/ACTIVITY_LOG_STATE.pageSize));
+  if(ACTIVITY_LOG_STATE.page>totalPages) ACTIVITY_LOG_STATE.page=totalPages;
+  const start=(ACTIVITY_LOG_STATE.page-1)*ACTIVITY_LOG_STATE.pageSize;
+  const pageRows=filtered.slice(start,start+ACTIVITY_LOG_STATE.pageSize);
+  const head=ACTIVITY_LOG_COLUMNS.map(col=>{
+    const arrow=ACTIVITY_LOG_STATE.sortKey===col.key ? (ACTIVITY_LOG_STATE.sortDir==='asc'?'▲':'▼') : '';
+    return `<th data-activity-sort="${escapeHtml(col.key)}">${escapeHtml(col.label)} <span>${arrow}</span></th>`;
+  }).join('');
+  const filters=ACTIVITY_LOG_COLUMNS.map(col=>{
+    if(col.key==='index') return '<th></th>';
+    return `<th><input class="activity-log-col-filter" data-activity-filter="${escapeHtml(col.key)}" value="${escapeHtml(ACTIVITY_LOG_STATE.filters[col.key]||'')}" placeholder="${escapeHtml(col.label)}" /></th>`;
+  }).join('');
+  const body=pageRows.length ? pageRows.map((row,idx)=>{
+    const rowIndex=start+idx;
+    return '<tr>'+ACTIVITY_LOG_COLUMNS.map(col=>{
+      const value=activityLogRowValue(row,col.key,rowIndex);
+      const cls=col.key==='details'?' class="activity-log-details"':'';
+      return `<td${cls}>${escapeHtml(value)||'-'}</td>`;
+    }).join('')+'</tr>';
+  }).join('') : '<tr><td colspan="8" class="empty-row">لا توجد حركات مطابقة.</td></tr>';
+  tableEl.innerHTML=`<thead><tr>${head}</tr><tr class="activity-log-filter-row">${filters}</tr></thead><tbody>${body}</tbody>`;
+  const pager=$('#activityLogPagination');
+  if(pager){
+    pager.innerHTML=`<button type="button" data-activity-page="prev" ${ACTIVITY_LOG_STATE.page<=1?'disabled':''}>السابق</button><span>صفحة ${ACTIVITY_LOG_STATE.page} من ${totalPages} - ${filtered.length.toLocaleString('en-US')} حركة</span><button type="button" data-activity-page="next" ${ACTIVITY_LOG_STATE.page>=totalPages?'disabled':''}>التالي</button>`;
+  }
+}
+async function loadActivityLog(options={}){
+  if(!$('#activityLogTable')) return;
+  if(!WarehouseDB?.ready){ setActivityLogStatus('Supabase غير متصل.','err'); return; }
+  if(!options.silent) setActivityLogStatus('جاري تحميل سجل الحركات...');
+  try{
+    const {data,error}=await WarehouseDB.client
+      .from('system_activity_log')
+      .select('id,user_id,user_name,user_role,section,operation_type,details,created_date,created_time,created_at')
+      .order('created_at',{ascending:false})
+      .limit(1000);
+    if(error) throw error;
+    ACTIVITY_LOG_STATE.rows=data||[];
+    ACTIVITY_LOG_STATE.loaded=true;
+    renderActivityLogTable();
+    if(!options.silent) setActivityLogStatus('تم تحميل سجل الحركات.','ok');
+  }catch(err){
+    setActivityLogStatus('تعذر تحميل سجل الحركات: '+(err.message||err),'err');
+  }
+}
+function ensureActivityLogLoaded(){ if(!ACTIVITY_LOG_STATE.loaded) loadActivityLog(); }
+function activityLogExportMatrix(){
+  const rows=filteredActivityLogRows();
+  return [ACTIVITY_LOG_COLUMNS.map(c=>c.label),...rows.map((row,idx)=>ACTIVITY_LOG_COLUMNS.map(col=>activityLogRowValue(row,col.key,idx)))];
+}
+async function exportActivityLogExcel(){
+  if(!window.XLSX){ alert('مكتبة Excel غير محملة.'); return; }
+  const matrix=activityLogExportMatrix();
+  if(matrix.length<=1){ alert('لا توجد بيانات للتصدير.'); return; }
+  const ws=XLSX.utils.aoa_to_sheet(matrix);
+  ws['!rtl']=true;
+  const wb=XLSX.utils.book_new();
+  wb.Workbook={Views:[{RTL:true}]};
+  XLSX.utils.book_append_sheet(wb,ws,'سجل الحركات');
+  const out=XLSX.write(wb,{bookType:'xlsx',type:'array',cellStyles:true});
+  const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  await saveBlobWithPicker(blob,`${safeFileName('سجل الحركات')}.xlsx`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  await logSystemActivity('النظام','تصدير Excel','تصدير سجل الحركات Excel');
+}
+async function exportActivityLogPdf(){
+  const matrix=activityLogExportMatrix();
+  if(matrix.length<=1){ alert('لا توجد بيانات للتصدير.'); return; }
+  const previousPage=ACTIVITY_LOG_STATE.page;
+  const previousPageSize=ACTIVITY_LOG_STATE.pageSize;
+  try{
+    ACTIVITY_LOG_STATE.page=1;
+    ACTIVITY_LOG_STATE.pageSize=Math.max(1,matrix.length-1);
+    renderActivityLogTable();
+    await exportTableToPdf('activityLogTable','سجل الحركات');
+  }finally{
+    ACTIVITY_LOG_STATE.page=previousPage;
+    ACTIVITY_LOG_STATE.pageSize=previousPageSize;
+    renderActivityLogTable();
+  }
+}
+function initActivityLogSettings(){
+  const tableEl=$('#activityLogTable');
+  if(!tableEl || tableEl.dataset.activityLogBound==='1') return;
+  tableEl.dataset.noUniversalTable='1';
+  tableEl.dataset.activityLogBound='1';
+  $('#activityLogSearchInput')?.addEventListener('input',e=>{ ACTIVITY_LOG_STATE.globalSearch=e.target.value||''; ACTIVITY_LOG_STATE.page=1; renderActivityLogTable(); });
+  $('#activityLogRefreshBtn')?.addEventListener('click',()=>loadActivityLog());
+  $('#activityLogExportExcelBtn')?.addEventListener('click',exportActivityLogExcel);
+  $('#activityLogExportPdfBtn')?.addEventListener('click',exportActivityLogPdf);
+  tableEl.addEventListener('click',e=>{
+    const th=e.target.closest('[data-activity-sort]');
+    if(!th) return;
+    const key=th.dataset.activitySort;
+    if(ACTIVITY_LOG_STATE.sortKey===key) ACTIVITY_LOG_STATE.sortDir=ACTIVITY_LOG_STATE.sortDir==='asc'?'desc':'asc';
+    else { ACTIVITY_LOG_STATE.sortKey=key; ACTIVITY_LOG_STATE.sortDir=key==='created_at'?'desc':'asc'; }
+    renderActivityLogTable();
+  });
+  tableEl.addEventListener('input',e=>{
+    const input=e.target.closest('[data-activity-filter]');
+    if(!input) return;
+    ACTIVITY_LOG_STATE.filters[input.dataset.activityFilter]=input.value||'';
+    ACTIVITY_LOG_STATE.page=1;
+    renderActivityLogTable();
+  });
+  $('#activityLogPagination')?.addEventListener('click',e=>{
+    const btn=e.target.closest('[data-activity-page]');
+    if(!btn) return;
+    const rows=filteredActivityLogRows();
+    const totalPages=Math.max(1,Math.ceil(rows.length/ACTIVITY_LOG_STATE.pageSize));
+    if(btn.dataset.activityPage==='prev') ACTIVITY_LOG_STATE.page=Math.max(1,ACTIVITY_LOG_STATE.page-1);
+    if(btn.dataset.activityPage==='next') ACTIVITY_LOG_STATE.page=Math.min(totalPages,ACTIVITY_LOG_STATE.page+1);
+    renderActivityLogTable();
+  });
+}
 function initSettingsTabs(){
   const root=$('#settings');
   if(!root) return;
@@ -4386,6 +4631,7 @@ function initSettingsTabs(){
     if(key==='plants-settings') ensurePlantsSettingsLoaded();
     if(key==='warehouses-settings') ensureWarehousesSettingsLoaded();
     if(key==='sales-products-settings') ensureSalesProductsSettingsLoaded();
+    if(key==='activity-log') ensureActivityLogLoaded();
   }));
 }
 
@@ -4616,6 +4862,7 @@ async function savePermissionsManagement(){
     if(error) throw error;
     PERMISSIONS_MANAGEMENT_STATE.dirty=false;
     setPermissionsStatus('تم حفظ الصلاحيات بنجاح.','ok');
+    await logSystemActivity('الصلاحيات','تعديل صلاحيات مستخدم',`تعديل صلاحيات الدور: ${role}`);
     await loadCurrentUserPermissions();
     applyNavigationPermissions();
   }catch(err){ setPermissionsStatus('تعذر حفظ الصلاحيات: '+(err.message||err),'err'); }
@@ -4917,6 +5164,7 @@ async function saveManagedUser(e){
       updated_at:new Date().toISOString()
     });
     setUsersStatus(existingId?'تم حفظ تعديل المستخدم.':'تم إنشاء المستخدم وحفظ بياناته.','ok');
+    await logSystemActivity('المستخدمين',existingId?'تعديل مستخدم':'إضافة مستخدم',`${existingId?'تعديل مستخدم':'إضافة مستخدم'}: ${fullName}`);
     closeUserManagementModal();
     resetUserManagementForm(false);
     await loadUsersManagement();
@@ -4936,6 +5184,7 @@ async function toggleManagedUser(userId,currentActive){
     }
     if(res.error) throw res.error;
     setUsersStatus(!currentActive?'تم تفعيل المستخدم.':'تم تعطيل المستخدم.','ok');
+    await logSystemActivity('المستخدمين','تعديل مستخدم',`${!currentActive?'تفعيل':'تعطيل'} مستخدم: ${u?.full_name || u?.email || userId}`);
     await loadUsersManagement();
   }catch(err){ setUsersStatus('تعذر تحديث الحالة: '+(err.message||err),'err'); }
 }
@@ -4975,6 +5224,7 @@ async function deleteManagedUserForever(userId){
     const result=await response.json().catch(()=>({}));
     if(!response.ok || result.error) throw new Error(result.error || `فشل الحذف. HTTP ${response.status}`);
     setUsersStatus('تم حذف المستخدم نهائيًا من Auth وجدول المستخدمين.','ok');
+    await logSystemActivity('المستخدمين','حذف مستخدم',`حذف مستخدم: ${label}`);
     await loadUsersManagement();
   }catch(err){
     setUsersStatus('تعذر الحذف النهائي: '+(err.message||err),'err');
@@ -5032,12 +5282,14 @@ function initMainLoginGate(){
       if(error){ setMainAuthMessage('خطأ في تسجيل الدخول: '+error.message,'err'); return; }
       setMainAuthMessage('تم تسجيل الدخول بنجاح.','ok');
       await showApplication(data.user);
+      await logSystemActivity('المستخدمين','تسجيل دخول',`تسجيل دخول: ${CURRENT_APP_PROFILE?.full_name || data.user?.email || email}`);
     };
     [emailInput,passInput].forEach(inp=>{ if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter') loginBtn.click(); }); });
   }
   if(logoutBtn){
     logoutBtn.onclick=async()=>{
       await WarehouseDB.signOut();
+      await logSystemActivity('المستخدمين','تسجيل خروج',`تسجيل خروج: ${CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'المستخدم الحالي'}`);
       showLoginScreen();
       setMainAuthMessage('تم تسجيل الخروج.','ok');
     };
@@ -5050,7 +5302,7 @@ function initMainLoginGate(){
   }
   checkMainSession();
 }
-document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initUsersManagement();initPermissionsManagement();});
+document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initActivityLogSettings();initUsersManagement();initPermissionsManagement();});
 
 // Upload reports tabs controller
 function initUploadReportTabs(){
@@ -6175,6 +6427,7 @@ async function exportActiveReportVisualPdf(){
     }
     const blob=pdf.output('blob');
     await saveBlobWithPicker(blob,`${safeFileName(info.title)}.pdf`,'application/pdf');
+    await logSystemActivity(activityExportSection(info.title),'تصدير PDF',`تصدير ${info.title} PDF`);
   }catch(err){
     console.error(err);
     alert('تعذر تصدير PDF. حاول مرة أخرى.');

@@ -1536,3 +1536,16 @@ body.modal-open{overflow:hidden;}
 .sales-total-kpi{min-height:112px}
 @media(max-width:1100px){.sales-totals-kpis{grid-template-columns:repeat(2,minmax(160px,1fr))}}
 @media(max-width:680px){.sales-totals-row-head{flex-direction:column;align-items:flex-start}.sales-totals-kpis{grid-template-columns:1fr}}
+
+#settings .activity-log-toolbar{border-radius:20px;padding:14px;display:grid;grid-template-columns:minmax(260px,1fr) auto auto auto;gap:10px;align-items:center;margin-bottom:12px}
+#settings .activity-log-search-box{min-height:42px}
+#settings .activity-log-table-wrap{border:1px solid rgba(141,220,89,.22);border-radius:14px;background:rgba(0,35,27,.3);max-height:590px;overflow:auto}
+#settings #activityLogTable{min-width:1120px;width:100%}
+#settings #activityLogTable th{position:sticky;top:0;z-index:3;cursor:pointer}
+#settings #activityLogTable thead tr.activity-log-filter-row th{top:39px;background:rgba(0,44,34,.94);z-index:2;padding:6px}
+#settings #activityLogTable .activity-log-col-filter{width:100%;min-width:90px;padding:7px 8px;font-size:12px;border-radius:8px}
+#settings #activityLogTable td.activity-log-details{text-align:right;white-space:normal;min-width:260px;max-width:520px;line-height:1.7}
+#settings .activity-log-pagination{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;color:#dfffd4;font-weight:800}
+#settings .activity-log-pagination button{border:1px solid rgba(141,220,89,.42);border-radius:10px;background:rgba(0,55,38,.82);color:#fff;padding:8px 14px;font-family:inherit;cursor:pointer}
+#settings .activity-log-pagination button:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:720px){#settings .activity-log-toolbar{grid-template-columns:1fr}#settings .activity-log-toolbar .secondary{width:100%}}
