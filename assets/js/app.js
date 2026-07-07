@@ -1426,9 +1426,11 @@ if(typeof window!=='undefined'){
   window.buildLegacySalesReviewCatalog=buildLegacySalesReviewCatalog;
   window.clearSalesReviewEngineCache=clearSalesReviewEngineCache;
   window.runSalesReviewEngineVerification=runSalesReviewEngineVerification;
+  window.normalizeWorkerGroup=normalizeWorkerGroup;
+  window.debugActualReturnRows=debugActualReturnRows;
 }
 
-const SALES_REVIEW_MOVEMENT_TYPES=['601','602','653','654','101','102','Z51','Z52','351','352','301','302','311','312','Z13','Z14'];
+const SALES_REVIEW_MOVEMENT_TYPES=['601','602','653','654','101','102','Z51','Z52','351','352','301','302','Z13','Z14'];
 function salesPerfNow(){return window.performance?.now ? performance.now() : Date.now();}
 function salesPerfMs(start){return Math.round((salesPerfNow()-start)*100)/100;}
 function salesPerfLog(stage,start,details={}){
@@ -1479,7 +1481,40 @@ function salesRowQuantityTo(row){
   return String(row?.uom||'').trim().toUpperCase()==='KG' ? q/1000 : q;
 }
 function salesMovementText(row){return String(row?.movement_text||'').replace(/\s+/g,' ').trim();}
-function salesWorkerGroup(row){return String(row?.worker_group||'').trim();}
+function normalizeWorkerGroup(value){
+  const raw=String(value ?? '').trim()
+    .replace(/[\u0660-\u0669]/g,d=>String(d.charCodeAt(0)-0x0660))
+    .replace(/[\u06F0-\u06F9]/g,d=>String(d.charCodeAt(0)-0x06F0))
+    .replace(',', '.');
+  if(!raw) return '';
+  const numeric=Number(raw);
+  if(Number.isFinite(numeric) && Number.isInteger(numeric)) return String(numeric);
+  return raw.replace(/\.0+$/,'').replace(/^0+(\d+)$/,'$1');
+}
+function salesWorkerGroup(row){return normalizeWorkerGroup(row?.worker_group);}
+function classifySalesReviewMovement(row){
+  const movement=String(row?.movement_type||'').trim().toUpperCase();
+  if(movement==='653') return ['9','16'].includes(salesWorkerGroup(row)) ? 'actual_return' : 'sales_deduction';
+  return 'ignored';
+}
+async function debugActualReturnRows(filters={},options={}){
+  const sourceRows=await fetchSalesReviewVerificationSourceRows(salesReviewCurrentMonthFilters(filters),options);
+  const limit=options.limit || 50;
+  const sample=sourceRows
+    .filter(row=>String(row?.movement_type||'').trim().toUpperCase()==='653')
+    .slice(0,limit)
+    .map(row=>({
+      material_code:row.material_code,
+      warehouse_code:row.warehouse_code,
+      movement_type:row.movement_type,
+      worker_group_raw:row.worker_group,
+      worker_group_normalized:normalizeWorkerGroup(row.worker_group),
+      quantity:salesRowQuantityTo(row),
+      classification:classifySalesReviewMovement(row)
+    }));
+  console.table(sample);
+  return sample;
+}
 function emptyUnifiedSalesStats(rowsCount=0){
   return {rowsCount,salesQty:0,actualReturnQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0};
 }
@@ -1506,8 +1541,8 @@ function computeUnifiedSalesMetrics(row){
     }
     if(movement==='101' && text==='استلام بضائع للأمر') metrics.production+=q;
     if(movement==='102' && text==='ا.بضائع لإلغاء الأمر') metrics.production-=q;
-    if(['Z51','351','301','311'].includes(movement)) metrics.outgoing+=q;
-    if(['Z52','352','302','312'].includes(movement)) metrics.outgoing-=q;
+    if(['Z51','351','301'].includes(movement)) metrics.outgoing+=q;
+    if(['Z52','352','302'].includes(movement)) metrics.outgoing-=q;
     if(movement==='101' && text==='ا.بضائع لمخزون منقول') metrics.incoming+=q;
     if(movement==='Z13') metrics.incoming+=q;
     if(movement==='102' && text==='GR:إلغاء مخزون منقول') metrics.incoming-=q;
