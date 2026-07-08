@@ -2045,6 +2045,14 @@ function openMobileDashboardDrawer(){
   $('#mobileDrawerOverlay')?.setAttribute('aria-hidden','false');
   $('#mobileDashboardDrawer')?.setAttribute('aria-hidden','false');
 }
+function exportMobileDashboardPng(){
+  const dashboard=$('#dashboard');
+  if(dashboard) exportDashboardElementAsPng(dashboard,'الشاشة الرئيسية');
+}
+function triggerMobileDashboardLogout(){
+  closeMobileDashboardPanels();
+  $('#topLogoutBtn')?.click();
+}
 function initMobileDashboardShell(){
   syncMobileDashboardShellState();
   if(MOBILE_DASHBOARD_SHELL_BOUND) return;
@@ -2059,6 +2067,16 @@ function initMobileDashboardShell(){
     if(event.target.closest('#mobileDashboardFilterOverlay,#mobileFilterCloseBtn')){
       event.preventDefault();
       closeMobileDashboardPanels();
+      return;
+    }
+    if(event.target.closest('#mobileDashboardPeriodPngBtn')){
+      event.preventDefault();
+      exportMobileDashboardPng();
+      return;
+    }
+    if(event.target.closest('#mobileDashboardLogoutBtn')){
+      event.preventDefault();
+      triggerMobileDashboardLogout();
       return;
     }
     const drawerBtn=event.target.closest('.mobile-drawer-open');
