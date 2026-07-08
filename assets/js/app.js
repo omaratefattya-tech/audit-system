@@ -855,6 +855,26 @@ function renderModernSidebarIcons(){
   });
 }
 
+function formatMobileDashboardDateLabel(v){
+  const d=normalizeDateISO(v||'');
+  if(!d) return '';
+  const parts=d.split('-');
+  if(parts.length!==3) return d;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+function updateMobileDashboardPeriodLabel(){
+  const node=$('#mobileDashboardPeriodLabel b');
+  if(!node) return;
+  const from=normalizeDateISO($('#dashboardFromDate')?.value || '');
+  const to=normalizeDateISO($('#dashboardToDate')?.value || '');
+  if(from && to && from===to){
+    node.textContent=`تاريخ التقرير: ${formatMobileDashboardDateLabel(from)}`;
+  }else if(from || to){
+    node.textContent=`الفترة: ${formatMobileDashboardDateLabel(from) || 'البداية'} → ${formatMobileDashboardDateLabel(to) || 'النهاية'}`;
+  }else{
+    node.textContent='تاريخ التقرير: --/--/----';
+  }
+}
 function initDashboardFilters(){
   const pf=$('#dashboardPlantFilter'), wf=$('#dashboardWarehouseFilter');
   if(!pf || !wf) return;
@@ -875,9 +895,10 @@ function initDashboardFilters(){
   }
   pf.onchange=()=>{clearUnifiedSalesRowsCache();fillWh();};
   wf.addEventListener('change',clearUnifiedSalesRowsCache);
-  ['dashboardFromDate','dashboardToDate'].forEach(id=>document.getElementById(id)?.addEventListener('change',clearUnifiedSalesRowsCache));
+  ['dashboardFromDate','dashboardToDate'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>{clearUnifiedSalesRowsCache();updateMobileDashboardPeriodLabel();}));
   fillWh();
-  $('#dashboardSearchBtn')?.addEventListener('click',()=>loadDashboardRealData({keepDates:true}));
+  updateMobileDashboardPeriodLabel();
+  $('#dashboardSearchBtn')?.addEventListener('click',()=>{updateMobileDashboardPeriodLabel();loadDashboardRealData({keepDates:true});});
   $('#dashboardResetBtn')?.addEventListener('click',()=>{
     clearUnifiedSalesRowsCache();
     pf.value='all';
@@ -885,7 +906,7 @@ function initDashboardFilters(){
     wf.value='all';
     $('#dashboardFromDate').value='';
     $('#dashboardToDate').value='';
-    loadDashboardRealData({resetDefaultDate:true});
+    loadDashboardRealData({resetDefaultDate:true}).finally(updateMobileDashboardPeriodLabel);
   });
 }
 async function getLatestSalesReportDate(){
@@ -1914,6 +1935,7 @@ async function fetchUnifiedSalesRows(filters={},options={}){
 async function loadDashboardRealData(options={}){
   if(!WarehouseDB?.ready) return;
   await ensureDashboardDefaultDate(options);
+  updateMobileDashboardPeriodLabel();
   const filters=getDashboardFilters();
   let dashboardRows=[];
   try{
@@ -1973,8 +1995,17 @@ function updateFiltersVisibility(section){
   filters.classList.toggle('filters-hidden',!shouldShow);
   filters.setAttribute('aria-hidden',shouldShow?'false':'true');
 }
+let MOBILE_DASHBOARD_SHELL_BOUND=false;
+function currentActiveSection(){
+  return $('.section.active-section')?.id || $('.nav-item.active')?.dataset.section || 'dashboard';
+}
 function updateMobileDashboardState(section){
-  document.body.classList.toggle('mobile-dashboard-active', section==='dashboard');
+  const active=section || currentActiveSection();
+  document.body.classList.toggle('mobile-dashboard-active', active==='dashboard');
+  if(active==='dashboard') updateMobileDashboardPeriodLabel();
+}
+function syncMobileDashboardShellState(){
+  updateMobileDashboardState(currentActiveSection());
 }
 function switchSection(section){
   if(!canViewSection(section)){
@@ -1986,11 +2017,73 @@ function switchSection(section){
   const target=$('#'+section);
   if(target) target.classList.add('active-section');
   updateMobileDashboardState(section);
+  closeMobileDashboardPanels();
   updateFiltersVisibility(section);
   if(section==='reports') setTimeout(()=>loadExecutiveReport(),50);
   if(section==='users') setTimeout(()=>loadUsersManagement(),50);
   if(section==='permissions') setTimeout(()=>loadPermissionsManagement(),50);
   setTimeout(()=>applyPermissionActionGuards(section),80);
+}
+function closeMobileDashboardPanels(){
+  document.body.classList.remove('mobile-dashboard-filter-open','mobile-dashboard-drawer-open');
+  $('#mobileDashboardFilterBtn')?.setAttribute('aria-expanded','false');
+  $$('.mobile-drawer-open').forEach(btn=>btn.setAttribute('aria-expanded','false'));
+  $('#mobileDashboardFilterOverlay')?.setAttribute('aria-hidden','true');
+  $('#mobileDrawerOverlay')?.setAttribute('aria-hidden','true');
+  $('#mobileDashboardDrawer')?.setAttribute('aria-hidden','true');
+}
+function openMobileDashboardFilters(){
+  document.body.classList.add('mobile-dashboard-filter-open');
+  document.body.classList.remove('mobile-dashboard-drawer-open');
+  $('#mobileDashboardFilterBtn')?.setAttribute('aria-expanded','true');
+  $('#mobileDashboardFilterOverlay')?.setAttribute('aria-hidden','false');
+}
+function openMobileDashboardDrawer(){
+  document.body.classList.add('mobile-dashboard-drawer-open');
+  document.body.classList.remove('mobile-dashboard-filter-open');
+  $$('.mobile-drawer-open').forEach(btn=>btn.setAttribute('aria-expanded','true'));
+  $('#mobileDrawerOverlay')?.setAttribute('aria-hidden','false');
+  $('#mobileDashboardDrawer')?.setAttribute('aria-hidden','false');
+}
+function initMobileDashboardShell(){
+  syncMobileDashboardShellState();
+  if(MOBILE_DASHBOARD_SHELL_BOUND) return;
+  MOBILE_DASHBOARD_SHELL_BOUND=true;
+  document.addEventListener('click',event=>{
+    const filterBtn=event.target.closest('#mobileDashboardFilterBtn');
+    if(filterBtn){
+      event.preventDefault();
+      openMobileDashboardFilters();
+      return;
+    }
+    if(event.target.closest('#mobileDashboardFilterOverlay,#mobileFilterCloseBtn')){
+      event.preventDefault();
+      closeMobileDashboardPanels();
+      return;
+    }
+    const drawerBtn=event.target.closest('.mobile-drawer-open');
+    if(drawerBtn){
+      event.preventDefault();
+      openMobileDashboardDrawer();
+      return;
+    }
+    if(event.target.closest('#mobileDrawerOverlay,.mobile-drawer-close')){
+      event.preventDefault();
+      closeMobileDashboardPanels();
+      return;
+    }
+    const drawerItem=event.target.closest('.mobile-drawer-item[data-mobile-section]');
+    if(drawerItem){
+      event.preventDefault();
+      const section=drawerItem.dataset.mobileSection;
+      if(section) switchSection(section);
+      closeMobileDashboardPanels();
+    }
+  });
+  window.addEventListener('resize',syncMobileDashboardShellState);
+}
+function initMobileDashboardControls(){
+  initMobileDashboardShell();
 }
 function nav(){
   $$('.nav-item').forEach(b=>b.onclick=()=>switchSection(b.dataset.section));
@@ -2018,7 +2111,7 @@ function initSidebarToggle(){
   };
 }
 function renderAll(){renderPlants();renderTables();renderTabs()}
-document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();initDashboardFilters();renderModernSidebarIcons();nav();initSidebarToggle();initLoginPasswordToggle();initReportExportButtons();renderAll()});
+document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();initDashboardFilters();renderModernSidebarIcons();nav();initMobileDashboardShell();initSidebarToggle();initLoginPasswordToggle();initReportExportButtons();renderAll()});
 
 // === Supabase Sales Upload + Dynamic Sales Report ===
 const SALES_WAREHOUSES = ['W401','W402','N401','N402','N411','N412','E401','E402'];
@@ -4537,6 +4630,8 @@ async function showApplication(user){
   SYSTEM_SETTINGS_LOADED_USER_ID=null;
   PLANTS_SETTINGS_LOADED=false;
   applyNavigationPermissions();
+  nav();
+  initMobileDashboardShell();
   setTimeout(()=>{
     loadSalesBatches();
     loadIncomingBatches();
