@@ -2013,7 +2013,7 @@ function initSidebarToggle(){
   };
 }
 function renderAll(){renderPlants();renderTables();renderTabs()}
-document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();initDashboardFilters();renderModernSidebarIcons();nav();initSidebarToggle();initReportExportButtons();renderAll()});
+document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();initDashboardFilters();renderModernSidebarIcons();nav();initSidebarToggle();initLoginPasswordToggle();initReportExportButtons();renderAll()});
 
 // === Supabase Sales Upload + Dynamic Sales Report ===
 const SALES_WAREHOUSES = ['W401','W402','N401','N402','N411','N412','E401','E402'];
@@ -5496,6 +5496,20 @@ function initUsersManagement(){
   });
 }
 
+function initLoginPasswordToggle(){
+  const input=$('#mainLoginPassword');
+  const btn=$('#mainLoginPasswordToggle');
+  if(!input || !btn) return;
+  const icon=btn.querySelector('span');
+  btn.addEventListener('click',()=>{
+    const show=input.type==='password';
+    input.type=show?'text':'password';
+    btn.setAttribute('aria-pressed',show?'true':'false');
+    btn.setAttribute('aria-label',show?'إخفاء كلمة المرور':'إظهار كلمة المرور');
+    if(icon) icon.textContent=show?'🙈':'👁️';
+    input.focus();
+  });
+}
 function initMainLoginGate(){
   const loginBtn=$('#mainLoginBtn');
   const emailInput=$('#mainLoginEmail');

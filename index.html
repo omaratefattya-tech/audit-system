@@ -26,11 +26,12 @@
         <input type="email" id="mainLoginEmail" placeholder="example@company.com" autocomplete="username" />
       </label>
       <label>كلمة المرور
-        <input type="password" id="mainLoginPassword" placeholder="كلمة المرور" autocomplete="current-password" />
+        <span class="login-password-wrap"><input type="password" id="mainLoginPassword" placeholder="كلمة المرور" autocomplete="current-password" /><button class="login-password-toggle" id="mainLoginPasswordToggle" type="button" aria-label="إظهار كلمة المرور" aria-pressed="false"><span aria-hidden="true">👁️</span></button></span>
       </label>
       <button class="primary login-submit" id="mainLoginBtn" type="button">تسجيل الدخول</button>
       <div class="login-status" id="mainLoginStatus">يرجى تسجيل الدخول أولاً.</div>
       <small class="login-note">Supabase Authentication</small>
+      <small class="login-author">By: Ahmed Alaa</small>
     </div>
   </section>
   <div class="app-shell app-hidden" id="appShell">
