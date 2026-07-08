@@ -1728,3 +1728,48 @@ body.modal-open{overflow:hidden;}
   body.dashboard-png-exporting #dashboard.png-capturing-now .mobile-dashboard-bottom-nav{display:none!important;}
   body.dashboard-png-exporting #dashboard.png-capturing-now #dashboardFilters{display:grid!important;}
 }
+/* Phase M2.2 - Dashboard mobile navigation refinement */
+@media (max-width: 768px){
+  body.mobile-dashboard-active #dashboard .mobile-dashboard-tabs{display:none!important;}
+  body.mobile-dashboard-active #dashboard .mobile-dashboard-filter-trigger{display:flex!important;order:1;align-items:center;gap:10px;width:100%;min-height:58px;padding:10px 12px;border:1px solid rgba(141,220,89,.24);border-radius:16px;background:linear-gradient(145deg,rgba(0,58,43,.86),rgba(0,25,21,.92));color:#f4fff5;font-family:inherit;text-align:right;box-shadow:0 10px 24px rgba(0,0,0,.24);}
+  body.mobile-dashboard-active #dashboard .mobile-dashboard-filter-trigger span:last-child{display:flex;flex-direction:column;gap:1px;min-width:0;}
+  body.mobile-dashboard-active #dashboard .mobile-dashboard-filter-trigger b{font-size:14px;line-height:1.35;}
+  body.mobile-dashboard-active #dashboard .mobile-dashboard-filter-trigger small{font-size:11px;line-height:1.35;color:#aeea9a;}
+  body.mobile-dashboard-active #dashboard .mobile-filter-icon{width:38px;height:38px;min-width:38px;border-radius:13px;display:grid;place-items:center;background:rgba(141,220,89,.12);color:#9be650;}
+  body.mobile-dashboard-active #dashboard svg{fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+  body.mobile-dashboard-active #dashboard .mobile-filter-icon svg{width:22px;height:22px;}
+  body.mobile-dashboard-active #dashboard .mobile-dashboard-stats-title{order:2;}
+  body.mobile-dashboard-active #dashboard #kpiCards.cards{order:3;}
+  body.mobile-dashboard-active #dashboard .grid-3{order:4;}
+  body.mobile-dashboard-active #dashboard .bottom-grid.executive-bottom-grid{order:5;}
+  body.mobile-dashboard-active #dashboard #dashboardFilters{display:none!important;}
+  body.mobile-dashboard-filter-open #dashboard #dashboardFilters{display:grid!important;position:fixed;left:10px;right:10px;bottom:10px;z-index:125;grid-template-columns:1fr!important;gap:10px;max-height:min(78svh,620px);overflow:auto;margin:0;padding:48px 14px 14px;border-radius:22px;background:linear-gradient(160deg,rgba(0,58,43,.98),rgba(0,22,19,.99));border:1px solid rgba(141,220,89,.32);box-shadow:0 -20px 60px rgba(0,0,0,.55);}
+  body.mobile-dashboard-filter-open #dashboard #dashboardFilters label{font-size:12px;}
+  body.mobile-dashboard-filter-open #dashboard #dashboardFilters select,
+  body.mobile-dashboard-filter-open #dashboard #dashboardFilters input{height:44px;border-radius:12px;font-size:13px;}
+  body.mobile-dashboard-filter-open #dashboard #dashboardFilters button{min-height:44px;border-radius:12px;}
+  body.mobile-dashboard-filter-open #dashboard #dashboardFilters .dashboard-full-png-btn{width:100%;}
+  body.mobile-dashboard-filter-open #dashboard .mobile-filter-close{display:grid!important;position:absolute;top:10px;left:10px;width:34px;height:34px;min-height:34px;padding:0;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-size:22px;line-height:1;place-items:center;}
+  body.mobile-dashboard-filter-open #dashboard .mobile-dashboard-filter-overlay{display:block!important;position:fixed;inset:0;z-index:120;background:rgba(0,12,10,.62);backdrop-filter:blur(5px);}
+  body.mobile-dashboard-active #dashboard .mobile-dashboard-bottom-nav{grid-template-columns:repeat(5,minmax(0,1fr));min-height:72px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));}
+  body.mobile-dashboard-active #dashboard .mobile-bottom-nav-item{height:56px;gap:4px;font-family:inherit;}
+  body.mobile-dashboard-active #dashboard .mobile-bottom-nav-item svg{width:23px;height:23px;display:block;}
+  body.mobile-dashboard-active #dashboard .mobile-bottom-nav-item b{font-size:10px;line-height:1.25;}
+  body.mobile-dashboard-active #dashboard .mobile-bottom-nav-item.active svg,
+  body.mobile-dashboard-active #dashboard .mobile-bottom-nav-item.active b{color:#9be650;}
+  body.mobile-dashboard-active #dashboard .mobile-drawer-overlay{display:none!important;}
+  body.mobile-dashboard-drawer-open #dashboard .mobile-drawer-overlay{display:block!important;position:fixed;inset:0;z-index:130;background:rgba(0,12,10,.62);backdrop-filter:blur(5px);}
+  body.mobile-dashboard-active #dashboard .mobile-side-drawer{position:fixed;top:0;right:0;bottom:0;z-index:135;width:min(86vw,330px);padding:16px 14px calc(16px + env(safe-area-inset-bottom));display:flex!important;flex-direction:column;gap:10px;background:linear-gradient(180deg,rgba(0,58,43,.98),rgba(0,18,16,.995));border-left:1px solid rgba(141,220,89,.28);box-shadow:-28px 0 70px rgba(0,0,0,.48);transform:translateX(105%);transition:transform .22s ease;overflow:auto;}
+  body.mobile-dashboard-drawer-open #dashboard .mobile-side-drawer{transform:translateX(0);}
+  body.mobile-dashboard-active #dashboard .mobile-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.10);}
+  body.mobile-dashboard-active #dashboard .mobile-drawer-head strong{font-size:18px;color:#fff;}
+  body.mobile-dashboard-active #dashboard .mobile-drawer-close{width:38px;height:38px;border-radius:13px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-size:24px;line-height:1;}
+  body.mobile-dashboard-active #dashboard .mobile-drawer-item{min-height:48px;border:1px solid rgba(141,220,89,.18);border-radius:14px;background:rgba(0,35,27,.62);color:#f4fff5;display:flex;align-items:center;gap:11px;padding:10px 12px;font-family:inherit;font-weight:900;text-align:right;}
+  body.mobile-dashboard-active #dashboard .mobile-drawer-item svg{width:23px;height:23px;min-width:23px;color:#9be650;}
+  body.mobile-dashboard-active #dashboard .mobile-drawer-item span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  body.dashboard-png-exporting #dashboard.png-capturing-now .mobile-dashboard-filter-trigger,
+  body.dashboard-png-exporting #dashboard.png-capturing-now .mobile-dashboard-filter-overlay,
+  body.dashboard-png-exporting #dashboard.png-capturing-now .mobile-drawer-overlay,
+  body.dashboard-png-exporting #dashboard.png-capturing-now .mobile-side-drawer,
+  body.dashboard-png-exporting #dashboard.png-capturing-now .mobile-filter-close{display:none!important;}
+}
