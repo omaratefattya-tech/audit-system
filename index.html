@@ -87,6 +87,34 @@
       </section>
 
       <section id="dashboard" class="section active-section">
+        <div class="mobile-dashboard-shell" style="display:none">
+          <header class="mobile-dashboard-header">
+            <div class="mobile-dashboard-user">
+              <div class="avatar mobile-dashboard-avatar" id="mobileDashboardAvatar">أ</div>
+              <div class="mobile-dashboard-user-text">
+                <strong id="mobileDashboardUserName">--</strong>
+                <small id="mobileDashboardUserRole">--</small>
+              </div>
+            </div>
+            <button class="mobile-dashboard-menu nav-item" data-section="settings" type="button" aria-label="القائمة">☰</button>
+          </header>
+          <nav class="mobile-dashboard-tabs" aria-label="اختصارات الشاشة الرئيسية">
+            <button class="mobile-dashboard-tab nav-item active" data-section="dashboard" type="button" aria-label="الرئيسية">🏠</button>
+            <button class="mobile-dashboard-tab nav-item" data-section="users" type="button" aria-label="المستخدمين">👥</button>
+            <button class="mobile-dashboard-tab nav-item" data-section="inbound" type="button" aria-label="المخازن">📦</button>
+            <button class="mobile-dashboard-tab nav-item" data-section="settings" type="button" aria-label="الحساب">◎</button>
+            <button class="mobile-dashboard-tab nav-item" data-section="reports" type="button" aria-label="الإشعارات">🔔</button>
+            <button class="mobile-dashboard-tab nav-item" data-section="settings" type="button" aria-label="القائمة">☰</button>
+          </nav>
+          <nav class="mobile-dashboard-bottom-nav" aria-label="التنقل السفلي">
+            <button class="mobile-bottom-nav-item nav-item active" data-section="dashboard" type="button"><span>🏠</span><b>الرئيسية</b></button>
+            <button class="mobile-bottom-nav-item nav-item" data-section="reports" type="button"><span>📊</span><b>التقارير</b></button>
+            <button class="mobile-bottom-nav-item nav-item" data-section="inbound" type="button"><span>📦</span><b>المخازن</b></button>
+            <button class="mobile-bottom-nav-item nav-item" data-section="users" type="button"><span>👥</span><b>المستخدمين</b></button>
+            <button class="mobile-bottom-nav-item nav-item" data-section="settings" type="button"><span>⚙</span><b>الإعدادات</b></button>
+          </nav>
+        </div>
+        <h2 class="mobile-dashboard-stats-title" style="display:none">Total Key Stats</h2>
         <section class="filters glass dashboard-filters" id="dashboardFilters">
           <label>المصنع<select id="dashboardPlantFilter"><option value="all">كل المصانع</option></select></label>
           <label>المخزن<select id="dashboardWarehouseFilter"><option value="all">كل المخازن</option></select></label>

@@ -1973,6 +1973,9 @@ function updateFiltersVisibility(section){
   filters.classList.toggle('filters-hidden',!shouldShow);
   filters.setAttribute('aria-hidden',shouldShow?'false':'true');
 }
+function updateMobileDashboardState(section){
+  document.body.classList.toggle('mobile-dashboard-active', section==='dashboard');
+}
 function switchSection(section){
   if(!canViewSection(section)){
     showPermissionDenied(section);
@@ -1982,6 +1985,7 @@ function switchSection(section){
   $$('.section').forEach(s=>s.classList.remove('active-section'));
   const target=$('#'+section);
   if(target) target.classList.add('active-section');
+  updateMobileDashboardState(section);
   updateFiltersVisibility(section);
   if(section==='reports') setTimeout(()=>loadExecutiveReport(),50);
   if(section==='users') setTimeout(()=>loadUsersManagement(),50);
@@ -1991,6 +1995,7 @@ function switchSection(section){
 function nav(){
   $$('.nav-item').forEach(b=>b.onclick=()=>switchSection(b.dataset.section));
   const active=$('.nav-item.active')?.dataset.section || 'dashboard';
+  updateMobileDashboardState(active);
   updateFiltersVisibility(active);
 }
 
@@ -3221,6 +3226,14 @@ function applyProfileToHeader(profile){
   if($('#currentUserName')) $('#currentUserName').textContent=name;
   if($('#currentUserRole')) $('#currentUserRole').textContent=job;
   paintAvatar($('#currentUserAvatar'), profile);
+  syncMobileDashboardShell(profile);
+}
+function syncMobileDashboardShell(profile){
+  const name=profile?.full_name || profile?.email || 'مستخدم';
+  const job=profile?.job_title || profile?.role || 'مستخدم';
+  if($('#mobileDashboardUserName')) $('#mobileDashboardUserName').textContent=name;
+  if($('#mobileDashboardUserRole')) $('#mobileDashboardUserRole').textContent=job;
+  paintAvatar($('#mobileDashboardAvatar'), profile);
 }
 function fillProfileForm(profile,user){
   if($('#profileFullName')) $('#profileFullName').value=profile?.full_name || '';
