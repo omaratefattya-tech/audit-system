@@ -5500,13 +5500,15 @@ function initLoginPasswordToggle(){
   const input=$('#mainLoginPassword');
   const btn=$('#mainLoginPasswordToggle');
   if(!input || !btn) return;
-  const icon=btn.querySelector('span');
+  const eyeSvg='<span class="password-icon password-icon-eye" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg></span>';
+  const eyeOffSvg='<span class="password-icon password-icon-eye-off" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"></path><path d="M10.6 10.6A3 3 0 0 0 13.4 13.4"></path><path d="M9.2 5.4A10.7 10.7 0 0 1 12 5c6 0 9.5 7 9.5 7a16 16 0 0 1-3.1 4.1"></path><path d="M6.1 6.8C3.8 8.4 2.5 12 2.5 12s3.5 7 9.5 7c1.4 0 2.7-.4 3.8-1"></path></svg></span>';
+  btn.innerHTML=eyeSvg;
   btn.addEventListener('click',()=>{
     const show=input.type==='password';
     input.type=show?'text':'password';
     btn.setAttribute('aria-pressed',show?'true':'false');
     btn.setAttribute('aria-label',show?'إخفاء كلمة المرور':'إظهار كلمة المرور');
-    if(icon) icon.textContent=show?'🙈':'👁️';
+    btn.innerHTML=show?eyeOffSvg:eyeSvg;
     input.focus();
   });
 }
