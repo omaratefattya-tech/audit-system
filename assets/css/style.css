@@ -1826,3 +1826,247 @@ body.modal-open{overflow:hidden;}
   .production-kpis,.smart-kpis{grid-template-columns:1fr !important}
   .modal-card,.users-modal-card{width:min(96vw,850px);padding:16px}
 }
+/* Mobile Home UI Redesign Phase 3A - Dashboard mobile shell only */
+.mobile-home-shell,
+.mobile-bottom-nav{display:none}
+
+@media (max-width:768px){
+  .app-shell{
+    display:block !important;
+    min-height:100vh;
+  }
+  .sidebar,
+  .mobile-sidebar-toggle,
+  .app-shell::before{
+    display:none !important;
+  }
+  body.mobile-drawer-open{overflow:auto}
+  .main{
+    padding:0 12px 96px !important;
+    min-width:0;
+    overflow-x:hidden;
+  }
+  .topbar{display:none !important}
+  .mobile-home-shell{
+    display:block;
+    position:sticky;
+    top:0;
+    z-index:80;
+    margin:0 -12px 12px;
+    padding:10px 12px 8px;
+    background:linear-gradient(180deg,rgba(0,31,25,.98),rgba(0,26,21,.92));
+    border-bottom:1px solid rgba(132,207,80,.22);
+    box-shadow:0 12px 26px rgba(0,0,0,.26);
+    backdrop-filter:blur(10px);
+  }
+  .mobile-home-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    direction:rtl;
+  }
+  .mobile-home-profile{
+    display:grid;
+    grid-template-columns:48px minmax(0,1fr);
+    align-items:center;
+    gap:10px;
+    min-width:0;
+  }
+  .mobile-home-avatar{
+    width:48px !important;
+    height:48px !important;
+    border-radius:50%;
+    border:1px solid rgba(141,220,89,.5);
+    box-shadow:0 0 0 3px rgba(141,220,89,.10),0 8px 20px rgba(0,0,0,.24);
+  }
+  .mobile-home-user-text{min-width:0;text-align:right}
+  .mobile-home-user-text strong{
+    display:block;
+    color:#f4fff5;
+    font-size:15px;
+    line-height:1.35;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .mobile-home-user-text small{
+    display:block;
+    color:#9bd653;
+    font-size:12px;
+    line-height:1.45;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .mobile-home-menu,
+  .mobile-shell-link{
+    border:0;
+    font-family:inherit;
+    color:#eaffdf;
+    cursor:pointer;
+  }
+  .mobile-home-menu{
+    flex:0 0 42px;
+    width:42px;
+    height:42px;
+    min-height:42px;
+    display:grid;
+    place-items:center;
+    border-radius:50%;
+    background:rgba(255,255,255,.075);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+  }
+  .mobile-home-menu .nav-icon,
+  .mobile-shell-link .nav-icon{
+    width:24px;
+    height:24px;
+    min-width:24px;
+    display:grid;
+    place-items:center;
+    color:currentColor;
+    background:transparent;
+    box-shadow:none;
+  }
+  .mobile-home-menu .nav-icon svg,
+  .mobile-shell-link .nav-icon svg{width:22px;height:22px;display:block}
+  .mobile-top-tabs{
+    display:flex;
+    gap:10px;
+    overflow-x:auto;
+    overflow-y:hidden;
+    margin-top:10px;
+    padding:2px 0 4px;
+    scrollbar-width:none;
+    direction:rtl;
+  }
+  .mobile-top-tabs::-webkit-scrollbar{display:none}
+  .mobile-top-tabs .mobile-shell-link{
+    flex:0 0 64px;
+    min-height:54px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    border-radius:14px;
+    background:rgba(255,255,255,.045);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.055);
+  }
+  .mobile-top-tabs .mobile-shell-link small,
+  .mobile-bottom-nav .mobile-shell-link small{
+    font-size:10px;
+    line-height:1.2;
+    font-weight:800;
+    white-space:nowrap;
+  }
+  .mobile-shell-link.active{
+    color:#9be650;
+    background:rgba(104,186,69,.16);
+    box-shadow:inset 0 0 0 1px rgba(155,230,80,.34),0 8px 22px rgba(0,0,0,.16);
+  }
+  .mobile-bottom-nav{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:95;
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:4px;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg,rgba(0,40,31,.92),rgba(0,18,15,.98));
+    border-top:1px solid rgba(132,207,80,.28);
+    box-shadow:0 -14px 34px rgba(0,0,0,.35);
+    direction:rtl;
+  }
+  .mobile-bottom-nav .mobile-shell-link{
+    min-width:0;
+    min-height:58px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    border-radius:16px;
+    background:transparent;
+  }
+  .mobile-bottom-nav .mobile-shell-link.active{background:rgba(104,186,69,.14)}
+  #dashboard{
+    display:none;
+    max-width:100%;
+    overflow-x:hidden;
+  }
+  #dashboard.active-section{display:block}
+  #dashboardFilters.dashboard-filters{
+    grid-template-columns:1fr !important;
+    margin:10px 0 12px;
+    padding:12px;
+    border-radius:16px;
+  }
+  #dashboardFilters.dashboard-filters label{font-size:12px}
+  #dashboard #kpiCards.cards{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:10px;
+  }
+  #dashboard #kpiCards .kpi{
+    min-height:118px;
+    padding:14px 12px;
+    border-radius:16px;
+  }
+  #dashboard #kpiCards .kpi h3{
+    font-size:12px;
+    line-height:1.35;
+    padding-inline-end:0;
+  }
+  #dashboard #kpiCards .kpi .num{font-size:21px;line-height:1.15}
+  #dashboard #kpiCards .kpi small{font-size:11px}
+  #dashboard #kpiCards .modern-kpi-icon{
+    width:38px;
+    height:38px;
+    left:10px;
+    bottom:10px;
+    border-radius:13px;
+  }
+  #dashboard #kpiCards .modern-kpi-icon svg{width:28px;height:28px}
+  #dashboard .grid-3,
+  #dashboard .executive-bottom-grid{
+    grid-template-columns:1fr !important;
+    gap:12px;
+  }
+  #dashboard .grid-3 .panel,
+  #dashboard .executive-bottom-grid .panel{
+    width:100%;
+    min-width:0;
+    min-height:auto;
+    border-radius:16px;
+    padding:14px 12px;
+    overflow:hidden;
+  }
+  #dashboard .grid-3 .panel h3,
+  #dashboard .executive-bottom-grid .panel h3{
+    font-size:16px;
+    line-height:1.45;
+    margin-bottom:8px;
+  }
+  #dashboard .grid-3 canvas{
+    width:100% !important;
+    max-width:100% !important;
+    height:220px !important;
+  }
+  #dashboard .line-chart-panel canvas#lineChart{height:250px !important}
+  #dashboard .rank-table-wrap,
+  #dashboard .compact-table-wrap,
+  #dashboard .sales-heatmap{
+    max-width:100%;
+    overflow-x:auto !important;
+    -webkit-overflow-scrolling:touch;
+  }
+  #dashboard .rank-table-wrap table{min-width:620px;width:max-content}
+  #dashboard .heatmap-grid,
+  #dashboard .heatmap-weekdays,
+  #dashboard .heatmap-head,
+  #dashboard .heatmap-footer{min-width:520px}
+  #dashboard .chart-clean-legend,
+  #dashboard .dashboard-donut-legend{overflow-x:auto !important;max-width:100%}
+}
