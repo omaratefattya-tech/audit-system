@@ -1989,75 +1989,28 @@ function switchSection(section){
   setTimeout(()=>applyPermissionActionGuards(section),80);
 }
 function nav(){
-  $$('.nav-item').forEach(b=>b.onclick=()=>{
-    switchSection(b.dataset.section);
-    closeMobileSidebar();
-  });
+  $$('.nav-item').forEach(b=>b.onclick=()=>switchSection(b.dataset.section));
   const active=$('.nav-item.active')?.dataset.section || 'dashboard';
   updateFiltersVisibility(active);
-}
-
-function isMobileSidebarMode(){
-  return window.matchMedia('(max-width:1100px)').matches;
-}
-
-function setMobileSidebarOpen(open){
-  const shell = $('#appShell');
-  if(!shell) return;
-  const mobileBtn = $('#mobileSidebarToggleBtn');
-  const sidebarBtn = $('#sidebarToggleBtn');
-  shell.classList.toggle('mobile-sidebar-open', open);
-  document.body.classList.toggle('mobile-drawer-open', open);
-  if(mobileBtn){
-    mobileBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    mobileBtn.textContent = open ? '\u00d7' : '\u2630';
-  }
-  if(sidebarBtn && isMobileSidebarMode()){
-    sidebarBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    sidebarBtn.textContent = open ? '\u00d7' : '\u2630';
-  }
-}
-
-function closeMobileSidebar(){
-  if(isMobileSidebarMode()) setMobileSidebarOpen(false);
 }
 
 function initSidebarToggle(){
   const shell = $('#appShell');
   const btn = $('#sidebarToggleBtn');
-  const mobileBtn = $('#mobileSidebarToggleBtn');
   if(!shell || !btn) return;
   const saved = localStorage.getItem('auditSidebarCollapsed') === '1';
-  const applyDesktop = (collapsed)=>{
+  const apply = (collapsed)=>{
     shell.classList.toggle('sidebar-collapsed', collapsed);
-    btn.textContent = collapsed ? 'â€؛' : 'âک°';
+    btn.textContent = collapsed ? '›' : '☰';
     btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
     btn.title = collapsed ? 'فتح القائمة' : 'إغلاق القائمة';
   };
-  applyDesktop(saved);
+  apply(saved);
   btn.onclick = ()=>{
-    if(isMobileSidebarMode()){
-      setMobileSidebarOpen(!shell.classList.contains('mobile-sidebar-open'));
-      return;
-    }
     const collapsed = !shell.classList.contains('sidebar-collapsed');
     localStorage.setItem('auditSidebarCollapsed', collapsed ? '1' : '0');
-    applyDesktop(collapsed);
+    apply(collapsed);
   };
-  mobileBtn?.addEventListener('click',()=>{
-    setMobileSidebarOpen(!shell.classList.contains('mobile-sidebar-open'));
-  });
-  shell.addEventListener('click',(event)=>{
-    if(isMobileSidebarMode() && shell.classList.contains('mobile-sidebar-open') && event.target === shell){
-      setMobileSidebarOpen(false);
-    }
-  });
-  document.addEventListener('keydown',(event)=>{
-    if(event.key === 'Escape') closeMobileSidebar();
-  });
-  window.addEventListener('resize',()=>{
-    if(!isMobileSidebarMode()) setMobileSidebarOpen(false);
-  });
 }
 function renderAll(){renderPlants();renderTables();renderTabs()}
 document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();initDashboardFilters();renderModernSidebarIcons();nav();initSidebarToggle();initReportExportButtons();renderAll()});
