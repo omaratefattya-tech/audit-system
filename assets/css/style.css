@@ -1773,3 +1773,17 @@ body.modal-open{overflow:hidden;}
   body.dashboard-png-exporting #dashboard.png-capturing-now .mobile-side-drawer,
   body.dashboard-png-exporting #dashboard.png-capturing-now .mobile-filter-close{display:none!important;}
 }
+/* Phase M2.4 - Dashboard mobile period and controls activation */
+@media (max-width: 768px){
+  body.mobile-dashboard-active #dashboard .mobile-dashboard-period-label{display:flex!important;order:2;align-items:center;gap:9px;width:100%;min-height:44px;padding:9px 11px;border:1px solid rgba(141,220,89,.22);border-radius:15px;background:linear-gradient(145deg,rgba(0,58,43,.62),rgba(0,24,20,.82));box-shadow:0 10px 24px rgba(0,0,0,.20),inset 0 0 0 1px rgba(255,255,255,.035);color:#f4fff5;}
+  body.mobile-dashboard-active #dashboard .mobile-dashboard-period-label span{width:32px;height:32px;min-width:32px;border-radius:11px;display:grid;place-items:center;color:#9be650;background:rgba(141,220,89,.12);}
+  body.mobile-dashboard-active #dashboard .mobile-dashboard-period-label svg{width:19px;height:19px;}
+  body.mobile-dashboard-active #dashboard .mobile-dashboard-period-label b{font-size:12.5px;line-height:1.45;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  body.mobile-dashboard-active #dashboard .mobile-dashboard-stats-title{order:3;}
+  body.mobile-dashboard-active #dashboard #kpiCards.cards{order:4;}
+  body.mobile-dashboard-active #dashboard .grid-3{order:5;}
+  body.mobile-dashboard-active #dashboard .bottom-grid.executive-bottom-grid{order:6;}
+  body.mobile-dashboard-active .main{padding-bottom:calc(112px + env(safe-area-inset-bottom));}
+  body.mobile-dashboard-active #dashboard.active-section{padding-bottom:calc(36px + env(safe-area-inset-bottom));}
+  body.dashboard-png-exporting #dashboard.png-capturing-now .mobile-dashboard-period-label{display:none!important;}
+}
