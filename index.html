@@ -96,26 +96,44 @@
                 <small id="mobileDashboardUserRole">--</small>
               </div>
             </div>
-            <button class="mobile-dashboard-menu nav-item" data-section="settings" type="button" aria-label="القائمة">☰</button>
+            <button class="mobile-dashboard-menu mobile-drawer-open" type="button" aria-label="القائمة" aria-controls="mobileDashboardDrawer" aria-expanded="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            </button>
           </header>
-          <nav class="mobile-dashboard-tabs" aria-label="اختصارات الشاشة الرئيسية">
-            <button class="mobile-dashboard-tab nav-item active" data-section="dashboard" type="button" aria-label="الرئيسية">🏠</button>
-            <button class="mobile-dashboard-tab nav-item" data-section="users" type="button" aria-label="المستخدمين">👥</button>
-            <button class="mobile-dashboard-tab nav-item" data-section="inbound" type="button" aria-label="المخازن">📦</button>
-            <button class="mobile-dashboard-tab nav-item" data-section="settings" type="button" aria-label="الحساب">◎</button>
-            <button class="mobile-dashboard-tab nav-item" data-section="reports" type="button" aria-label="الإشعارات">🔔</button>
-            <button class="mobile-dashboard-tab nav-item" data-section="settings" type="button" aria-label="القائمة">☰</button>
+          <nav class="mobile-dashboard-tabs" aria-label="اختصارات الشاشة الرئيسية" aria-hidden="true">
+            <button class="mobile-dashboard-tab nav-item active" data-section="dashboard" type="button" aria-label="الرئيسية" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/></svg></button>
+            <button class="mobile-dashboard-tab nav-item" data-section="users" type="button" aria-label="المستخدمين" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M5 21a7 7 0 0 1 14 0"/></svg></button>
+            <button class="mobile-dashboard-tab nav-item" data-section="inbound" type="button" aria-label="المخازن" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M12 4v9"/><path d="m8 9 4 4 4-4"/></svg></button>
+            <button class="mobile-dashboard-tab nav-item" data-section="settings" type="button" aria-label="الحساب" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg></button>
+            <button class="mobile-dashboard-tab nav-item" data-section="reports" type="button" aria-label="الإشعارات" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></button>
+            <button class="mobile-dashboard-tab nav-item" data-section="settings" type="button" aria-label="القائمة" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
           </nav>
+          <button class="mobile-dashboard-filter-trigger" id="mobileDashboardFilterBtn" type="button" style="display:none" aria-controls="dashboardFilters" aria-expanded="false">
+            <span class="mobile-filter-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg></span>
+            <span><b>فلترة النتائج</b><small>المصنع / المخزن / التاريخ</small></span>
+          </button>
+          <div class="mobile-dashboard-filter-overlay" id="mobileDashboardFilterOverlay" style="display:none" aria-hidden="true"></div>
           <nav class="mobile-dashboard-bottom-nav" aria-label="التنقل السفلي">
-            <button class="mobile-bottom-nav-item nav-item active" data-section="dashboard" type="button"><span>🏠</span><b>الرئيسية</b></button>
-            <button class="mobile-bottom-nav-item nav-item" data-section="reports" type="button"><span>📊</span><b>التقارير</b></button>
-            <button class="mobile-bottom-nav-item nav-item" data-section="inbound" type="button"><span>📦</span><b>المخازن</b></button>
-            <button class="mobile-bottom-nav-item nav-item" data-section="users" type="button"><span>👥</span><b>المستخدمين</b></button>
-            <button class="mobile-bottom-nav-item nav-item" data-section="settings" type="button"><span>⚙</span><b>الإعدادات</b></button>
+            <button class="mobile-bottom-nav-item nav-item active" data-section="dashboard" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-5h5v5"/></svg><b>الرئيسية</b></button>
+            <button class="mobile-bottom-nav-item nav-item" data-section="reports" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V4h14v16"/><path d="M8 17v-5M12 17V7M16 17v-8"/></svg><b>التقارير</b></button>
+            <button class="mobile-bottom-nav-item nav-item" data-section="sales" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v11H4z"/><path d="M7 7V5h10v2"/><path d="M8 12h8M8 15h5"/></svg><b>مراجعة البيع</b></button>
+            <button class="mobile-bottom-nav-item nav-item" data-section="settings" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14.2 3h-4.4l-.3 2.7a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.4-1a7 7 0 0 0 2 1.2l.3 2.7h4.4l.3-2.7a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg><b>الإعدادات</b></button>
+            <button class="mobile-bottom-nav-item mobile-drawer-open" type="button" aria-label="فتح القائمة" aria-controls="mobileDashboardDrawer" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><b>القائمة</b></button>
           </nav>
+          <div class="mobile-drawer-overlay" id="mobileDrawerOverlay" style="display:none" aria-hidden="true"></div>
+          <aside class="mobile-side-drawer" id="mobileDashboardDrawer" style="display:none" aria-hidden="true">
+            <div class="mobile-drawer-head"><strong>القائمة</strong><button class="mobile-drawer-close" type="button" aria-label="إغلاق القائمة">×</button></div>
+            <button class="mobile-drawer-item" data-mobile-section="upload" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg><span>رفع التقارير</span></button>
+            <button class="mobile-drawer-item" data-mobile-section="plants" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-4 8 4v11"/><path d="M8 20v-6h8v6"/><path d="M8 11h.01M12 11h.01M16 11h.01"/></svg><span>مصانع ومخازن</span></button>
+            <button class="mobile-drawer-item" data-mobile-section="movements" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3"/><path d="M17 17H6l3 3"/><path d="M18 7l-3 3"/><path d="M6 17l3-3"/></svg><span>الحركات المخزنية</span></button>
+            <button class="mobile-drawer-item" data-mobile-section="inbound" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M12 4v9"/><path d="m8 9 4 4 4-4"/></svg><span>مراجعة الوارد</span></button>
+            <button class="mobile-drawer-item" data-mobile-section="users" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M5 21a7 7 0 0 1 14 0"/><path d="M18 8a3 3 0 0 1 3 3"/></svg><span>إدارة المستخدمين</span></button>
+            <button class="mobile-drawer-item" data-mobile-section="permissions" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-5"/></svg><span>إدارة الصلاحيات</span></button>
+          </aside>
         </div>
         <h2 class="mobile-dashboard-stats-title" style="display:none">Total Key Stats</h2>
         <section class="filters glass dashboard-filters" id="dashboardFilters">
+          <button class="mobile-filter-close" id="mobileFilterCloseBtn" type="button" style="display:none" aria-label="إغلاق الفلاتر">×</button>
           <label>المصنع<select id="dashboardPlantFilter"><option value="all">كل المصانع</option></select></label>
           <label>المخزن<select id="dashboardWarehouseFilter"><option value="all">كل المخازن</option></select></label>
           <label>من<input type="date" id="dashboardFromDate"></label>
