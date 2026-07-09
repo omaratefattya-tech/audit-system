@@ -2052,39 +2052,75 @@ function exportMobileDashboardPng(){
 async function exportMobileKpiGroupPng(){
   const source=$('#kpiCards');
   if(!source) return;
-  const cards=[...source.querySelectorAll('.kpi')];
+  const Html2Canvas=window.html2canvas;
+  if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
+  const cards=[...source.querySelectorAll('.kpi')].slice(0,5);
   if(!cards.length) return;
   const exportBox=document.createElement('section');
-  exportBox.className='mobile-kpi-export-box';
+  exportBox.className='mobile-kpi-export-box png-capturing-now';
   exportBox.setAttribute('aria-hidden','true');
   exportBox.style.cssText=[
     'position:fixed',
     'top:0',
     'left:0',
-    'z-index:2147483647',
-    'width:1200px',
+    'z-index:-1',
+    'width:1400px',
+    'min-height:270px',
     'box-sizing:border-box',
-    'padding:26px',
+    'padding:24px',
     'direction:rtl',
-    'background:#001a15',
+    'background:radial-gradient(circle at 50% 0,#07392f 0,#001a15 45%,#00100e 100%)',
     'pointer-events:none',
+    'opacity:1',
     'overflow:visible'
   ].join(';');
+  const title=document.createElement('h2');
+  title.textContent='Total Key Stats';
+  title.style.cssText='margin:0 0 18px;color:#f4fff5;font:900 30px/1.25 Cairo,Segoe UI,Tahoma,Arial,sans-serif;text-align:left;direction:ltr;letter-spacing:0;';
   const grid=document.createElement('div');
   grid.className='cards mobile-kpi-export-grid';
-  grid.style.cssText='display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:14px!important;width:100%;overflow:visible!important;';
-  cards.slice(0,5).forEach(card=>{
+  grid.style.cssText='display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:18px!important;width:100%;overflow:visible!important;align-items:stretch;';
+  cards.forEach(card=>{
     const clone=card.cloneNode(true);
-    clone.querySelectorAll('.widget-png-btn').forEach(btn=>btn.remove());
+    clone.querySelectorAll('.widget-png-btn,.mobile-kpi-group-png-btn,.mobile-period-png-btn').forEach(btn=>btn.remove());
     clone.classList.remove('png-capturing-now');
-    clone.style.cssText='grid-column:auto!important;min-height:132px!important;padding:20px!important;border-radius:18px!important;overflow:hidden!important;';
+    clone.style.cssText='grid-column:auto!important;height:220px!important;min-height:220px!important;padding:24px 22px!important;border-radius:20px!important;overflow:hidden!important;position:relative!important;';
+    clone.querySelectorAll('*').forEach(child=>{ child.style.animation='none'; child.style.transition='none'; });
     grid.appendChild(clone);
   });
-  exportBox.appendChild(grid);
+  exportBox.append(title,grid);
   document.body.appendChild(exportBox);
+  document.body.classList.add('dashboard-png-exporting');
   try{
-    await exportDashboardElementAsPng(exportBox,'Total Key Stats');
+    if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    const rect=exportBox.getBoundingClientRect();
+    const width=Math.ceil(Math.max(exportBox.scrollWidth, rect.width, 1));
+    const height=Math.ceil(Math.max(exportBox.scrollHeight, rect.height, 1));
+    window.__lastKpiExportBoxSize={width,height,rectWidth:rect.width,rectHeight:rect.height};
+    if(width<=1 || height<=1){ alert('تعذر تحديد أبعاد صورة المؤشرات.'); return; }
+    const canvas=await Html2Canvas(exportBox,{
+      scale:2,
+      useCORS:true,
+      allowTaint:true,
+      backgroundColor:'#001a15',
+      logging:false,
+      scrollX:0,
+      scrollY:0,
+      windowWidth:width,
+      windowHeight:height,
+      width,
+      height
+    });
+    canvas.toBlob(async blob=>{
+      if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
+      await saveBlobWithPicker(blob,`${safeFileName('Total Key Stats')}.png`,'image/png');
+    },'image/png',1);
+  }catch(err){
+    console.error(err);
+    alert('تعذر تصدير صورة المؤشرات. حاول مرة أخرى.');
   }finally{
+    document.body.classList.remove('dashboard-png-exporting');
     exportBox.remove();
   }
 }
