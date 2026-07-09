@@ -2049,9 +2049,44 @@ function exportMobileDashboardPng(){
   const dashboard=$('#dashboard');
   if(dashboard) exportDashboardElementAsPng(dashboard,'الشاشة الرئيسية');
 }
-function exportMobileKpiGroupPng(){
-  const kpis=$('#kpiCards');
-  if(kpis) exportDashboardElementAsPng(kpis,'Total Key Stats');
+async function exportMobileKpiGroupPng(){
+  const source=$('#kpiCards');
+  if(!source) return;
+  const cards=[...source.querySelectorAll('.kpi')];
+  if(!cards.length) return;
+  const exportBox=document.createElement('section');
+  exportBox.className='mobile-kpi-export-box';
+  exportBox.setAttribute('aria-hidden','true');
+  exportBox.style.cssText=[
+    'position:fixed',
+    'top:0',
+    'left:0',
+    'z-index:2147483647',
+    'width:1200px',
+    'box-sizing:border-box',
+    'padding:26px',
+    'direction:rtl',
+    'background:#001a15',
+    'pointer-events:none',
+    'overflow:visible'
+  ].join(';');
+  const grid=document.createElement('div');
+  grid.className='cards mobile-kpi-export-grid';
+  grid.style.cssText='display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:14px!important;width:100%;overflow:visible!important;';
+  cards.slice(0,5).forEach(card=>{
+    const clone=card.cloneNode(true);
+    clone.querySelectorAll('.widget-png-btn').forEach(btn=>btn.remove());
+    clone.classList.remove('png-capturing-now');
+    clone.style.cssText='grid-column:auto!important;min-height:132px!important;padding:20px!important;border-radius:18px!important;overflow:hidden!important;';
+    grid.appendChild(clone);
+  });
+  exportBox.appendChild(grid);
+  document.body.appendChild(exportBox);
+  try{
+    await exportDashboardElementAsPng(exportBox,'Total Key Stats');
+  }finally{
+    exportBox.remove();
+  }
 }
 function triggerMobileDashboardLogout(){
   closeMobileDashboardPanels();
