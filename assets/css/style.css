@@ -1795,3 +1795,27 @@ body.modal-open{overflow:hidden;}
   body.dashboard-png-exporting #dashboard.png-capturing-now .mobile-dashboard-period-label,
   body.dashboard-png-exporting #dashboard.png-capturing-now .mobile-period-png-btn{display:none!important;}
 }
+/* Phase M2.6 - Dashboard mobile heatmap fit + KPI group PNG */
+@media (max-width: 768px){
+  body.mobile-dashboard-active #dashboard .mobile-dashboard-stats-title{display:flex!important;align-items:center;justify-content:space-between;gap:10px;width:100%;direction:ltr;}
+  body.mobile-dashboard-active #dashboard .mobile-dashboard-stats-title span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  body.mobile-dashboard-active #dashboard .mobile-kpi-group-png-btn{width:46px;min-width:46px;height:32px;min-height:32px;padding:0;border-radius:10px;border:1px solid rgba(141,220,89,.32);background:rgba(141,220,89,.14);color:#bdf29b;font-size:11px;font-weight:900;font-family:inherit;box-shadow:none;}
+  body.mobile-dashboard-active #dashboard .mobile-kpi-group-png-btn:active{transform:scale(.96);}
+  body.mobile-dashboard-active #dashboard .heatmap-panel{overflow:hidden;}
+  body.mobile-dashboard-active #dashboard .sales-heatmap{width:100%;max-width:100%;min-width:0;overflow-x:hidden!important;gap:7px;}
+  body.mobile-dashboard-active #dashboard .heatmap-head{grid-template-columns:auto auto minmax(28px,1fr) auto;gap:5px;font-size:9px;}
+  body.mobile-dashboard-active #dashboard .heatmap-head strong{font-size:12px;}
+  body.mobile-dashboard-active #dashboard .heatmap-head i{height:7px;}
+  body.mobile-dashboard-active #dashboard .heatmap-weekdays{width:100%;min-width:0!important;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;font-size:7.4px;line-height:1.2;}
+  body.mobile-dashboard-active #dashboard .heatmap-weekdays span{min-width:0;overflow:hidden;white-space:nowrap;text-align:center;}
+  body.mobile-dashboard-active #dashboard .heatmap-grid{width:100%;min-width:0!important;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:minmax(31px,1fr);gap:3px;min-height:198px;}
+  body.mobile-dashboard-active #dashboard .heat-cell{min-width:0;min-height:31px;border-radius:7px;gap:2px;padding:2px 1px;}
+  body.mobile-dashboard-active #dashboard .heat-cell b{font-size:10px;}
+  body.mobile-dashboard-active #dashboard .heat-cell span{font-size:7.6px;max-width:100%;overflow:hidden;text-overflow:clip;white-space:nowrap;}
+  body.mobile-dashboard-active #dashboard .heatmap-footer{gap:6px;padding-top:7px;align-items:flex-start;}
+  body.mobile-dashboard-active #dashboard .heatmap-footer b{font-size:13px;}
+  body.mobile-dashboard-active #dashboard .heatmap-footer span{font-size:9px;line-height:1.35;text-align:left;}
+  body.dashboard-png-exporting #dashboard .mobile-kpi-group-png-btn{display:none!important;}
+  body.dashboard-png-exporting #dashboard #kpiCards.png-capturing-now{width:1060px!important;max-width:1060px!important;display:grid!important;grid-template-columns:repeat(5,1fr)!important;gap:12px!important;overflow:visible!important;padding:0!important;}
+  body.dashboard-png-exporting #dashboard #kpiCards.png-capturing-now .kpi{grid-column:auto!important;min-height:118px!important;padding:18px!important;border-radius:18px!important;}
+}

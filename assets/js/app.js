@@ -2049,6 +2049,10 @@ function exportMobileDashboardPng(){
   const dashboard=$('#dashboard');
   if(dashboard) exportDashboardElementAsPng(dashboard,'الشاشة الرئيسية');
 }
+function exportMobileKpiGroupPng(){
+  const kpis=$('#kpiCards');
+  if(kpis) exportDashboardElementAsPng(kpis,'Total Key Stats');
+}
 function triggerMobileDashboardLogout(){
   closeMobileDashboardPanels();
   $('#topLogoutBtn')?.click();
@@ -2072,6 +2076,11 @@ function initMobileDashboardShell(){
     if(event.target.closest('#mobileDashboardPeriodPngBtn')){
       event.preventDefault();
       exportMobileDashboardPng();
+      return;
+    }
+    if(event.target.closest('#mobileKpiGroupPngBtn')){
+      event.preventDefault();
+      exportMobileKpiGroupPng();
       return;
     }
     if(event.target.closest('#mobileDashboardLogoutBtn')){
