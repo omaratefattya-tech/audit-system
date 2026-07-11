@@ -1,4 +1,4 @@
-function roundRect(ctx,x,y,w,h,r,fill,stroke){
+﻿function roundRect(ctx,x,y,w,h,r,fill,stroke){
   const rr=Math.min(r||0, Math.abs(w)/2, Math.abs(h)/2);
   ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.lineTo(x+w-rr,y); ctx.quadraticCurveTo(x+w,y,x+w,y+rr); ctx.lineTo(x+w,y+h-rr); ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h); ctx.lineTo(x+rr,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-rr); ctx.lineTo(x,y+rr); ctx.quadraticCurveTo(x,y,x+rr,y); ctx.closePath(); if(fill)ctx.fill(); if(stroke)ctx.stroke();
 }
@@ -3073,6 +3073,37 @@ async function handleScaleBatchAction(btn){
     await loadInboundAuditReport();
   }
 }
+
+function initMobileUploadReportUI(){
+  const select=$('#mobileUploadReportType');
+  if(select){
+    select.addEventListener('change',()=>{
+      const tab=document.querySelector(`.upload-report-tab[data-upload-tab="${select.value}"]`);
+      if(tab) tab.click();
+    });
+    document.addEventListener('click',e=>{
+      const tab=e.target.closest('.upload-report-tab[data-upload-tab]');
+      if(tab && select.value!==tab.dataset.uploadTab) select.value=tab.dataset.uploadTab;
+    });
+  }
+  const setMeta=(meta,file)=>{
+    if(!meta) return;
+    if(!file){ meta.classList.remove('has-file'); meta.innerHTML=''; return; }
+    meta.classList.add('has-file');
+    meta.innerHTML=`<b>✔ تم اختيار الملف</b><span>${escapeHtml(file.name)}</span><small>${formatFileSize(file.size)}</small>`;
+  };
+  const items=[
+    ['salesExcelInput','salesDropZone','salesMobileFileMeta'],
+    ['incomingExcelInput','incomingDropZone','incomingMobileFileMeta'],
+    ['scaleExcelInput','scaleDropZone','scaleMobileFileMeta'],
+    ['freightExcelInput','freightDropZone','freightMobileFileMeta']
+  ];
+  items.forEach(([inputId,dropId,metaId])=>{
+    const input=$('#'+inputId), drop=$('#'+dropId), meta=$('#'+metaId);
+    if(input) input.addEventListener('change',()=>setMeta(meta,input.files?.[0]));
+    if(drop) drop.addEventListener('drop',e=>setMeta(meta,e.dataTransfer?.files?.[0]));
+  });
+}
 function initScaleUploader(){
   const input=$('#scaleExcelInput'), btn=$('#pickScaleFileBtn'), dz=$('#scaleDropZone'), dateInput=$('#scaleReportDateInput');
   if(dateInput && !dateInput.value) dateInput.value=todayISO();
@@ -3381,7 +3412,7 @@ renderTables = function(){
   table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحميل'],[]);
   table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample);
 };
-document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initSalesUploader();initIncomingUploader();initScaleUploader();initFreightUploader();refreshInboundReportDates();setTimeout(()=>{loadSalesReport(activeSalesWarehouse);loadInboundAuditReport();loadDashboardRealData();},300);});
+document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initMobileUploadReportUI();initSalesUploader();initIncomingUploader();initScaleUploader();initFreightUploader();refreshInboundReportDates();setTimeout(()=>{loadSalesReport(activeSalesWarehouse);loadInboundAuditReport();loadDashboardRealData();},300);});
 
 // === Main Program Login Gate ===
 let CURRENT_AUTH_USER=null;

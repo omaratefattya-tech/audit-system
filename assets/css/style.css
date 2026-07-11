@@ -1819,3 +1819,108 @@ body.modal-open{overflow:hidden;}
   body.dashboard-png-exporting #dashboard #kpiCards.png-capturing-now{width:1060px!important;max-width:1060px!important;display:grid!important;grid-template-columns:repeat(5,1fr)!important;gap:12px!important;overflow:visible!important;padding:0!important;}
   body.dashboard-png-exporting #dashboard #kpiCards.png-capturing-now .kpi{grid-column:auto!important;min-height:118px!important;padding:18px!important;border-radius:18px!important;}
 }
+/* Phase M3.0 - Upload reports mobile-only UI */
+@media (max-width: 768px){
+  #upload.active-section{overflow-x:hidden;padding-inline:10px;padding-bottom:calc(96px + env(safe-area-inset-bottom));}
+  #upload.active-section > .panel.glass{width:100%;max-width:100%;padding:14px 12px 18px;border-radius:20px;overflow:hidden;}
+  #upload.active-section > .panel.glass > h2{margin-bottom:12px;font-size:22px;line-height:1.35;text-align:center;}
+  #upload.active-section > .panel.glass > .hint{display:none!important;}
+  #upload.active-section .upload-report-tabs{display:none!important;}
+  #upload.active-section .mobile-upload-type-field{display:flex!important;flex-direction:column;gap:8px;margin:0 0 12px;color:#f5fff1;font-weight:900;text-align:right;}
+  #upload.active-section .mobile-upload-type-field select{width:100%;min-height:50px;border:1px solid rgba(141,220,89,.34);border-radius:15px;background:rgba(0,35,27,.94);color:#fff;padding:11px 13px;font-family:inherit;font-size:14px;font-weight:800;outline:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);}
+  #upload.active-section .mobile-upload-type-field select:focus{border-color:rgba(141,220,89,.78);box-shadow:0 0 0 3px rgba(141,220,89,.13);}
+  #upload.active-section .upload-tab-panel.active{display:grid;gap:12px;width:100%;min-width:0;}
+  #upload.active-section .daily-upload-box{grid-template-columns:1fr!important;gap:10px;justify-content:stretch;margin:0 0 12px;width:100%;}
+  #upload.active-section .report-date-field{width:100%;font-size:13px;}
+  #upload.active-section .report-date-field input{width:100%;min-height:48px;border-radius:15px;font-size:14px;}
+  #upload.active-section .daily-upload-box .primary{width:100%;min-height:54px;border-radius:16px;font-size:15px;font-weight:900;}
+  #upload.active-section .drop-zone{width:100%;max-width:100%;min-height:196px;margin-top:0;padding:18px 14px;border-radius:22px;border:1px dashed rgba(141,220,89,.6);background:linear-gradient(160deg,rgba(0,58,43,.56),rgba(0,24,20,.86));display:flex;align-items:center;justify-content:center;text-align:center;font-size:0;overflow:hidden;}
+  #upload.active-section .drop-zone.drag{border-color:rgba(160,240,104,.95);box-shadow:0 0 0 3px rgba(141,220,89,.12),0 16px 38px rgba(0,0,0,.22);}
+  #upload.active-section .mobile-upload-card-content{display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:100%;font-size:14px;color:#f4fff5;}
+  #upload.active-section .mobile-upload-icon{width:58px;height:58px;border-radius:19px;display:grid;place-items:center;background:rgba(141,220,89,.12);border:1px solid rgba(141,220,89,.28);color:#9be650;}
+  #upload.active-section .mobile-upload-icon svg{width:31px;height:31px;stroke:currentColor;stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round;}
+  #upload.active-section .mobile-upload-card-content strong{font-size:16px;line-height:1.35;font-weight:900;}
+  #upload.active-section .mobile-upload-card-content em{font-style:normal;color:rgba(255,255,255,.72);font-size:13px;line-height:1.35;}
+  #upload.active-section .mobile-upload-card-content small{font-size:12px;color:rgba(223,247,218,.74);}
+  #upload.active-section .mobile-upload-selected{display:none;width:100%;margin-top:6px;padding:10px;border-radius:14px;background:rgba(0,20,17,.58);border:1px solid rgba(141,220,89,.22);gap:4px;}
+  #upload.active-section .mobile-upload-selected.has-file{display:grid;}
+  #upload.active-section .mobile-upload-selected b{color:#a6ef6b;font-size:13px;}
+  #upload.active-section .mobile-upload-selected span{font-size:12px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:center;}
+  #upload.active-section .mobile-upload-selected small{font-size:11px;color:rgba(255,255,255,.68);}
+  #upload.active-section .upload-status{font-size:13px;line-height:1.55;overflow-wrap:anywhere;}
+  #upload.active-section .history-panel{width:100%;max-width:100%;margin-top:10px;padding:12px;border-radius:18px;overflow:hidden;}
+  #upload.active-section .history-panel h3{font-size:17px;line-height:1.35;margin-bottom:10px;}
+  #upload.active-section .history-panel > .hint{display:none!important;}
+  #upload.active-section .history-panel .table-wrap{max-width:100%;overflow-x:auto;}
+  #upload.active-section #salesBatchesTable,
+  #upload.active-section #incomingBatchesTable,
+  #upload.active-section #scaleBatchesTable,
+  #upload.active-section #freightBatchesTable{display:block;width:100%;min-width:0!important;border-spacing:0;}
+  #upload.active-section #salesBatchesTable thead,
+  #upload.active-section #incomingBatchesTable thead,
+  #upload.active-section #scaleBatchesTable thead,
+  #upload.active-section #freightBatchesTable thead{display:none;}
+  #upload.active-section #salesBatchesTable tbody,
+  #upload.active-section #incomingBatchesTable tbody,
+  #upload.active-section #scaleBatchesTable tbody,
+  #upload.active-section #freightBatchesTable tbody{display:grid;gap:12px;width:100%;}
+  #upload.active-section #salesBatchesTable tr,
+  #upload.active-section #incomingBatchesTable tr,
+  #upload.active-section #scaleBatchesTable tr,
+  #upload.active-section #freightBatchesTable tr{display:grid;width:100%;gap:6px;padding:12px;border:1px solid rgba(141,220,89,.22);border-radius:17px;background:linear-gradient(145deg,rgba(0,53,39,.64),rgba(0,22,18,.86));box-shadow:0 12px 28px rgba(0,0,0,.16);}
+  #upload.active-section #salesBatchesTable tbody tr::before,
+  #upload.active-section #incomingBatchesTable tbody tr::before,
+  #upload.active-section #scaleBatchesTable tbody tr::before,
+  #upload.active-section #freightBatchesTable tbody tr::before{font-size:13px;font-weight:900;color:#a6ef6b;line-height:1.35;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.08);}
+  #upload.active-section #salesBatchesTable tbody tr::before{content:'مراجعة مبيعات المنتج التام والتحويلات المخزنية';}
+  #upload.active-section #incomingBatchesTable tbody tr::before{content:'الوارد من MB51';}
+  #upload.active-section #scaleBatchesTable tbody tr::before{content:'تقرير الميزان';}
+  #upload.active-section #freightBatchesTable tbody tr::before{content:'نولون الوارد';}
+  #upload.active-section #salesBatchesTable td,
+  #upload.active-section #incomingBatchesTable td,
+  #upload.active-section #scaleBatchesTable td,
+  #upload.active-section #freightBatchesTable td{display:grid;grid-template-columns:minmax(88px,34%) minmax(0,1fr);gap:8px;align-items:start;width:100%;padding:3px 0;border:0!important;background:transparent!important;color:#fff;text-align:right;white-space:normal;overflow-wrap:anywhere;font-size:12.5px;line-height:1.45;}
+  #upload.active-section #salesBatchesTable td::before,
+  #upload.active-section #incomingBatchesTable td::before,
+  #upload.active-section #scaleBatchesTable td::before,
+  #upload.active-section #freightBatchesTable td::before{color:rgba(223,247,218,.7);font-weight:800;}
+  #upload.active-section #salesBatchesTable td:nth-child(1)::before,
+  #upload.active-section #incomingBatchesTable td:nth-child(1)::before,
+  #upload.active-section #scaleBatchesTable td:nth-child(1)::before{content:'تاريخ التقرير';}
+  #upload.active-section #salesBatchesTable td:nth-child(2)::before,
+  #upload.active-section #incomingBatchesTable td:nth-child(2)::before,
+  #upload.active-section #scaleBatchesTable td:nth-child(2)::before,
+  #upload.active-section #freightBatchesTable td:nth-child(2)::before{content:'اسم الملف';}
+  #upload.active-section #salesBatchesTable td:nth-child(3)::before,
+  #upload.active-section #incomingBatchesTable td:nth-child(3)::before,
+  #upload.active-section #scaleBatchesTable td:nth-child(3)::before,
+  #upload.active-section #freightBatchesTable td:nth-child(3)::before{content:'عدد السطور';}
+  #upload.active-section #salesBatchesTable td:nth-child(4)::before,
+  #upload.active-section #incomingBatchesTable td:nth-child(4)::before,
+  #upload.active-section #scaleBatchesTable td:nth-child(4)::before,
+  #upload.active-section #freightBatchesTable td:nth-child(4)::before{content:'الحجم';}
+  #upload.active-section #salesBatchesTable td:nth-child(5)::before,
+  #upload.active-section #incomingBatchesTable td:nth-child(5)::before,
+  #upload.active-section #scaleBatchesTable td:nth-child(5)::before,
+  #upload.active-section #freightBatchesTable td:nth-child(5)::before{content:'اسم الرافع';}
+  #upload.active-section #salesBatchesTable td:nth-child(6)::before,
+  #upload.active-section #incomingBatchesTable td:nth-child(6)::before,
+  #upload.active-section #scaleBatchesTable td:nth-child(6)::before,
+  #upload.active-section #freightBatchesTable td:nth-child(6)::before{content:'تاريخ الرفع';}
+  #upload.active-section #salesBatchesTable td:nth-child(7)::before,
+  #upload.active-section #incomingBatchesTable td:nth-child(7)::before,
+  #upload.active-section #scaleBatchesTable td:nth-child(7)::before{content:'الإجراءات';}
+  #upload.active-section #freightBatchesTable td:nth-child(1)::before{content:'تاريخ التقرير';}
+  #upload.active-section #freightBatchesTable td:nth-child(7)::before{content:'الحالة';}
+  #upload.active-section #freightBatchesTable td:nth-child(8)::before{content:'الإجراءات';}
+  #upload.active-section #salesBatchesTable td:last-child,
+  #upload.active-section #incomingBatchesTable td:last-child,
+  #upload.active-section #scaleBatchesTable td:last-child,
+  #upload.active-section #freightBatchesTable td:last-child{display:flex;flex-wrap:wrap;gap:7px;align-items:center;justify-content:flex-start;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)!important;}
+  #upload.active-section #salesBatchesTable td:last-child::before,
+  #upload.active-section #incomingBatchesTable td:last-child::before,
+  #upload.active-section #scaleBatchesTable td:last-child::before,
+  #upload.active-section #freightBatchesTable td:last-child::before{width:100%;}
+  #upload.active-section .small-action{min-height:40px;min-width:74px;border-radius:12px;margin:0;padding:8px 10px;font-size:12px;}
+  #upload.active-section #freightRatesTable{min-width:680px;}
+}

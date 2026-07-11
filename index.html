@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -171,6 +171,15 @@
             <button class="upload-report-tab" type="button" data-upload-tab="scale">تقرير الميزان</button>
             <button class="upload-report-tab" type="button" data-upload-tab="freight">نولون الوارد</button>
           </div>
+          <label class="mobile-upload-type-field" for="mobileUploadReportType" style="display:none">
+            نوع التقرير
+            <select id="mobileUploadReportType" aria-label="نوع التقرير">
+              <option value="sales">مراجعة مبيعات المنتج التام والتحويلات المخزنية</option>
+              <option value="incoming">الوارد من MB51</option>
+              <option value="scale">تقرير الميزان</option>
+              <option value="freight">نولون الوارد</option>
+            </select>
+          </label>
 
           <div class="upload-tab-panel active" id="salesUploadPanel" data-upload-panel="sales">
             <div class="daily-upload-box">
@@ -185,6 +194,15 @@
               اختر ملف Excel للمبيعات أو اسحبه هنا
               <br>
               <small>سيتم حفظ البيانات الخام في sales_raw_transactions وربطها بتاريخ التقرير المختار.</small>
+              <div class="mobile-upload-card-content" style="display:none">
+                <span class="mobile-upload-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>
+                </span>
+                <strong>اسحب ملف Excel هنا</strong>
+                <em>أو اضغط لاختيار الملف</em>
+                <small>الحد الأقصى: 10 MB</small>
+                <div class="mobile-upload-selected" id="salesMobileFileMeta" aria-live="polite"></div>
+              </div>
             </div>
             <div class="upload-status" id="salesUploadStatus"></div>
 
@@ -208,6 +226,15 @@
               اختر ملف Excel للوارد من MB51 أو اسحبه هنا
               <br>
               <small>سيتم حفظ البيانات الخام في incoming_raw_transactions وربطها بتاريخ التقرير المختار.</small>
+              <div class="mobile-upload-card-content" style="display:none">
+                <span class="mobile-upload-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>
+                </span>
+                <strong>اسحب ملف Excel هنا</strong>
+                <em>أو اضغط لاختيار الملف</em>
+                <small>الحد الأقصى: 10 MB</small>
+                <div class="mobile-upload-selected" id="incomingMobileFileMeta" aria-live="polite"></div>
+              </div>
             </div>
             <div class="upload-status" id="incomingUploadStatus"></div>
 
@@ -231,6 +258,15 @@
               اختر ملف Excel لتقرير الميزان أو اسحبه هنا
               <br>
               <small>سيتم حفظ البيانات الخام في scale_raw_transactions وربطها بتاريخ التقرير المختار. عند توفر MB51 والميزان لنفس التاريخ يتم إنشاء مراجعة الوارد تلقائياً.</small>
+              <div class="mobile-upload-card-content" style="display:none">
+                <span class="mobile-upload-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>
+                </span>
+                <strong>اسحب ملف Excel هنا</strong>
+                <em>أو اضغط لاختيار الملف</em>
+                <small>الحد الأقصى: 10 MB</small>
+                <div class="mobile-upload-selected" id="scaleMobileFileMeta" aria-live="polite"></div>
+              </div>
             </div>
             <div class="upload-status" id="scaleUploadStatus"></div>
 
@@ -254,6 +290,15 @@
               اختر ملف Excel لنولون الوارد أو اسحبه هنا
               <br>
               <small>سيتم تحديث جدول incoming_freight_rates كمرجع ثابت لمطابقة النولون في مراجعة الوارد.</small>
+              <div class="mobile-upload-card-content" style="display:none">
+                <span class="mobile-upload-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>
+                </span>
+                <strong>اسحب ملف Excel هنا</strong>
+                <em>أو اضغط لاختيار الملف</em>
+                <small>الحد الأقصى: 10 MB</small>
+                <div class="mobile-upload-selected" id="freightMobileFileMeta" aria-live="polite"></div>
+              </div>
             </div>
             <div class="upload-status" id="freightUploadStatus"></div>
 
