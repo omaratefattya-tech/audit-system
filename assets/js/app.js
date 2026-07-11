@@ -2056,6 +2056,11 @@ async function exportMobileKpiGroupPng(){
   if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
   const cards=[...source.querySelectorAll('.kpi')].slice(0,5);
   if(!cards.length) return;
+  const from=normalizeDateISO($('#dashboardFromDate')?.value || '');
+  const to=normalizeDateISO($('#dashboardToDate')?.value || '');
+  const periodText=(from && to && from===to)
+    ? `تاريخ التقرير: ${formatMobileDashboardDateLabel(from)}`
+    : `الفترة: ${formatMobileDashboardDateLabel(from) || 'البداية'} → ${formatMobileDashboardDateLabel(to) || 'النهاية'}`;
   const exportBox=document.createElement('section');
   exportBox.className='mobile-kpi-export-box png-capturing-now';
   exportBox.setAttribute('aria-hidden','true');
@@ -2064,8 +2069,7 @@ async function exportMobileKpiGroupPng(){
     'top:0',
     'left:0',
     'z-index:-1',
-    'width:1400px',
-    'min-height:270px',
+    'width:820px',
     'box-sizing:border-box',
     'padding:24px',
     'direction:rtl',
@@ -2074,30 +2078,45 @@ async function exportMobileKpiGroupPng(){
     'opacity:1',
     'overflow:visible'
   ].join(';');
+  const header=document.createElement('header');
+  header.style.cssText='display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:0 0 18px;padding:0 0 16px;border-bottom:1px solid rgba(141,220,89,.22);';
   const title=document.createElement('h2');
   title.textContent='Total Key Stats';
-  title.style.cssText='margin:0 0 18px;color:#f4fff5;font:900 30px/1.25 Cairo,Segoe UI,Tahoma,Arial,sans-serif;text-align:left;direction:ltr;letter-spacing:0;';
+  title.style.cssText='margin:0;color:#f4fff5;font:900 30px/1.2 Cairo,Segoe UI,Tahoma,Arial,sans-serif;text-align:left;direction:ltr;letter-spacing:0;';
+  const period=document.createElement('div');
+  period.textContent=periodText;
+  period.style.cssText='margin-top:4px;color:#bdf29b;font:900 17px/1.45 Cairo,Segoe UI,Tahoma,Arial,sans-serif;text-align:right;white-space:nowrap;';
+  header.append(title,period);
   const grid=document.createElement('div');
   grid.className='cards mobile-kpi-export-grid';
-  grid.style.cssText='display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:18px!important;width:100%;overflow:visible!important;align-items:stretch;';
-  cards.forEach(card=>{
+  grid.style.cssText='display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px!important;width:100%;overflow:visible!important;align-items:stretch;';
+  cards.forEach((card,index)=>{
     const clone=card.cloneNode(true);
-    clone.querySelectorAll('.widget-png-btn,.mobile-kpi-group-png-btn,.mobile-period-png-btn').forEach(btn=>btn.remove());
+    clone.querySelectorAll('.widget-png-btn,.mobile-kpi-group-png-btn,.mobile-period-png-btn,.mobile-dashboard-shell,.mobile-dashboard-bottom-nav,.mobile-drawer-overlay,.mobile-side-drawer').forEach(el=>el.remove());
     clone.classList.remove('png-capturing-now');
-    clone.style.cssText='grid-column:auto!important;height:220px!important;min-height:220px!important;padding:24px 22px!important;border-radius:20px!important;overflow:hidden!important;position:relative!important;';
+    clone.style.cssText=[
+      index===4 ? 'grid-column:1/-1!important' : 'grid-column:auto!important',
+      index===4 ? 'height:178px!important' : 'height:188px!important',
+      index===4 ? 'min-height:178px!important' : 'min-height:188px!important',
+      'padding:22px!important',
+      'border-radius:20px!important',
+      'overflow:hidden!important',
+      'position:relative!important'
+    ].join(';');
     clone.querySelectorAll('*').forEach(child=>{ child.style.animation='none'; child.style.transition='none'; });
     grid.appendChild(clone);
   });
-  exportBox.append(title,grid);
+  exportBox.append(header,grid);
   document.body.appendChild(exportBox);
   document.body.classList.add('dashboard-png-exporting');
   try{
     if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     const rect=exportBox.getBoundingClientRect();
-    const width=Math.ceil(Math.max(exportBox.scrollWidth, rect.width, 1));
-    const height=Math.ceil(Math.max(exportBox.scrollHeight, rect.height, 1));
-    window.__lastKpiExportBoxSize={width,height,rectWidth:rect.width,rectHeight:rect.height};
+    if(rect.width<=0 || rect.height<=0){ alert('تعذر تحديد أبعاد صورة المؤشرات.'); return; }
+    const width=Math.ceil(exportBox.scrollWidth);
+    const height=Math.ceil(exportBox.scrollHeight);
+    window.__lastKpiExportBoxSize={width,height,rectWidth:rect.width,rectHeight:rect.height,layout:'2-2-1'};
     if(width<=1 || height<=1){ alert('تعذر تحديد أبعاد صورة المؤشرات.'); return; }
     const canvas=await Html2Canvas(exportBox,{
       scale:2,
