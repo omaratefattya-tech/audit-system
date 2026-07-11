@@ -6957,7 +6957,118 @@ function safeFileName(title){
   const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
   return `${String(title||'Report').replace(/[\/:*?"<>|]/g,'-')}-${stamp}`;
 }
+function reportExportDateText(value){
+  const d=normalizeDateISO(value||'');
+  if(!d) return '';
+  const parts=d.split('-');
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+function currentReportExportPeriodText(){
+  const from=normalizeDateISO($('#reportFromDate')?.value || '');
+  const to=normalizeDateISO($('#reportToDate')?.value || '');
+  if(from && to && from===to) return `تاريخ التقرير: ${reportExportDateText(from)}`;
+  if(from || to) return `الفترة: ${reportExportDateText(from) || 'البداية'} → ${reportExportDateText(to) || 'النهاية'}`;
+  return 'تاريخ التقرير: --/--/----';
+}
+function styleSalesTotalsExportCard(card){
+  card.classList.add('sales-totals-png-main-card');
+  card.style.cssText=[
+    'box-sizing:border-box',
+    'min-width:0',
+    'min-height:390px',
+    'padding:16px',
+    'border-radius:20px',
+    'border:1px solid rgba(141,220,89,.32)',
+    'background:linear-gradient(150deg,rgba(0,58,43,.88),rgba(0,24,20,.96))',
+    'box-shadow:0 18px 42px rgba(0,0,0,.26)',
+    'overflow:hidden'
+  ].join(';');
+  card.querySelectorAll('.widget-png-btn,.mobile-kpi-group-png-btn,.mobile-period-png-btn,.export-btn').forEach(el=>el.remove());
+  const head=card.querySelector('.sales-totals-row-head');
+  if(head){
+    head.style.cssText='display:flex;flex-direction:column;align-items:flex-start;gap:7px;margin:0 0 14px;padding-bottom:12px;border-bottom:1px solid rgba(141,220,89,.22);text-align:right;';
+    const title=head.querySelector('h3');
+    if(title) title.style.cssText='margin:0;color:#fff;font-size:20px;line-height:1.35;font-weight:900;';
+    const codes=head.querySelector('span');
+    if(codes) codes.style.cssText='display:block;max-width:100%;color:#a7ee73;font-size:13px;line-height:1.45;font-weight:800;direction:ltr;text-align:left;overflow-wrap:anywhere;';
+  }
+  const grid=card.querySelector('.sales-totals-kpis');
+  if(grid){
+    grid.style.cssText='display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;margin:0;';
+  }
+  card.querySelectorAll('.sales-total-kpi').forEach((kpi,idx)=>{
+    kpi.style.cssText=[
+      'box-sizing:border-box',
+      'min-width:0',
+      `min-height:${idx===4?'92':'116'}px`,
+      'padding:14px 12px',
+      'border-radius:16px',
+      'border:1px solid rgba(141,220,89,.36)',
+      'background:linear-gradient(145deg,rgba(0,62,43,.52),rgba(0,28,23,.78))',
+      'position:relative',
+      'overflow:hidden',
+      idx===4?'grid-column:1/-1':''
+    ].filter(Boolean).join(';');
+    const h=kpi.querySelector('h3');
+    if(h) h.style.cssText='margin:0 0 8px;color:#f4fff5;font-size:12px;line-height:1.45;font-weight:800;text-align:right;';
+    const num=kpi.querySelector('.num');
+    if(num) num.style.cssText='color:#fff;font-size:23px;line-height:1.1;font-weight:900;';
+    const unit=kpi.querySelector('small');
+    if(unit) unit.style.cssText='color:#d4ebd5;font-size:11px;';
+    const icon=kpi.querySelector('.icon');
+    if(icon) icon.style.cssText='position:absolute;left:10px;bottom:10px;width:38px;height:38px;border-radius:13px;display:grid;place-items:center;background:rgba(141,220,89,.12);border:1px solid rgba(141,220,89,.18);font-size:22px;opacity:.95;color:#9be650;';
+  });
+}
+async function exportSalesTotalsReportPng(){
+  const source=$('#salesTotalsRows');
+  const cards=[...(source?.querySelectorAll('.sales-totals-row-card')||[])];
+  if(!cards.length){ alert('لا توجد مجموعات لتصديرها.'); return; }
+  const Html2Canvas=window.html2canvas;
+  if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
+  const exportBox=document.createElement('section');
+  exportBox.className='sales-totals-png-export-box';
+  exportBox.dir='rtl';
+  exportBox.lang='ar';
+  exportBox.setAttribute('aria-hidden','true');
+  exportBox.style.cssText=[
+    'position:fixed','top:0','left:0','z-index:-1','width:1800px','min-height:400px','padding:28px','box-sizing:border-box',
+    'background:radial-gradient(circle at 50% 0%,rgba(94,180,71,.14),transparent 36%),linear-gradient(180deg,#00291f,#001611)',
+    'color:#fff','direction:rtl','font-family:Cairo,Arial,sans-serif','overflow:visible','pointer-events:none'
+  ].join(';');
+  const header=document.createElement('header');
+  header.style.cssText='display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid rgba(141,220,89,.28);';
+  header.innerHTML=`<h2 style="margin:0;color:#fff;font-size:32px;line-height:1.25;font-weight:900;">ملخص مبيعات المخازن</h2><p style="margin:0;color:#bdf2a0;font-size:17px;line-height:1.4;font-weight:800;">${escapeHtml(currentReportExportPeriodText())}</p>`;
+  const grid=document.createElement('div');
+  grid.className='sales-totals-png-export-grid';
+  grid.style.cssText='display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;width:100%;align-items:stretch;';
+  cards.forEach(card=>{
+    const clone=card.cloneNode(true);
+    styleSalesTotalsExportCard(clone);
+    grid.appendChild(clone);
+  });
+  exportBox.append(header,grid);
+  document.body.appendChild(exportBox);
+  try{
+    if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const rect=exportBox.getBoundingClientRect();
+    const width=Math.ceil(exportBox.scrollWidth);
+    const height=Math.ceil(exportBox.scrollHeight);
+    if(!rect.width || !rect.height || !width || !height) throw new Error('Invalid sales totals export dimensions');
+    const canvas=await Html2Canvas(exportBox,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+    canvas.toBlob(async blob=>{
+      if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
+      await saveBlobWithPicker(blob,`${safeFileName('ملخص مبيعات المخازن')}.png`,'image/png');
+    },'image/png',1);
+  }catch(err){
+    console.error(err);
+    alert('تعذر تصدير ملخص مبيعات المخازن. حاول مرة أخرى.');
+  }finally{
+    try{ exportBox.remove(); }catch(_){}
+  }
+}
 async function exportActiveReportPng(){
+  if(ACTIVE_REPORT_TAB==='salesTotals') return exportSalesTotalsReportPng();
   const rendered=await renderActiveReportCanvas();
   if(!rendered) return;
   const {canvas,info}=rendered;
@@ -7113,3 +7224,13 @@ function initExecutiveReports(){
 document.addEventListener('DOMContentLoaded',initExecutiveReports);
 document.addEventListener('DOMContentLoaded',initAuditScoreDetails);
 document.addEventListener('DOMContentLoaded',()=>{ ensureDashboardPngButtons(); setTimeout(ensureDashboardPngButtons,800); });
+
+
+
+
+
+
+
+
+
+

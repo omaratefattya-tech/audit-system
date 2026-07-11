@@ -2043,3 +2043,19 @@ body.modal-open{overflow:hidden;}
   body.mobile-reports-active #reports .exceptions-report-table-wrap table,
   body.mobile-reports-active #reports .production-top-wrap table{width:100%;}
 }
+/* Phase M4.1 - Warehouse sales summary mobile cards only */
+@media (max-width: 768px){
+  body.mobile-reports-active #reports #salesTotalsReportContent{display:flex;flex-direction:column;gap:12px;width:100%;max-width:100%;min-width:0;overflow-x:hidden;}
+  body.mobile-reports-active #reports #salesTotalsRows{display:flex;flex-direction:column;gap:14px;width:100%;max-width:100%;min-width:0;}
+  body.mobile-reports-active #reports .sales-totals-row-card{width:100%;max-width:100%;min-width:0;padding:14px 12px;border-radius:18px;border:1px solid rgba(141,220,89,.32);background:linear-gradient(150deg,rgba(0,58,43,.74),rgba(0,24,20,.92));box-shadow:0 14px 34px rgba(0,0,0,.24);overflow:hidden;}
+  body.mobile-reports-active #reports .sales-totals-row-head{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:0 0 12px;padding-bottom:11px;border-bottom:1px solid rgba(141,220,89,.20);text-align:right;}
+  body.mobile-reports-active #reports .sales-totals-row-head h3{margin:0;color:#fff;font-size:16px;line-height:1.35;font-weight:900;}
+  body.mobile-reports-active #reports .sales-totals-row-head span{display:block;max-width:100%;color:#a7ee73;font-size:11px;line-height:1.45;font-weight:800;direction:ltr;text-align:left;overflow-wrap:anywhere;}
+  body.mobile-reports-active #reports .sales-totals-kpis{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px;width:100%;max-width:100%;min-width:0;margin:0;}
+  body.mobile-reports-active #reports .sales-total-kpi{min-width:0;min-height:116px;padding:14px 12px;border-radius:16px;border:1px solid rgba(141,220,89,.36);background:linear-gradient(145deg,rgba(0,62,43,.52),rgba(0,28,23,.78));overflow:hidden;position:relative;}
+  body.mobile-reports-active #reports .sales-total-kpi h3{font-size:12px;line-height:1.45;margin:0 0 8px;padding-inline-end:2px;font-weight:800;color:#f4fff5;text-align:right;}
+  body.mobile-reports-active #reports .sales-total-kpi .num{font-size:22px;line-height:1.1;font-weight:900;color:#fff;overflow-wrap:anywhere;}
+  body.mobile-reports-active #reports .sales-total-kpi small{font-size:11px;color:#d4ebd5;}
+  body.mobile-reports-active #reports .sales-total-kpi .icon{left:10px;bottom:10px;width:38px;height:38px;border-radius:13px;display:grid;place-items:center;background:rgba(141,220,89,.12);border:1px solid rgba(141,220,89,.18);font-size:22px;opacity:.95;color:#9be650;}
+  body.mobile-reports-active #reports .sales-total-kpi:nth-child(5){grid-column:1/-1;min-height:92px;}
+}
