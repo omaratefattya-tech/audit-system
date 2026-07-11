@@ -2006,6 +2006,7 @@ function updateMobileDashboardState(section){
   document.body.classList.toggle('mobile-app-shell-active', appVisible && hasSection);
   document.body.classList.toggle('mobile-dashboard-active', appVisible && active==='dashboard');
   document.body.classList.toggle('mobile-upload-reports-active', appVisible && active==='upload');
+  document.body.classList.toggle('mobile-reports-active', appVisible && active==='reports');
   if(active==='dashboard') updateMobileDashboardPeriodLabel();
 }
 function syncMobileDashboardShellState(){
@@ -4767,7 +4768,7 @@ function setMainAuthMessage(message,type=''){
 function showLoginScreen(){
   $('#loginScreen')?.classList.remove('login-hidden');
   $('#appShell')?.classList.add('app-hidden');
-  document.body.classList.remove('mobile-app-shell-active','mobile-dashboard-active','mobile-upload-reports-active','mobile-dashboard-filter-open','mobile-dashboard-drawer-open');
+  document.body.classList.remove('mobile-app-shell-active','mobile-dashboard-active','mobile-upload-reports-active','mobile-reports-active','mobile-dashboard-filter-open','mobile-dashboard-drawer-open','mobile-reports-filter-open');
 }
 async function showApplication(user){
   CURRENT_AUTH_USER=user;
@@ -6776,8 +6777,60 @@ async function loadSalesTotalsReport(options={}){
   salesPerfLog('loadSalesTotalsReport',reportPerfStart,{sourceRows:rows.length,filteredRows:model.rows.length,groups:model.groups.length});
 }
 
+function syncMobileReportsDropdown(tab=ACTIVE_REPORT_TAB){
+  const select=$('#mobileReportsTabSelect');
+  if(select && tab && select.value!==tab) select.value=tab;
+}
+let MOBILE_REPORTS_UI_BOUND=false;
+function closeMobileReportsFilters(){
+  const filters=$('#executiveReportFilters');
+  const opener=$('#mobileReportsFilterBtn');
+  if(filters && filters.contains(document.activeElement)){
+    opener?.focus({preventScroll:true});
+  }
+  document.body.classList.remove('mobile-reports-filter-open');
+  opener?.setAttribute('aria-expanded','false');
+  $('#mobileReportsFilterOverlay')?.setAttribute('aria-hidden','true');
+}
+function openMobileReportsFilters(){
+  document.body.classList.add('mobile-reports-filter-open');
+  $('#mobileReportsFilterBtn')?.setAttribute('aria-expanded','true');
+  $('#mobileReportsFilterOverlay')?.setAttribute('aria-hidden','false');
+  setTimeout(()=>$('#mobileReportsFilterCloseBtn')?.focus({preventScroll:true}),0);
+}
+function initMobileReportsUI(){
+  const select=$('#mobileReportsTabSelect');
+  const tabs=[...document.querySelectorAll('.report-tabs .report-tab[data-report-tab]')];
+  if(select && tabs.length && !select.options.length){
+    tabs.forEach(tab=>select.add(new Option(tab.textContent.trim(),tab.dataset.reportTab)));
+    syncMobileReportsDropdown(ACTIVE_REPORT_TAB || tabs.find(t=>t.classList.contains('active'))?.dataset.reportTab || tabs[0]?.dataset.reportTab);
+  }
+  if(select && !select.dataset.bound){
+    select.dataset.bound='1';
+    select.addEventListener('change',()=>{
+      const tab=document.querySelector(`.report-tabs .report-tab[data-report-tab="${select.value}"]`);
+      if(tab) tab.click();
+    });
+  }
+  if(MOBILE_REPORTS_UI_BOUND) return;
+  MOBILE_REPORTS_UI_BOUND=true;
+  document.addEventListener('click',event=>{
+    const reportTab=event.target.closest('.report-tabs .report-tab[data-report-tab]');
+    if(reportTab) syncMobileReportsDropdown(reportTab.dataset.reportTab);
+    if(event.target.closest('#mobileReportsFilterBtn')){
+      event.preventDefault();
+      openMobileReportsFilters();
+      return;
+    }
+    if(event.target.closest('#mobileReportsFilterOverlay,#mobileReportsFilterCloseBtn')){
+      event.preventDefault();
+      closeMobileReportsFilters();
+    }
+  });
+}
 function switchReportTab(tab){
   ACTIVE_REPORT_TAB=tab;
+  syncMobileReportsDropdown(tab);
   document.querySelectorAll('[data-report-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.reportTab===tab));
   const exec=$('#executiveReportContent'), salesTotals=$('#salesTotalsReportContent'), items=$('#itemsReportContent'), warehouses=$('#warehousesReportContent'), exceptions=$('#exceptionsReportContent'), smart=$('#smartAnalyticsContent'), production=$('#productionAnalyticsContent');
   if(exec) exec.style.display=tab==='executive'?'flex':'none';
@@ -7037,6 +7090,7 @@ async function exportDashboardElementAsPng(element,title){
 
 function initExecutiveReports(){
   fillReportFilters();
+  initMobileReportsUI();
   document.querySelectorAll('[data-report-tab]').forEach(btn=>{
     if(!btn.disabled) btn.addEventListener('click',()=>switchReportTab(btn.dataset.reportTab));
   });
