@@ -2001,7 +2001,11 @@ function currentActiveSection(){
 }
 function updateMobileDashboardState(section){
   const active=section || currentActiveSection();
-  document.body.classList.toggle('mobile-dashboard-active', active==='dashboard');
+  const appVisible=!$('#appShell')?.classList.contains('app-hidden');
+  const hasSection=!!$('#'+active);
+  document.body.classList.toggle('mobile-app-shell-active', appVisible && hasSection);
+  document.body.classList.toggle('mobile-dashboard-active', appVisible && active==='dashboard');
+  document.body.classList.toggle('mobile-upload-reports-active', appVisible && active==='upload');
   if(active==='dashboard') updateMobileDashboardPeriodLabel();
 }
 function syncMobileDashboardShellState(){
@@ -2025,12 +2029,17 @@ function switchSection(section){
   setTimeout(()=>applyPermissionActionGuards(section),80);
 }
 function closeMobileDashboardPanels(){
+  const drawer=$('#mobileDashboardDrawer');
+  const opener=$('.mobile-drawer-open');
+  if(drawer && drawer.contains(document.activeElement)){
+    opener?.focus({preventScroll:true});
+  }
   document.body.classList.remove('mobile-dashboard-filter-open','mobile-dashboard-drawer-open');
   $('#mobileDashboardFilterBtn')?.setAttribute('aria-expanded','false');
-  $$('.mobile-drawer-open').forEach(btn=>btn.setAttribute('aria-expanded','false'));
+  document.querySelectorAll('.mobile-drawer-open').forEach(btn=>btn.setAttribute('aria-expanded','false'));
   $('#mobileDashboardFilterOverlay')?.setAttribute('aria-hidden','true');
   $('#mobileDrawerOverlay')?.setAttribute('aria-hidden','true');
-  $('#mobileDashboardDrawer')?.setAttribute('aria-hidden','true');
+  drawer?.setAttribute('aria-hidden','true');
 }
 function openMobileDashboardFilters(){
   document.body.classList.add('mobile-dashboard-filter-open');
@@ -2041,9 +2050,11 @@ function openMobileDashboardFilters(){
 function openMobileDashboardDrawer(){
   document.body.classList.add('mobile-dashboard-drawer-open');
   document.body.classList.remove('mobile-dashboard-filter-open');
-  $$('.mobile-drawer-open').forEach(btn=>btn.setAttribute('aria-expanded','true'));
+  document.querySelectorAll('.mobile-drawer-open').forEach(btn=>btn.setAttribute('aria-expanded','true'));
   $('#mobileDrawerOverlay')?.setAttribute('aria-hidden','false');
-  $('#mobileDashboardDrawer')?.setAttribute('aria-hidden','false');
+  const drawer=$('#mobileDashboardDrawer');
+  drawer?.setAttribute('aria-hidden','false');
+  setTimeout(()=>drawer?.querySelector('.mobile-drawer-close,.mobile-drawer-item')?.focus({preventScroll:true}),0);
 }
 function exportMobileDashboardPng(){
   const dashboard=$('#dashboard');
@@ -4756,6 +4767,7 @@ function setMainAuthMessage(message,type=''){
 function showLoginScreen(){
   $('#loginScreen')?.classList.remove('login-hidden');
   $('#appShell')?.classList.add('app-hidden');
+  document.body.classList.remove('mobile-app-shell-active','mobile-dashboard-active','mobile-upload-reports-active','mobile-dashboard-filter-open','mobile-dashboard-drawer-open');
 }
 async function showApplication(user){
   CURRENT_AUTH_USER=user;
