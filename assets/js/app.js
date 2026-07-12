@@ -614,9 +614,96 @@ async function exportTableToPdf(tableId,reportTitle){
     try{ exportLayer.remove(); }catch(_){}
   }
 }
+function formatSalesReviewExportDate(value){
+  const d=normalizeDateISO(value||'');
+  if(!d) return '';
+  const parts=d.split('-');
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+function currentSalesReviewDate(){
+  return normalizeDateISO($('#salesReportDateSelect')?.value || activeSalesReportDate || '');
+}
+function currentSalesReviewWarehouseLabel(){
+  const activeButton=$('#salesTabs button.active');
+  const code=String(activeButton?.dataset?.warehouse || activeSalesWarehouse || activeButton?.textContent || '').trim().toUpperCase();
+  const meta=warehouseMetaByCode(code);
+  return meta?.warehouse_name ? `${code} - ${meta.warehouse_name}` : (code || '-');
+}
+function prepareSalesReviewExportTable(sourceTable){
+  const clone=sourceTable.cloneNode(true);
+  clone.querySelectorAll('.column-filter-row').forEach(row=>row.remove());
+  clone.querySelectorAll('thead tr:first-child th').forEach(th=>{ th.textContent=cleanHeaderText(th.textContent); });
+  clone.querySelectorAll('input,button,select').forEach(control=>{
+    const text=cleanHeaderText(control.textContent || control.value || '');
+    control.replaceWith(document.createTextNode(text));
+  });
+  clone.removeAttribute('id');
+  clone.style.cssText='width:100%;border-collapse:collapse;table-layout:auto;font-size:18px;color:#f4fff5;direction:rtl;';
+  clone.querySelectorAll('th').forEach(th=>{
+    th.style.cssText='background:rgba(0,70,45,.92);color:#d8ffd1;border:1px solid rgba(141,220,89,.26);padding:13px 10px;text-align:center;white-space:normal;font-weight:900;line-height:1.35;';
+  });
+  clone.querySelectorAll('td').forEach(td=>{
+    td.style.cssText='border:1px solid rgba(255,255,255,.10);padding:12px 10px;text-align:center;white-space:normal;line-height:1.35;background:rgba(0,35,27,.58);';
+  });
+  clone.querySelectorAll('tfoot td').forEach(td=>{
+    td.style.background='rgba(0,74,43,.96)';
+    td.style.color='#fff';
+    td.style.fontWeight='900';
+  });
+  return clone;
+}
+async function exportSalesReviewPng(){
+  const tableEl=$('#salesTable');
+  if(!tableEl){ alert('لم يتم العثور على جدول مراجعة البيع.'); return; }
+  const rows=[...tableEl.querySelectorAll('tbody tr')].filter(row=>!row.querySelector('.empty-row'));
+  if(!rows.length){ alert('لا توجد بيانات للتصدير.'); return; }
+  const Html2Canvas=window.html2canvas;
+  if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
+  const date=currentSalesReviewDate();
+  const warehouseLabel=currentSalesReviewWarehouseLabel();
+  const warehouseCode=String(activeSalesWarehouse || $('#salesTabs button.active')?.dataset?.warehouse || 'ALL').trim().toUpperCase() || 'ALL';
+  const exportBox=document.createElement('section');
+  exportBox.className='sales-review-png-export-box';
+  exportBox.dir='rtl';
+  exportBox.lang='ar';
+  exportBox.setAttribute('aria-hidden','true');
+  exportBox.style.cssText=[
+    'position:fixed','top:0','left:0','z-index:-1','width:1600px','min-height:420px','padding:28px','box-sizing:border-box',
+    'background:radial-gradient(circle at 50% 0%,rgba(94,180,71,.14),transparent 34%),linear-gradient(180deg,#00291f,#001611)',
+    'color:#fff','direction:rtl','font-family:Cairo,Arial,sans-serif','overflow:visible','pointer-events:none'
+  ].join(';');
+  const header=document.createElement('header');
+  header.style.cssText='display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid rgba(141,220,89,.28);';
+  header.innerHTML=`<div><h2 style="margin:0 0 8px;color:#fff;font-size:34px;line-height:1.25;font-weight:900;">مراجعة البيع والتحويلات</h2><p style="margin:0;color:#bdf2a0;font-size:17px;line-height:1.5;font-weight:800;">تاريخ التقرير: ${escapeHtml(formatSalesReviewExportDate(date) || '--/--/----')}</p></div><p style="margin:0;color:#dfffd4;font-size:18px;line-height:1.5;font-weight:900;">المخزن: ${escapeHtml(warehouseLabel)}</p>`;
+  const tableWrap=document.createElement('div');
+  tableWrap.style.cssText='width:100%;overflow:visible;border:1px solid rgba(141,220,89,.22);border-radius:18px;background:rgba(0,24,20,.48);padding:12px;box-sizing:border-box;';
+  tableWrap.appendChild(prepareSalesReviewExportTable(tableEl));
+  exportBox.append(header,tableWrap);
+  document.body.appendChild(exportBox);
+  try{
+    if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const rect=exportBox.getBoundingClientRect();
+    const width=Math.ceil(exportBox.scrollWidth);
+    const height=Math.ceil(exportBox.scrollHeight);
+    if(!rect.width || !rect.height || !width || !height) throw new Error('Invalid sales review export dimensions');
+    const canvas=await Html2Canvas(exportBox,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+    canvas.toBlob(async blob=>{
+      if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
+      const fileDate=date || todayISO();
+      await saveBlobWithPicker(blob,`مراجعة-البيع-${warehouseCode}-${fileDate}.png`,'image/png');
+    },'image/png',1);
+  }catch(err){
+    console.error(err);
+    alert('تعذر تصدير مراجعة البيع PNG. حاول مرة أخرى.');
+  }finally{
+    try{ exportBox.remove(); }catch(_){}
+  }
+}
 function initReportExportButtons(){
   $('#salesExportExcelBtn')?.addEventListener('click',()=>exportTableToExcel('salesTable','مراجعة البيع والتحويلات'));
   $('#salesExportPdfBtn')?.addEventListener('click',()=>exportTableToPdf('salesTable','مراجعة البيع والتحويلات'));
+  $('#salesExportPngBtn')?.addEventListener('click',exportSalesReviewPng);
   $('#inboundExportExcelBtn')?.addEventListener('click',()=>exportTableToExcel('inboundTable','مراجعة الوارد'));
   $('#inboundExportPdfBtn')?.addEventListener('click',()=>exportTableToPdf('inboundTable','مراجعة الوارد'));
 }
@@ -7224,6 +7311,9 @@ function initExecutiveReports(){
 document.addEventListener('DOMContentLoaded',initExecutiveReports);
 document.addEventListener('DOMContentLoaded',initAuditScoreDetails);
 document.addEventListener('DOMContentLoaded',()=>{ ensureDashboardPngButtons(); setTimeout(ensureDashboardPngButtons,800); });
+
+
+
 
 
 
