@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -36,7 +36,7 @@
   </section>
   <div class="app-shell app-hidden" id="appShell">
     <aside class="sidebar" id="appSidebar">
-      <button class="sidebar-toggle" id="sidebarToggleBtn" type="button" aria-label="فتح أو إغلاق القائمة الجانبية" title="فتح أو إغلاق القائمة">☰</button>
+      <button class="sidebar-toggle" id="sidebarToggleBtn" type="button" aria-label="فتح أو إغلاق القائمة الجانبية" title="فتح أو إغلاق القائمة">?</button>
       <div class="brand">
         <img class="brand-logo" src="assets/img/logo.png" alt="شعار المصانع" />
         <div>
@@ -82,8 +82,8 @@
         <label>حالة الوارد<select id="inboundStatusFilter"><option value="all">كل الحركات</option><option value="matched">مطابق</option><option value="weight_diff">فرق وزن</option><option value="not_cleared">لم يتم التصفية</option><option value="cancelled">ملغي (101/102)</option><option value="settled_after">مستلم بعد التصفية (Z13 / 101)</option></select></label>
         <label>من<input type="date" id="fromDate"></label>
         <label>إلى<input type="date" id="toDate"></label>
-        <button class="primary" id="searchBtn">بحث 🔍</button>
-        <button class="secondary" id="resetBtn">إعادة تعيين ↻</button>
+        <button class="primary" id="searchBtn">بحث ??</button>
+        <button class="secondary" id="resetBtn">إعادة تعيين ?</button>
       </section>
 
         <div class="mobile-dashboard-shell" style="display:none">
@@ -143,8 +143,8 @@
           <label>المخزن<select id="dashboardWarehouseFilter"><option value="all">كل المخازن</option></select></label>
           <label>من<input type="date" id="dashboardFromDate"></label>
           <label>إلى<input type="date" id="dashboardToDate"></label>
-          <button class="primary" id="dashboardSearchBtn" type="button">بحث 🔍</button>
-          <button class="secondary" id="dashboardResetBtn" type="button">إعادة تعيين ↻</button>
+          <button class="primary" id="dashboardSearchBtn" type="button">بحث ??</button>
+          <button class="secondary" id="dashboardResetBtn" type="button">إعادة تعيين ?</button>
         </section>
         <div class="cards" id="kpiCards"></div>
         <div class="grid-3">
@@ -377,8 +377,8 @@
             <button class="report-tab" type="button" data-report-tab="items">تقرير الأصناف</button>
             <button class="report-tab" type="button" data-report-tab="warehouses">أداء المخازن</button>
             <button class="report-tab" type="button" data-report-tab="exceptions">الاستثناءات</button>
-            <button class="report-tab" type="button" data-report-tab="smart">🧠 التحليلات الذكية</button>
-            <button class="report-tab" type="button" data-report-tab="production">🏭 تحليلات الإنتاج</button>
+            <button class="report-tab" type="button" data-report-tab="smart">?? التحليلات الذكية</button>
+            <button class="report-tab" type="button" data-report-tab="production">?? تحليلات الإنتاج</button>
           </div>
           <label class="mobile-reports-tab-field" for="mobileReportsTabSelect" style="display:none">
             <span class="mobile-reports-select-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 20V4h14v16"/><path d="M8 17v-5M12 17V7M16 17v-8"/></svg></span>
@@ -396,8 +396,8 @@
             <label>المخزن<select id="reportWarehouseFilter"><option value="all">كل مخازن البيع</option></select></label>
             <label>من<input type="date" id="reportFromDate"></label>
             <label>إلى<input type="date" id="reportToDate"></label>
-            <button class="primary" id="reportSearchBtn" type="button">بحث 🔍</button>
-            <button class="secondary" id="reportResetBtn" type="button">إعادة تعيين ↻</button>
+            <button class="primary" id="reportSearchBtn" type="button">بحث ??</button>
+            <button class="secondary" id="reportResetBtn" type="button">إعادة تعيين ?</button>
           </section>
           <div id="executiveReportContent" class="executive-report-content">
             <div class="executive-title-card">
@@ -515,7 +515,7 @@
           <div id="productionAnalyticsContent" class="production-analytics-content report-panel-content" style="display:none">
             <div class="executive-title-card production-title-card">
               <div>
-                <h3>🏭 تحليلات الإنتاج</h3>
+                <h3>?? تحليلات الإنتاج</h3>
                 <p id="productionAnalyticsMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
               </div>
               <div class="production-title-note">تحليل شامل لإنتاج المصانع حسب الفلاتر الحالية</div>
@@ -560,7 +560,7 @@
           <div id="smartAnalyticsContent" class="smart-analytics-content report-panel-content" style="display:none">
             <div class="executive-title-card smart-title-card smart-title-actions-card">
               <div>
-                <h3>🧠 التحليلات الذكية لمراجعة المخازن</h3>
+                <h3>?? التحليلات الذكية لمراجعة المخازن</h3>
                 <p id="smartAnalyticsMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
               </div>
               <div class="smart-export-actions">
@@ -594,15 +594,15 @@
             </div>
             <div class="smart-grid-3">
               <article class="panel glass smart-panel">
-                <h3>🚨 تنبيهات ذكية</h3>
+                <h3>?? تنبيهات ذكية</h3>
                 <div id="smartAlerts" class="smart-alerts-list"></div>
               </article>
               <article class="panel glass smart-panel">
-                <h3>🏆 أعلى المؤشرات</h3>
+                <h3>?? أعلى المؤشرات</h3>
                 <div id="smartTopInsights" class="smart-top-list"></div>
               </article>
               <article class="panel glass smart-panel">
-                <h3>💡 توصيات المراجعة</h3>
+                <h3>?? توصيات المراجعة</h3>
                 <div id="smartRecommendations" class="smart-recommendations-list"></div>
               </article>
             </div>
@@ -622,29 +622,29 @@
           <div class="users-hero">
             <div>
               <div class="section-eyebrow">إدارة النظام</div>
-              <h2>إدارة المستخدمين <span class="hero-icon">👥</span></h2>
+              <h2>إدارة المستخدمين <span class="hero-icon">??</span></h2>
               <p class="hint">إدارة مستخدمي النظام وتحديد أدوارهم وحالة التفعيل. جميع المستخدمين لديهم رؤية كاملة للمصانع الثلاثة، ويتم التحكم فقط في الدور وحالة الحساب.</p>
             </div>
             <div class="users-hero-actions">
-              <button class="primary users-open-create" id="openCreateUserModalBtn" type="button">＋ مستخدم جديد</button>
-              <button class="secondary" id="refreshUsersBtn" type="button">تحديث ↻</button>
+              <button class="primary users-open-create" id="openCreateUserModalBtn" type="button">+ مستخدم جديد</button>
+              <button class="secondary" id="refreshUsersBtn" type="button">تحديث ?</button>
             </div>
           </div>
 
           <div class="users-kpi-grid">
-            <article class="users-kpi-card"><span class="users-kpi-icon blue">👥</span><b id="usersTotalCount">0</b><small>إجمالي المستخدمين</small></article>
-            <article class="users-kpi-card"><span class="users-kpi-icon green">✅</span><b id="usersActiveCount">0</b><small>المستخدمون النشطون</small></article>
-            <article class="users-kpi-card"><span class="users-kpi-icon red">⛔</span><b id="usersInactiveCount">0</b><small>المستخدمون المعطلون</small></article>
-            <article class="users-kpi-card super"><span class="users-kpi-icon gold">👑</span><b id="usersSuperCount">0</b><small>منشئ النظام</small></article>
-            <article class="users-kpi-card"><span class="users-kpi-icon purple">🛡️</span><b id="usersAdminCount">0</b><small>Admin</small></article>
-            <article class="users-kpi-card"><span class="users-kpi-icon cyan">📝</span><b id="usersAuditorCount">0</b><small>Auditor</small></article>
-            <article class="users-kpi-card"><span class="users-kpi-icon slate">👁️</span><b id="usersViewerCount">0</b><small>Viewer</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon blue">??</span><b id="usersTotalCount">0</b><small>إجمالي المستخدمين</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon green">?</span><b id="usersActiveCount">0</b><small>المستخدمون النشطون</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon red">?</span><b id="usersInactiveCount">0</b><small>المستخدمون المعطلون</small></article>
+            <article class="users-kpi-card super"><span class="users-kpi-icon gold">??</span><b id="usersSuperCount">0</b><small>منشئ النظام</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon purple">???</span><b id="usersAdminCount">0</b><small>Admin</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon cyan">??</span><b id="usersAuditorCount">0</b><small>Auditor</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon slate">???</span><b id="usersViewerCount">0</b><small>Viewer</small></article>
           </div>
 
           <div class="users-toolbar glass-soft">
-            <button class="primary users-open-create" type="button">＋ مستخدم جديد</button>
+            <button class="primary users-open-create" type="button">+ مستخدم جديد</button>
             <div class="users-search-box">
-              <span>🔍</span>
+              <span>??</span>
               <input id="usersQuickSearch" type="search" placeholder="بحث بالاسم أو البريد أو الوظيفة أو الهاتف..." />
             </div>
             <select id="usersRoleFilter" title="فلتر الدور">
@@ -746,20 +746,20 @@
           <div class="permissions-hero">
             <div>
               <span class="section-badge">أمن النظام</span>
-              <h2>إدارة الصلاحيات <span class="hero-icon">🛡️</span></h2>
+              <h2>إدارة الصلاحيات <span class="hero-icon">???</span></h2>
               <p class="hint">تحديد صلاحيات كل دور على الشاشات والإجراءات. Super Admin يملك كل الصلاحيات ولا يتم تعديله من هذه الشاشة.</p>
             </div>
             <div class="permissions-hero-actions">
-              <button class="primary" id="savePermissionsBtn" type="button">💾 حفظ الصلاحيات</button>
-              <button class="secondary" id="reloadPermissionsBtn" type="button">تحديث ↻</button>
+              <button class="primary" id="savePermissionsBtn" type="button">?? حفظ الصلاحيات</button>
+              <button class="secondary" id="reloadPermissionsBtn" type="button">تحديث ?</button>
             </div>
           </div>
 
           <div class="permissions-kpi-grid">
-            <article class="permissions-kpi-card"><span>🧩</span><b id="permissionsScreensCount">0</b><small>الشاشات</small></article>
-            <article class="permissions-kpi-card"><span>✅</span><b id="permissionsEnabledCount">0</b><small>صلاحيات مفعلة</small></article>
-            <article class="permissions-kpi-card"><span>🔒</span><b id="permissionsDisabledCount">0</b><small>صلاحيات مقفلة</small></article>
-            <article class="permissions-kpi-card"><span>👤</span><b id="permissionsSelectedRoleLabel">Admin</b><small>الدور المختار</small></article>
+            <article class="permissions-kpi-card"><span>??</span><b id="permissionsScreensCount">0</b><small>الشاشات</small></article>
+            <article class="permissions-kpi-card"><span>?</span><b id="permissionsEnabledCount">0</b><small>صلاحيات مفعلة</small></article>
+            <article class="permissions-kpi-card"><span>??</span><b id="permissionsDisabledCount">0</b><small>صلاحيات مقفلة</small></article>
+            <article class="permissions-kpi-card"><span>??</span><b id="permissionsSelectedRoleLabel">Admin</b><small>الدور المختار</small></article>
           </div>
 
           <div class="permissions-toolbar glass-soft">
@@ -771,7 +771,7 @@
               </select>
             </label>
             <div class="permissions-search-box">
-              <span>🔍</span>
+              <span>??</span>
               <input id="permissionsQuickSearch" type="search" placeholder="بحث باسم الشاشة أو الوصف..." />
             </div>
             <button class="secondary" id="permissionsSelectAllBtn" type="button">تحديد الكل</button>
@@ -1117,7 +1117,17 @@
     }
     function whPngIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 4h14v16H5z"></path><path d="M8 9h8M8 13h5M8 17h8"></path></svg>';}
     function whFileSlug(title){const text=String(title||'warehouse-widget');const pairs=[['warehouse-performance','warehouse-performance'],['الإجماليات','warehouse-total-kpis'],['ترتيب','warehouse-ranking'],['مقارنة','warehouse-comparison-chart'],['توزيع','warehouse-loading-distribution'],['البيع','warehouse-top-sales'],['الإنتاج','warehouse-top-production'],['التحميل','warehouse-top-loading'],['أقل نشاط','warehouse-low-activity'],['متوسط','warehouse-average-sales'],['جدول','warehouse-performance-table']];const hit=pairs.find(function(pair){return text.indexOf(pair[0])>-1;});return hit?hit[1]:'warehouse-widget';}
-    function whTitle(element){if(!element)return 'أداء المخازن';if(element.id==='warehousesReportKpis')return 'إجماليات أداء المخازن';return (element.querySelector('h3,span')?.textContent||element.dataset.warehouseWidgetTitle||'أداء المخازن').replace(/\s+/g,' ').trim();}
+    renderWarehousesReportKPIs=function(summary){
+      const cards=[
+        ['إجمالي البيع',summary.sales,'طن','sales','kpi-sales'],
+        ['إجمالي الإنتاج',summary.production,'طن','production','kpi-production'],
+        ['التحويلات الصادرة',summary.outgoing,'طن','outgoing','kpi-outbound kpi-outgoing'],
+        ['التحويلات الواردة',summary.incoming,'طن','incoming','kpi-inbound kpi-incoming'],
+        ['إجمالي التحميل',summary.loading,'طن','loading','kpi-loading']
+      ];
+      const node=document.querySelector('#warehousesReportKpis');
+      if(node) node.innerHTML=cards.map(function(c){return '<article class="kpi glass '+c[4]+'"><h3>'+c[0]+'</h3><div class="num">'+fmt(c[1])+'</div><small>'+c[2]+'</small><div class="icon modern-kpi-icon">'+modernIcon(c[3])+'</div></article>';}).join('');
+    };    function whTitle(element){if(!element)return 'أداء المخازن';if(element.id==='warehousesReportKpis')return 'إجماليات أداء المخازن';return (element.querySelector('h3,span')?.textContent||element.dataset.warehouseWidgetTitle||'أداء المخازن').replace(/\s+/g,' ').trim();}
     function whWidth(element){if(!element)return 900;if(element.id==='warehousesReportKpis')return 940;if(element.classList.contains('warehouse-chart-card-wide'))return 1240;if(element.classList.contains('warehouse-donut-card'))return 980;if(element.classList.contains('warehouse-report-main-card'))return 1500;if(element.classList.contains('warehouse-mini-table-card'))return 760;if(element.closest('#warehousesQuickTiles'))return 620;return 920;}
     function whCleanup(node){if(!node)return;node.querySelectorAll('.warehouse-widget-png-btn,.widget-png-btn,.mobile-kpi-group-png-btn,.mobile-period-png-btn,.mobile-only,.export-btn').forEach(function(el){el.remove();});node.querySelectorAll('[id]').forEach(function(el){el.removeAttribute('id');});node.querySelectorAll('.warehouse-rank-bars,.warehouse-mini-table,.warehouse-report-table-wrap,.rank-table-wrap,.table-wrap').forEach(function(el){el.style.overflow='visible';el.style.maxHeight='none';el.style.height='auto';});node.querySelectorAll('.warehouse-rank-bars').forEach(function(el){el.style.display='flex';el.style.flexDirection='column';});node.querySelectorAll('table').forEach(function(table){table.style.width='100%';table.style.minWidth='0';});}
     async function whWaitImages(root){const images=[].slice.call(root.querySelectorAll('img'));await Promise.all(images.map(function(img){if(img.complete&&img.naturalWidth)return Promise.resolve();return new Promise(function(resolve){img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true});});}));}
