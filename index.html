@@ -1117,17 +1117,7 @@
     }
     function whPngIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 4h14v16H5z"></path><path d="M8 9h8M8 13h5M8 17h8"></path></svg>';}
     function whFileSlug(title){const text=String(title||'warehouse-widget');const pairs=[['warehouse-performance','warehouse-performance'],['الإجماليات','warehouse-total-kpis'],['ترتيب','warehouse-ranking'],['مقارنة','warehouse-comparison-chart'],['توزيع','warehouse-loading-distribution'],['البيع','warehouse-top-sales'],['الإنتاج','warehouse-top-production'],['التحميل','warehouse-top-loading'],['أقل نشاط','warehouse-low-activity'],['متوسط','warehouse-average-sales'],['جدول','warehouse-performance-table']];const hit=pairs.find(function(pair){return text.indexOf(pair[0])>-1;});return hit?hit[1]:'warehouse-widget';}
-    renderWarehousesReportKPIs=function(summary){
-      const cards=[
-        ['إجمالي البيع',summary.sales,'طن','sales','kpi-sales'],
-        ['إجمالي الإنتاج',summary.production,'طن','production','kpi-production'],
-        ['التحويلات الصادرة',summary.outgoing,'طن','outgoing','kpi-outbound kpi-outgoing'],
-        ['التحويلات الواردة',summary.incoming,'طن','incoming','kpi-inbound kpi-incoming'],
-        ['إجمالي التحميل',summary.loading,'طن','loading','kpi-loading']
-      ];
-      const node=document.querySelector('#warehousesReportKpis');
-      if(node) node.innerHTML=cards.map(function(c){return '<article class="kpi glass '+c[4]+'"><h3>'+c[0]+'</h3><div class="num">'+fmt(c[1])+'</div><small>'+c[2]+'</small><div class="icon modern-kpi-icon">'+modernIcon(c[3])+'</div></article>';}).join('');
-    };    function whTitle(element){if(!element)return 'أداء المخازن';if(element.id==='warehousesReportKpis')return 'إجماليات أداء المخازن';return (element.querySelector('h3,span')?.textContent||element.dataset.warehouseWidgetTitle||'أداء المخازن').replace(/\s+/g,' ').trim();}
+    function whTitle(element){if(!element)return 'أداء المخازن';if(element.id==='warehousesReportKpis')return 'إجماليات أداء المخازن';return (element.querySelector('h3,span')?.textContent||element.dataset.warehouseWidgetTitle||'أداء المخازن').replace(/\s+/g,' ').trim();}
     function whWidth(element){if(!element)return 900;if(element.id==='warehousesReportKpis')return 940;if(element.classList.contains('warehouse-chart-card-wide'))return 1240;if(element.classList.contains('warehouse-donut-card'))return 980;if(element.classList.contains('warehouse-report-main-card'))return 1500;if(element.classList.contains('warehouse-mini-table-card'))return 760;if(element.closest('#warehousesQuickTiles'))return 620;return 920;}
     function whCleanup(node){if(!node)return;node.querySelectorAll('.warehouse-widget-png-btn,.widget-png-btn,.mobile-kpi-group-png-btn,.mobile-period-png-btn,.mobile-only,.export-btn').forEach(function(el){el.remove();});node.querySelectorAll('[id]').forEach(function(el){el.removeAttribute('id');});node.querySelectorAll('.warehouse-rank-bars,.warehouse-mini-table,.warehouse-report-table-wrap,.rank-table-wrap,.table-wrap').forEach(function(el){el.style.overflow='visible';el.style.maxHeight='none';el.style.height='auto';});node.querySelectorAll('.warehouse-rank-bars').forEach(function(el){el.style.display='flex';el.style.flexDirection='column';});node.querySelectorAll('table').forEach(function(table){table.style.width='100%';table.style.minWidth='0';});}
     async function whWaitImages(root){const images=[].slice.call(root.querySelectorAll('img'));await Promise.all(images.map(function(img){if(img.complete&&img.naturalWidth)return Promise.resolve();return new Promise(function(resolve){img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true});});}));}
