@@ -911,16 +911,33 @@ function modernIcon(name){
   return icons[name] || icons.reports;
 }
 
+function renderStandardKpiCard(config={}){
+  const title=escapeHtml(config.title||'');
+  const value=config.value ?? '';
+  const unit=escapeHtml(config.unit||'');
+  const icon=config.icon||'reports';
+  const className=String(config.className||'').trim();
+  const extraClass=String(config.extraClass||'').trim();
+  const classes=['kpi','glass',className,extraClass].filter(Boolean).join(' ');
+  const attributes=config.attributes||{};
+  const attrText=Object.keys(attributes).map(key=>{
+    const name=String(key).replace(/[^a-zA-Z0-9_-]/g,'');
+    if(!name) return '';
+    return ' '+name+'="'+escapeHtml(attributes[key])+'"';
+  }).join('');
+  return `<article class="${classes}"${attrText}><h3>${title}</h3><div class="num">${value}</div><small>${unit}</small><div class="icon modern-kpi-icon">${modernIcon(icon)}</div></article>`;
+}
+
 function renderDashboardKPIs(stats){
   const cards=[
-    ['إجمالي البيع',fmt(stats.salesQty),'طن','sales','kpi-sales'],
-    ['إجمالي الإنتاج',fmt(stats.productionQty),'طن','production','kpi-production'],
-    ['إجمالي التحويلات الصادره',fmt(stats.outgoingTransferQty),'طن','outgoing','kpi-outgoing'],
-    ['إجمالي التحويلات الوارده',fmt(stats.incomingTransferQty),'طن','incoming','kpi-incoming'],
-    ['إجمالي التحميل',fmt(stats.totalLoadingQty),'طن','loading','kpi-loading']
+    {title:'إجمالي البيع',value:fmt(stats.salesQty),unit:'طن',icon:'sales',className:'kpi-sales'},
+    {title:'إجمالي الإنتاج',value:fmt(stats.productionQty),unit:'طن',icon:'production',className:'kpi-production'},
+    {title:'إجمالي التحويلات الصادره',value:fmt(stats.outgoingTransferQty),unit:'طن',icon:'outgoing',className:'kpi-outgoing'},
+    {title:'إجمالي التحويلات الوارده',value:fmt(stats.incomingTransferQty),unit:'طن',icon:'incoming',className:'kpi-incoming'},
+    {title:'إجمالي التحميل',value:fmt(stats.totalLoadingQty),unit:'طن',icon:'loading',className:'kpi-loading'}
   ];
   const box=$('#kpiCards');
-  if(box) box.innerHTML=cards.map(c=>`<article class="kpi glass ${c[4]}"><h3>${c[0]}</h3><div class="num">${c[1]}</div><small>${c[2]}</small><div class="icon modern-kpi-icon">${modernIcon(c[3])}</div></article>`).join('');
+  if(box) box.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
 function getDashboardFilters(){
   return {
@@ -6032,13 +6049,13 @@ function getItemReviewScore(item){
 }
 function renderItemsReportKPIs(summary){
   const cards=[
-    ['عدد الأصناف',summary.count,'صنف','📦'],
-    ['أصناف طبيعية',summary.ok,'صنف','✅'],
-    ['تحتاج مراجعة',summary.review,'صنف','⚠️'],
-    ['بدون بيع',summary.noSales,'صنف','🚫'],
-    ['إجمالي فرق الإنتاج/البيع',summary.totalGap,'طن','↕']
+    {title:'عدد الأصناف',value:fmt(summary.count),unit:'صنف',icon:'box',className:'kpi-items-count'},
+    {title:'أصناف طبيعية',value:fmt(summary.ok),unit:'صنف',icon:'shield',className:'kpi-items-ok'},
+    {title:'تحتاج مراجعة',value:fmt(summary.review),unit:'صنف',icon:'warning',className:'kpi-items-review'},
+    {title:'بدون بيع',value:fmt(summary.noSales),unit:'صنف',icon:'doc',className:'kpi-items-no-sales'},
+    {title:'إجمالي فرق الإنتاج/البيع',value:fmt(summary.totalGap),unit:'طن',icon:'transfer',className:'kpi-items-gap'}
   ];
-  const node=$('#itemsReportKpis'); if(node) node.innerHTML=cards.map(c=>`<article class="kpi glass"><h3>${c[0]}</h3><div class="num">${fmt(c[1])}</div><small>${c[2]}</small><div class="icon">${c[3]}</div></article>`).join('');
+  const node=$('#itemsReportKpis'); if(node) node.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
 function renderItemsStatusBoard(summary){
   const node=$('#itemsStatusBoard'); if(!node) return;
@@ -6088,9 +6105,13 @@ function warehouseReportRow(w,i,totalSales){
 }
 function renderWarehousesReportKPIs(summary){
   const cards=[
-    ['إجمالي البيع',summary.sales,'طن','🛒'],['إجمالي الإنتاج',summary.production,'طن','🏭'],['التحويلات الصادرة',summary.outgoing,'طن','🚚'],['التحويلات الواردة',summary.incoming,'طن','📥'],['إجمالي التحميل',summary.loading,'طن','📦']
+    {title:'إجمالي البيع',value:fmt(summary.sales),unit:'طن',icon:'sales',className:'kpi-sales'},
+    {title:'إجمالي الإنتاج',value:fmt(summary.production),unit:'طن',icon:'production',className:'kpi-production'},
+    {title:'التحويلات الصادرة',value:fmt(summary.outgoing),unit:'طن',icon:'outgoing',className:'kpi-outgoing'},
+    {title:'التحويلات الواردة',value:fmt(summary.incoming),unit:'طن',icon:'incoming',className:'kpi-incoming'},
+    {title:'إجمالي التحميل',value:fmt(summary.loading),unit:'طن',icon:'loading',className:'kpi-loading'}
   ];
-  const node=$('#warehousesReportKpis'); if(node) node.innerHTML=cards.map(c=>`<article class="kpi glass"><h3>${c[0]}</h3><div class="num">${fmt(c[1])}</div><small>${c[2]}</small><div class="icon">${c[3]}</div></article>`).join('');
+  const node=$('#warehousesReportKpis'); if(node) node.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
 function drawWarehousesReportChart(warehouses){
   const canvas=$('#warehousesReportChart'); if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
@@ -6230,14 +6251,14 @@ function flattenExceptions(items){
 }
 function renderExceptionsKPIs(summary){
   const cards=[
-    ['إجمالي الاستثناءات',summary.total,'حالة','🚨'],
-    ['أولوية عالية',summary.high,'حالة','🔴'],
-    ['أولوية متوسطة',summary.medium,'حالة','🟠'],
-    ['أصناف متأثرة',summary.items,'صنف','📦'],
-    ['أكبر فرق إنتاج/بيع',summary.maxGap,'طن','↕']
+    {title:'إجمالي الاستثناءات',value:fmt(summary.total),unit:'حالة',icon:'warning',className:'kpi-exceptions-total'},
+    {title:'أولوية عالية',value:fmt(summary.high),unit:'حالة',icon:'shield',className:'kpi-exceptions-high'},
+    {title:'أولوية متوسطة',value:fmt(summary.medium),unit:'حالة',icon:'reports',className:'kpi-exceptions-medium'},
+    {title:'أصناف متأثرة',value:fmt(summary.items),unit:'صنف',icon:'box',className:'kpi-exceptions-items'},
+    {title:'أكبر فرق إنتاج/بيع',value:fmt(summary.maxGap),unit:'طن',icon:'transfer',className:'kpi-exceptions-gap'}
   ];
   const node=$('#exceptionsReportKpis');
-  if(node) node.innerHTML=cards.map(c=>`<article class="kpi glass"><h3>${c[0]}</h3><div class="num">${fmt(c[1])}</div><small>${c[2]}</small><div class="icon">${c[3]}</div></article>`).join('');
+  if(node) node.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
 function drawExceptionsChart(summary){
   const canvas=$('#exceptionsReportChart'); if(!canvas) return;
@@ -6396,15 +6417,15 @@ function renderSmartKpiCards(model){
   const items=(model?.products||[]).length;
   const audit=model?.auditScores||{overall:100,status:{label:'ممتاز'},critical:0};
   const cards=[
-    ['الصحة العامة للمراجعة',audit.overall||0,`${audit.status?.label||''} - ${audit.critical||0} حرجة`,'🛡️','audit-health','overall'],
-    ['إجمالي البيع',stats.salesQty||0,'طن','🛒','','sales'],
-    ['إجمالي الإنتاج',stats.productionQty||0,'طن','🏭','','production'],
-    ['فرق الإنتاج / البيع',gap,'طن',gap>=0?'🟢':'🟡','','balance'],
-    ['عدد الاستثناءات',exc,'حالة','⚠️','','exceptions'],
-    ['الأصناف النشطة',items,'صنف','📦','','items'],
-    ['المخازن النشطة',wh,'مخزن','🏪','','warehouses']
+    {title:'الصحة العامة للمراجعة',value:Math.round(audit.overall||0)+'%',unit:`${audit.status?.label||''} - ${audit.critical||0} حرجة`,icon:'shield',className:'kpi-smart-health',extraClass:'smart-kpi-card audit-health',attributes:{'data-audit-score-target':'overall'}},
+    {title:'إجمالي البيع',value:fmt(stats.salesQty||0),unit:'طن',icon:'sales',className:'kpi-sales',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'sales'}},
+    {title:'إجمالي الإنتاج',value:fmt(stats.productionQty||0),unit:'طن',icon:'production',className:'kpi-production',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'production'}},
+    {title:'فرق الإنتاج / البيع',value:fmt(gap),unit:'طن',icon:'transfer',className:'kpi-smart-balance',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'balance'}},
+    {title:'عدد الاستثناءات',value:fmt(exc),unit:'حالة',icon:'warning',className:'kpi-smart-exceptions',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'exceptions'}},
+    {title:'الأصناف النشطة',value:fmt(items),unit:'صنف',icon:'box',className:'kpi-smart-items',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'items'}},
+    {title:'المخازن النشطة',value:fmt(wh),unit:'مخزن',icon:'warehouses',className:'kpi-smart-warehouses',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'warehouses'}}
   ];
-  node.innerHTML=cards.map(c=>`<article class="kpi glass smart-kpi-card ${c[4]||''}" data-audit-score-target="${escapeHtml(c[5]||'overall')}"><h3>${escapeHtml(c[0])}</h3><div class="num">${c[4]?Math.round(c[1])+'%':fmt(c[1])}</div><small>${escapeHtml(c[2])}</small><div class="icon">${c[3]}</div></article>`).join('');
+  node.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
 function drawSmartMixChart(model){
   const canvas=$('#smartMixChart'); if(!canvas) return;
