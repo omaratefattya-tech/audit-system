@@ -1166,6 +1166,31 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 .report-exporting .hidden-export-table{
   display:none !important;
 }
+.items-report-content.report-exporting .item-report-summary.report-kpis .kpi{
+  display:grid;
+  grid-template-rows:auto minmax(48px,1fr) auto;
+  row-gap:16px;
+  min-height:176px;
+  padding:28px 32px 88px;
+}
+.items-report-content.report-exporting .item-report-summary.report-kpis .kpi h3{
+  margin:0 0 8px;
+}
+.items-report-content.report-exporting .item-report-summary.report-kpis .kpi .num{
+  align-self:center;
+  justify-self:center;
+  width:100%;
+  margin:0;
+  text-align:center;
+}
+.items-report-content.report-exporting .item-report-summary.report-kpis .kpi small{
+  margin:4px 0 0;
+  text-align:center;
+}
+.items-report-content.report-exporting .item-report-summary.report-kpis .kpi .modern-kpi-icon{
+  left:26px;
+  bottom:24px;
+}
 
 
 /* Universal table search + sort engine */
