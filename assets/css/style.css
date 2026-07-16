@@ -2069,7 +2069,7 @@ body.modal-open{overflow:hidden;}
   body.mobile-reports-active #reports #warehousesReportKpis .kpi .num{font-size:22px;line-height:1.1;font-weight:900;color:#fff;overflow-wrap:anywhere;}
   body.mobile-reports-active #reports #warehousesReportKpis .kpi small{font-size:11px;color:#d4ebd5;}
   body.mobile-reports-active #reports #warehousesReportKpis .kpi .icon{left:10px;bottom:10px;width:38px;height:38px;border-radius:13px;display:grid;place-items:center;background:rgba(141,220,89,.12);border:1px solid rgba(141,220,89,.18);font-size:22px;opacity:.95;color:#9be650;}
-  body.mobile-reports-active #reports #warehousesReportKpis .kpi:nth-child(5){grid-column:1/-1;min-height:92px;}
+  body.mobile-reports-active #reports #warehousesReportKpis .kpi:nth-of-type(5){grid-column:1/-1;min-height:92px;}
   body.mobile-reports-active #reports #warehousesReportContent .warehouse-report-performance-layout{display:grid!important;grid-template-columns:1fr!important;gap:12px;width:100%;max-width:100%;min-width:0;}
   body.mobile-reports-active #reports #warehousesReportContent .warehouse-ranking-card{min-height:auto;padding:14px 12px;border-radius:16px;overflow:visible;}
   body.mobile-reports-active #reports #warehousesReportContent .warehouse-ranking-card h3{font-size:16px;line-height:1.4;margin-bottom:10px;}
@@ -2187,7 +2187,7 @@ body.modal-open{overflow:hidden;}
   body.mobile-reports-active #reports #warehousesReportKpis .kpi .num{font-size:22px;line-height:1.1;font-weight:900;color:inherit;overflow-wrap:anywhere;}
   body.mobile-reports-active #reports #warehousesReportKpis .kpi small{font-size:11px;color:#d4ebd5;}
   body.mobile-reports-active #reports #warehousesReportKpis .kpi .icon{left:10px;bottom:10px;width:38px;height:38px;border-radius:13px;display:grid;place-items:center;background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.14),rgba(255,255,255,.035) 54%,rgba(0,0,0,.05));box-shadow:inset 0 0 18px rgba(255,255,255,.04),0 10px 28px rgba(0,0,0,.18);border:0;font-size:22px;opacity:1;color:#86c846;}
-  body.mobile-reports-active #reports #warehousesReportKpis .kpi:nth-child(n+5){grid-column:1/-1;min-height:92px;}
+  body.mobile-reports-active #reports #warehousesReportKpis .kpi:nth-of-type(5){grid-column:1/-1;min-height:92px;}
 }
 
 .warehouse-performance-export-node.warehouse-chart-card-wide{width:100%!important;max-width:100%!important;min-height:0!important;height:auto!important;overflow:hidden!important;display:block!important;box-sizing:border-box!important;}
@@ -2231,7 +2231,7 @@ body.modal-open{overflow:hidden;}
   body.mobile-reports-active #reports #exceptionsReportKpis .kpi .modern-kpi-icon svg,
   body.mobile-reports-active #reports #smartKpiCards .kpi .modern-kpi-icon svg{width:28px;height:28px;}
   body.mobile-reports-active #reports #itemsReportKpis .kpi:nth-child(5),
-  body.mobile-reports-active #reports #warehousesReportKpis .kpi:nth-child(5),
+  body.mobile-reports-active #reports #warehousesReportKpis .kpi:nth-of-type(5),
   body.mobile-reports-active #reports #exceptionsReportKpis .kpi:nth-child(5),
   body.mobile-reports-active #reports #smartKpiCards .kpi:nth-child(7){grid-column:1/-1;min-height:92px;}
 }
