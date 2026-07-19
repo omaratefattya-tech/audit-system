@@ -113,8 +113,18 @@ function fillPlantSelectFromCatalog(select,allLabel){
   getPlantsCatalog().forEach(p=>select.add(new Option(p.code+' - '+p.name,p.code)));
   select.value=[...select.options].some(o=>o.value===current)?current:'all';
 }
+function fillInboundPlantFilter(select){
+  if(!select) return;
+  const current=select.value||'all';
+  const plants=getPlantsCatalog();
+  const source=plants.length?plants:fallbackPlantsCatalog();
+  select.innerHTML='';
+  select.add(new Option('\u0627\u0644\u0643\u0644','all'));
+  source.forEach(p=>select.add(new Option(`${p.code} - ${p.name}`,p.code)));
+  select.value=[...select.options].some(o=>o.value===current)?current:'all';
+}
 function refreshPlantsCatalogConsumers(){
-  fillPlantSelectFromCatalog($('#plantFilter'),'\u0627\u0644\u0643\u0644');
+  fillInboundPlantFilter($('#plantFilter'));
   fillPlantSelectFromCatalog($('#dashboardPlantFilter'),'\u0643\u0644 \u0627\u0644\u0645\u0635\u0627\u0646\u0639');
   fillPlantSelectFromCatalog($('#reportPlantFilter'),'\u0643\u0644 \u0627\u0644\u0645\u0635\u0627\u0646\u0639');
   renderPlants();
@@ -123,7 +133,7 @@ function refreshPlantsCatalogConsumers(){
 function initFilters(){
   const pf=$('#plantFilter'),wf=$('#warehouseFilter'),typeFilter=$('#warehouseTypeFilter'),movementFilter=$('#movementFilter'),statusFilter=$('#inboundStatusFilter'),fromDate=$('#fromDate'),toDate=$('#toDate');
   if(!pf || !wf) return;
-  getPlantsCatalog().forEach(p=>pf.add(new Option(`${p.code} - ${p.name}`,p.code)));
+  fillInboundPlantFilter(pf);
   function fillWh(){
     wf.innerHTML='<option value="all">الكل</option>';
     APP_DATA.plants
@@ -145,7 +155,7 @@ function initFilters(){
     if(typeFilter && saved.warehouseType) typeFilter.value=saved.warehouseType;
     fillWh();
     if(saved.warehouse && [...wf.options].some(o=>o.value===saved.warehouse)) wf.value=saved.warehouse;
-    if(movementFilter && saved.movement) movementFilter.value=String(saved.movement).toLowerCase();
+    if(movementFilter && saved.movement) movementFilter.value=String(saved.movement).toUpperCase();
     if(statusFilter && saved.status) statusFilter.value=saved.status;
     if(fromDate && saved.from) fromDate.value=saved.from;
     if(toDate && saved.to) toDate.value=saved.to;
@@ -162,10 +172,7 @@ function initFilters(){
     fillWh();
     if(movementFilter) movementFilter.value='all';
     if(statusFilter) statusFilter.value='all';
-    if(fromDate) fromDate.value='';
-    if(toDate) toDate.value='';
-    const dateSelect=$('#inboundReportDateSelect');
-    if(dateSelect) dateSelect.value='';
+    if(fromDate || toDate) setDefaultDates();
     clearSavedInboundFilters();
     runInboundFilter();
   };
@@ -230,6 +237,12 @@ function getInboundMovementStatus(row){
   if(weightDiff) return 'weight_diff';
   if(matched) return 'matched';
   return 'all';
+}
+function setInboundTopDateRange(date){
+  const value=normalizeDateISO(date||'');
+  const fromDate=$('#fromDate'), toDate=$('#toDate');
+  if(fromDate) fromDate.value=value;
+  if(toDate) toDate.value=value;
 }
 function getInboundTopFilters(){
   return {
@@ -2796,8 +2809,8 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
   });
   if(results.length) await insertChunks('incoming_audit_results',results,300);
   if(targetStatus){ targetStatus.className='upload-status ok'; targetStatus.textContent=`تم إنشاء نتائج مراجعة الوارد تلقائياً: ${results.length} سطر لتاريخ ${reportDate}.`; }
-  await refreshInboundReportDates(reportDate);
-  await loadInboundAuditReport(reportDate);
+  await refreshInboundReportDates();
+  await loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});
   return {built:true,count:results.length};
 }
 
@@ -3058,8 +3071,10 @@ async function handleIncomingBatchAction(btn){
   const date=btn.dataset.date || '';
   if(action==='view'){
     switchSection('inbound');
-    await refreshInboundReportDates(date);
-    await loadInboundAuditReport(date);
+    setInboundTopDateRange(date);
+    saveInboundFilters(getInboundTopFilters());
+    await refreshInboundReportDates();
+    await loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});
   }
   if(action==='replace'){
     if($('#incomingReportDateInput')) $('#incomingReportDateInput').value=date;
@@ -3169,8 +3184,10 @@ async function handleScaleBatchAction(btn){
   const date=btn.dataset.date || '';
   if(action==='view'){
     switchSection('inbound');
-    await refreshInboundReportDates(date);
-    await loadInboundAuditReport(date);
+    setInboundTopDateRange(date);
+    saveInboundFilters(getInboundTopFilters());
+    await refreshInboundReportDates();
+    await loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});
   }
   if(action==='replace'){
     if($('#scaleReportDateInput')) $('#scaleReportDateInput').value=date;
@@ -3186,7 +3203,7 @@ async function handleScaleBatchAction(btn){
     await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير الميزان بتاريخ ${date}`);
     await loadScaleBatches();
     await refreshInboundReportDates();
-    await loadInboundAuditReport();
+    await loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});
   }
 }
 
@@ -3239,28 +3256,16 @@ document.addEventListener('click',e=>{
   e.preventDefault();
   handleScaleBatchAction(btn);
 });
-async function refreshInboundReportDates(preferredDate=''){
-  const select=$('#inboundReportDateSelect');
-  if(!select || !WarehouseDB?.ready) return;
-  const {data,error}=await WarehouseDB.client
-    .from('incoming_audit_results')
-    .select('report_date')
-    .not('report_date','is',null)
-    .order('report_date',{ascending:false});
-  if(error){ console.error(error); return; }
-  const dates=[...new Set((data||[]).map(x=>normalizeDateISO(x.report_date)).filter(Boolean))];
-  const current=preferredDate || select.value || dates[0] || '';
-  select.innerHTML='<option value="">اختر تاريخ المراجعة</option>'+dates.map(d=>`<option value="${d}">${d}</option>`).join('');
-  if(current && dates.includes(current)) select.value=current;
-  select.onchange=()=>loadInboundAuditReport(select.value,{useSavedFilters:true,forceDate:true});
+async function refreshInboundReportDates(){
+  return [];
 }
 async function loadInboundAuditReport(date='',options={}){
   const tbl=$('#inboundTable');
   if(!tbl || !WarehouseDB?.ready) return;
   const savedFilters=options.useSavedFilters ? readSavedInboundFilters() : null;
-  const useTopFilters=!!options.useTopFilters || !!savedFilters;
-  const topFilters=useTopFilters ? (savedFilters || getInboundTopFilters()) : null;
-  const selected=normalizeDateISO(date || (!options.ignoreSelectedDate ? $('#inboundReportDateSelect')?.value : '') || '');
+  const useTopFilters=true;
+  const topFilters=savedFilters || getInboundTopFilters();
+  const selected=normalizeDateISO(date || '');
   const heads=['تاريخ التقرير','المادة','وصف المادة','وحدة القياس','الكمية','صافي الميزان','فرق الوزن %','نوع الحركة','مخزن MB51','مخزن الميزان','أمر الشراء MB51','أمر الشراء الميزان','رقم العربية','نوع الوارد','وصف العربية','وصف النولون','قيمة النولون للطن','سبب مطابقة النولون'];
   let query=WarehouseDB.client
     .from('incoming_audit_results')
@@ -3275,12 +3280,6 @@ async function loadInboundAuditReport(date='',options={}){
     const warehouseCodes=inboundWarehouseCodesForFilters(topFilters);
     if(warehouseCodes.length && warehouseCodes.length<APP_DATA.plants.flatMap(p=>p.warehouses).length) query=query.in('mb51_warehouse_code',warehouseCodes);
     if(topFilters.movement && topFilters.movement!=='ALL') query=query.eq('incoming_movement_type',topFilters.movement);
-  }else if(selected){
-    query=query.eq('report_date',selected);
-  }else{
-    updateInboundResultsCount(0);
-    table('#inboundTable',heads,[]);
-    return;
   }
   const {data,error}=await query
     .order('report_date',{ascending:false})
@@ -3292,7 +3291,7 @@ async function loadInboundAuditReport(date='',options={}){
     window.__incomingMovementRebuildOnce=true;
     try{
       await tryBuildIncomingAudit(selected);
-      return loadInboundAuditReport(selected);
+      return loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});
     }catch(e){ console.warn('incoming audit rebuild skipped',e); }
   }
   const rows=filtered.map(r=>{
@@ -3528,7 +3527,7 @@ renderTables = function(){
   table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحميل'],[]);
   table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample);
 };
-document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initMobileUploadReportUI();initSalesUploader();initIncomingUploader();initScaleUploader();initFreightUploader();refreshInboundReportDates();setTimeout(()=>{loadSalesReport(activeSalesWarehouse);loadInboundAuditReport();loadDashboardRealData();},300);});
+document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initMobileUploadReportUI();initSalesUploader();initIncomingUploader();initScaleUploader();initFreightUploader();refreshInboundReportDates();setTimeout(()=>{loadSalesReport(activeSalesWarehouse);loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});loadDashboardRealData();},300);});
 
 // === Main Program Login Gate ===
 let CURRENT_AUTH_USER=null;
@@ -4904,7 +4903,7 @@ async function showApplication(user){
     refreshSalesReportDates();
     refreshInboundReportDates();
     loadSalesReport(activeSalesWarehouse);
-    loadInboundAuditReport();
+    loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});
   },250);
 }
 async function checkMainSession(){
