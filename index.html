@@ -75,6 +75,7 @@
       </header>
 
       <section id="globalFilters" class="filters glass filters-hidden" aria-hidden="true">
+        <button class="mobile-inbound-filter-close" id="mobileInboundFilterCloseBtn" type="button" style="display:none" aria-label="إغلاق الفلاتر">×</button>
         <label>المصنع<select id="plantFilter"><option value="all">الكل</option></select></label>
         <label>المخزن<select id="warehouseFilter"><option value="all">الكل</option></select></label>
         <label>نوع المخزن<select id="warehouseTypeFilter"><option value="all">الكل</option><option value="finished">منتج تام</option><option value="raw">خامات/تصنيع</option></select></label>
@@ -342,6 +343,11 @@
         <article class="panel glass">
           <h2>مراجعة الوارد</h2>
           <p class="hint">يتم إنشاء نتائج المراجعة تلقائياً عند توفر تقرير الوارد MB51 وتقرير الميزان لنفس تاريخ التقرير.</p>
+          <button class="mobile-inbound-filter-trigger" id="mobileInboundFilterBtn" type="button" style="display:none" aria-controls="globalFilters" aria-expanded="false">
+            <span class="mobile-filter-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg></span>
+            <span><b>فلترة النتائج</b><small>المصنع / المخزن / الحالة / التاريخ</small></span>
+          </button>
+          <div class="mobile-inbound-filter-overlay" id="mobileInboundFilterOverlay" style="display:none" aria-hidden="true"></div>
           <div class="report-tools-row">
             <div id="inboundResultsCount" class="hint">عدد الحركات المعروضة: 0</div>
             <div class="export-actions compact">

@@ -176,9 +176,11 @@ function initFilters(){
     clearSavedInboundFilters();
     runInboundFilter();
   };
-  $('#searchBtn').onclick=()=>{
-    if($('#inbound')?.classList.contains('active-section')) runInboundFilter();
-    else if($('#dashboard')?.classList.contains('active-section')) loadDashboardRealData();
+  $('#searchBtn').onclick=async()=>{
+    if($('#inbound')?.classList.contains('active-section')){
+      await runInboundFilter();
+      if(isMobileInboundViewport()) closeMobileInboundFilters();
+    }else if($('#dashboard')?.classList.contains('active-section')) loadDashboardRealData();
     else renderAll();
   };
 }
@@ -2122,6 +2124,7 @@ function updateMobileDashboardState(section){
   const hasSection=!!$('#'+active);
   document.body.classList.toggle('mobile-app-shell-active', appVisible && hasSection);
   document.body.classList.toggle('mobile-dashboard-active', appVisible && active==='dashboard');
+  document.body.classList.toggle('mobile-inbound-active', appVisible && active==='inbound');
   document.body.classList.toggle('mobile-upload-reports-active', appVisible && active==='upload');
   document.body.classList.toggle('mobile-reports-active', appVisible && active==='reports');
   if(active==='dashboard') updateMobileDashboardPeriodLabel();
@@ -2152,12 +2155,38 @@ function closeMobileDashboardPanels(){
   if(drawer && drawer.contains(document.activeElement)){
     opener?.focus({preventScroll:true});
   }
-  document.body.classList.remove('mobile-dashboard-filter-open','mobile-dashboard-drawer-open');
+  document.body.classList.remove('mobile-dashboard-filter-open','mobile-dashboard-drawer-open','mobile-inbound-filter-open');
   $('#mobileDashboardFilterBtn')?.setAttribute('aria-expanded','false');
+  $('#mobileInboundFilterBtn')?.setAttribute('aria-expanded','false');
+  $('#mobileInboundFilterOverlay')?.setAttribute('aria-hidden','true');
+  if(document.body.classList.contains('mobile-inbound-active') && isMobileInboundViewport()) $('#globalFilters')?.setAttribute('aria-hidden','true');
   document.querySelectorAll('.mobile-drawer-open').forEach(btn=>btn.setAttribute('aria-expanded','false'));
   $('#mobileDashboardFilterOverlay')?.setAttribute('aria-hidden','true');
   $('#mobileDrawerOverlay')?.setAttribute('aria-hidden','true');
   drawer?.setAttribute('aria-hidden','true');
+}
+function isMobileInboundViewport(){
+  return window.matchMedia ? window.matchMedia('(max-width: 768px)').matches : window.innerWidth<=768;
+}
+function closeMobileInboundFilters(){
+  const filters=$('#globalFilters');
+  const opener=$('#mobileInboundFilterBtn');
+  if(filters && filters.contains(document.activeElement)){
+    opener?.focus({preventScroll:true});
+  }
+  document.body.classList.remove('mobile-inbound-filter-open');
+  opener?.setAttribute('aria-expanded','false');
+  $('#mobileInboundFilterOverlay')?.setAttribute('aria-hidden','true');
+  if(isMobileInboundViewport()) filters?.setAttribute('aria-hidden','true');
+}
+function openMobileInboundFilters(){
+  const filters=$('#globalFilters');
+  filters?.classList.remove('filters-hidden');
+  document.body.classList.add('mobile-inbound-filter-open');
+  $('#mobileInboundFilterBtn')?.setAttribute('aria-expanded','true');
+  $('#mobileInboundFilterOverlay')?.setAttribute('aria-hidden','false');
+  filters?.setAttribute('aria-hidden','false');
+  setTimeout(()=>$('#mobileInboundFilterCloseBtn')?.focus({preventScroll:true}),0);
 }
 function openMobileDashboardFilters(){
   document.body.classList.add('mobile-dashboard-filter-open');
@@ -2281,6 +2310,17 @@ function initMobileDashboardShell(){
   if(MOBILE_DASHBOARD_SHELL_BOUND) return;
   MOBILE_DASHBOARD_SHELL_BOUND=true;
   document.addEventListener('click',event=>{
+    const inboundFilterBtn=event.target.closest('#mobileInboundFilterBtn');
+    if(inboundFilterBtn){
+      event.preventDefault();
+      openMobileInboundFilters();
+      return;
+    }
+    if(event.target.closest('#mobileInboundFilterOverlay,#mobileInboundFilterCloseBtn')){
+      event.preventDefault();
+      closeMobileInboundFilters();
+      return;
+    }
     const filterBtn=event.target.closest('#mobileDashboardFilterBtn');
     if(filterBtn){
       event.preventDefault();
@@ -4871,7 +4911,7 @@ function setMainAuthMessage(message,type=''){
 function showLoginScreen(){
   $('#loginScreen')?.classList.remove('login-hidden');
   $('#appShell')?.classList.add('app-hidden');
-  document.body.classList.remove('mobile-app-shell-active','mobile-dashboard-active','mobile-upload-reports-active','mobile-reports-active','mobile-dashboard-filter-open','mobile-dashboard-drawer-open','mobile-reports-filter-open');
+  document.body.classList.remove('mobile-app-shell-active','mobile-dashboard-active','mobile-inbound-active','mobile-upload-reports-active','mobile-reports-active','mobile-dashboard-filter-open','mobile-dashboard-drawer-open','mobile-inbound-filter-open','mobile-reports-filter-open');
 }
 async function showApplication(user){
   CURRENT_AUTH_USER=user;
