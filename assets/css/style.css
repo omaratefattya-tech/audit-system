@@ -503,7 +503,7 @@ table{display:block;overflow-x:auto;white-space:nowrap}
   text-shadow:0 2px 12px rgba(0,0,0,.35);
 }
 #dashboard .grid-3 .panel h3::after{
-  content:"(��)";
+  content:"(أ¯طںآ½أ¯طںآ½)";
   display:block;
   font-size:12px;
   color:#d8ffd1;
@@ -1015,6 +1015,74 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 @media(max-width:650px){.item-report-summary.report-kpis{grid-template-columns:1fr}.report-section-head{flex-direction:column;align-items:flex-start}}
 
 
+
+/* MRK-4A: Items report export clone isolation */
+.items-report-export-node .item-report-top-grid{
+  display:grid!important;
+  grid-template-columns:minmax(0,.65fr) minmax(0,.35fr)!important;
+  gap:20px!important;
+  align-items:stretch!important;
+  width:100%!important;
+}
+.items-report-export-node .item-report-top-grid > .panel{
+  min-width:0!important;
+  width:auto!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+  position:static!important;
+  float:none!important;
+  transform:none!important;
+}
+.items-report-export-node .item-report-top-grid .report-rank-wrap{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  overflow:hidden!important;
+}
+.items-report-export-node #itemsReviewTopTable{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  table-layout:fixed!important;
+  border-collapse:collapse!important;
+}
+.items-report-export-node #itemsReviewTopTable th,
+.items-report-export-node #itemsReviewTopTable td{
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+  word-break:break-word!important;
+  text-overflow:clip!important;
+  min-width:0!important;
+  padding:6px 5px!important;
+  line-height:1.35!important;
+  font-size:11.5px!important;
+}
+.items-report-export-node #itemsReviewTopTable th:nth-child(1),
+.items-report-export-node #itemsReviewTopTable td:nth-child(1){width:4%!important;}
+.items-report-export-node #itemsReviewTopTable th:nth-child(2),
+.items-report-export-node #itemsReviewTopTable td:nth-child(2){width:11%!important;}
+.items-report-export-node #itemsReviewTopTable th:nth-child(3),
+.items-report-export-node #itemsReviewTopTable td:nth-child(3){width:24%!important;}
+.items-report-export-node #itemsReviewTopTable th:nth-child(n+4):nth-child(-n+10),
+.items-report-export-node #itemsReviewTopTable td:nth-child(n+4):nth-child(-n+10){width:7%!important;}
+.items-report-export-node #itemsReviewTopTable th:nth-child(11),
+.items-report-export-node #itemsReviewTopTable td:nth-child(11){width:12%!important;}
+.items-report-export-node #itemsStatusBoard{
+  min-width:0!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+}
+.items-report-export-node #itemsStatusBoard .item-status-card{
+  min-width:0!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+.items-report-export-node #itemsStatusBoard .item-status-card > *{
+  min-width:0!important;
+  max-width:100%!important;
+}
 /* Warehouse performance report */
 .warehouse-report-summary.report-kpis{grid-template-columns:repeat(5,minmax(150px,1fr))}
 .warehouse-report-top-grid{grid-template-columns:1.35fr .9fr;align-items:stretch}
@@ -1052,6 +1120,10 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 .warehouse-rank-row div{position:relative;z-index:2;min-width:0}.warehouse-rank-row b{display:block;color:#fff;font-size:1.05rem}.warehouse-rank-row small{display:block;color:#b9e8af;font-weight:700;font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.warehouse-rank-row span{position:relative;z-index:2;color:#ffd54a;font-weight:900;text-align:left}.warehouse-rank-row span small{display:inline;color:#e7fadc;font-size:.72rem}.warehouse-rank-row i{position:absolute;right:0;bottom:0;height:4px;background:linear-gradient(90deg,#6ede4f,#29d6cb);border-radius:999px;box-shadow:0 0 14px rgba(110,222,79,.45)}
 .warehouse-report-bottom-insights{display:grid;grid-template-columns:1.15fr 1fr 1fr 1fr;gap:18px;align-items:stretch}.warehouse-report-bottom-insights .panel{min-height:300px}.warehouse-donut-card{display:grid;grid-template-columns:170px 1fr;grid-template-rows:auto 1fr;gap:10px;align-items:center}.warehouse-donut-card h3{grid-column:1/-1}.warehouse-donut-card canvas{width:100%;height:220px}.warehouse-donut-legend{display:flex;flex-direction:column;gap:8px}.warehouse-donut-legend div{display:grid;grid-template-columns:12px 52px 52px 1fr;gap:8px;align-items:center;font-size:.78rem;color:#e6ffe0}.warehouse-donut-legend i{width:10px;height:10px;border-radius:50%;box-shadow:0 0 9px currentColor}.warehouse-donut-legend b{color:#fff}.warehouse-donut-legend span{color:#9df06f;font-weight:900}.warehouse-donut-legend em{font-style:normal;color:#dcefd7;text-align:left;white-space:nowrap}
 .warehouse-mini-table-card{padding:18px!important}.warehouse-mini-table{height:230px;overflow:hidden}.warehouse-mini-table table{width:100%;border-collapse:collapse;font-size:.82rem}.warehouse-mini-table th,.warehouse-mini-table td{padding:9px 7px;border-bottom:1px solid rgba(255,255,255,.08);text-align:center}.warehouse-mini-table th{color:#9df06f;background:rgba(0,92,54,.45);font-weight:900}.warehouse-mini-table td{color:#f5fff0;font-weight:800}.mini-progress{position:relative;height:18px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden;min-width:82px}.mini-progress b{position:absolute;right:0;top:0;bottom:0;background:linear-gradient(90deg,#6ede4f,#28c7bd);border-radius:999px}.mini-progress span{position:relative;z-index:2;color:#eaffdf;font-weight:900;font-size:.72rem}
+/* MRK-4B: Warehouse screen bottom widgets */
+#warehousesReportContent .warehouse-report-bottom-insights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:stretch}
+#warehousesReportContent .warehouse-report-bottom-insights > .panel{min-width:0;width:100%;max-width:100%;overflow:hidden;box-sizing:border-box}
+@media(max-width:800px){#warehousesReportContent .warehouse-report-bottom-insights{grid-template-columns:1fr}}
 @media(max-width:1350px){.warehouse-report-performance-layout{grid-template-columns:1fr}.warehouse-ranking-card{min-height:auto}.warehouse-rank-bars{max-height:360px;overflow:auto}.warehouse-report-bottom-insights{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:800px){.warehouse-quick-tiles,.warehouse-report-bottom-insights{grid-template-columns:1fr}.warehouse-donut-card{grid-template-columns:1fr}.warehouse-chart-card-wide canvas{height:360px!important;min-height:330px}.warehouse-chart-card-wide{min-height:430px}}
 
@@ -1871,10 +1943,10 @@ body.modal-open{overflow:hidden;}
   #upload.active-section #incomingBatchesTable tbody tr::before,
   #upload.active-section #scaleBatchesTable tbody tr::before,
   #upload.active-section #freightBatchesTable tbody tr::before{font-size:13px;font-weight:900;color:#a6ef6b;line-height:1.35;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.08);}
-  #upload.active-section #salesBatchesTable tbody tr::before{content:'������ ������ ������ ����� ���������� ��������';}
-  #upload.active-section #incomingBatchesTable tbody tr::before{content:'������ �� MB51';}
-  #upload.active-section #scaleBatchesTable tbody tr::before{content:'����� �������';}
-  #upload.active-section #freightBatchesTable tbody tr::before{content:'����� ������';}
+  #upload.active-section #salesBatchesTable tbody tr::before{content:'أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½ أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½ أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½ أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½ أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½ أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½';}
+  #upload.active-section #incomingBatchesTable tbody tr::before{content:'أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½ أ¯طںآ½أ¯طںآ½ MB51';}
+  #upload.active-section #scaleBatchesTable tbody tr::before{content:'أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½ أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½';}
+  #upload.active-section #freightBatchesTable tbody tr::before{content:'أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½ أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½';}
   #upload.active-section #salesBatchesTable td,
   #upload.active-section #incomingBatchesTable td,
   #upload.active-section #scaleBatchesTable td,
@@ -1885,33 +1957,33 @@ body.modal-open{overflow:hidden;}
   #upload.active-section #freightBatchesTable td::before{color:rgba(223,247,218,.7);font-weight:800;}
   #upload.active-section #salesBatchesTable td:nth-child(1)::before,
   #upload.active-section #incomingBatchesTable td:nth-child(1)::before,
-  #upload.active-section #scaleBatchesTable td:nth-child(1)::before{content:'����� �������';}
+  #upload.active-section #scaleBatchesTable td:nth-child(1)::before{content:'أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½ أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½';}
   #upload.active-section #salesBatchesTable td:nth-child(2)::before,
   #upload.active-section #incomingBatchesTable td:nth-child(2)::before,
   #upload.active-section #scaleBatchesTable td:nth-child(2)::before,
-  #upload.active-section #freightBatchesTable td:nth-child(2)::before{content:'��� �����';}
+  #upload.active-section #freightBatchesTable td:nth-child(2)::before{content:'أ¯طںآ½أ¯طںآ½أ¯طںآ½ أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½';}
   #upload.active-section #salesBatchesTable td:nth-child(3)::before,
   #upload.active-section #incomingBatchesTable td:nth-child(3)::before,
   #upload.active-section #scaleBatchesTable td:nth-child(3)::before,
-  #upload.active-section #freightBatchesTable td:nth-child(3)::before{content:'��� ������';}
+  #upload.active-section #freightBatchesTable td:nth-child(3)::before{content:'أ¯طںآ½أ¯طںآ½أ¯طںآ½ أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½';}
   #upload.active-section #salesBatchesTable td:nth-child(4)::before,
   #upload.active-section #incomingBatchesTable td:nth-child(4)::before,
   #upload.active-section #scaleBatchesTable td:nth-child(4)::before,
-  #upload.active-section #freightBatchesTable td:nth-child(4)::before{content:'�����';}
+  #upload.active-section #freightBatchesTable td:nth-child(4)::before{content:'أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½';}
   #upload.active-section #salesBatchesTable td:nth-child(5)::before,
   #upload.active-section #incomingBatchesTable td:nth-child(5)::before,
   #upload.active-section #scaleBatchesTable td:nth-child(5)::before,
-  #upload.active-section #freightBatchesTable td:nth-child(5)::before{content:'��� ������';}
+  #upload.active-section #freightBatchesTable td:nth-child(5)::before{content:'أ¯طںآ½أ¯طںآ½أ¯طںآ½ أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½';}
   #upload.active-section #salesBatchesTable td:nth-child(6)::before,
   #upload.active-section #incomingBatchesTable td:nth-child(6)::before,
   #upload.active-section #scaleBatchesTable td:nth-child(6)::before,
-  #upload.active-section #freightBatchesTable td:nth-child(6)::before{content:'����� �����';}
+  #upload.active-section #freightBatchesTable td:nth-child(6)::before{content:'أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½ أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½';}
   #upload.active-section #salesBatchesTable td:nth-child(7)::before,
   #upload.active-section #incomingBatchesTable td:nth-child(7)::before,
-  #upload.active-section #scaleBatchesTable td:nth-child(7)::before{content:'���������';}
-  #upload.active-section #freightBatchesTable td:nth-child(1)::before{content:'����� �������';}
-  #upload.active-section #freightBatchesTable td:nth-child(7)::before{content:'������';}
-  #upload.active-section #freightBatchesTable td:nth-child(8)::before{content:'���������';}
+  #upload.active-section #scaleBatchesTable td:nth-child(7)::before{content:'أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½';}
+  #upload.active-section #freightBatchesTable td:nth-child(1)::before{content:'أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½ أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½';}
+  #upload.active-section #freightBatchesTable td:nth-child(7)::before{content:'أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½';}
+  #upload.active-section #freightBatchesTable td:nth-child(8)::before{content:'أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½أ¯طںآ½';}
   #upload.active-section #salesBatchesTable td:last-child,
   #upload.active-section #incomingBatchesTable td:last-child,
   #upload.active-section #scaleBatchesTable td:last-child,
