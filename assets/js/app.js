@@ -6185,8 +6185,9 @@ function renderWarehousesRanking(warehouses,summary){
   const topLoading=[...warehouses].sort((a,b)=>Math.abs(b.loading)-Math.abs(a.loading))[0];
   const lowActivity=[...warehouses].sort((a,b)=>(a.totalActivity||0)-(b.totalActivity||0))[0];
   const avg=warehouses.length?summary.sales/warehouses.length:0;
-  const maxAct=Math.max(1,...warehouses.map(w=>w.totalActivity||0));
-  const rows=[...warehouses].sort((a,b)=>(b.totalActivity||0)-(a.totalActivity||0)).slice(0,10).map((w,i)=>`<div class="warehouse-rank-row"><em>${i+1}</em><div><b>${escapeHtml(w.code)}</b><small>${escapeHtml(w.name)} - ${escapeHtml(w.plant)}</small></div><span>${fmt(w.totalActivity)}<small> طن</small></span><i style="width:${Math.min(100,(w.totalActivity||0)/maxAct*100)}%"></i></div>`).join('');
+  const loadingRankRows=[...warehouses].map(w=>({...w,loadingRankTotal:toNumber(w.sales)+toNumber(w.outgoing)}));
+  const maxLoadingRank=Math.max(1,...loadingRankRows.map(w=>Math.abs(w.loadingRankTotal||0)));
+  const rows=loadingRankRows.sort((a,b)=>Math.abs(b.loadingRankTotal||0)-Math.abs(a.loadingRankTotal||0)).slice(0,10).map((w,i)=>`<div class="warehouse-rank-row"><em>${i+1}</em><div><b>${escapeHtml(w.code)}</b><small>${escapeHtml(w.name)}</small></div><span>${fmt(w.loadingRankTotal)}<small> \u0637\u0646</small></span><i style="width:${Math.min(100,Math.abs(w.loadingRankTotal||0)/maxLoadingRank*100)}%"></i></div>`).join('');
   node.innerHTML=`<div class="warehouse-rank-bars">${rows||'<p class="hint">لا توجد بيانات</p>'}</div>`;
   const tiles=$('#warehousesQuickTiles');
   if(tiles){
