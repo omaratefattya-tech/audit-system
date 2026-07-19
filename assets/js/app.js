@@ -6870,14 +6870,14 @@ const SALES_TOTALS_GROUPS = [
   {title:'إجمالي كل مخازن البيع', codes:['W401','N401','N411','N412','E401','W402','N402','E402']},
   {title:'مبيعات المنتج التام', codes:['W401','N401','N411','N412','E401']},
   {title:'مبيعات الدشيشة والخامات', codes:['W402','N402','E402']},
-  {title:'مبيعات مخزن W401', codes:['W401']},
-  {title:'مبيعات مخزن W402', codes:['W402']},
-  {title:'مبيعات مخزن N401', codes:['N401']},
-  {title:'مبيعات مخزن N402', codes:['N402']},
-  {title:'مبيعات مخزن N411', codes:['N411']},
-  {title:'مبيعات مخزن N412', codes:['N412']},
-  {title:'مبيعات مخزن E401', codes:['E401']},
-  {title:'مبيعات مخزن E402', codes:['E402']}
+  {title:'مبيعات مخزن W401 ( مبيعات الواحة أعلاف )', codes:['W401']},
+  {title:'مبيعات مخزن W402 (مبيعات الواحة خامات )', codes:['W402']},
+  {title:'مبيعات مخزن N401 ( مبيعات الرئيسي أعلاف )', codes:['N401']},
+  {title:'مبيعات مخزن N402 ( مبيعات الرئيسي خامات )', codes:['N402']},
+  {title:'مبيعات مخزن N411 (مبيعات مخزن البحيرة )', codes:['N411']},
+  {title:'مبيعات مخزن N412 ( مبيعات مخزن أسيوط )', codes:['N412']},
+  {title:'مبيعات مخزن E401 ( مبيعات العامرية أعلاف )', codes:['E401']},
+  {title:'مبيعات مخزن E402 ( مبيعات العامرية خامات )', codes:['E402']}
 ];
 function salesTotalsCardHtml(title,value,unit,icon){
   return `<article class="kpi glass sales-total-kpi"><h3>${escapeHtml(title)}</h3><div class="num">${fmt(value)}</div><small>${escapeHtml(unit||'طن')}</small><div class="icon">${icon||''}</div></article>`;
