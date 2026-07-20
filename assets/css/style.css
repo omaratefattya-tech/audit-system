@@ -2436,3 +2436,100 @@ body.modal-open{overflow:hidden;}
   word-break:break-word!important;
   text-overflow:clip!important;
 }
+/* Items report scoped PNG export buttons */
+#itemsReportContent .items-report-title-card{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  text-align:right;
+}
+#itemsReportContent .items-report-title-text{
+  min-width:0;
+}
+#itemsReportContent .items-report-png-btn{
+  flex:0 0 auto;
+  min-height:38px;
+  padding:8px 14px;
+  border-radius:10px;
+  font-size:13px;
+  white-space:nowrap;
+}
+#itemsReportContent .items-report-png-btn[disabled]{
+  opacity:.68;
+  cursor:not-allowed;
+}
+#itemsReportContent .items-report-table-head{
+  flex-wrap:wrap;
+}
+#itemsReportContent .items-report-table-head .items-report-png-btn{
+  margin-inline-start:auto;
+}
+.items-report-png-export-box{
+  background:radial-gradient(circle at 50% 0%,rgba(94,180,71,.14),transparent 36%),linear-gradient(180deg,#00291f,#001611);
+  color:#fff;
+  direction:rtl;
+  font-family:Cairo,Arial,sans-serif;
+  box-sizing:border-box;
+  overflow:visible;
+}
+.items-report-png-export-box .items-report-png-btn,
+.items-report-png-export-box .png-export-btn{
+  display:none!important;
+}
+.items-report-png-export-box .rank-table-wrap,
+.items-report-png-export-box .item-report-table-wrap{
+  height:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+}
+.items-report-png-export-box table{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  table-layout:fixed!important;
+  border-collapse:collapse!important;
+}
+.items-report-png-export-box th,
+.items-report-png-export-box td{
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+  word-break:break-word!important;
+  text-overflow:clip!important;
+}
+.items-report-png-export-box .report-section-head{
+  align-items:center;
+}
+@media (max-width:650px){
+  #itemsReportContent .items-report-title-card{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  #itemsReportContent .items-report-png-btn,
+  #itemsReportContent .items-report-table-head .items-report-png-btn{
+    width:100%;
+    margin-inline-start:0;
+  }
+}.items-report-summary-png-export .item-report-summary{
+  margin-bottom:18px;
+}
+.items-report-summary-png-export .item-report-top-grid{
+  width:100%;
+}
+.items-report-png-export-box th,
+.items-report-png-export-box td{
+  overflow:hidden!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+}
+.items-report-png-export-box .item-status-badge{
+  display:inline-flex!important;
+  max-width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+  white-space:normal!important;
+  overflow:hidden!important;
+  overflow-wrap:anywhere!important;
+  word-break:break-word!important;
+  text-overflow:clip!important;
+}

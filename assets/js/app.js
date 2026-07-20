@@ -7238,6 +7238,151 @@ async function exportSalesTotalsReportPng(){
     try{ exportBox.remove(); }catch(_){}
   }
 }
+function itemsReportPngDateRange(){
+  const filters=getReportFilters();
+  const from=normalizeDateISO(filters.from || $('#reportFromDate')?.value || '');
+  const to=normalizeDateISO(filters.to || $('#reportToDate')?.value || '');
+  return {from,to,fromToken:from||'start',toToken:to||'end'};
+}
+function itemsReportPngFilterLine(){
+  const filters=getReportFilters();
+  const range=itemsReportPngDateRange();
+  const parts=[`الفترة: من ${range.from || 'البداية'} إلى ${range.to || 'النهاية'}`];
+  const plantSelect=$('#reportPlantFilter');
+  const warehouseSelect=$('#reportWarehouseFilter');
+  if(filters.plant && filters.plant!=='all'){
+    parts.push(`المصنع: ${plantSelect?.selectedOptions?.[0]?.textContent?.trim() || filters.plant}`);
+  }
+  if(filters.warehouse && filters.warehouse!=='all'){
+    parts.push(`المخزن: ${warehouseSelect?.selectedOptions?.[0]?.textContent?.trim() || filters.warehouse}`);
+  }
+  return parts.join(' / ');
+}
+function itemsReportPngFileName(prefix){
+  const range=itemsReportPngDateRange();
+  return `${prefix}_${range.fromToken}_to_${range.toToken}.png`;
+}
+function setItemsReportPngBusy(button,busy,label){
+  if(!button) return;
+  if(!button.dataset.defaultText) button.dataset.defaultText=button.textContent.trim();
+  button.disabled=!!busy;
+  button.textContent=busy ? (label || 'جاري إنشاء PNG...') : button.dataset.defaultText;
+}
+function normalizeItemsReportPngClone(root){
+  if(!root) return;
+  root.querySelectorAll('.items-report-png-btn,.png-export-btn').forEach(btn=>btn.remove());
+  root.querySelectorAll('.rank-table-wrap,.item-report-table-wrap').forEach(wrap=>{
+    wrap.style.setProperty('height','auto','important');
+    wrap.style.setProperty('max-height','none','important');
+    wrap.style.setProperty('overflow','visible','important');
+  });
+  root.querySelectorAll('table').forEach(table=>{
+    table.style.setProperty('width','100%','important');
+    table.style.setProperty('max-width','100%','important');
+    table.style.setProperty('min-width','0','important');
+    table.style.setProperty('table-layout','fixed','important');
+  });
+  root.querySelectorAll('th,td').forEach(cell=>{
+    cell.style.setProperty('white-space','normal','important');
+    cell.style.setProperty('overflow-wrap','anywhere','important');
+    cell.style.setProperty('word-break','break-word','important');
+  });
+}
+function createItemsReportPngBox(className,width){
+  const box=document.createElement('section');
+  box.className=`items-report-png-export-box ${className||''}`.trim();
+  box.dir='rtl';
+  box.lang='ar';
+  box.setAttribute('aria-hidden','true');
+  box.style.cssText=[
+    'position:fixed','top:0','left:0','z-index:-1',`width:${width||1600}px`,'min-height:300px','padding:28px','box-sizing:border-box',
+    'background:radial-gradient(circle at 50% 0%,rgba(94,180,71,.14),transparent 36%),linear-gradient(180deg,#00291f,#001611)',
+    'color:#fff','direction:rtl','font-family:Cairo,Arial,sans-serif','overflow:visible','pointer-events:none'
+  ].join(';');
+  return box;
+}
+function itemsReportPngHeader(title){
+  const header=document.createElement('header');
+  header.className='items-report-png-header';
+  header.style.cssText='display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid rgba(141,220,89,.28);';
+  header.innerHTML=`<h2 style="margin:0;color:#fff;font-size:32px;line-height:1.25;font-weight:900;">${escapeHtml(title)}</h2><p style="margin:0;color:#bdf2a0;font-size:17px;line-height:1.4;font-weight:800;text-align:left;">${escapeHtml(itemsReportPngFilterLine())}</p>`;
+  return header;
+}
+async function captureItemsReportPngBox(box,fileName){
+  const Html2Canvas=window.html2canvas;
+  if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return false; }
+  document.body.appendChild(box);
+  try{
+    if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    const rect=box.getBoundingClientRect();
+    const width=Math.ceil(Math.max(box.scrollWidth, rect.width, 1));
+    const height=Math.ceil(Math.max(box.scrollHeight, rect.height, 1));
+    if(width<=1 || height<=1) throw new Error(`Invalid items PNG dimensions: ${width}x${height}`);
+    const canvas=await Html2Canvas(box,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+    return await new Promise(resolve=>{
+      canvas.toBlob(async blob=>{
+        if(!blob){ alert('تعذر إنشاء صورة PNG.'); resolve(false); return; }
+        await saveBlobWithPicker(blob,fileName,'image/png');
+        resolve(true);
+      },'image/png',1);
+    });
+  }finally{
+    try{ box.remove(); }catch(_){ }
+  }
+}
+async function exportItemsReportSummaryPng(button){
+  if(button?.disabled) return;
+  const source=$('#itemsReportContent');
+  const kpis=$('#itemsReportKpis');
+  const topGrid=source?.querySelector('.item-report-top-grid');
+  if(!source || !kpis || !topGrid){ alert('لم يتم العثور على ملخص تقرير الأصناف.'); return; }
+  setItemsReportPngBusy(button,true,'جاري تصدير الملخص...');
+  const box=createItemsReportPngBox('items-report-summary-png-export',1600);
+  try{
+    const kpiClone=kpis.cloneNode(true);
+    const topClone=topGrid.cloneNode(true);
+    normalizeItemsReportPngClone(kpiClone);
+    normalizeItemsReportPngClone(topClone);
+    box.append(itemsReportPngHeader('تقرير مراجعة الأصناف'),kpiClone,topClone);
+    const ok=await captureItemsReportPngBox(box,itemsReportPngFileName('items-report-summary'));
+    if(ok) await logSystemActivity(activityExportSection('تقرير مراجعة الأصناف'),'تصدير PNG','تصدير ملخص تقرير الأصناف PNG');
+  }catch(err){
+    console.error('Items summary PNG export failed',err);
+    alert('تعذر تصدير ملخص تقرير الأصناف PNG. حاول مرة أخرى.');
+    try{ box.remove(); }catch(_){ }
+  }finally{
+    setItemsReportPngBusy(button,false);
+  }
+}
+async function exportItemsReviewTablePng(button){
+  if(button?.disabled) return;
+  const source=$('#itemsReportContent .item-report-main-card');
+  const table=$('#itemsReportTable');
+  if(!source || !table){ alert('لم يتم العثور على جدول مراجعة الأصناف.'); return; }
+  setItemsReportPngBusy(button,true,'جاري تصدير الجدول...');
+  const width=Math.max(1600, source.scrollWidth || 0, table.scrollWidth || 0);
+  const box=createItemsReportPngBox('items-review-table-png-export',width);
+  try{
+    const clone=source.cloneNode(true);
+    normalizeItemsReportPngClone(clone);
+    const head=clone.querySelector('.report-section-head');
+    const period=document.createElement('p');
+    period.className='items-report-export-period';
+    period.textContent=itemsReportPngFilterLine();
+    period.style.cssText='width:100%;margin:0 0 10px;color:#bdf2a0;font-size:16px;font-weight:800;text-align:right;';
+    if(head) head.insertAdjacentElement('afterend',period);
+    box.appendChild(clone);
+    const ok=await captureItemsReportPngBox(box,itemsReportPngFileName('items-review-table'));
+    if(ok) await logSystemActivity(activityExportSection('تقرير مراجعة الأصناف'),'تصدير PNG','تصدير جدول مراجعة الأصناف المجمع PNG');
+  }catch(err){
+    console.error('Items review table PNG export failed',err);
+    alert('تعذر تصدير جدول مراجعة الأصناف PNG. حاول مرة أخرى.');
+    try{ box.remove(); }catch(_){ }
+  }finally{
+    setItemsReportPngBusy(button,false);
+  }
+}
 async function exportActiveReportPng(){
   if (ACTIVE_REPORT_TAB === 'warehouses') {
     await exportWarehousePerformanceReportPng();
@@ -7397,6 +7542,9 @@ function initExecutiveReports(){
   $('#executiveReportExcelBtn')?.addEventListener('click',exportActiveReportExcel);
   $('#activeReportPdfBtn')?.addEventListener('click',exportActiveReportVisualPdf);
   $('#activeReportPngBtn')?.addEventListener('click',exportActiveReportPng);
+  $('#itemsSummaryPngBtn')?.addEventListener('click',event=>exportItemsReportSummaryPng(event.currentTarget));
+  $('#itemsReviewTablePngBtn')?.addEventListener('click',event=>exportItemsReviewTablePng(event.currentTarget));
+
   $('#smartVisualPdfBtn')?.addEventListener('click',async()=>{ ACTIVE_REPORT_TAB='smart'; await exportActiveReportVisualPdf(); });
   $('#smartVisualPngBtn')?.addEventListener('click',async()=>{ ACTIVE_REPORT_TAB='smart'; await exportActiveReportPng(); });
 }

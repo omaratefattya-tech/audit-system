@@ -429,9 +429,12 @@
             <table id="salesTotalsExportTable" class="hidden-export-table"></table>
           </div>
           <div id="itemsReportContent" class="items-report-content report-panel-content" style="display:none">
-            <div class="executive-title-card">
-              <h3>تقرير مراجعة الأصناف</h3>
-              <p id="itemsReportMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
+            <div class="executive-title-card items-report-title-card">
+              <div class="items-report-title-text">
+                <h3>تقرير مراجعة الأصناف</h3>
+                <p id="itemsReportMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
+              </div>
+              <button class="secondary png-export-btn items-report-png-btn" id="itemsSummaryPngBtn" type="button">تصدير ملخص PNG</button>
             </div>
             <div class="cards report-kpis item-report-summary" id="itemsReportKpis"></div>
             <div class="report-grid-2 item-report-top-grid">
@@ -439,9 +442,10 @@
               <article class="panel glass"><h3>توزيع حالات الأصناف</h3><div class="item-status-board" id="itemsStatusBoard"></div></article>
             </div>
             <article class="panel glass item-report-main-card">
-              <div class="report-section-head">
+              <div class="report-section-head items-report-table-head">
                 <h3>جدول مراجعة الأصناف المجمع</h3>
                 <span class="hint" id="itemsReportCount">عدد الأصناف: 0</span>
+                <button class="secondary png-export-btn items-report-png-btn" id="itemsReviewTablePngBtn" type="button">تصدير الجدول PNG</button>
               </div>
               <div class="rank-table-wrap item-report-table-wrap"><table id="itemsReportTable"></table></div>
             </article>
