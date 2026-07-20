@@ -2853,3 +2853,69 @@ body.modal-open{overflow:hidden;}
     min-width:100%!important;
   }
 }
+/* Exceptions report mobile KPI cards mirror dashboard Total Key Stats */
+@media (max-width:650px){
+  body.mobile-reports-active #reports #exceptionsReportContent #exceptionsReportKpis.report-kpis{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:10px!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+    box-sizing:border-box!important;
+  }
+  body.mobile-reports-active #reports #exceptionsReportContent #exceptionsReportKpis.report-kpis .kpi{
+    grid-column:auto!important;
+    min-height:116px!important;
+    padding:14px 12px!important;
+    border-radius:16px!important;
+    border:1px solid rgba(141,220,89,.36)!important;
+    background:linear-gradient(145deg,rgba(0,62,43,.52),rgba(0,28,23,.78))!important;
+    box-shadow:var(--shadow)!important;
+    overflow:hidden!important;
+    position:relative!important;
+  }
+  body.mobile-reports-active #reports #exceptionsReportContent #exceptionsReportKpis.report-kpis .kpi h3{
+    font-size:12px!important;
+    line-height:1.45!important;
+    margin:0 0 8px!important;
+    padding-inline-end:2px!important;
+    font-weight:800!important;
+    color:#f4fff5!important;
+    text-align:right!important;
+  }
+  body.mobile-reports-active #reports #exceptionsReportContent #exceptionsReportKpis.report-kpis .kpi .num{
+    font-size:22px!important;
+    line-height:1.1!important;
+    font-weight:900!important;
+    color:#fff!important;
+  }
+  body.mobile-reports-active #reports #exceptionsReportContent #exceptionsReportKpis.report-kpis .kpi small{
+    font-size:11px!important;
+    color:#d4ebd5!important;
+  }
+  body.mobile-reports-active #reports #exceptionsReportContent #exceptionsReportKpis.report-kpis .kpi .icon,
+  body.mobile-reports-active #reports #exceptionsReportContent #exceptionsReportKpis.report-kpis .kpi .modern-kpi-icon{
+    left:10px!important;
+    bottom:10px!important;
+    width:38px!important;
+    height:38px!important;
+    border-radius:13px!important;
+    display:grid!important;
+    place-items:center!important;
+    background:rgba(141,220,89,.12)!important;
+    border:1px solid rgba(141,220,89,.18)!important;
+    font-size:22px!important;
+    opacity:.95!important;
+    color:#9be650!important;
+  }
+  body.mobile-reports-active #reports #exceptionsReportContent #exceptionsReportKpis.report-kpis .kpi .modern-kpi-icon svg{
+    width:28px!important;
+    height:28px!important;
+  }
+  body.mobile-reports-active #reports #exceptionsReportContent #exceptionsReportKpis.report-kpis .kpi:nth-of-type(5){
+    grid-column:1/-1!important;
+    min-height:92px!important;
+  }
+}

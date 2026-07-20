@@ -6452,6 +6452,55 @@ function normalizeExceptionsPngClone(source,clone){
   if(!clone) return;
   copyCanvasPixelsToClone(source,clone);
   clone.querySelectorAll('.exceptions-widget-png-btn,.png-export-btn').forEach(btn=>btn.remove());
+  const isMobilePriorityExport=source?.classList?.contains('exceptions-priority-card') && window.matchMedia?.('(max-width:650px)')?.matches;
+  if(isMobilePriorityExport){
+    clone.classList.add('exceptions-priority-png-clone');
+    clone.style.setProperty('height','auto','important');
+    clone.style.setProperty('min-height','0','important');
+    clone.style.setProperty('max-height','none','important');
+    clone.style.setProperty('overflow','visible','important');
+    clone.style.setProperty('align-content','start','important');
+    clone.style.setProperty('align-items','start','important');
+    clone.style.setProperty('justify-content','flex-start','important');
+    clone.style.setProperty('padding-bottom','8px','important');
+    const priorityList=clone.querySelector('.exceptions-priority-list');
+    if(priorityList){
+      priorityList.style.setProperty('display','flex','important');
+      priorityList.style.setProperty('flex-direction','column','important');
+      priorityList.style.setProperty('height','auto','important');
+      priorityList.style.setProperty('min-height','0','important');
+      priorityList.style.setProperty('max-height','none','important');
+      priorityList.style.setProperty('overflow','visible','important');
+      priorityList.style.setProperty('align-content','start','important');
+      priorityList.style.setProperty('align-items','start','important');
+      priorityList.style.setProperty('flex','0 0 auto','important');
+      priorityList.style.setProperty('width','100%','important');
+      priorityList.style.setProperty('box-sizing','border-box','important');
+      priorityList.style.setProperty('padding-bottom','0','important');
+    }
+    clone.querySelectorAll('.exception-priority-row').forEach(row=>{
+      row.style.setProperty('display','grid','important');
+      row.style.setProperty('grid-template-columns','34px minmax(0,1fr)','important');
+      row.style.setProperty('grid-template-areas','"rank code" "name name" "type type" "badge score" "action action"','important');
+      row.style.setProperty('gap','8px 10px','important');
+      row.style.setProperty('height','auto','important');
+      row.style.setProperty('min-height','0','important');
+      row.style.setProperty('max-height','none','important');
+      row.style.setProperty('overflow','visible','important');
+      row.style.setProperty('align-content','start','important');
+      row.style.setProperty('align-items','start','important');
+      row.style.setProperty('flex','0 0 auto','important');
+      row.style.setProperty('width','100%','important');
+      row.style.setProperty('box-sizing','border-box','important');
+      row.querySelector('em')?.style.setProperty('grid-area','rank','important');
+      row.querySelector('b')?.style.setProperty('grid-area','code','important');
+      row.querySelector('.priority-item-name')?.style.setProperty('grid-area','name','important');
+      row.querySelector('.priority-type')?.style.setProperty('grid-area','type','important');
+      row.querySelector('.priority-badge')?.style.setProperty('grid-area','badge','important');
+      row.querySelector('strong')?.style.setProperty('grid-area','score','important');
+      row.querySelector('.priority-action')?.style.setProperty('grid-area','action','important');
+    });
+  }
   clone.querySelectorAll('.rank-table-wrap,.exceptions-report-table-wrap,.exceptions-priority-list').forEach(wrap=>{
     wrap.style.setProperty('height','auto','important');
     wrap.style.setProperty('max-height','none','important');
