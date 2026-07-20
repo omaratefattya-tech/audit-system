@@ -6300,16 +6300,47 @@ function renderExceptionsKPIs(summary){
   const node=$('#exceptionsReportKpis');
   if(node) node.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
+function exceptionChartColor(key){
+  const map={
+    sales_high:['#d99a35','#8a5a1f'],
+    production_high:['#4ea3d8','#1c5878'],
+    outgoing_high:['#9b7bd9','#59478f'],
+    incoming_high:['#38b8aa','#1f6f68'],
+    loading_gap:['#8bd46a','#3f8748'],
+    no_sales:['#9fa8ad','#5f6c72']
+  };
+  return map[key] || ['#79ce47','#2f7e3f'];
+}
+function resizeExceptionsChartCanvas(canvas){
+  if(!canvas) return {w:canvas?.width||0,h:canvas?.height||0};
+  const rect=canvas.getBoundingClientRect();
+  const cssWidth=Math.max(320,Math.round(rect.width || canvas.clientWidth || 760));
+  const cssHeight=Math.max(280,Math.min(480,Math.round(rect.height || canvas.clientHeight || 400)));
+  const dpr=Math.min(2,Math.max(1,window.devicePixelRatio||1));
+  const targetW=Math.round(cssWidth*dpr), targetH=Math.round(cssHeight*dpr);
+  if(canvas.width!==targetW) canvas.width=targetW;
+  if(canvas.height!==targetH) canvas.height=targetH;
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {w:cssWidth,h:cssHeight};
+}
 function drawExceptionsChart(summary){
   const canvas=$('#exceptionsReportChart'); if(!canvas) return;
-  const ctx=canvas.getContext('2d'), w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h);
+  const size=resizeExceptionsChartCanvas(canvas);
+  const ctx=canvas.getContext('2d'), w=size.w, h=size.h; ctx.clearRect(0,0,w,h);
   const labels=[['no_sales','بدون بيع'],['production_high','إنتاج أعلى من البيع'],['sales_high','بيع أعلى من الإنتاج'],['outgoing_high','صادر مرتفع'],['incoming_high','وارد مرتفع'],['loading_gap','فرق تحميل']];
   const vals=labels.map(([k])=>summary.byType[k]||0), max=Math.max(1,...vals);
-  const pad={l:40,r:24,t:38,b:76}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
-  ctx.strokeStyle='rgba(255,255,255,.11)';ctx.fillStyle='#d7f3d2';ctx.font='bold 12px Cairo';ctx.textAlign='right';
+  const pad={l:46,r:24,t:34,b:w<560?92:76}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
+  ctx.strokeStyle='rgba(220,255,215,.13)';ctx.fillStyle='#d7f3d2';ctx.font='bold 12px Cairo';ctx.textAlign='right';
   for(let i=0;i<=4;i++){const y=pad.t+ch-(i/4)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmt(max*i/4),pad.l-8,y+4);}
-  const bw=Math.min(70,cw/labels.length*.55);
-  labels.forEach(([key,label],i)=>{const v=vals[i];const x=pad.l+(i+.5)*(cw/labels.length)-bw/2;const bh=(v/max)*ch;const y=pad.t+ch-bh;const grad=ctx.createLinearGradient(x,y,x,y+bh);grad.addColorStop(0,key==='loading_gap'||key==='no_sales'?'#ff5959':'#ffd44f');grad.addColorStop(1,'#62d84e');ctx.fillStyle=grad;ctx.fillRect(x,y,bw,bh);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 13px Cairo';ctx.fillText(fmt(v),x+bw/2,y-8);ctx.save();ctx.translate(x+bw/2,pad.t+ch+18);ctx.rotate(-Math.PI/7);ctx.fillStyle='#dff8d4';ctx.font='bold 11px Cairo';ctx.fillText(label,0,0);ctx.restore();});
+  const bw=Math.max(24,Math.min(64,cw/labels.length*.48));
+  labels.forEach(([key,label],i)=>{
+    const v=vals[i], x=pad.l+(i+.5)*(cw/labels.length)-bw/2, bh=(v/max)*ch, y=pad.t+ch-bh;
+    const colors=exceptionChartColor(key), grad=ctx.createLinearGradient(x,y,x,y+Math.max(bh,1));
+    grad.addColorStop(0,colors[0]);grad.addColorStop(1,colors[1]);ctx.fillStyle=grad;ctx.fillRect(x,y,bw,Math.max(bh,2));
+    ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 13px Cairo';ctx.fillText(fmt(v),x+bw/2,Math.max(18,y-8));
+    ctx.save();ctx.translate(x+bw/2,pad.t+ch+18);ctx.rotate(w<560?-Math.PI/4:-Math.PI/8);ctx.fillStyle='#dff8d4';ctx.font='bold 11px Cairo';ctx.fillText(label,0,0);ctx.restore();
+  });
 }
 function renderExceptionsPriority(exceptions){
   const node=$('#exceptionsPriorityList'); if(!node) return;
@@ -6352,10 +6383,159 @@ async function loadExceptionsReport(options={}){
   exceptions.forEach(e=>summary.byType[e.type]=(summary.byType[e.type]||0)+1);
   EXCEPTIONS_REPORT_STATE={exceptions,filters,summary};
   if($('#exceptionsReportMeta')) $('#exceptionsReportMeta').textContent=reportFilterLabel(filters);
-  renderExceptionsKPIs(summary); drawExceptionsChart(summary); renderExceptionsPriority(exceptions); renderExceptionsTables(exceptions);
+  renderExceptionsKPIs(summary); drawExceptionsChart(summary); renderExceptionsPriority(exceptions); renderExceptionsTables(exceptions); ensureExceptionsReportPngButtons();
 }
 
 
+function exceptionsReportPngDateRange(){
+  const filters=getReportFilters();
+  const from=normalizeDateISO(filters.from || $('#reportFromDate')?.value || '');
+  const to=normalizeDateISO(filters.to || $('#reportToDate')?.value || '');
+  return {from,to,fromToken:from||'start',toToken:to||'end'};
+}
+function exceptionsReportPngFilterLine(){
+  const range=exceptionsReportPngDateRange();
+  return `الفترة: من ${range.from || 'البداية'} إلى ${range.to || 'النهاية'}`;
+}
+function exceptionsReportPngFileName(prefix){
+  const range=exceptionsReportPngDateRange();
+  return `${prefix}_${range.fromToken}_to_${range.toToken}.png`;
+}
+function setExceptionsPngBusy(button,busy){
+  if(!button) return;
+  if(!button.dataset.defaultText) button.dataset.defaultText=button.textContent.trim();
+  button.disabled=!!busy;
+  button.textContent=busy?'جاري PNG...':button.dataset.defaultText;
+}
+function exceptionsPngButton(id,title,slug,target,width){
+  const btn=document.createElement('button');
+  btn.id=id;
+  btn.type='button';
+  btn.className='exceptions-widget-png-btn png-export-btn';
+  btn.title=`تصدير ${title} كصورة PNG`;
+  btn.setAttribute('aria-label',btn.title);
+  btn.textContent='PNG';
+  btn.addEventListener('click',event=>{
+    event.preventDefault();
+    event.stopPropagation();
+    exportExceptionsWidgetPng(target,title,slug,event.currentTarget,width);
+  });
+  return btn;
+}
+function ensureExceptionsReportPngButtons(){
+  const root=$('#exceptionsReportContent'); if(!root) return;
+  const kpis=$('#exceptionsReportKpis');
+  if(kpis && !$('#exceptionsKpisPngBtn')){
+    kpis.classList.add('exceptions-widget-png-scope','exceptions-kpis-png-scope');
+    kpis.prepend(exceptionsPngButton('exceptionsKpisPngBtn','مؤشرات تقرير الاستثناءات','exceptions-kpis',kpis,1500));
+  }
+  const chart=root.querySelector('.exceptions-chart-card');
+  if(chart && !$('#exceptionsDistributionPngBtn')){
+    chart.classList.add('exceptions-widget-png-scope');
+    const h=chart.querySelector('h3')||chart;
+    h.appendChild(exceptionsPngButton('exceptionsDistributionPngBtn','توزيع الاستثناءات حسب النوع','exceptions-distribution',chart,1200));
+  }
+  const priority=root.querySelector('.exceptions-priority-card');
+  if(priority && !$('#exceptionsPrioritiesPngBtn')){
+    priority.classList.add('exceptions-widget-png-scope');
+    const h=priority.querySelector('h3')||priority;
+    h.appendChild(exceptionsPngButton('exceptionsPrioritiesPngBtn','أولويات المراجعة','review-priorities',priority,1500));
+  }
+  const details=root.querySelector('.exceptions-report-main-card');
+  if(details && !$('#exceptionsDetailsPngBtn')){
+    details.classList.add('exceptions-widget-png-scope');
+    const h=details.querySelector('.report-section-head')||details;
+    h.appendChild(exceptionsPngButton('exceptionsDetailsPngBtn','جدول الاستثناءات التفصيلي','exceptions-details',details,1800));
+  }
+}
+function normalizeExceptionsPngClone(source,clone){
+  if(!clone) return;
+  copyCanvasPixelsToClone(source,clone);
+  clone.querySelectorAll('.exceptions-widget-png-btn,.png-export-btn').forEach(btn=>btn.remove());
+  clone.querySelectorAll('.rank-table-wrap,.exceptions-report-table-wrap,.exceptions-priority-list').forEach(wrap=>{
+    wrap.style.setProperty('height','auto','important');
+    wrap.style.setProperty('max-height','none','important');
+    wrap.style.setProperty('min-height','0','important');
+    wrap.style.setProperty('overflow','visible','important');
+  });
+  clone.querySelectorAll('canvas,img').forEach(media=>{
+    media.style.setProperty('max-width','100%','important');
+    media.style.setProperty('height','auto','important');
+    media.style.setProperty('display','block','important');
+    media.style.setProperty('margin','0 auto','important');
+  });
+  clone.querySelectorAll('table').forEach(table=>{
+    table.style.setProperty('width','100%','important');
+    table.style.setProperty('max-width','100%','important');
+    table.style.setProperty('table-layout','fixed','important');
+    table.style.setProperty('border-collapse','collapse','important');
+  });
+  clone.querySelectorAll('th,td').forEach(cell=>{
+    cell.style.setProperty('white-space','normal','important');
+    cell.style.setProperty('overflow-wrap','anywhere','important');
+    cell.style.setProperty('word-break','break-word','important');
+    cell.style.setProperty('line-height','1.35','important');
+  });
+}
+function exceptionsPngExportBox(title,width){
+  const box=document.createElement('section');
+  box.className='exceptions-widget-png-export-box';
+  box.dir='rtl';
+  box.lang='ar';
+  box.setAttribute('aria-hidden','true');
+  box.style.cssText=[
+    'position:fixed','top:0','left:0','z-index:-1',`width:${width||1400}px`,'min-height:280px','padding:26px','box-sizing:border-box',
+    'background:radial-gradient(circle at 50% 0%,rgba(94,180,71,.13),transparent 36%),linear-gradient(180deg,#00291f,#001611)',
+    'color:#fff','direction:rtl','font-family:Cairo,Arial,sans-serif','overflow:visible','pointer-events:none'
+  ].join(';');
+  const header=document.createElement('header');
+  header.className='exceptions-widget-png-header';
+  header.innerHTML=`<h2>${escapeHtml(title)}</h2><p>${escapeHtml(exceptionsReportPngFilterLine())}</p>`;
+  box.appendChild(header);
+  return box;
+}
+async function captureExceptionsPngBox(box,fileName){
+  const Html2Canvas=window.html2canvas;
+  if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return false; }
+  document.body.appendChild(box);
+  try{
+    if(document.fonts && document.fonts.ready) await document.fonts.ready;
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    const rect=box.getBoundingClientRect();
+    const width=Math.ceil(Math.max(box.scrollWidth,rect.width,1));
+    const height=Math.ceil(Math.max(box.scrollHeight,rect.height,1));
+    if(width<=1 || height<=1) throw new Error(`Invalid exceptions PNG dimensions: ${width}x${height}`);
+    const canvas=await Html2Canvas(box,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+    return await new Promise(resolve=>{
+      canvas.toBlob(async blob=>{
+        if(!blob){ alert('تعذر إنشاء صورة PNG.'); resolve(false); return; }
+        await saveBlobWithPicker(blob,fileName,'image/png');
+        resolve(true);
+      },'image/png',1);
+    });
+  }finally{
+    try{ box.remove(); }catch(_){ }
+  }
+}
+async function exportExceptionsWidgetPng(source,title,slug,button,width){
+  if(!source || button?.disabled) return;
+  setExceptionsPngBusy(button,true);
+  const exportWidth=Math.max(width||1400, Math.ceil(source.scrollWidth||0), Math.ceil(source.querySelector('table')?.scrollWidth||0)+80);
+  const box=exceptionsPngExportBox(title,exportWidth);
+  try{
+    const clone=source.cloneNode(true);
+    normalizeExceptionsPngClone(source,clone);
+    box.appendChild(clone);
+    const ok=await captureExceptionsPngBox(box,exceptionsReportPngFileName(slug));
+    if(ok) await logSystemActivity(activityExportSection('تقرير الاستثناءات والمراجعة'),'تصدير PNG',`تصدير ${title} PNG`);
+  }catch(err){
+    console.error('Exceptions widget PNG export failed',err);
+    alert('تعذر تصدير هذا البوكس PNG. حاول مرة أخرى.');
+    try{ box.remove(); }catch(_){ }
+  }finally{
+    setExceptionsPngBusy(button,false);
+  }
+}
 let SMART_ANALYTICS_STATE={rows:[],filters:null,stats:null,items:[],warehouses:[],plantStats:{},exceptions:[],daily:{}};
 function smartSeverityClass(level){ return level==='high'?'danger':level==='medium'?'warning':level==='ok'?'ok':'info'; }
 function smartTrendInfo(values){
