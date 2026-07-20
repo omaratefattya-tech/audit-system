@@ -7331,6 +7331,115 @@ async function captureItemsReportPngBox(box,fileName){
     try{ box.remove(); }catch(_){ }
   }
 }
+function applyItemsSummaryExportDesktopLayout(box){
+  if(!box) return;
+  box.classList.add('items-summary-export-clone');
+  box.style.setProperty('width','1800px','important');
+  box.style.setProperty('max-width','1800px','important');
+  const kpis=box.querySelector('#itemsReportKpis,.item-report-summary');
+  if(kpis){
+    kpis.style.setProperty('display','grid','important');
+    kpis.style.setProperty('grid-template-columns','repeat(5,minmax(0,1fr))','important');
+    kpis.style.setProperty('gap','14px','important');
+    kpis.style.setProperty('width','100%','important');
+    kpis.style.setProperty('margin','0 0 18px','important');
+    kpis.querySelectorAll('.kpi').forEach(card=>{
+      card.style.setProperty('min-width','0','important');
+      card.style.setProperty('min-height','126px','important');
+      card.style.setProperty('padding','18px','important');
+      card.style.setProperty('box-sizing','border-box','important');
+    });
+  }
+  const grid=box.querySelector('.item-report-top-grid');
+  if(grid){
+    grid.style.setProperty('display','grid','important');
+    grid.style.setProperty('grid-template-columns','minmax(0,.35fr) minmax(0,.65fr)','important');
+    grid.style.setProperty('gap','20px','important');
+    grid.style.setProperty('align-items','start','important');
+    grid.style.setProperty('width','100%','important');
+    grid.style.setProperty('direction','rtl','important');
+    const articles=[...grid.children].filter(el=>el.nodeType===1);
+    const tableCard=articles[0];
+    const statusCard=articles[1];
+    if(tableCard){
+      tableCard.style.setProperty('grid-column','2','important');
+      tableCard.style.setProperty('grid-row','1','important');
+      tableCard.style.setProperty('align-self','start','important');
+      tableCard.style.setProperty('min-width','0','important');
+      tableCard.style.setProperty('width','100%','important');
+      tableCard.style.setProperty('min-height','0','important');
+      tableCard.style.setProperty('overflow','hidden','important');
+    }
+    if(statusCard){
+      statusCard.style.setProperty('grid-column','1','important');
+      statusCard.style.setProperty('grid-row','1','important');
+      statusCard.style.setProperty('align-self','start','important');
+      statusCard.style.setProperty('min-width','0','important');
+      statusCard.style.setProperty('width','100%','important');
+      statusCard.style.setProperty('min-height','0','important');
+      statusCard.style.setProperty('overflow','hidden','important');
+    }
+  }
+  const board=box.querySelector('#itemsStatusBoard');
+  if(board){
+    board.style.setProperty('display','grid','important');
+    board.style.setProperty('grid-template-columns','1fr','important');
+    board.style.setProperty('gap','9px','important');
+    board.style.setProperty('height','auto','important');
+    board.style.setProperty('min-height','0','important');
+    board.style.setProperty('padding-top','0','important');
+    board.querySelectorAll('.item-status-card').forEach(card=>{
+      card.style.setProperty('min-height','58px','important');
+      card.style.setProperty('padding','10px 12px','important');
+      card.style.setProperty('gap','10px','important');
+    });
+  }
+  const wrap=box.querySelector('.item-report-top-grid > article:first-child .report-rank-wrap');
+  if(wrap){
+    wrap.style.setProperty('height','auto','important');
+    wrap.style.setProperty('max-height','none','important');
+    wrap.style.setProperty('overflow','visible','important');
+    wrap.style.setProperty('width','100%','important');
+    wrap.style.setProperty('max-width','100%','important');
+  }
+  const table=box.querySelector('#itemsReviewTopTable');
+  if(table){
+    table.style.setProperty('width','100%','important');
+    table.style.setProperty('max-width','100%','important');
+    table.style.setProperty('min-width','0','important');
+    table.style.setProperty('table-layout','fixed','important');
+    table.style.setProperty('border-collapse','collapse','important');
+    table.style.setProperty('font-size','11.5px','important');
+    table.querySelectorAll('th,td').forEach(cell=>{
+      cell.style.setProperty('padding','6px 4px','important');
+      cell.style.setProperty('line-height','1.25','important');
+      cell.style.setProperty('white-space','nowrap','important');
+      cell.style.setProperty('overflow','hidden','important');
+      cell.style.setProperty('text-overflow','clip','important');
+      cell.style.setProperty('overflow-wrap','normal','important');
+      cell.style.setProperty('word-break','normal','important');
+      cell.style.setProperty('box-sizing','border-box','important');
+    });
+    table.querySelectorAll('th:nth-child(3),td:nth-child(3),th:nth-child(11),td:nth-child(11)').forEach(cell=>{
+      cell.style.setProperty('white-space','normal','important');
+      cell.style.setProperty('overflow-wrap','break-word','important');
+    });
+    const widths=['3%','9%','30%','6%','6%','6%','6%','6%','8%','8%','12%'];
+    widths.forEach((width,idx)=>{
+      table.querySelectorAll(`th:nth-child(${idx+1}),td:nth-child(${idx+1})`).forEach(cell=>cell.style.setProperty('width',width,'important'));
+    });
+    table.querySelectorAll('.item-status-badge').forEach(badge=>{
+      badge.style.setProperty('display','inline-flex','important');
+      badge.style.setProperty('max-width','100%','important');
+      badge.style.setProperty('padding','3px 5px','important');
+      badge.style.setProperty('font-size','10px','important');
+      badge.style.setProperty('white-space','normal','important');
+      badge.style.setProperty('overflow','hidden','important');
+      badge.style.setProperty('overflow-wrap','break-word','important');
+      badge.style.setProperty('word-break','normal','important');
+    });
+  }
+}
 async function exportItemsReportSummaryPng(button){
   if(button?.disabled) return;
   const source=$('#itemsReportContent');
@@ -7338,7 +7447,7 @@ async function exportItemsReportSummaryPng(button){
   const topGrid=source?.querySelector('.item-report-top-grid');
   if(!source || !kpis || !topGrid){ alert('لم يتم العثور على ملخص تقرير الأصناف.'); return; }
   setItemsReportPngBusy(button,true,'جاري تصدير الملخص...');
-  const box=createItemsReportPngBox('items-report-summary-png-export',1600);
+  const box=createItemsReportPngBox('items-report-summary-png-export items-summary-export-clone',1800);
   try{
     const kpiClone=kpis.cloneNode(true);
     const topClone=topGrid.cloneNode(true);
