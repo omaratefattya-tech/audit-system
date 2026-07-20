@@ -83,8 +83,8 @@
         <label>حالة الوارد<select id="inboundStatusFilter"><option value="all">كل الحركات</option><option value="matched">مطابق</option><option value="weight_diff">فرق وزن</option><option value="not_cleared">لم يتم التصفية</option><option value="cancelled">ملغي (101/102)</option><option value="settled_after">مستلم بعد التصفية (Z13 / 101)</option></select></label>
         <label>من<input type="date" id="fromDate"></label>
         <label>إلى<input type="date" id="toDate"></label>
-        <button class="primary" id="searchBtn">بحث ??</button>
-        <button class="secondary" id="resetBtn">إعادة تعيين ?</button>
+        <button class="primary" id="searchBtn">بحث <span class="button-svg-icon" data-modern-icon="search" aria-hidden="true"></span></button>
+        <button class="secondary" id="resetBtn">إعادة تعيين <span class="button-svg-icon" data-modern-icon="reset" aria-hidden="true"></span></button>
       </section>
 
         <div class="mobile-dashboard-shell" style="display:none">
@@ -144,8 +144,8 @@
           <label>المخزن<select id="dashboardWarehouseFilter"><option value="all">كل المخازن</option></select></label>
           <label>من<input type="date" id="dashboardFromDate"></label>
           <label>إلى<input type="date" id="dashboardToDate"></label>
-          <button class="primary" id="dashboardSearchBtn" type="button">بحث ??</button>
-          <button class="secondary" id="dashboardResetBtn" type="button">إعادة تعيين ?</button>
+          <button class="primary" id="dashboardSearchBtn" type="button">بحث <span class="button-svg-icon" data-modern-icon="search" aria-hidden="true"></span></button>
+          <button class="secondary" id="dashboardResetBtn" type="button">إعادة تعيين <span class="button-svg-icon" data-modern-icon="reset" aria-hidden="true"></span></button>
         </section>
         <div class="cards" id="kpiCards"></div>
         <div class="grid-3">
@@ -377,8 +377,8 @@
             <button class="report-tab" type="button" data-report-tab="items">تقرير الأصناف</button>
             <button class="report-tab" type="button" data-report-tab="warehouses">أداء المخازن</button>
             <button class="report-tab" type="button" data-report-tab="exceptions">الاستثناءات</button>
-            <button class="report-tab" type="button" data-report-tab="smart">?? التحليلات الذكية</button>
-            <button class="report-tab" type="button" data-report-tab="production">?? تحليلات الإنتاج</button>
+            <button class="report-tab" type="button" data-report-tab="smart"><span class="tab-svg-icon" data-modern-icon="analytics" aria-hidden="true"></span> التحليلات الذكية</button>
+            <button class="report-tab" type="button" data-report-tab="production"><span class="tab-svg-icon" data-modern-icon="production" aria-hidden="true"></span> تحليلات الإنتاج</button>
           </div>
           <label class="mobile-reports-tab-field" for="mobileReportsTabSelect" style="display:none">
             <span class="mobile-reports-select-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 20V4h14v16"/><path d="M8 17v-5M12 17V7M16 17v-8"/></svg></span>
@@ -396,8 +396,8 @@
             <label>المخزن<select id="reportWarehouseFilter"><option value="all">كل مخازن البيع</option></select></label>
             <label>من<input type="date" id="reportFromDate"></label>
             <label>إلى<input type="date" id="reportToDate"></label>
-            <button class="primary" id="reportSearchBtn" type="button">بحث ??</button>
-            <button class="secondary" id="reportResetBtn" type="button">إعادة تعيين ?</button>
+            <button class="primary" id="reportSearchBtn" type="button">بحث <span class="button-svg-icon" data-modern-icon="search" aria-hidden="true"></span></button>
+            <button class="secondary" id="reportResetBtn" type="button">إعادة تعيين <span class="button-svg-icon" data-modern-icon="reset" aria-hidden="true"></span></button>
           </section>
           <div id="executiveReportContent" class="executive-report-content">
             <div class="executive-title-card">
@@ -519,7 +519,7 @@
           <div id="productionAnalyticsContent" class="production-analytics-content report-panel-content" style="display:none">
             <div class="executive-title-card production-title-card">
               <div>
-                <h3>?? تحليلات الإنتاج</h3>
+                <h3><span class="tab-svg-icon" data-modern-icon="production" aria-hidden="true"></span> تحليلات الإنتاج</h3>
                 <p id="productionAnalyticsMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
               </div>
               <div class="production-title-note">تحليل شامل لإنتاج المصانع حسب الفلاتر الحالية</div>
@@ -564,7 +564,7 @@
           <div id="smartAnalyticsContent" class="smart-analytics-content report-panel-content" style="display:none">
             <div class="executive-title-card smart-title-card smart-title-actions-card">
               <div>
-                <h3>?? التحليلات الذكية لمراجعة المخازن</h3>
+                <h3><span class="tab-svg-icon" data-modern-icon="analytics" aria-hidden="true"></span> التحليلات الذكية لمراجعة المخازن</h3>
                 <p id="smartAnalyticsMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
               </div>
               <div class="smart-export-actions">
@@ -598,15 +598,15 @@
             </div>
             <div class="smart-grid-3">
               <article class="panel glass smart-panel">
-                <h3>?? تنبيهات ذكية</h3>
+                <h3><span class="title-svg-icon" data-modern-icon="alert" aria-hidden="true"></span> تنبيهات ذكية</h3>
                 <div id="smartAlerts" class="smart-alerts-list"></div>
               </article>
               <article class="panel glass smart-panel">
-                <h3>?? أعلى المؤشرات</h3>
+                <h3><span class="title-svg-icon" data-modern-icon="reports" aria-hidden="true"></span> أعلى المؤشرات</h3>
                 <div id="smartTopInsights" class="smart-top-list"></div>
               </article>
               <article class="panel glass smart-panel">
-                <h3>?? توصيات المراجعة</h3>
+                <h3><span class="title-svg-icon" data-modern-icon="check" aria-hidden="true"></span> توصيات المراجعة</h3>
                 <div id="smartRecommendations" class="smart-recommendations-list"></div>
               </article>
             </div>
@@ -626,29 +626,29 @@
           <div class="users-hero">
             <div>
               <div class="section-eyebrow">إدارة النظام</div>
-              <h2>إدارة المستخدمين <span class="hero-icon">??</span></h2>
+              <h2>إدارة المستخدمين <span class="hero-icon" data-modern-icon="users" aria-hidden="true"></span></h2>
               <p class="hint">إدارة مستخدمي النظام وتحديد أدوارهم وحالة التفعيل. جميع المستخدمين لديهم رؤية كاملة للمصانع الثلاثة، ويتم التحكم فقط في الدور وحالة الحساب.</p>
             </div>
             <div class="users-hero-actions">
               <button class="primary users-open-create" id="openCreateUserModalBtn" type="button">+ مستخدم جديد</button>
-              <button class="secondary" id="refreshUsersBtn" type="button">تحديث ?</button>
+              <button class="secondary" id="refreshUsersBtn" type="button">تحديث <span class="button-svg-icon" data-modern-icon="refresh" aria-hidden="true"></span></button>
             </div>
           </div>
 
           <div class="users-kpi-grid">
-            <article class="users-kpi-card"><span class="users-kpi-icon blue">??</span><b id="usersTotalCount">0</b><small>إجمالي المستخدمين</small></article>
-            <article class="users-kpi-card"><span class="users-kpi-icon green">?</span><b id="usersActiveCount">0</b><small>المستخدمون النشطون</small></article>
-            <article class="users-kpi-card"><span class="users-kpi-icon red">?</span><b id="usersInactiveCount">0</b><small>المستخدمون المعطلون</small></article>
-            <article class="users-kpi-card super"><span class="users-kpi-icon gold">??</span><b id="usersSuperCount">0</b><small>منشئ النظام</small></article>
-            <article class="users-kpi-card"><span class="users-kpi-icon purple">???</span><b id="usersAdminCount">0</b><small>Admin</small></article>
-            <article class="users-kpi-card"><span class="users-kpi-icon cyan">??</span><b id="usersAuditorCount">0</b><small>Auditor</small></article>
-            <article class="users-kpi-card"><span class="users-kpi-icon slate">???</span><b id="usersViewerCount">0</b><small>Viewer</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon blue" data-modern-icon="users" aria-hidden="true"></span><b id="usersTotalCount">0</b><small>إجمالي المستخدمين</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon green" data-modern-icon="userCheck" aria-hidden="true"></span><b id="usersActiveCount">0</b><small>المستخدمون النشطون</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon red" data-modern-icon="userX" aria-hidden="true"></span><b id="usersInactiveCount">0</b><small>المستخدمون المعطلون</small></article>
+            <article class="users-kpi-card super"><span class="users-kpi-icon gold" data-modern-icon="shield" aria-hidden="true"></span><b id="usersSuperCount">0</b><small>منشئ النظام</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon purple" data-modern-icon="role" aria-hidden="true"></span><b id="usersAdminCount">0</b><small>Admin</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon cyan" data-modern-icon="userCheck" aria-hidden="true"></span><b id="usersAuditorCount">0</b><small>Auditor</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon slate" data-modern-icon="eye" aria-hidden="true"></span><b id="usersViewerCount">0</b><small>Viewer</small></article>
           </div>
 
           <div class="users-toolbar glass-soft">
             <button class="primary users-open-create" type="button">+ مستخدم جديد</button>
             <div class="users-search-box">
-              <span>??</span>
+              <span class="ui-svg-icon" data-modern-icon="search" aria-hidden="true"></span>
               <input id="usersQuickSearch" type="search" placeholder="بحث بالاسم أو البريد أو الوظيفة أو الهاتف..." />
             </div>
             <select id="usersRoleFilter" title="فلتر الدور">
@@ -750,20 +750,20 @@
           <div class="permissions-hero">
             <div>
               <span class="section-badge">أمن النظام</span>
-              <h2>إدارة الصلاحيات <span class="hero-icon">???</span></h2>
+              <h2>إدارة الصلاحيات <span class="hero-icon" data-modern-icon="shield" aria-hidden="true"></span></h2>
               <p class="hint">تحديد صلاحيات كل دور على الشاشات والإجراءات. Super Admin يملك كل الصلاحيات ولا يتم تعديله من هذه الشاشة.</p>
             </div>
             <div class="permissions-hero-actions">
-              <button class="primary" id="savePermissionsBtn" type="button">?? حفظ الصلاحيات</button>
-              <button class="secondary" id="reloadPermissionsBtn" type="button">تحديث ?</button>
+              <button class="primary" id="savePermissionsBtn" type="button"><span class="button-svg-icon" data-modern-icon="save" aria-hidden="true"></span> حفظ الصلاحيات</button>
+              <button class="secondary" id="reloadPermissionsBtn" type="button">تحديث <span class="button-svg-icon" data-modern-icon="refresh" aria-hidden="true"></span></button>
             </div>
           </div>
 
           <div class="permissions-kpi-grid">
-            <article class="permissions-kpi-card"><span>??</span><b id="permissionsScreensCount">0</b><small>الشاشات</small></article>
-            <article class="permissions-kpi-card"><span>?</span><b id="permissionsEnabledCount">0</b><small>صلاحيات مفعلة</small></article>
-            <article class="permissions-kpi-card"><span>??</span><b id="permissionsDisabledCount">0</b><small>صلاحيات مقفلة</small></article>
-            <article class="permissions-kpi-card"><span>??</span><b id="permissionsSelectedRoleLabel">Admin</b><small>الدور المختار</small></article>
+            <article class="permissions-kpi-card"><span data-modern-icon="reports" aria-hidden="true"></span><b id="permissionsScreensCount">0</b><small>الشاشات</small></article>
+            <article class="permissions-kpi-card"><span data-modern-icon="check" aria-hidden="true"></span><b id="permissionsEnabledCount">0</b><small>صلاحيات مفعلة</small></article>
+            <article class="permissions-kpi-card"><span data-modern-icon="lock" aria-hidden="true"></span><b id="permissionsDisabledCount">0</b><small>صلاحيات مقفلة</small></article>
+            <article class="permissions-kpi-card"><span data-modern-icon="role" aria-hidden="true"></span><b id="permissionsSelectedRoleLabel">Admin</b><small>الدور المختار</small></article>
           </div>
 
           <div class="permissions-toolbar glass-soft">
@@ -775,7 +775,7 @@
               </select>
             </label>
             <div class="permissions-search-box">
-              <span>??</span>
+              <span class="ui-svg-icon" data-modern-icon="search" aria-hidden="true"></span>
               <input id="permissionsQuickSearch" type="search" placeholder="بحث باسم الشاشة أو الوصف..." />
             </div>
             <button class="secondary" id="permissionsSelectAllBtn" type="button">تحديد الكل</button>
@@ -1079,7 +1079,7 @@
               <div class="settings-activity-log-wrap">
                 <div class="activity-log-toolbar glass-soft">
                   <div class="users-search-box activity-log-search-box">
-                    <span>&#x1F50D;</span>
+                    <span class="ui-svg-icon" data-modern-icon="search" aria-hidden="true"></span>
                     <input id="activityLogSearchInput" type="search" placeholder="&#x0628;&#x062D;&#x062B; &#x0641;&#x064A; &#x0633;&#x062C;&#x0644; &#x0627;&#x0644;&#x062D;&#x0631;&#x0643;&#x0627;&#x062A;..." />
                   </div>
                   <button class="secondary" id="activityLogRefreshBtn" type="button">&#x062A;&#x062D;&#x062F;&#x064A;&#x062B;</button>

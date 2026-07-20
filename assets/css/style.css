@@ -503,7 +503,7 @@ table{display:block;overflow-x:auto;white-space:nowrap}
   text-shadow:0 2px 12px rgba(0,0,0,.35);
 }
 #dashboard .grid-3 .panel h3::after{
-  content:"(��)";
+  content:"(طن)";
   display:block;
   font-size:12px;
   color:#d8ffd1;
@@ -1871,10 +1871,10 @@ body.modal-open{overflow:hidden;}
   #upload.active-section #incomingBatchesTable tbody tr::before,
   #upload.active-section #scaleBatchesTable tbody tr::before,
   #upload.active-section #freightBatchesTable tbody tr::before{font-size:13px;font-weight:900;color:#a6ef6b;line-height:1.35;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.08);}
-  #upload.active-section #salesBatchesTable tbody tr::before{content:'������ ������ ������ ����� ���������� ��������';}
-  #upload.active-section #incomingBatchesTable tbody tr::before{content:'������ �� MB51';}
-  #upload.active-section #scaleBatchesTable tbody tr::before{content:'����� �������';}
-  #upload.active-section #freightBatchesTable tbody tr::before{content:'����� ������';}
+  #upload.active-section #salesBatchesTable tbody tr::before{content:'ملف مبيعات وتحويلات المنتج التام';}
+  #upload.active-section #incomingBatchesTable tbody tr::before{content:'الوارد من MB51';}
+  #upload.active-section #scaleBatchesTable tbody tr::before{content:'ملف الميزان';}
+  #upload.active-section #freightBatchesTable tbody tr::before{content:'ملف النولون';}
   #upload.active-section #salesBatchesTable td,
   #upload.active-section #incomingBatchesTable td,
   #upload.active-section #scaleBatchesTable td,
@@ -1885,33 +1885,33 @@ body.modal-open{overflow:hidden;}
   #upload.active-section #freightBatchesTable td::before{color:rgba(223,247,218,.7);font-weight:800;}
   #upload.active-section #salesBatchesTable td:nth-child(1)::before,
   #upload.active-section #incomingBatchesTable td:nth-child(1)::before,
-  #upload.active-section #scaleBatchesTable td:nth-child(1)::before{content:'����� �������';}
+  #upload.active-section #scaleBatchesTable td:nth-child(1)::before{content:'تاريخ التقرير';}
   #upload.active-section #salesBatchesTable td:nth-child(2)::before,
   #upload.active-section #incomingBatchesTable td:nth-child(2)::before,
   #upload.active-section #scaleBatchesTable td:nth-child(2)::before,
-  #upload.active-section #freightBatchesTable td:nth-child(2)::before{content:'��� �����';}
+  #upload.active-section #freightBatchesTable td:nth-child(2)::before{content:'اسم الملف';}
   #upload.active-section #salesBatchesTable td:nth-child(3)::before,
   #upload.active-section #incomingBatchesTable td:nth-child(3)::before,
   #upload.active-section #scaleBatchesTable td:nth-child(3)::before,
-  #upload.active-section #freightBatchesTable td:nth-child(3)::before{content:'��� ������';}
+  #upload.active-section #freightBatchesTable td:nth-child(3)::before{content:'حجم الملف';}
   #upload.active-section #salesBatchesTable td:nth-child(4)::before,
   #upload.active-section #incomingBatchesTable td:nth-child(4)::before,
   #upload.active-section #scaleBatchesTable td:nth-child(4)::before,
-  #upload.active-section #freightBatchesTable td:nth-child(4)::before{content:'�����';}
+  #upload.active-section #freightBatchesTable td:nth-child(4)::before{content:'الحالة';}
   #upload.active-section #salesBatchesTable td:nth-child(5)::before,
   #upload.active-section #incomingBatchesTable td:nth-child(5)::before,
   #upload.active-section #scaleBatchesTable td:nth-child(5)::before,
-  #upload.active-section #freightBatchesTable td:nth-child(5)::before{content:'��� ������';}
+  #upload.active-section #freightBatchesTable td:nth-child(5)::before{content:'عدد الصفوف';}
   #upload.active-section #salesBatchesTable td:nth-child(6)::before,
   #upload.active-section #incomingBatchesTable td:nth-child(6)::before,
   #upload.active-section #scaleBatchesTable td:nth-child(6)::before,
-  #upload.active-section #freightBatchesTable td:nth-child(6)::before{content:'����� �����';}
+  #upload.active-section #freightBatchesTable td:nth-child(6)::before{content:'تاريخ الرفع';}
   #upload.active-section #salesBatchesTable td:nth-child(7)::before,
   #upload.active-section #incomingBatchesTable td:nth-child(7)::before,
-  #upload.active-section #scaleBatchesTable td:nth-child(7)::before{content:'���������';}
-  #upload.active-section #freightBatchesTable td:nth-child(1)::before{content:'����� �������';}
-  #upload.active-section #freightBatchesTable td:nth-child(7)::before{content:'������';}
-  #upload.active-section #freightBatchesTable td:nth-child(8)::before{content:'���������';}
+  #upload.active-section #scaleBatchesTable td:nth-child(7)::before{content:'الإجراءات';}
+  #upload.active-section #freightBatchesTable td:nth-child(1)::before{content:'تاريخ التقرير';}
+  #upload.active-section #freightBatchesTable td:nth-child(7)::before{content:'السعر';}
+  #upload.active-section #freightBatchesTable td:nth-child(8)::before{content:'الإجراءات';}
   #upload.active-section #salesBatchesTable td:last-child,
   #upload.active-section #incomingBatchesTable td:last-child,
   #upload.active-section #scaleBatchesTable td:last-child,
@@ -2919,3 +2919,7 @@ body.modal-open{overflow:hidden;}
     min-height:92px!important;
   }
 }
+
+.ui-svg-icon,.button-svg-icon,.tab-svg-icon,.title-svg-icon,.settings-search-icon{display:inline-grid;place-items:center;vertical-align:middle;color:currentColor;line-height:0;filter:drop-shadow(0 0 7px rgba(141,220,89,.22))}
+.ui-svg-icon svg,.button-svg-icon svg,.tab-svg-icon svg,.title-svg-icon svg,.settings-search-icon svg{width:1.15em;height:1.15em;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.button-svg-icon{margin-inline-start:6px;color:#dfffd4}.tab-svg-icon,.title-svg-icon{margin-inline-end:6px;color:#9be650}.hero-icon svg,.users-kpi-icon svg,.permissions-kpi-card > span svg{width:1em;height:1em;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.icon-action svg{width:18px;height:18px}.insight-ico svg,.production-insight > span svg,.smart-summary-line > span svg,.smart-top-row > span svg,.smart-trend-row strong svg,.smart-status-icon svg{width:1.1em;height:1.1em;vertical-align:-.18em;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 7px rgba(141,220,89,.20))}.png-icon svg,.png-mini-icon svg{width:1.1em;height:1.1em;display:block}
