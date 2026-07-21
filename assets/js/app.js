@@ -6781,6 +6781,53 @@ function drawSmartPlantScoreChart(model){
   });
 }
 
+
+function smartCleanValue(value){
+  const text=String(value||'').trim();
+  return text && text!=='-' && text!=='غير محدد' ? text : '';
+}
+function smartPeriodPhrase(model){
+  const filters=model?.filters||{};
+  const from=normalizeDateISO(filters.from||'');
+  const to=normalizeDateISO(filters.to||'');
+  if(from && to) return 'خلال الفترة من '+from+' إلى '+to;
+  if(from) return 'من '+from;
+  if(to) return 'حتى '+to;
+  return 'خلال الفترة المحددة';
+}
+function smartLocationPhrase(entry){
+  const parts=[];
+  const warehouse=smartCleanValue(entry?.warehouses||entry?.warehouse||entry?.code);
+  const plant=smartCleanValue(entry?.plants||entry?.plant);
+  if(warehouse) parts.push('المخزن '+warehouse);
+  if(plant) parts.push('المصنع '+plant);
+  return parts.join(' — ');
+}
+function smartExceptionText(e,period){
+  const location=smartLocationPhrase(e);
+  const bits=['الصنف '+smartCleanValue(e?.code), smartCleanValue(e?.name)].filter(Boolean).join(' — ');
+  const where=location ? ' في '+location : '';
+  const details=smartCleanValue(e?.details) ? ': '+e.details : '';
+  const score=Number.isFinite(Number(e?.reviewScore)) ? ' — '+fmt(e.reviewScore)+' نقطة' : '';
+  return bits+where+' بسبب '+(smartCleanValue(e?.label)||'مؤشر مراجعة')+details+' '+period+score+'.';
+}
+function smartItemText(item,reason,period){
+  const location=smartLocationPhrase({warehouses:(item?.warehouses||[]).join('، '),plants:(item?.plants||[]).join('، ')});
+  const bits=['الصنف '+smartCleanValue(item?.code), smartCleanValue(item?.name)].filter(Boolean).join(' — ');
+  const where=location ? ' في '+location : '';
+  return bits+where+' '+reason+' '+period+'.';
+}
+function smartAlertDetailsHtml(details,extra){
+  const rows=(details||[]).filter(Boolean).slice(0,3);
+  const extraText=extra ? '<small>'+escapeHtml(extra)+'</small>' : '';
+  return rows.length ? '<ul class="smart-alert-details">'+rows.map(t=>'<li>'+escapeHtml(t)+'</li>').join('')+'</ul>'+extraText : extraText;
+}
+function smartPushRecommendation(list,seen,key,text){
+  if(!text || seen.has(key)) return;
+  seen.add(key);
+  list.push(text);
+}
+
 function renderSmartExecutiveSummary(model){
   const node=$('#smartExecutiveSummary'); if(!node) return;
   const {stats,warehouses,products,plantStats,exceptions}=model;
@@ -6804,18 +6851,34 @@ function renderSmartExecutiveSummary(model){
 function renderSmartAlerts(model){
   const node=$('#smartAlerts'); if(!node) return;
   const {stats,warehouses,items,exceptions}=model;
+  const period=smartPeriodPhrase(model);
   const alerts=[];
   const gap=(stats.productionQty||0)-(stats.salesQty||0);
   const gapLimit=Math.max(10,Math.abs(stats.salesQty||0)*0.15);
-  if(Math.abs(gap)>gapLimit) alerts.push({level:'medium',title:gap>0?'الإنتاج أعلى من البيع':'البيع أعلى من الإنتاج',text:`الفارق ${fmt(Math.abs(gap))} طن`});
-  const noSales=items.filter(i=>Math.abs(i.sales||0)===0 && (Math.abs(i.production||0)+Math.abs(i.outgoing||0)+Math.abs(i.incoming||0))>0).length;
-  if(noSales) alerts.push({level:'high',title:'أصناف بدون بيع',text:`يوجد ${noSales} صنف له حركة بدون بيع`});
-  const inactiveWh=warehouses.filter(w=>Math.abs(w.totalActivity||0)===0).length;
-  if(inactiveWh) alerts.push({level:'medium',title:'مخازن بلا نشاط',text:`عدد المخازن غير النشطة ${inactiveWh}`});
-  if(Math.abs(stats.outgoingTransferQty||0)>Math.max(5,Math.abs(stats.salesQty||0)*0.45)) alerts.push({level:'medium',title:'تحويلات صادرة مرتفعة',text:`الصادر ${fmt(stats.outgoingTransferQty)} طن`});
-  if(exceptions.filter(e=>e.severity==='high').length) alerts.push({level:'high',title:'استثناءات عالية الأولوية',text:`${exceptions.filter(e=>e.severity==='high').length} حالة تحتاج تدخل سريع`});
-  if(!alerts.length) alerts.push({level:'ok',title:'الوضع مستقر',text:'لا توجد مؤشرات خطرة حسب الفلتر الحالي'});
-  node.innerHTML=alerts.slice(0,8).map(a=>`<div class="smart-alert ${smartSeverityClass(a.level)}"><strong>${escapeHtml(a.title)}</strong><span>${escapeHtml(a.text)}</span></div>`).join('');
+  if(Math.abs(gap)>gapLimit){
+    const type=gap>0?'production_high':'sales_high';
+    const related=exceptions.filter(e=>e.type===type).slice(0,3).map(e=>smartExceptionText(e,period));
+    alerts.push({level:'medium',title:gap>0?'الإنتاج أعلى من البيع':'البيع أعلى من الإنتاج',text:'الفارق '+fmt(Math.abs(gap))+' طن.',details:related,extra:related.length?'':'يحتاج المؤشر العام إلى مراجعة الأصناف الأكثر تأثيراً داخل نفس الفترة.'});
+  }
+  const noSalesItems=items.filter(i=>Math.abs(i.sales||0)===0 && (Math.abs(i.production||0)+Math.abs(i.outgoing||0)+Math.abs(i.incoming||0))>0);
+  if(noSalesItems.length){
+    const sorted=[...noSalesItems].sort((a,b)=>(Math.abs(b.production||0)+Math.abs(b.outgoing||0)+Math.abs(b.incoming||0))-(Math.abs(a.production||0)+Math.abs(a.outgoing||0)+Math.abs(a.incoming||0)));
+    alerts.push({level:'high',title:'أصناف بدون بيع',text:'يوجد '+noSalesItems.length+' صنف له حركة بدون بيع.',details:sorted.slice(0,3).map(i=>smartItemText(i,'بدون بيع رغم وجود إنتاج أو تحويلات',period)),extra:noSalesItems.length>3?'+ '+(noSalesItems.length-3)+' إضافي':''});
+  }
+  const inactiveWh=warehouses.filter(w=>Math.abs(w.totalActivity||0)===0);
+  if(inactiveWh.length){
+    alerts.push({level:'medium',title:'مخازن بلا نشاط',text:'عدد المخازن غير النشطة '+inactiveWh.length+'.',details:inactiveWh.slice(0,3).map(w=>'المخزن '+smartCleanValue(w.code)+' — '+smartCleanValue(w.name)+' — المصنع '+smartCleanValue(w.plant)+' بلا نشاط '+period+'.'),extra:inactiveWh.length>3?'+ '+(inactiveWh.length-3)+' إضافي':''});
+  }
+  if(Math.abs(stats.outgoingTransferQty||0)>Math.max(5,Math.abs(stats.salesQty||0)*0.45)){
+    const related=exceptions.filter(e=>e.type==='outgoing_high').slice(0,3).map(e=>smartExceptionText(e,period));
+    alerts.push({level:'medium',title:'تحويلات صادرة مرتفعة',text:'إجمالي الصادر '+fmt(stats.outgoingTransferQty)+' طن.',details:related,extra:related.length?'':'راجع أعلى الأصناف والمخازن في التحويلات الصادرة داخل الفترة.'});
+  }
+  const highExceptions=exceptions.filter(e=>e.severity==='high');
+  if(highExceptions.length){
+    alerts.push({level:'high',title:'استثناءات عالية الأولوية',text:highExceptions.length+' حالة تحتاج تدخل سريع.',details:highExceptions.slice(0,3).map(e=>smartExceptionText(e,period)),extra:highExceptions.length>3?'+ '+(highExceptions.length-3)+' إضافي':''});
+  }
+  if(!alerts.length) alerts.push({level:'ok',title:'الوضع مستقر',text:'لا توجد مؤشرات خطرة حسب الفلتر الحالي',details:[],extra:''});
+  node.innerHTML=alerts.slice(0,8).map(a=>'<div class="smart-alert '+smartSeverityClass(a.level)+'"><strong>'+escapeHtml(a.title)+'</strong><span>'+escapeHtml(a.text)+'</span>'+smartAlertDetailsHtml(a.details,a.extra)+'</div>').join('');
 }
 function renderSmartTopInsights(model){
   const node=$('#smartTopInsights'); if(!node) return;
@@ -6837,16 +6900,39 @@ function renderSmartTopInsights(model){
 function renderSmartRecommendations(model){
   const node=$('#smartRecommendations'); if(!node) return;
   const {stats,warehouses,exceptions,items}=model;
+  const period=smartPeriodPhrase(model);
   const rec=[];
-  const topHigh=exceptions.filter(e=>e.severity==='high').slice(0,3);
-  topHigh.forEach(e=>rec.push(`مراجعة الصنف ${e.code} بسبب: ${e.label}.`));
+  const seen=new Set();
+  exceptions.filter(e=>e.severity==='high').slice(0,4).forEach(e=>{
+    smartPushRecommendation(rec,seen,e.type+'-'+e.code,'راجع '+smartExceptionText(e,period));
+  });
+  exceptions.filter(e=>e.type==='no_sales').slice(0,3).forEach(e=>{
+    smartPushRecommendation(rec,seen,'no_sales-'+e.code,'راجع الصنف '+smartCleanValue(e.code)+' — '+smartCleanValue(e.name)+' '+(smartLocationPhrase(e)?'في '+smartLocationPhrase(e)+' ':'')+'بسبب عدم وجود بيع خلال الفترة.');
+  });
+  exceptions.filter(e=>e.type==='loading_gap').slice(0,2).forEach(e=>{
+    smartPushRecommendation(rec,seen,'loading_gap-'+e.code,'تحقق من إجمالي تحميل الصنف '+smartCleanValue(e.code)+' — '+smartCleanValue(e.name)+' '+(smartLocationPhrase(e)?'في '+smartLocationPhrase(e)+' ':'')+'لأن '+smartCleanValue(e.details)+'.');
+  });
+  exceptions.filter(e=>e.type==='outgoing_high').slice(0,2).forEach(e=>{
+    smartPushRecommendation(rec,seen,'outgoing_high-'+e.code,'راجع التحويلات الصادرة للصنف '+smartCleanValue(e.code)+' — '+smartCleanValue(e.name)+' '+(smartLocationPhrase(e)?'في '+smartLocationPhrase(e)+' ':'')+'بسبب ارتفاع غير معتاد.');
+  });
   const topWh=[...warehouses].sort((a,b)=>Math.abs(b.outgoing)-Math.abs(a.outgoing))[0];
-  if(topWh && Math.abs(topWh.outgoing||0)>Math.max(5,Math.abs(topWh.sales||0)*0.4)) rec.push(`مراجعة التحويلات الصادرة في المخزن ${topWh.code}.`);
+  if(topWh && Math.abs(topWh.outgoing||0)>Math.max(5,Math.abs(topWh.sales||0)*0.4)){
+    smartPushRecommendation(rec,seen,'warehouse-outgoing-'+topWh.code,'راجع التحويلات الصادرة في المخزن '+smartCleanValue(topWh.code)+' — '+smartCleanValue(topWh.name)+' بالمصنع '+smartCleanValue(topWh.plant)+' لأن الصادر بلغ '+fmt(topWh.outgoing)+' طن مقابل بيع '+fmt(topWh.sales)+' طن.');
+  }
   const gap=(stats.productionQty||0)-(stats.salesQty||0);
-  if(gap< -Math.max(10,Math.abs(stats.salesQty||0)*0.15)) rec.push('البيع أعلى من الإنتاج بشكل ملحوظ؛ يفضل مراجعة خطة الإنتاج والتحويلات الواردة.');
-  if(gap> Math.max(10,Math.abs(stats.salesQty||0)*0.15)) rec.push('الإنتاج أعلى من البيع؛ يفضل متابعة الأصناف الأعلى تراكمًا.');
-  if(!rec.length) rec.push('لا توجد توصيات حرجة حالياً؛ استمر في المتابعة الدورية.');
-  node.innerHTML=rec.slice(0,6).map((t,i)=>`<div class="smart-rec"><em>${i+1}</em><span>${escapeHtml(t)}</span></div>`).join('');
+  const gapLimit=Math.max(10,Math.abs(stats.salesQty||0)*0.15);
+  if(Math.abs(gap)>gapLimit){
+    const type=gap<0?'sales_high':'production_high';
+    const e=exceptions.find(x=>x.type===type);
+    if(e) smartPushRecommendation(rec,seen,'gap-focus-'+e.code,'تحقق من الصنف '+smartCleanValue(e.code)+' — '+smartCleanValue(e.name)+' '+(smartLocationPhrase(e)?'في '+smartLocationPhrase(e)+' ':'')+'لأنه من أبرز أسباب فرق الإنتاج/البيع.');
+  }
+  if(rec.length<5){
+    exceptions.filter(e=>e.severity==='medium').slice(0,5).forEach(e=>{
+      smartPushRecommendation(rec,seen,'medium-'+e.type+'-'+e.code,'تابع الصنف '+smartCleanValue(e.code)+' — '+smartCleanValue(e.name)+' '+(smartLocationPhrase(e)?'في '+smartLocationPhrase(e)+' ':'')+'بسبب '+smartCleanValue(e.label)+' — '+smartCleanValue(e.details)+'.');
+    });
+  }
+  if(!rec.length) rec.push('لا توجد توصيات حرجة حالياً؛ استمر في المتابعة الدورية حسب الفترة الحالية.');
+  node.innerHTML=rec.slice(0,8).map((t,i)=>'<div class="smart-rec"><em>'+(i+1)+'</em><span>'+escapeHtml(t)+'</span></div>').join('');
 }
 function renderSmartTrendAnalysis(model){
   const node=$('#smartTrendAnalysis'); if(!node) return;
