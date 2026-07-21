@@ -3291,3 +3291,59 @@ body.focus-mode-active #inboundTable[data-columns-managed="true"],
 #inboundTable [data-column-key="freight_match_reason"] .sort-btn{white-space:normal!important;overflow-wrap:anywhere!important;line-height:1.3;}
 #inboundTable td[data-column-key="freight_description"] > span{white-space:nowrap!important;overflow-wrap:normal!important;word-break:normal!important;}
 #inboundTable td[data-column-key="freight_match_reason"] > span{white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;line-height:1.42;}
+/* Inbound table final compact column fit */
+#inboundTable{table-layout:auto!important;width:max-content!important;min-width:2050px!important;}
+#inboundTable th,
+#inboundTable td{padding:6px 5px!important;line-height:1.34;}
+#inboundTable .sort-btn{padding:7px 5px!important;gap:3px;min-height:34px;line-height:1.24;}
+#inboundTable .column-filter-row th{padding:4px!important;}
+#inboundTable .column-filter-row input,
+#inboundTable .col-filter{width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;padding:4px 5px!important;height:27px;}
+#inboundTable [data-column-key="report_date"]{width:104px!important;min-width:100px!important;max-width:108px!important;white-space:nowrap!important;}
+#inboundTable [data-column-key="material_code"]{width:104px!important;min-width:100px!important;max-width:110px!important;white-space:nowrap!important;direction:ltr;}
+#inboundTable [data-column-key="uom"]{width:58px!important;min-width:54px!important;max-width:62px!important;white-space:nowrap!important;}
+#inboundTable [data-column-key="quantity"]{width:88px!important;min-width:84px!important;max-width:94px!important;white-space:nowrap!important;}
+#inboundTable [data-column-key="scale_net_weight"]{width:112px!important;min-width:106px!important;max-width:120px!important;white-space:nowrap!important;}
+#inboundTable [data-column-key="weight_diff_percent"]{width:104px!important;min-width:98px!important;max-width:112px!important;white-space:nowrap!important;}
+#inboundTable [data-column-key="mb51_warehouse"]{width:92px!important;min-width:88px!important;max-width:98px!important;white-space:nowrap!important;}
+#inboundTable [data-column-key="scale_warehouse"]{width:104px!important;min-width:98px!important;max-width:112px!important;white-space:nowrap!important;}
+#inboundTable [data-column-key="mb51_purchase_order"]{width:124px!important;min-width:118px!important;max-width:132px!important;white-space:nowrap!important;direction:ltr;}
+#inboundTable [data-column-key="scale_purchase_order"]{width:136px!important;min-width:128px!important;max-width:146px!important;white-space:nowrap!important;direction:ltr;}
+#inboundTable [data-column-key="vehicle_number"]{width:112px!important;min-width:106px!important;max-width:120px!important;white-space:nowrap!important;direction:ltr;}
+#inboundTable [data-column-key="incoming_type"]{width:104px!important;min-width:98px!important;max-width:112px!important;white-space:nowrap!important;}
+#inboundTable [data-column-key="freight_rate"]{width:104px!important;min-width:98px!important;max-width:112px!important;white-space:nowrap!important;}
+#inboundTable [data-column-key="incoming_quantity"],
+#inboundTable [data-column-key="cancelled_quantity"],
+#inboundTable [data-column-key="net_quantity"]{width:90px!important;min-width:84px!important;max-width:98px!important;white-space:nowrap!important;}
+#inboundTable [data-column-key="plant"],
+#inboundTable [data-column-key="warehouse"]{width:90px!important;min-width:84px!important;max-width:98px!important;white-space:nowrap!important;}
+#inboundTable [data-column-key="material_name"]{width:220px!important;min-width:190px!important;max-width:250px!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;}
+#inboundTable [data-column-key="movement_type"]{width:210px!important;min-width:180px!important;max-width:235px!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;}
+#inboundTable [data-column-key="vehicle_description"]{width:170px!important;min-width:150px!important;max-width:200px!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;}
+#inboundTable [data-column-key="freight_description"]{width:140px!important;min-width:128px!important;max-width:155px!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;}
+#inboundTable [data-column-key="material_name"] .sort-btn,
+#inboundTable [data-column-key="movement_type"] .sort-btn,
+#inboundTable [data-column-key="vehicle_description"] .sort-btn,
+#inboundTable [data-column-key="freight_description"] .sort-btn{white-space:normal!important;overflow-wrap:anywhere!important;}
+#inboundTable td[data-column-key="material_name"] > span,
+#inboundTable td[data-column-key="movement_type"] > span,
+#inboundTable td[data-column-key="vehicle_description"] > span,
+#inboundTable td[data-column-key="freight_description"] > span{white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;}
+#inboundTable td[data-column-key="report_date"] > span,
+#inboundTable td[data-column-key="material_code"] > span,
+#inboundTable td[data-column-key="uom"] > span,
+#inboundTable td[data-column-key="quantity"] > span,
+#inboundTable td[data-column-key="scale_net_weight"] > span,
+#inboundTable td[data-column-key="weight_diff_percent"] > span,
+#inboundTable td[data-column-key="mb51_warehouse"] > span,
+#inboundTable td[data-column-key="scale_warehouse"] > span,
+#inboundTable td[data-column-key="mb51_purchase_order"] > span,
+#inboundTable td[data-column-key="scale_purchase_order"] > span,
+#inboundTable td[data-column-key="vehicle_number"] > span,
+#inboundTable td[data-column-key="incoming_type"] > span,
+#inboundTable td[data-column-key="freight_rate"] > span,
+#inboundTable td[data-column-key="incoming_quantity"] > span,
+#inboundTable td[data-column-key="cancelled_quantity"] > span,
+#inboundTable td[data-column-key="net_quantity"] > span{white-space:nowrap!important;}
+body.focus-mode-active #inboundTable{table-layout:auto!important;width:max-content!important;min-width:2050px!important;}
+@media(max-width:900px){#inboundTable,body.focus-mode-active #inboundTable{min-width:2050px!important;}}
