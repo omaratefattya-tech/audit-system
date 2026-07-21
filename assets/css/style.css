@@ -3094,3 +3094,40 @@ body.modal-open{overflow:hidden;}
     padding-right:16px;
   }
 }
+
+/* Focus Mode: Sales Review + Incoming Review only */
+.focus-mode-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
+.focus-mode-title-row h2{margin:0;text-align:right;}
+.focus-mode-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.focus-mode-btn,.focus-mode-close-btn{min-width:132px;white-space:nowrap;}
+.focus-mode-close-btn[hidden],.focus-mode-btn[hidden]{display:none!important;}
+body.focus-mode-active{overflow:hidden;}
+body.focus-mode-active .app-shell{display:block;min-height:100svh;}
+body.focus-mode-active .sidebar,
+body.focus-mode-active .topbar,
+body.focus-mode-active .app-footer,
+body.focus-mode-active .mobile-dashboard-shell,
+body.focus-mode-active .mobile-dashboard-bottom-nav{display:none!important;}
+body.focus-mode-active .main{position:fixed;inset:0;z-index:1000;width:100vw;height:100svh;max-width:100vw;overflow:auto;padding:12px;background:radial-gradient(circle at 50% 0,#07392f 0,#001a15 48%,#00100e 100%);}
+body.focus-mode-active .main>.section:not(.active-section){display:none!important;}
+body.focus-mode-active[data-focus-section="sales"] #globalFilters{display:none!important;}
+body.focus-mode-active[data-focus-section="sales"] #sales.active-section,
+body.focus-mode-active[data-focus-section="inbound"] #inbound.active-section{display:block!important;width:100%;max-width:none;margin:0;padding:0;overflow:visible;}
+body.focus-mode-active[data-focus-section="sales"] #sales>.panel.glass,
+body.focus-mode-active[data-focus-section="inbound"] #inbound>.panel.glass{width:100%;max-width:none;min-height:calc(100svh - 24px);margin:0;border-radius:10px;padding:16px;overflow:visible;}
+body.focus-mode-active[data-focus-section="inbound"] #globalFilters.filters{display:grid!important;width:100%;max-width:none;margin:0 0 10px;position:static!important;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))!important;z-index:auto;max-height:none;overflow:visible;}
+body.focus-mode-active[data-focus-section="inbound"] #globalFilters #mobileInboundFilterCloseBtn{display:none!important;}
+body.focus-mode-active #sales .table-wrap,
+body.focus-mode-active #inbound .table-wrap{width:100%;max-width:none;overflow:auto;border:1px solid rgba(141,220,89,.18);border-radius:10px;}
+body.focus-mode-active #sales table,
+body.focus-mode-active #inbound table{width:100%;max-width:none;}
+body.focus-mode-active .focus-mode-close-btn{display:inline-flex!important;align-items:center;justify-content:center;border-color:rgba(241,187,48,.75)!important;color:#fff!important;background:rgba(82,60,12,.86)!important;}
+@media (max-width:768px){
+  body.focus-mode-active .main{padding:8px 8px calc(10px + env(safe-area-inset-bottom));}
+  body.focus-mode-active[data-focus-section="sales"] #sales>.panel.glass,
+  body.focus-mode-active[data-focus-section="inbound"] #inbound>.panel.glass{min-height:calc(100svh - 16px);padding:12px;border-radius:16px;}
+  body.focus-mode-active .focus-mode-title-row{align-items:stretch;}
+  body.focus-mode-active .focus-mode-actions{width:100%;}
+  body.focus-mode-active .focus-mode-btn,
+  body.focus-mode-active .focus-mode-close-btn{flex:1;min-width:0;}
+}

@@ -2179,6 +2179,7 @@ function syncMobileDashboardShellState(){
   updateMobileDashboardState(currentActiveSection());
 }
 function switchSection(section){
+  if(document.body.classList.contains('focus-mode-active')) exitFocusMode({restoreScroll:false});
   if(!canViewSection(section)){
     showPermissionDenied(section);
     return;
@@ -2424,6 +2425,60 @@ function nav(){
   updateFiltersVisibility(active);
 }
 
+const FOCUS_MODE_SECTIONS = new Set(['sales','inbound']);
+let FOCUS_MODE_SCROLL_Y = 0;
+function setFocusModeButtonState(){
+  const active=document.body.classList.contains('focus-mode-active');
+  const section=document.body.dataset.focusSection || '';
+  $$('[data-focus-target]').forEach(btn=>{
+    const isActive=active && btn.dataset.focusTarget===section;
+    btn.hidden=isActive;
+    btn.setAttribute('aria-pressed',isActive?'true':'false');
+  });
+  $$('[data-focus-close]').forEach(btn=>{
+    const owner=btn.closest('.section')?.id || '';
+    btn.hidden=!(active && owner===section);
+  });
+}
+function enterFocusMode(section){
+  if(!FOCUS_MODE_SECTIONS.has(section)) return;
+  const target=$('#'+section);
+  if(!target) return;
+  if(currentActiveSection()!==section) switchSection(section);
+  FOCUS_MODE_SCROLL_Y=window.scrollY || document.documentElement.scrollTop || 0;
+  document.body.classList.add('focus-mode-active');
+  document.body.dataset.focusSection=section;
+  setFocusModeButtonState();
+  requestAnimationFrame(()=>target.querySelector('[data-focus-close]')?.focus({preventScroll:true}));
+}
+function exitFocusMode(options={}){
+  const wasActive=document.body.classList.contains('focus-mode-active');
+  document.body.classList.remove('focus-mode-active');
+  delete document.body.dataset.focusSection;
+  setFocusModeButtonState();
+  if(wasActive && options.restoreScroll!==false) requestAnimationFrame(()=>window.scrollTo({top:FOCUS_MODE_SCROLL_Y,behavior:'auto'}));
+}
+function initFocusModeControls(){
+  if(document.body.dataset.focusModeBound==='1') return;
+  document.body.dataset.focusModeBound='1';
+  document.addEventListener('click',event=>{
+    const openBtn=event.target.closest('[data-focus-target]');
+    if(openBtn){
+      event.preventDefault();
+      enterFocusMode(openBtn.dataset.focusTarget);
+      return;
+    }
+    if(event.target.closest('[data-focus-close]')){
+      event.preventDefault();
+      exitFocusMode();
+    }
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape' && document.body.classList.contains('focus-mode-active')) exitFocusMode();
+  });
+  setFocusModeButtonState();
+}
+
 function initSidebarToggle(){
   const shell = $('#appShell');
   const btn = $('#sidebarToggleBtn');
@@ -2443,7 +2498,7 @@ function initSidebarToggle(){
   };
 }
 function renderAll(){renderPlants();renderTables();renderTabs()}
-document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();initDashboardFilters();renderModernSidebarIcons();nav();initMobileDashboardShell();initSidebarToggle();initLoginPasswordToggle();initReportExportButtons();renderAll()});
+document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();initDashboardFilters();renderModernSidebarIcons();nav();initMobileDashboardShell();initSidebarToggle();initLoginPasswordToggle();initReportExportButtons();initFocusModeControls();renderAll()});
 
 // === Supabase Sales Upload + Dynamic Sales Report ===
 const SALES_WAREHOUSES = ['W401','W402','N401','N402','N411','N412','E401','E402'];
@@ -3367,18 +3422,9 @@ async function loadInboundAuditReport(date='',options={}){
     if(warehouseCodes.length && warehouseCodes.length<APP_DATA.plants.flatMap(p=>p.warehouses).length) query=query.in('mb51_warehouse_code',warehouseCodes);
     if(topFilters.movement && topFilters.movement!=='ALL') query=query.eq('incoming_movement_type',topFilters.movement);
   }
-  query=query
+  const {data,error}=await query
     .order('report_date',{ascending:false})
     .order('material_code',{ascending:true});
-  const data=[];
-  let error=null;
-  for(let from=0;;from+=1000){
-    const res=await query.range(from,from+999);
-    if(res.error){ error=res.error; break; }
-    const chunk=res.data||[];
-    data.push(...chunk);
-    if(chunk.length<1000) break;
-  }
   if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل مراجعة الوارد: ${error.message}</td></tr></tbody>`; return; }
   const filtered=(data||[]).filter(r=>inboundRowMatchesTopFilters(r,topFilters));
   updateInboundResultsCount(filtered.length);
