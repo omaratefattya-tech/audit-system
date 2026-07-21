@@ -3367,9 +3367,18 @@ async function loadInboundAuditReport(date='',options={}){
     if(warehouseCodes.length && warehouseCodes.length<APP_DATA.plants.flatMap(p=>p.warehouses).length) query=query.in('mb51_warehouse_code',warehouseCodes);
     if(topFilters.movement && topFilters.movement!=='ALL') query=query.eq('incoming_movement_type',topFilters.movement);
   }
-  const {data,error}=await query
+  query=query
     .order('report_date',{ascending:false})
     .order('material_code',{ascending:true});
+  const data=[];
+  let error=null;
+  for(let from=0;;from+=1000){
+    const res=await query.range(from,from+999);
+    if(res.error){ error=res.error; break; }
+    const chunk=res.data||[];
+    data.push(...chunk);
+    if(chunk.length<1000) break;
+  }
   if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل مراجعة الوارد: ${error.message}</td></tr></tbody>`; return; }
   const filtered=(data||[]).filter(r=>inboundRowMatchesTopFilters(r,topFilters));
   updateInboundResultsCount(filtered.length);
