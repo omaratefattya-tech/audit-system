@@ -2923,3 +2923,45 @@ body.modal-open{overflow:hidden;}
 .ui-svg-icon,.button-svg-icon,.tab-svg-icon,.title-svg-icon,.settings-search-icon{display:inline-grid;place-items:center;vertical-align:middle;color:currentColor;line-height:0;filter:drop-shadow(0 0 7px rgba(141,220,89,.22))}
 .ui-svg-icon svg,.button-svg-icon svg,.tab-svg-icon svg,.title-svg-icon svg,.settings-search-icon svg{width:1.15em;height:1.15em;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .button-svg-icon{margin-inline-start:6px;color:#dfffd4}.tab-svg-icon,.title-svg-icon{margin-inline-end:6px;color:#9be650}.hero-icon svg,.users-kpi-icon svg,.permissions-kpi-card > span svg{width:1em;height:1em;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.icon-action svg{width:18px;height:18px}.insight-ico svg,.production-insight > span svg,.smart-summary-line > span svg,.smart-top-row > span svg,.smart-trend-row strong svg,.smart-status-icon svg{width:1.1em;height:1.1em;vertical-align:-.18em;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 7px rgba(141,220,89,.20))}.png-icon svg,.png-mini-icon svg{width:1.1em;height:1.1em;display:block}
+
+
+/* Scoped SVG fixes for Sidebar, Users, and Permissions icons */
+.sidebar .nav-item{position:relative;overflow:visible}
+.sidebar .nav-item .nav-icon{color:#dfffd4;line-height:0;isolation:isolate}
+.sidebar .nav-item .nav-icon svg{width:21px;height:21px;min-width:21px;min-height:21px;display:block;fill:none;stroke:#dfffd4;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 7px rgba(141,220,89,.28))}
+.sidebar .nav-item:hover .nav-icon svg,.sidebar .nav-item.active .nav-icon svg{stroke:#ffffff;filter:drop-shadow(0 0 10px rgba(180,255,120,.42))}
+.sidebar-toggle svg,.sidebar-toggle-icon svg{width:22px;height:22px;display:block;fill:none;stroke:#f4fff5;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 8px rgba(241,187,48,.28))}
+.app-shell.sidebar-collapsed .sidebar-toggle svg{transform:rotate(0deg)}
+@media (min-width:1101px){
+  .app-shell.sidebar-collapsed .sidebar .nav-item::after{
+    content:attr(data-label);
+    position:absolute;
+    right:calc(100% + 10px);
+    top:50%;
+    transform:translateY(-50%) translateX(4px);
+    opacity:0;
+    pointer-events:none;
+    z-index:60;
+    min-width:max-content;
+    max-width:220px;
+    padding:8px 12px;
+    border-radius:10px;
+    border:1px solid rgba(141,220,89,.42);
+    background:rgba(0,35,27,.96);
+    color:#f4fff5;
+    font-size:13px;
+    font-weight:800;
+    line-height:1.4;
+    white-space:nowrap;
+    box-shadow:0 14px 32px rgba(0,0,0,.32),0 0 18px rgba(141,220,89,.18);
+    transition:opacity .16s ease,transform .16s ease;
+  }
+  .app-shell.sidebar-collapsed .sidebar .nav-item:hover::after,
+  .app-shell.sidebar-collapsed .sidebar .nav-item:focus-visible::after{opacity:1;transform:translateY(-50%) translateX(0)}
+  .app-shell:not(.sidebar-collapsed) .sidebar .nav-item::after{content:none}
+}
+#users .hero-icon,#users .users-kpi-icon,#permissions .hero-icon,#permissions .permissions-kpi-card > span{color:#dfffd4;line-height:0}
+#users .hero-icon svg,#users .users-kpi-icon svg,#permissions .hero-icon svg,#permissions .permissions-kpi-card > span svg{width:24px;height:24px;min-width:24px;min-height:24px;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 8px rgba(141,220,89,.26))}
+#users .hero-icon svg,#permissions .hero-icon svg{width:28px;height:28px;min-width:28px;min-height:28px}
+#users .users-kpi-icon.blue{color:#7dd3fc}#users .users-kpi-icon.green{color:#86efac}#users .users-kpi-icon.red{color:#fca5a5}#users .users-kpi-icon.gold{color:#fde68a}#users .users-kpi-icon.purple{color:#c4b5fd}#users .users-kpi-icon.cyan{color:#67e8f9}#users .users-kpi-icon.slate{color:#cbd5e1}
+#permissions .permissions-kpi-card > span{color:#b7f77a}

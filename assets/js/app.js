@@ -1006,9 +1006,16 @@ function dashboardWhMeta(code){
 }
 
 function renderModernSidebarIcons(){
-  $('.nav-icon[data-icon]').forEach(node=>{
+  document.querySelectorAll('.nav-icon[data-icon]').forEach(node=>{
     const name=node.getAttribute('data-icon');
     node.innerHTML=modernIcon(name);
+  });
+  document.querySelectorAll('.sidebar .nav-item').forEach(item=>{
+    const label=[...item.childNodes].filter(node=>node.nodeType===Node.TEXT_NODE).map(node=>node.textContent.trim()).filter(Boolean).join(' ');
+    if(label){
+      item.setAttribute('data-label',label);
+      item.setAttribute('aria-label',label);
+    }
   });
   renderInlineModernIcons(document);
 }
