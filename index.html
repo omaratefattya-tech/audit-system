@@ -361,10 +361,13 @@
           </button>
           <div class="mobile-inbound-filter-overlay" id="mobileInboundFilterOverlay" style="display:none" aria-hidden="true"></div>
           <div class="report-tools-row">
-            <div id="inboundResultsCount" class="hint">عدد الحركات المعروضة: 0</div>
-            <div class="export-actions compact">
+            <div id="inboundResultsCount" class="hint">عدد الحركات المعروضة: 0</div>            <div class="export-actions compact">
               <button class="secondary export-btn" id="inboundExportExcelBtn" type="button">تصدير Excel</button>
               <button class="secondary export-btn" id="inboundExportPdfBtn" type="button">تصدير PDF</button>
+              <div class="inbound-column-manager" id="inboundColumnManager">
+                <button class="secondary export-btn inbound-columns-btn" id="inboundColumnManagerBtn" type="button" aria-expanded="false" aria-controls="inboundColumnManagerPopover">إدارة الأعمدة</button>
+                <div class="inbound-column-popover" id="inboundColumnManagerPopover" hidden></div>
+              </div>
             </div>
           </div>
           <div class="table-wrap"><table id="inboundTable"></table></div>

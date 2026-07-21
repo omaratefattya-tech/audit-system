@@ -294,6 +294,7 @@ function table(el,heads,rows){
   if(!TABLE_STATE[key]) TABLE_STATE[key]={filters:Array(heads.length).fill(''),sortIndex:null,sortDir:'asc'};
   const state=TABLE_STATE[key];
   if(!Array.isArray(state.filters) || state.filters.length!==heads.length) state.filters=Array(heads.length).fill('');
+  const columnKeys=heads.map((h,i)=>key==='inboundTable' && typeof inboundColumnKeyForHeading==='function' ? inboundColumnKeyForHeading(h,i) : String(i));
   let visible=[...(rows||[])];
   visible=visible.filter(row=>state.filters.every((f,i)=>!f || stripHtml(row[i]).toLowerCase().includes(String(f).toLowerCase())));
   if(state.sortIndex!==null){
@@ -308,11 +309,16 @@ function table(el,heads,rows){
   }
   const headHtml=heads.map((h,i)=>{
     const arrow=state.sortIndex===i?(state.sortDir==='asc'?'▲':'▼'):'↕';
-    return `<th class="sortable-th"><button type="button" class="sort-btn" data-col="${i}">${escapeHtml(h)} <span>${arrow}</span></button></th>`;
+    const colAttrs=key==='inboundTable' ? ` data-column-key="${escapeHtml(columnKeys[i])}" data-column-label="${escapeHtml(h)}"` : '';
+    return `<th class="sortable-th"${colAttrs}><button type="button" class="sort-btn" data-col="${i}">${escapeHtml(h)} <span>${arrow}</span></button></th>`;
   }).join('');
-  const filterHtml=heads.map((h,i)=>`<th><input class="col-filter" data-col="${i}" value="${escapeHtml(state.filters[i]||'')}" placeholder="بحث ${escapeHtml(h)}" /></th>`).join('');
+  const filterHtml=heads.map((h,i)=>{
+    const colAttrs=key==='inboundTable' ? ` data-column-key="${escapeHtml(columnKeys[i])}" data-column-label="${escapeHtml(h)}"` : '';
+    const inputAttrs=key==='inboundTable' ? ` data-column-key="${escapeHtml(columnKeys[i])}"` : '';
+    return `<th${colAttrs}><input class="col-filter" data-col="${i}"${inputAttrs} value="${escapeHtml(state.filters[i]||'')}" placeholder="بحث ${escapeHtml(h)}" /></th>`;
+  }).join('');
   const bodyHtml=visible.length
-    ? visible.map(r=>`<tr>${heads.map((_,i)=>`<td>${r[i]??''}</td>`).join('')}</tr>`).join('')
+    ? visible.map(r=>`<tr>${heads.map((_,i)=>{ const colAttrs=key==='inboundTable' ? ` data-column-key="${escapeHtml(columnKeys[i])}"` : ''; return `<td${colAttrs}>${r[i]??''}</td>`; }).join('')}</tr>`).join('')
     : `<tr><td colspan="${heads.length}" class="empty-row">لا توجد بيانات مطابقة</td></tr>`;
   
 function numericCellValue(v){
@@ -345,6 +351,92 @@ let footerHtml='';
       if(next){ next.focus(); try{next.setSelectionRange(pos,pos);}catch(_){}}
     };
   });
+  if(key==='inboundTable' && typeof applyInboundColumnVisibility==='function') applyInboundColumnVisibility();
+}
+
+const INBOUND_COLUMN_STORAGE_KEY='auditInboundHiddenColumns';
+const INBOUND_REQUIRED_COLUMN_KEYS=new Set(['material_code','material_name','quantity','scale_net_weight','weight_diff_percent']);
+function inboundColumnKeyForHeading(head,index){
+  const text=cleanHeaderText(stripHtml(head)).replace(/\s+/g,' ').trim();
+  const map={
+    'تاريخ التقرير':'report_date','المادة':'material_code','كود المادة':'material_code','وصف المادة':'material_name','وحدة القياس':'uom','الكمية':'quantity','صافي الميزان':'scale_net_weight','فرق الوزن %':'weight_diff_percent','نوع الحركة':'movement_type','مخزن MB51':'mb51_warehouse','مخزن الميزان':'scale_warehouse','أمر الشراء MB51':'mb51_purchase_order','أمر الشراء الميزان':'scale_purchase_order','رقم العربية':'vehicle_number','نوع الوارد':'incoming_type','وصف العربية':'vehicle_description','وصف النولون':'freight_description','قيمة النولون للطن':'freight_rate','سبب مطابقة النولون':'freight_match_reason','المصنع':'plant','المخزن':'warehouse','الوارد':'incoming_quantity','الإلغاء':'cancelled_quantity','الصافي':'net_quantity'
+  };
+  if(map[text]) return map[text];
+  return 'inbound_col_'+index+'_'+text.toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g,'_').replace(/^_+|_+$/g,'');
+}
+function inboundTableColumns(){
+  const table=$('#inboundTable');
+  if(!table) return [];
+  return [...table.querySelectorAll('thead tr:first-child th')].map((th,index)=>{
+    const label=th.dataset.columnLabel || cleanHeaderText(th.textContent);
+    const key=th.dataset.columnKey || inboundColumnKeyForHeading(label,index);
+    return {key,label,index,required:INBOUND_REQUIRED_COLUMN_KEYS.has(key)};
+  });
+}
+function readInboundHiddenColumnKeys(){
+  try{ const parsed=JSON.parse(localStorage.getItem(INBOUND_COLUMN_STORAGE_KEY)||'[]'); return new Set(Array.isArray(parsed)?parsed:[]); }
+  catch(_){ return new Set(); }
+}
+function writeInboundHiddenColumnKeys(hidden){ localStorage.setItem(INBOUND_COLUMN_STORAGE_KEY,JSON.stringify([...hidden])); }
+function visibleInboundColumnCount(columns,hidden){ return columns.filter(col=>col.required || !hidden.has(col.key)).length; }
+function renderInboundColumnManager(){
+  const popover=$('#inboundColumnManagerPopover');
+  if(!popover) return;
+  const columns=inboundTableColumns();
+  const hidden=readInboundHiddenColumnKeys();
+  if(!columns.length){ popover.innerHTML='<p class="inbound-columns-empty">لا توجد أعمدة متاحة الآن.</p>'; return; }
+  popover.innerHTML=`<div class="inbound-columns-head"><strong>إدارة أعمدة مراجعة الوارد</strong><small>الأعمدة الأساسية تبقى ظاهرة دائمًا.</small></div><div class="inbound-columns-list">${columns.map(col=>{ const checked=col.required || !hidden.has(col.key); return `<label class="inbound-column-option ${col.required?'is-required':''}"><input type="checkbox" data-inbound-column-key="${escapeHtml(col.key)}" ${checked?'checked':''} ${col.required?'disabled':''}/><span>${escapeHtml(col.label)}</span></label>`; }).join('')}</div><div class="inbound-columns-actions"><button class="secondary" id="inboundColumnsShowAllBtn" type="button">إظهار الكل</button><button class="secondary" id="inboundColumnsResetBtn" type="button">استعادة الافتراضي</button></div>`;
+}
+function applyInboundColumnVisibility(){
+  const table=$('#inboundTable');
+  if(!table) return;
+  const columns=inboundTableColumns();
+  if(!columns.length) return;
+  const knownKeys=new Set(columns.map(col=>col.key));
+  const hidden=readInboundHiddenColumnKeys();
+  [...hidden].forEach(key=>{ if(!knownKeys.has(key) || INBOUND_REQUIRED_COLUMN_KEYS.has(key)) hidden.delete(key); });
+  if(visibleInboundColumnCount(columns,hidden)<1) hidden.clear();
+  table.querySelectorAll('[data-column-key]').forEach(cell=>{
+    const key=cell.dataset.columnKey;
+    const hide=hidden.has(key) && !INBOUND_REQUIRED_COLUMN_KEYS.has(key);
+    cell.classList.toggle('inbound-column-hidden',hide);
+    cell.toggleAttribute('hidden',hide);
+  });
+  table.dataset.columnsManaged=hidden.size?'true':'false';
+  writeInboundHiddenColumnKeys(hidden);
+  renderInboundColumnManager();
+}
+function closeInboundColumnManager(){
+  const popover=$('#inboundColumnManagerPopover');
+  const button=$('#inboundColumnManagerBtn');
+  if(popover) popover.hidden=true;
+  button?.setAttribute('aria-expanded','false');
+}
+function initInboundColumnManager(){
+  if(document.body.dataset.inboundColumnManagerBound==='1') return;
+  document.body.dataset.inboundColumnManagerBound='1';
+  const button=$('#inboundColumnManagerBtn');
+  const popover=$('#inboundColumnManagerPopover');
+  if(!button || !popover) return;
+  button.addEventListener('click',event=>{ event.preventDefault(); event.stopPropagation(); renderInboundColumnManager(); const open=popover.hidden; popover.hidden=!open; button.setAttribute('aria-expanded',open?'true':'false'); });
+  popover.addEventListener('click',event=>{
+    event.stopPropagation();
+    const action=event.target.closest('button');
+    if(action?.id==='inboundColumnsShowAllBtn' || action?.id==='inboundColumnsResetBtn'){ event.preventDefault(); localStorage.removeItem(INBOUND_COLUMN_STORAGE_KEY); applyInboundColumnVisibility(); return; }
+    const checkbox=event.target.closest('input[type="checkbox"][data-inbound-column-key]');
+    if(!checkbox) return;
+    const columns=inboundTableColumns();
+    const key=checkbox.dataset.inboundColumnKey;
+    if(INBOUND_REQUIRED_COLUMN_KEYS.has(key)){ checkbox.checked=true; return; }
+    const hidden=readInboundHiddenColumnKeys();
+    if(checkbox.checked) hidden.delete(key); else hidden.add(key);
+    if(visibleInboundColumnCount(columns,hidden)<1){ hidden.delete(key); checkbox.checked=true; alert('يجب أن يبقى عمود واحد ظاهرًا على الأقل.'); }
+    writeInboundHiddenColumnKeys(hidden);
+    applyInboundColumnVisibility();
+  });
+  document.addEventListener('click',event=>{ if(!event.target.closest('#inboundColumnManager')) closeInboundColumnManager(); });
+  document.addEventListener('keydown',event=>{ if(event.key==='Escape' && !popover.hidden){ event.stopPropagation(); closeInboundColumnManager(); button.focus({preventScroll:true}); } },true);
+  applyInboundColumnVisibility();
 }
 
 
@@ -2498,7 +2590,7 @@ function initSidebarToggle(){
   };
 }
 function renderAll(){renderPlants();renderTables();renderTabs()}
-document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();initDashboardFilters();renderModernSidebarIcons();nav();initMobileDashboardShell();initSidebarToggle();initLoginPasswordToggle();initReportExportButtons();initFocusModeControls();renderAll()});
+document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();initDashboardFilters();renderModernSidebarIcons();nav();initMobileDashboardShell();initSidebarToggle();initLoginPasswordToggle();initReportExportButtons();initFocusModeControls();initInboundColumnManager();renderAll()});
 
 // === Supabase Sales Upload + Dynamic Sales Report ===
 const SALES_WAREHOUSES = ['W401','W402','N401','N402','N411','N412','E401','E402'];
