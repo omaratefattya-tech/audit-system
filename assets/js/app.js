@@ -4222,6 +4222,7 @@ function applySettingsSubPermissions(){
     const first=tabs.find(tab=>!tab.hidden);
     if(first) first.click();
   }
+  syncSettingsMobileTabSelect?.();
 
   setElementsDisabled('#saveProfileBtn,#profileForm input',!hasPermission('settings_profile','edit'));
   setElementsDisabled('#savePasswordBtn,#passwordChangeForm input,#passwordChangeForm button',!hasPermission('settings_account','edit'));
@@ -5430,16 +5431,48 @@ function initActivityLogSettings(){
     renderActivityLogTable();
   });
 }
+function syncSettingsMobileTabSelect(){
+  const root=$('#settings');
+  const select=$('#settingsMobileTabSelect');
+  if(!root || !select) return;
+  const tabs=[...root.querySelectorAll('[data-settings-tab]')];
+  [...select.options].forEach(option=>{
+    const tab=tabs.find(item=>item.dataset.settingsTab===option.value);
+    option.disabled=!tab || tab.hidden || tab.disabled || !canViewSettingsTab(option.value);
+  });
+  const active=tabs.find(tab=>tab.classList.contains('active') && !tab.hidden && !tab.disabled) || tabs.find(tab=>!tab.hidden && !tab.disabled);
+  if(active) select.value=active.dataset.settingsTab;
+}
+function initSettingsMobileTabSelect(){
+  const root=$('#settings');
+  const select=$('#settingsMobileTabSelect');
+  if(!root || !select || select.dataset.settingsMobileBound==='1') return;
+  select.dataset.settingsMobileBound='1';
+  select.addEventListener('change',()=>{
+    const tabs=[...root.querySelectorAll('[data-settings-tab]')];
+    const target=tabs.find(tab=>tab.dataset.settingsTab===select.value);
+    if(target && !target.hidden && !target.disabled) target.click();
+    syncSettingsMobileTabSelect();
+  });
+  syncSettingsMobileTabSelect();
+}
 function initSettingsTabs(){
   const root=$('#settings');
   if(!root) return;
   const tabs=[...root.querySelectorAll('[data-settings-tab]')];
   const panels=[...root.querySelectorAll('[data-settings-panel]')];
+  if(root.dataset.settingsTabsBound==='1'){
+    initSettingsMobileTabSelect();
+    syncSettingsMobileTabSelect();
+    return;
+  }
+  root.dataset.settingsTabsBound='1';
   tabs.forEach(tab=>tab.addEventListener('click',()=>{
     const key=tab.dataset.settingsTab;
     if(!canViewSettingsTab(key)){
       alert('غير متاح للصلاحية الحالية');
       applySettingsSubPermissions();
+      syncSettingsMobileTabSelect();
       return;
     }
     tabs.forEach(t=>{const active=t===tab;t.classList.toggle('active',active);t.setAttribute('aria-selected',active?'true':'false');});
@@ -5451,7 +5484,10 @@ function initSettingsTabs(){
     if(key==='activity-log') ensureActivityLogLoaded();
     initAllSettingsTableControls();
     applySettingsSubPermissions();
+    syncSettingsMobileTabSelect();
   }));
+  initSettingsMobileTabSelect();
+  syncSettingsMobileTabSelect();
 }
 
 
