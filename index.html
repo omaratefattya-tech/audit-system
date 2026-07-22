@@ -51,7 +51,8 @@
         <button class="nav-item" data-section="movements">الحركات المخزنية <span class="nav-icon" data-icon="movements"></span></button>
         <button class="nav-item" data-section="sales">مراجعة البيع <span class="nav-icon" data-icon="sales"></span></button>
         <button class="nav-item" data-section="inbound">مراجعة الوارد <span class="nav-icon" data-icon="inbound"></span></button>
-        <button class="nav-item" data-section="reports">التقارير <span class="nav-icon" data-icon="reports"></span></button>
+                <button class="nav-item" data-section="raw_materials">&#x0645;&#x062A;&#x0627;&#x0628;&#x0639;&#x0629; &#x0627;&#x0644;&#x062E;&#x0627;&#x0645;&#x0627;&#x062A; <span class="nav-icon" data-icon="production"></span></button>
+<button class="nav-item" data-section="reports">التقارير <span class="nav-icon" data-icon="reports"></span></button>
         <button class="nav-item" data-section="users">إدارة المستخدمين <span class="nav-icon" data-icon="users"></span></button>
         <button class="nav-item" data-section="permissions">إدارة الصلاحيات <span class="nav-icon" data-icon="shield"></span></button>
         <button class="nav-item" data-section="settings">الإعدادات <span class="nav-icon" data-icon="settings"></span></button>
@@ -171,7 +172,9 @@
             <button class="upload-report-tab" type="button" data-upload-tab="incoming">الوارد من MB51</button>
             <button class="upload-report-tab" type="button" data-upload-tab="scale">تقرير الميزان</button>
             <button class="upload-report-tab" type="button" data-upload-tab="freight">نولون الوارد</button>
-          </div>
+                      <button class="upload-report-tab" type="button" data-upload-tab="current_plant_stock">&#x0631;&#x0641;&#x0639; &#x0631;&#x0635;&#x064A;&#x062F; &#x0627;&#x0644;&#x0645;&#x0635;&#x0646;&#x0639; &#x0627;&#x0644;&#x062D;&#x0627;&#x0644;&#x064A;</button>
+            <button class="upload-report-tab" type="button" data-upload-tab="consumption_rate">&#x0645;&#x0639;&#x062F;&#x0644; &#x0627;&#x0644;&#x0627;&#x0633;&#x062A;&#x0647;&#x0644;&#x0627;&#x0643;</button>
+</div>
           <label class="mobile-upload-type-field" for="mobileUploadReportType" style="display:none">
             نوع التقرير
             <select id="mobileUploadReportType" aria-label="نوع التقرير">
@@ -179,7 +182,9 @@
               <option value="incoming">الوارد من MB51</option>
               <option value="scale">تقرير الميزان</option>
               <option value="freight">نولون الوارد</option>
-            </select>
+                          <option value="current_plant_stock">&#x0631;&#x0641;&#x0639; &#x0631;&#x0635;&#x064A;&#x062F; &#x0627;&#x0644;&#x0645;&#x0635;&#x0646;&#x0639; &#x0627;&#x0644;&#x062D;&#x0627;&#x0644;&#x064A;</option>
+              <option value="consumption_rate">&#x0645;&#x0639;&#x062F;&#x0644; &#x0627;&#x0644;&#x0627;&#x0633;&#x062A;&#x0647;&#x0644;&#x0627;&#x0643;</option>
+</select>
           </label>
 
           <div class="upload-tab-panel active" id="salesUploadPanel" data-upload-panel="sales">
@@ -316,7 +321,23 @@
             </div>
             
           </div>
-        </article>
+          <div class="upload-tab-panel" id="currentPlantStockUploadPanel" data-upload-panel="current_plant_stock" data-report-key="current_plant_stock">
+            <div class="drop-zone">
+              <strong>&#x0631;&#x0641;&#x0639; &#x0631;&#x0635;&#x064A;&#x062F; &#x0627;&#x0644;&#x0645;&#x0635;&#x0646;&#x0639; &#x0627;&#x0644;&#x062D;&#x0627;&#x0644;&#x064A;</strong>
+              <br>
+              <small>&#x0633;&#x064A;&#x062A;&#x0645; &#x062A;&#x0641;&#x0639;&#x064A;&#x0644; &#x0631;&#x0641;&#x0639; &#x0627;&#x0644;&#x062A;&#x0642;&#x0631;&#x064A;&#x0631; &#x0628;&#x0639;&#x062F; &#x0627;&#x0639;&#x062A;&#x0645;&#x0627;&#x062F; &#x0642;&#x0627;&#x0644;&#x0628; &#x0627;&#x0644;&#x062A;&#x0642;&#x0631;&#x064A;&#x0631; &#x0648;&#x0631;&#x0628;&#x0637;&#x0647; &#x0628;&#x0642;&#x0627;&#x0639;&#x062F;&#x0629; &#x0627;&#x0644;&#x0628;&#x064A;&#x0627;&#x0646;&#x0627;&#x062A;.</small>
+            </div>
+            <div class="upload-status" id="currentPlantStockUploadStatus">&#x0648;&#x0627;&#x062C;&#x0647;&#x0629; &#x062A;&#x062C;&#x0647;&#x064A;&#x0632;&#x064A;&#x0629; &#x0641;&#x0642;&#x0637;.</div>
+          </div>
+
+          <div class="upload-tab-panel" id="consumptionRateUploadPanel" data-upload-panel="consumption_rate" data-report-key="consumption_rate">
+            <div class="drop-zone">
+              <strong>&#x0645;&#x0639;&#x062F;&#x0644; &#x0627;&#x0644;&#x0627;&#x0633;&#x062A;&#x0647;&#x0644;&#x0627;&#x0643;</strong>
+              <br>
+              <small>&#x0633;&#x064A;&#x062A;&#x0645; &#x062A;&#x0641;&#x0639;&#x064A;&#x0644; &#x0631;&#x0641;&#x0639; &#x0627;&#x0644;&#x062A;&#x0642;&#x0631;&#x064A;&#x0631; &#x0628;&#x0639;&#x062F; &#x0627;&#x0639;&#x062A;&#x0645;&#x0627;&#x062F; &#x0642;&#x0627;&#x0644;&#x0628; &#x0627;&#x0644;&#x062A;&#x0642;&#x0631;&#x064A;&#x0631; &#x0648;&#x0631;&#x0628;&#x0637;&#x0647; &#x0628;&#x0642;&#x0627;&#x0639;&#x062F;&#x0629; &#x0627;&#x0644;&#x0628;&#x064A;&#x0627;&#x0646;&#x0627;&#x062A;.</small>
+            </div>
+            <div class="upload-status" id="consumptionRateUploadStatus">&#x0648;&#x0627;&#x062C;&#x0647;&#x0629; &#x062A;&#x062C;&#x0647;&#x064A;&#x0632;&#x064A;&#x0629; &#x0641;&#x0642;&#x0637;.</div>
+          </div>        </article>
       </section>
       <section id="plants" class="section"><article class="panel glass"><h2>مصانع ومخازن</h2><div id="plantsFull" class="plants-full"></div></article></section>
       <section id="movements" class="section"><article class="panel glass"><h2>الحركات المخزنية</h2><p class="hint">تعريفات أكواد SAP المستخدمة في مراجعة المخازن.</p><div class="table-wrap"><table id="movementsTable"></table></div></article></section>
@@ -373,7 +394,15 @@
           <div class="table-wrap"><table id="inboundTable"></table></div>
         </article>
       </section>
-      <section id="reports" class="section">
+      <section id="raw_materials" class="section">
+        <article class="panel glass">
+          <h2>&#x0645;&#x062A;&#x0627;&#x0628;&#x0639;&#x0629; &#x0627;&#x0644;&#x062E;&#x0627;&#x0645;&#x0627;&#x062A;</h2>
+          <p class="hint">&#x0645;&#x062A;&#x0627;&#x0628;&#x0639;&#x0629; &#x0623;&#x0631;&#x0635;&#x062F;&#x0629; &#x0627;&#x0644;&#x062E;&#x0627;&#x0645;&#x0627;&#x062A; &#x0648;&#x0645;&#x0639;&#x062F;&#x0644;&#x0627;&#x062A; &#x0627;&#x0644;&#x0627;&#x0633;&#x062A;&#x0647;&#x0644;&#x0627;&#x0643; &#x0648;&#x0639;&#x062F;&#x062F; &#x0623;&#x064A;&#x0627;&#x0645; &#x0627;&#x0644;&#x062A;&#x063A;&#x0637;&#x064A;&#x0629;.</p>
+          <div class="drop-zone">
+            &#x0633;&#x064A;&#x062A;&#x0645; &#x062A;&#x0641;&#x0639;&#x064A;&#x0644; &#x0627;&#x0644;&#x062A;&#x0642;&#x0627;&#x0631;&#x064A;&#x0631; &#x0628;&#x0639;&#x062F; &#x0627;&#x0639;&#x062A;&#x0645;&#x0627;&#x062F; &#x0642;&#x0648;&#x0627;&#x0644;&#x0628; &#x0631;&#x0635;&#x064A;&#x062F; &#x0627;&#x0644;&#x0645;&#x0635;&#x0646;&#x0639; &#x0627;&#x0644;&#x062D;&#x0627;&#x0644;&#x064A; &#x0648;&#x0645;&#x0639;&#x062F;&#x0644; &#x0627;&#x0644;&#x0627;&#x0633;&#x062A;&#x0647;&#x0644;&#x0627;&#x0643; &#x0648;&#x0622;&#x0644;&#x064A;&#x0629; &#x0627;&#x0644;&#x062D;&#x0633;&#x0627;&#x0628;.
+          </div>
+        </article>
+      </section>      <section id="reports" class="section">
         <article class="panel glass reports-center">
           <div class="reports-head">
             <div>
