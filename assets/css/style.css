@@ -3347,3 +3347,8 @@ body.focus-mode-active #inboundTable[data-columns-managed="true"],
 #inboundTable td[data-column-key="net_quantity"] > span{white-space:nowrap!important;}
 body.focus-mode-active #inboundTable{table-layout:auto!important;width:max-content!important;min-width:2050px!important;}
 @media(max-width:900px){#inboundTable,body.focus-mode-active #inboundTable{min-width:2050px!important;}}
+/* Inbound focus scale columns containment */
+#inboundTable [data-column-key="scale_net_weight"]{width:128px!important;min-width:120px!important;max-width:142px!important;white-space:nowrap!important;text-align:center!important;overflow:hidden!important;}
+#inboundTable [data-column-key="scale_warehouse"]{width:112px!important;min-width:104px!important;max-width:122px!important;white-space:nowrap!important;text-align:center!important;overflow:hidden!important;}
+#inboundTable td[data-column-key="scale_net_weight"] > span,
+#inboundTable td[data-column-key="scale_warehouse"] > span{box-sizing:border-box!important;display:block!important;width:100%!important;max-width:100%!important;overflow:hidden!important;white-space:nowrap!important;text-align:center!important;}
