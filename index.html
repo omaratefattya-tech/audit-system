@@ -323,23 +323,41 @@
             
           </div>
           <div class="upload-tab-panel" id="currentPlantStockUploadPanel" data-upload-panel="current_plant_stock" data-report-key="current_plant_stock">
-            <div class="drop-zone">
-              <strong>&#x0631;&#x0641;&#x0639; &#x0631;&#x0635;&#x064A;&#x062F; &#x0627;&#x0644;&#x0645;&#x0635;&#x0646;&#x0639; &#x0627;&#x0644;&#x062D;&#x0627;&#x0644;&#x064A;</strong>
-              <br>
-              <small>&#x0633;&#x064A;&#x062A;&#x0645; &#x062A;&#x0641;&#x0639;&#x064A;&#x0644; &#x0631;&#x0641;&#x0639; &#x0627;&#x0644;&#x062A;&#x0642;&#x0631;&#x064A;&#x0631; &#x0628;&#x0639;&#x062F; &#x0627;&#x0639;&#x062A;&#x0645;&#x0627;&#x062F; &#x0642;&#x0627;&#x0644;&#x0628; &#x0627;&#x0644;&#x062A;&#x0642;&#x0631;&#x064A;&#x0631; &#x0648;&#x0631;&#x0628;&#x0637;&#x0647; &#x0628;&#x0642;&#x0627;&#x0639;&#x062F;&#x0629; &#x0627;&#x0644;&#x0628;&#x064A;&#x0627;&#x0646;&#x0627;&#x062A;.</small>
+            <div class="daily-upload-box">
+              <button class="primary" id="pickCurrentPlantStockFileBtn" type="button">اختيار ورفع ملف رصيد المصنع الحالي</button>
+              <button class="secondary raw-template-download-btn" id="downloadCurrentPlantStockTemplateBtn" type="button" data-template-key="current_plant_stock">تحميل قالب التقرير</button>
             </div>
-            <button class="secondary raw-template-download-btn" id="downloadCurrentPlantStockTemplateBtn" type="button" data-template-key="current_plant_stock">تحميل قالب التقرير</button>
-            <div class="upload-status" id="currentPlantStockUploadStatus">&#x0648;&#x0627;&#x062C;&#x0647;&#x0629; &#x062A;&#x062C;&#x0647;&#x064A;&#x0632;&#x064A;&#x0629; &#x0641;&#x0642;&#x0637;.</div>
+            <input type="file" id="currentPlantStockExcelInput" accept=".xlsx,.xls" hidden />
+            <div class="drop-zone" id="currentPlantStockDropZone">
+              اختر ملف Excel لرصيد المصنع الحالي أو اسحبه هنا
+              <br>
+              <small>سيتم التحقق من ورقة Data ورؤوس الأعمدة قبل استبدال النسخة الحالية في قاعدة البيانات.</small>
+            </div>
+            <div class="upload-status" id="currentPlantStockUploadStatus">لم يتم رفع رصيد المصنع الحالي بعد.</div>
+            <div class="history-panel">
+              <h3>آخر رفع لرصيد المصنع الحالي</h3>
+              <p class="hint">يعرض النسخة الحالية فقط بعد نجاح الحفظ الفعلي.</p>
+              <div class="table-wrap"><table id="currentPlantStockBatchesTable"></table></div>
+            </div>
           </div>
 
           <div class="upload-tab-panel" id="consumptionRateUploadPanel" data-upload-panel="consumption_rate" data-report-key="consumption_rate">
-            <div class="drop-zone">
-              <strong>&#x0645;&#x0639;&#x062F;&#x0644; &#x0627;&#x0644;&#x0627;&#x0633;&#x062A;&#x0647;&#x0644;&#x0627;&#x0643;</strong>
-              <br>
-              <small>&#x0633;&#x064A;&#x062A;&#x0645; &#x062A;&#x0641;&#x0639;&#x064A;&#x0644; &#x0631;&#x0641;&#x0639; &#x0627;&#x0644;&#x062A;&#x0642;&#x0631;&#x064A;&#x0631; &#x0628;&#x0639;&#x062F; &#x0627;&#x0639;&#x062A;&#x0645;&#x0627;&#x062F; &#x0642;&#x0627;&#x0644;&#x0628; &#x0627;&#x0644;&#x062A;&#x0642;&#x0631;&#x064A;&#x0631; &#x0648;&#x0631;&#x0628;&#x0637;&#x0647; &#x0628;&#x0642;&#x0627;&#x0639;&#x062F;&#x0629; &#x0627;&#x0644;&#x0628;&#x064A;&#x0627;&#x0646;&#x0627;&#x062A;.</small>
+            <div class="daily-upload-box">
+              <button class="primary" id="pickConsumptionRateFileBtn" type="button">اختيار ورفع ملف معدل الاستهلاك</button>
+              <button class="secondary raw-template-download-btn" id="downloadConsumptionRateTemplateBtn" type="button" data-template-key="consumption_rate">تحميل قالب التقرير</button>
             </div>
-            <button class="secondary raw-template-download-btn" id="downloadConsumptionRateTemplateBtn" type="button" data-template-key="consumption_rate">تحميل قالب التقرير</button>
-            <div class="upload-status" id="consumptionRateUploadStatus">&#x0648;&#x0627;&#x062C;&#x0647;&#x0629; &#x062A;&#x062C;&#x0647;&#x064A;&#x0632;&#x064A;&#x0629; &#x0641;&#x0642;&#x0637;.</div>
+            <input type="file" id="consumptionRateExcelInput" accept=".xlsx,.xls" hidden />
+            <div class="drop-zone" id="consumptionRateDropZone">
+              اختر ملف Excel لمعدل الاستهلاك أو اسحبه هنا
+              <br>
+              <small>سيتم التحقق من ورقة Data ورؤوس الأعمدة قبل استبدال النسخة الحالية في قاعدة البيانات.</small>
+            </div>
+            <div class="upload-status" id="consumptionRateUploadStatus">لم يتم رفع معدل الاستهلاك بعد.</div>
+            <div class="history-panel">
+              <h3>آخر رفع لمعدل الاستهلاك</h3>
+              <p class="hint">يعرض النسخة الحالية فقط بعد نجاح الحفظ الفعلي.</p>
+              <div class="table-wrap"><table id="consumptionRateBatchesTable"></table></div>
+            </div>
           </div>        </article>
       </section>
       <section id="plants" class="section"><article class="panel glass"><h2>مصانع ومخازن</h2><div id="plantsFull" class="plants-full"></div></article></section>

@@ -6190,11 +6190,20 @@ function initMainLoginGate(){
 }
 document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initAllSettingsTableControls();initActivityLogSettings();applySettingsSubPermissions();initUsersManagement();initPermissionsManagement();});
 
-// Raw materials foundation UI helpers
+// Raw materials report upload helpers
 const RAW_MATERIALS_TEMPLATE_HEADERS={
-  current_plant_stock:{fileName:'current_plant_stock_template.xlsx',sheetName:'رصيد المصنع الحالي',headers:['المادة','وصف المادة','رصيد غير مقيد','قيد فحص الجودة','مجموعة المواد','وصف مجموعة المواد','المصنع','إسم المصنع']},
-  consumption_rate:{fileName:'consumption_rate_template.xlsx',sheetName:'معدل الاستهلاك',headers:['المادة','وصف المادة','الكمية','وحدة القياس','نوع الحركة','وصف نوع الحركة','المصنع','إسم المصنع','مجموعة المواد','وصف مجموعة المواد','التاريخ']}
+  current_plant_stock:{fileName:'رصيد المصنع الحالي.xlsx',sheetName:'Data',headers:['المادة','وصف المادة','رصيد غير مقيد','قيد فحص الجودة','مجموعة المواد','وصف مجموعة المواد','المصنع','إسم المصنع']},
+  consumption_rate:{fileName:'حساب معدل إستهدلاك الخامات.xlsx',sheetName:'Data',headers:['المادة','وصف المادة','الكمية','وحدة القياس','نوع الحركة','وصف نوع الحركة','المصنع','إسم المصنع','مجموعه المواد','وصف مجموعه المواد','التاريخ']}
 };
+const RAW_MATERIALS_UPLOAD_CONFIG={
+  current_plant_stock:{
+    statusId:'currentPlantStockUploadStatus',inputId:'currentPlantStockExcelInput',buttonId:'pickCurrentPlantStockFileBtn',dropId:'currentPlantStockDropZone',tableId:'currentPlantStockBatchesTable',rpc:'replace_current_plant_stock_report',title:'رصيد المصنع الحالي'
+  },
+  consumption_rate:{
+    statusId:'consumptionRateUploadStatus',inputId:'consumptionRateExcelInput',buttonId:'pickConsumptionRateFileBtn',dropId:'consumptionRateDropZone',tableId:'consumptionRateBatchesTable',rpc:'replace_consumption_rate_report',title:'معدل الاستهلاك'
+  }
+};
+const RAW_MATERIALS_UPLOAD_BUSY={current_plant_stock:false,consumption_rate:false};
 async function downloadRawMaterialsTemplate(key){
   const spec=RAW_MATERIALS_TEMPLATE_HEADERS[key];
   if(!spec) return;
@@ -6205,6 +6214,216 @@ async function downloadRawMaterialsTemplate(key){
   const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
   const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   await saveBlobWithPicker(blob,spec.fileName,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+function cleanRawMaterialsHeader(value){
+  return stripHiddenUnicode(value).trim();
+}
+function rawMaterialsCell(sheet,rowIndex,colIndex){
+  const address=XLSX.utils.encode_cell({r:rowIndex,c:colIndex});
+  const cell=sheet[address];
+  if(!cell) return '';
+  if(cell.w!==undefined && cell.w!==null && String(cell.w).trim()!=='') return cell.w;
+  return cell.v ?? '';
+}
+function rawMaterialsSheetMatrix(sheet){
+  const ref=sheet?.['!ref'];
+  if(!ref) return {matrix:[],columnCount:0,startRow:0,startCol:0};
+  const range=XLSX.utils.decode_range(ref);
+  const matrix=[];
+  for(let r=range.s.r;r<=range.e.r;r++){
+    const row=[];
+    for(let c=range.s.c;c<=range.e.c;c++) row.push(rawMaterialsCell(sheet,r,c));
+    matrix.push(row);
+  }
+  return {matrix,columnCount:range.e.c-range.s.c+1,startRow:range.s.r,startCol:range.s.c};
+}
+function rawMaterialsText(value){
+  return stripHiddenUnicode(value).trim();
+}
+function isRawMaterialsBlankRow(row){
+  return !row.some(value=>rawMaterialsText(value));
+}
+function rawMaterialsRowObject(spec,row){
+  const out={};
+  spec.headers.forEach((header,index)=>{out[header]=rawMaterialsText(row[index]);});
+  return out;
+}
+function parseRawMaterialsNumber(value,label,rowNumber,options={}){
+  const text=rawMaterialsText(value);
+  if(!text){
+    if(options.allowBlank) return null;
+    throw new Error(`الصف ${rowNumber}: ${label} يجب أن تكون رقمًا صالحًا.`);
+  }
+  const normalized=text
+    .replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/٬/g,'')
+    .replace(/,/g,'')
+    .replace(/٫/g,'.');
+  const n=Number(normalized);
+  if(!Number.isFinite(n)) throw new Error(`الصف ${rowNumber}: ${label} يجب أن تكون رقمًا صالحًا.`);
+  return n;
+}
+function parseRawMaterialsDate(value,label,rowNumber){
+  const iso=excelDateToISO(value);
+  if(!iso) throw new Error(`الصف ${rowNumber}: ${label} يجب أن يكون تاريخًا صالحًا.`);
+  return iso;
+}
+function readRawMaterialsWorkbookRows(workbook,key){
+  const spec=RAW_MATERIALS_TEMPLATE_HEADERS[key];
+  if(!spec) throw new Error('نوع تقرير غير معروف.');
+  const sheet=workbook.Sheets[spec.sheetName];
+  if(!sheet) throw new Error(`يجب أن يحتوي الملف على ورقة باسم ${spec.sheetName}.`);
+  const {matrix,columnCount,startRow}=rawMaterialsSheetMatrix(sheet);
+  if(!matrix.length) throw new Error('ورقة Data فارغة.');
+  if(columnCount!==spec.headers.length) throw new Error(`عدد الأعمدة غير صحيح. المطلوب ${spec.headers.length} أعمدة فقط.`);
+  const actualHeaders=matrix[0].map(cleanRawMaterialsHeader);
+  const mismatch=spec.headers.find((header,index)=>actualHeaders[index]!==header);
+  if(mismatch){
+    const index=spec.headers.indexOf(mismatch);
+    throw new Error(`Header غير مطابق في العمود ${index+1}. المطلوب: ${mismatch}`);
+  }
+  const data=[];
+  for(let i=1;i<matrix.length;i++){
+    const row=matrix[i];
+    const rowNumber=startRow+i+1;
+    if(isRawMaterialsBlankRow(row)) continue;
+    data.push(mapRawMaterialsReportRow(key,spec,row,rowNumber));
+  }
+  if(!data.length) throw new Error('الملف لا يحتوي على صفوف بيانات صالحة.');
+  return data;
+}
+function mapRawMaterialsReportRow(key,spec,row,rowNumber){
+  const rawRow=rawMaterialsRowObject(spec,row);
+  if(key==='current_plant_stock'){
+    const materialCode=rawMaterialsText(row[0]);
+    const plantCode=rawMaterialsText(row[6]);
+    if(!materialCode) throw new Error(`الصف ${rowNumber}: المادة لا يجب أن تكون فارغة.`);
+    if(!plantCode) throw new Error(`الصف ${rowNumber}: المصنع لا يجب أن يكون فارغًا.`);
+    return {
+      source_row_number:rowNumber,
+      material_code:materialCode,
+      material_name:rawMaterialsText(row[1]),
+      unrestricted_stock:parseRawMaterialsNumber(row[2],'رصيد غير مقيد',rowNumber,{allowBlank:true}),
+      quality_inspection_stock:parseRawMaterialsNumber(row[3],'قيد فحص الجودة',rowNumber,{allowBlank:true}),
+      material_group:rawMaterialsText(row[4]),
+      material_group_description:rawMaterialsText(row[5]),
+      plant_code:plantCode,
+      plant_name:rawMaterialsText(row[7]),
+      raw_row:rawRow
+    };
+  }
+  if(key==='consumption_rate'){
+    const materialCode=rawMaterialsText(row[0]);
+    const plantCode=rawMaterialsText(row[6]);
+    if(!materialCode) throw new Error(`الصف ${rowNumber}: المادة لا يجب أن تكون فارغة.`);
+    if(!plantCode) throw new Error(`الصف ${rowNumber}: المصنع لا يجب أن يكون فارغًا.`);
+    return {
+      source_row_number:rowNumber,
+      material_code:materialCode,
+      material_name:rawMaterialsText(row[1]),
+      quantity:parseRawMaterialsNumber(row[2],'الكمية',rowNumber),
+      uom:rawMaterialsText(row[3]),
+      movement_type:rawMaterialsText(row[4]),
+      movement_text:rawMaterialsText(row[5]),
+      plant_code:plantCode,
+      plant_name:rawMaterialsText(row[7]),
+      material_group:rawMaterialsText(row[8]),
+      material_group_description:rawMaterialsText(row[9]),
+      transaction_date:parseRawMaterialsDate(row[10],'التاريخ',rowNumber),
+      raw_row:rawRow
+    };
+  }
+  throw new Error('نوع تقرير غير معروف.');
+}
+async function replaceRawMaterialsReport(key,file,rows,userData){
+  const config=RAW_MATERIALS_UPLOAD_CONFIG[key];
+  const {data,error}=await WarehouseDB.client.rpc(config.rpc,{
+    p_file_name:file.name,
+    p_uploaded_by_name:currentUploaderName(userData),
+    p_row_count:rows.length,
+    p_file_size_bytes:file.size || 0,
+    p_rows:rows
+  });
+  if(error) throw error;
+  return data;
+}
+function setRawMaterialsUploadStatus(key,message,type=''){
+  const status=$('#'+RAW_MATERIALS_UPLOAD_CONFIG[key].statusId);
+  if(!status) return;
+  status.className='upload-status '+type;
+  status.textContent=message;
+}
+async function handleRawMaterialsReportFile(key,file){
+  const config=RAW_MATERIALS_UPLOAD_CONFIG[key];
+  const input=$('#'+config.inputId);
+  const button=$('#'+config.buttonId);
+  if(!file || RAW_MATERIALS_UPLOAD_BUSY[key]) return;
+  RAW_MATERIALS_UPLOAD_BUSY[key]=true;
+  if(button) button.disabled=true;
+  setRawMaterialsUploadStatus(key,'جاري قراءة الملف...');
+  try{
+    if(!WarehouseDB?.ready) throw new Error('Supabase غير متصل. راجع ملف supabase-config.js');
+    if(!window.XLSX) throw new Error('مكتبة Excel غير محملة.');
+    const {data:userData}=await WarehouseDB.getUser();
+    if(!userData?.user) throw new Error('سجل الدخول أولًا قبل رفع الملف.');
+    const arrayBuffer=await file.arrayBuffer();
+    const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
+    const rows=readRawMaterialsWorkbookRows(workbook,key);
+    const ok=confirm(`تم التحقق من ${rows.length} صف صالح في تقرير ${config.title}. سيتم استبدال النسخة الحالية لهذا التقرير فقط. هل تريد المتابعة؟`);
+    if(!ok){ setRawMaterialsUploadStatus(key,'تم إلغاء الرفع بدون تغيير البيانات.'); return; }
+    setRawMaterialsUploadStatus(key,`جاري حفظ ${rows.length} صف داخل Supabase...`);
+    await replaceRawMaterialsReport(key,file,rows,userData);
+    setRawMaterialsUploadStatus(key,`تم حفظ تقرير ${config.title} بنجاح بعدد ${rows.length} صف.`,'ok');
+    await logSystemActivity('التقارير','رفع تقرير',`رفع تقرير ${config.title} (${rows.length} صف)`);
+    await loadRawMaterialsUploadBatch(key);
+  }catch(err){
+    setRawMaterialsUploadStatus(key,`خطأ أثناء رفع ${config.title}: ${err.message || err}`,'err');
+  }finally{
+    RAW_MATERIALS_UPLOAD_BUSY[key]=false;
+    if(button) button.disabled=false;
+    if(input) input.value='';
+  }
+}
+async function loadRawMaterialsUploadBatch(key){
+  const config=RAW_MATERIALS_UPLOAD_CONFIG[key];
+  const tbl=$('#'+config.tableId);
+  if(!tbl || !WarehouseDB?.ready) return;
+  const {data,error}=await WarehouseDB.client
+    .from('raw_material_upload_batches')
+    .select('id,report_key,file_name,upload_date,uploaded_by,uploaded_by_name,row_count,file_size_bytes,status')
+    .eq('report_key',key)
+    .eq('status','active')
+    .order('upload_date',{ascending:false})
+    .limit(1);
+  if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل آخر رفع: ${error.message}</td></tr></tbody>`; return; }
+  const rows=(data||[]).map(b=>[
+    b.file_name || '-',
+    Number(b.row_count||0).toLocaleString('en-US'),
+    formatFileSize(b.file_size_bytes),
+    b.uploaded_by_name || b.uploaded_by || '-',
+    b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
+    b.status || '-'
+  ]);
+  table('#'+config.tableId,['اسم الملف','عدد الصفوف','الحجم','الرافع','تاريخ الرفع','الحالة'],rows);
+}
+function bindRawMaterialsUploader(key){
+  const config=RAW_MATERIALS_UPLOAD_CONFIG[key];
+  const input=$('#'+config.inputId), btn=$('#'+config.buttonId), dz=$('#'+config.dropId);
+  if(!input || !btn || btn.dataset.rawUploadBound==='1') return;
+  btn.dataset.rawUploadBound='1';
+  btn.onclick=()=>input.click();
+  input.onchange=()=>{ if(input.files?.[0]) handleRawMaterialsReportFile(key,input.files[0]); };
+  if(dz){
+    dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag')};
+    dz.ondragleave=()=>dz.classList.remove('drag');
+    dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files?.[0];if(f)handleRawMaterialsReportFile(key,f)};
+  }
+  loadRawMaterialsUploadBatch(key);
+}
+function initRawMaterialsReportUploaders(){
+  bindRawMaterialsUploader('current_plant_stock');
+  bindRawMaterialsUploader('consumption_rate');
 }
 function initRawMaterialsTemplateDownloads(){
   document.querySelectorAll('[data-template-key]').forEach(btn=>{
@@ -6243,7 +6462,7 @@ function initRawMaterialsTabs(){
   $('#rawMaterialsMobileTabSelect')?.addEventListener('change',event=>switchRawMaterialsTab(event.target.value));
   switchRawMaterialsTab('main');
 }
-document.addEventListener('DOMContentLoaded',()=>{initRawMaterialsTemplateDownloads();initRawMaterialsTabs();});
+document.addEventListener('DOMContentLoaded',()=>{initRawMaterialsTemplateDownloads();initRawMaterialsReportUploaders();initRawMaterialsTabs();});
 // Upload reports tabs controller
 function initUploadReportTabs(){
   const tabs=document.querySelectorAll('[data-upload-tab]');
