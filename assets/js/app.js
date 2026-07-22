@@ -6190,6 +6190,60 @@ function initMainLoginGate(){
 }
 document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initAllSettingsTableControls();initActivityLogSettings();applySettingsSubPermissions();initUsersManagement();initPermissionsManagement();});
 
+// Raw materials foundation UI helpers
+const RAW_MATERIALS_TEMPLATE_HEADERS={
+  current_plant_stock:{fileName:'current_plant_stock_template.xlsx',sheetName:'رصيد المصنع الحالي',headers:['المادة','وصف المادة','رصيد غير مقيد','قيد فحص الجودة','مجموعة المواد','وصف مجموعة المواد','المصنع','إسم المصنع']},
+  consumption_rate:{fileName:'consumption_rate_template.xlsx',sheetName:'معدل الاستهلاك',headers:['المادة','وصف المادة','الكمية','وحدة القياس','نوع الحركة','وصف نوع الحركة','المصنع','إسم المصنع','مجموعة المواد','وصف مجموعة المواد','التاريخ']}
+};
+async function downloadRawMaterialsTemplate(key){
+  const spec=RAW_MATERIALS_TEMPLATE_HEADERS[key];
+  if(!spec) return;
+  if(!window.XLSX){ alert('مكتبة Excel غير محملة.'); return; }
+  const ws=XLSX.utils.aoa_to_sheet([spec.headers]);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,spec.sheetName);
+  const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  await saveBlobWithPicker(blob,spec.fileName,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+function initRawMaterialsTemplateDownloads(){
+  document.querySelectorAll('[data-template-key]').forEach(btn=>{
+    if(btn.dataset.rawTemplateBound==='1') return;
+    btn.dataset.rawTemplateBound='1';
+    btn.addEventListener('click',event=>{
+      event.preventDefault();
+      downloadRawMaterialsTemplate(btn.dataset.templateKey);
+    });
+  });
+}
+function switchRawMaterialsTab(key){
+  const root=$('#raw_materials');
+  if(!root) return;
+  const selected=key || 'main';
+  root.querySelectorAll('[data-raw-materials-tab]').forEach(tab=>{
+    const active=tab.dataset.rawMaterialsTab===selected;
+    tab.classList.toggle('active',active);
+    tab.setAttribute('aria-selected',active?'true':'false');
+  });
+  root.querySelectorAll('[data-raw-materials-panel]').forEach(panel=>{
+    const active=panel.dataset.rawMaterialsPanel===selected;
+    panel.classList.toggle('active',active);
+    panel.hidden=!active;
+  });
+  const select=$('#rawMaterialsMobileTabSelect');
+  if(select && select.value!==selected) select.value=selected;
+}
+function initRawMaterialsTabs(){
+  const root=$('#raw_materials');
+  if(!root || root.dataset.rawMaterialsTabsBound==='1') return;
+  root.dataset.rawMaterialsTabsBound='1';
+  root.querySelectorAll('[data-raw-materials-tab]').forEach(tab=>{
+    tab.addEventListener('click',()=>switchRawMaterialsTab(tab.dataset.rawMaterialsTab));
+  });
+  $('#rawMaterialsMobileTabSelect')?.addEventListener('change',event=>switchRawMaterialsTab(event.target.value));
+  switchRawMaterialsTab('main');
+}
+document.addEventListener('DOMContentLoaded',()=>{initRawMaterialsTemplateDownloads();initRawMaterialsTabs();});
 // Upload reports tabs controller
 function initUploadReportTabs(){
   const tabs=document.querySelectorAll('[data-upload-tab]');

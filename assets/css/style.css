@@ -3374,3 +3374,23 @@ body.focus-mode-active #inboundTable{table-layout:auto!important;width:max-conte
   }
   .app-shell:not(.sidebar-collapsed) .sidebar .nav-item::after{content:none!important;display:none!important;}
 }
+/* Raw materials scoped UI */
+#raw_materials .raw-materials-shell{display:grid;gap:14px;}
+#raw_materials .raw-materials-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+#raw_materials .raw-materials-head h2{margin:0;text-align:right;}
+#raw_materials .raw-materials-status{margin-top:0;}
+#raw_materials .raw-materials-focus-placeholder:disabled{opacity:.62;cursor:not-allowed;filter:saturate(.75);}
+#raw_materials .raw-materials-mobile-tab-field{display:none;}
+#raw_materials .raw-materials-tabs{margin:0 0 4px;}
+#raw_materials .raw-materials-tab-panel{display:none;}
+#raw_materials .raw-materials-tab-panel.active{display:block;}
+#raw_materials .raw-materials-focus-container{margin-top:0;}
+#upload .raw-template-download-btn{display:block;margin:12px auto 0;min-width:190px;}
+@media(max-width:700px){
+  #raw_materials .raw-materials-head{display:grid;gap:8px;}
+  #raw_materials .raw-materials-focus-placeholder{display:none;}
+  #raw_materials .raw-materials-tabs{display:none!important;}
+  #raw_materials .raw-materials-mobile-tab-field{display:grid;gap:7px;width:100%;margin:0;color:#dfffd4;font-size:12px;font-weight:900;line-height:1.4;text-align:right;}
+  #raw_materials #rawMaterialsMobileTabSelect{width:100%;min-height:48px;padding:11px 14px;border:1px solid rgba(141,220,89,.48);border-radius:14px;background:linear-gradient(145deg,rgba(0,58,43,.92),rgba(0,27,23,.98));color:#f4fff5;font-family:inherit;font-size:14px;font-weight:900;outline:none;}
+  #raw_materials #rawMaterialsMobileTabSelect option{background:#00231c;color:#f4fff5;font-weight:800;}
+}

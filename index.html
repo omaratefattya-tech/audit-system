@@ -128,6 +128,7 @@
             <button class="mobile-drawer-item" data-mobile-section="plants" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-4 8 4v11"/><path d="M8 20v-6h8v6"/><path d="M8 11h.01M12 11h.01M16 11h.01"/></svg><span>مصانع ومخازن</span></button>
             <button class="mobile-drawer-item" data-mobile-section="movements" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3"/><path d="M17 17H6l3 3"/><path d="M18 7l-3 3"/><path d="M6 17l3-3"/></svg><span>الحركات المخزنية</span></button>
             <button class="mobile-drawer-item" data-mobile-section="inbound" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M12 4v9"/><path d="m8 9 4 4 4-4"/></svg><span>مراجعة الوارد</span></button>
+                        <button class="mobile-drawer-item" data-mobile-section="raw_materials" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-4 8 4v11"/><path d="M8 20v-6h8v6"/><path d="M8 11h.01M12 11h.01M16 11h.01"/></svg><span>متابعة الخامات</span></button>
             <button class="mobile-drawer-item" data-mobile-section="users" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M5 21a7 7 0 0 1 14 0"/><path d="M18 8a3 3 0 0 1 3 3"/></svg><span>إدارة المستخدمين</span></button>
             <button class="mobile-drawer-item" data-mobile-section="permissions" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-5"/></svg><span>إدارة الصلاحيات</span></button>
           </aside>
@@ -327,6 +328,7 @@
               <br>
               <small>&#x0633;&#x064A;&#x062A;&#x0645; &#x062A;&#x0641;&#x0639;&#x064A;&#x0644; &#x0631;&#x0641;&#x0639; &#x0627;&#x0644;&#x062A;&#x0642;&#x0631;&#x064A;&#x0631; &#x0628;&#x0639;&#x062F; &#x0627;&#x0639;&#x062A;&#x0645;&#x0627;&#x062F; &#x0642;&#x0627;&#x0644;&#x0628; &#x0627;&#x0644;&#x062A;&#x0642;&#x0631;&#x064A;&#x0631; &#x0648;&#x0631;&#x0628;&#x0637;&#x0647; &#x0628;&#x0642;&#x0627;&#x0639;&#x062F;&#x0629; &#x0627;&#x0644;&#x0628;&#x064A;&#x0627;&#x0646;&#x0627;&#x062A;.</small>
             </div>
+            <button class="secondary raw-template-download-btn" id="downloadCurrentPlantStockTemplateBtn" type="button" data-template-key="current_plant_stock">تحميل قالب التقرير</button>
             <div class="upload-status" id="currentPlantStockUploadStatus">&#x0648;&#x0627;&#x062C;&#x0647;&#x0629; &#x062A;&#x062C;&#x0647;&#x064A;&#x0632;&#x064A;&#x0629; &#x0641;&#x0642;&#x0637;.</div>
           </div>
 
@@ -336,6 +338,7 @@
               <br>
               <small>&#x0633;&#x064A;&#x062A;&#x0645; &#x062A;&#x0641;&#x0639;&#x064A;&#x0644; &#x0631;&#x0641;&#x0639; &#x0627;&#x0644;&#x062A;&#x0642;&#x0631;&#x064A;&#x0631; &#x0628;&#x0639;&#x062F; &#x0627;&#x0639;&#x062A;&#x0645;&#x0627;&#x062F; &#x0642;&#x0627;&#x0644;&#x0628; &#x0627;&#x0644;&#x062A;&#x0642;&#x0631;&#x064A;&#x0631; &#x0648;&#x0631;&#x0628;&#x0637;&#x0647; &#x0628;&#x0642;&#x0627;&#x0639;&#x062F;&#x0629; &#x0627;&#x0644;&#x0628;&#x064A;&#x0627;&#x0646;&#x0627;&#x062A;.</small>
             </div>
+            <button class="secondary raw-template-download-btn" id="downloadConsumptionRateTemplateBtn" type="button" data-template-key="consumption_rate">تحميل قالب التقرير</button>
             <div class="upload-status" id="consumptionRateUploadStatus">&#x0648;&#x0627;&#x062C;&#x0647;&#x0629; &#x062A;&#x062C;&#x0647;&#x064A;&#x0632;&#x064A;&#x0629; &#x0641;&#x0642;&#x0637;.</div>
           </div>        </article>
       </section>
@@ -395,11 +398,38 @@
         </article>
       </section>
       <section id="raw_materials" class="section">
-        <article class="panel glass">
-          <h2>&#x0645;&#x062A;&#x0627;&#x0628;&#x0639;&#x0629; &#x0627;&#x0644;&#x062E;&#x0627;&#x0645;&#x0627;&#x062A;</h2>
-          <p class="hint">&#x0645;&#x062A;&#x0627;&#x0628;&#x0639;&#x0629; &#x0623;&#x0631;&#x0635;&#x062F;&#x0629; &#x0627;&#x0644;&#x062E;&#x0627;&#x0645;&#x0627;&#x062A; &#x0648;&#x0645;&#x0639;&#x062F;&#x0644;&#x0627;&#x062A; &#x0627;&#x0644;&#x0627;&#x0633;&#x062A;&#x0647;&#x0644;&#x0627;&#x0643; &#x0648;&#x0639;&#x062F;&#x062F; &#x0623;&#x064A;&#x0627;&#x0645; &#x0627;&#x0644;&#x062A;&#x063A;&#x0637;&#x064A;&#x0629;.</p>
-          <div class="drop-zone">
-            &#x0633;&#x064A;&#x062A;&#x0645; &#x062A;&#x0641;&#x0639;&#x064A;&#x0644; &#x0627;&#x0644;&#x062A;&#x0642;&#x0627;&#x0631;&#x064A;&#x0631; &#x0628;&#x0639;&#x062F; &#x0627;&#x0639;&#x062A;&#x0645;&#x0627;&#x062F; &#x0642;&#x0648;&#x0627;&#x0644;&#x0628; &#x0631;&#x0635;&#x064A;&#x062F; &#x0627;&#x0644;&#x0645;&#x0635;&#x0646;&#x0639; &#x0627;&#x0644;&#x062D;&#x0627;&#x0644;&#x064A; &#x0648;&#x0645;&#x0639;&#x062F;&#x0644; &#x0627;&#x0644;&#x0627;&#x0633;&#x062A;&#x0647;&#x0644;&#x0627;&#x0643; &#x0648;&#x0622;&#x0644;&#x064A;&#x0629; &#x0627;&#x0644;&#x062D;&#x0633;&#x0627;&#x0628;.
+        <article class="panel glass raw-materials-shell">
+          <div class="raw-materials-head">
+            <div>
+              <h2>متابعة الخامات</h2>
+              <p class="hint">متابعة أرصدة الخامات ومعدلات الاستهلاك وعدد أيام التغطية.</p>
+            </div>
+            <button class="secondary raw-materials-focus-placeholder" type="button" disabled title="سيتم تفعيل Focus Mode بعد إعداد تقارير المراجعة في المرحلة التالية">Focus Mode</button>
+          </div>
+          <div class="raw-materials-status drop-zone">
+            سيتم تفعيل التقارير بعد اعتماد قوالب رصيد المصنع الحالي ومعدل الاستهلاك وآلية الحساب.
+          </div>
+          <label class="raw-materials-mobile-tab-field" for="rawMaterialsMobileTabSelect">
+            تبويب متابعة الخامات
+            <select id="rawMaterialsMobileTabSelect" aria-label="اختيار تبويب متابعة الخامات">
+              <option value="main">خامات رئيسية</option>
+              <option value="bran">مجموعة الردة</option>
+              <option value="packaging">مواد تعبئة وتغليف</option>
+            </select>
+          </label>
+          <div class="subtabs raw-materials-tabs" role="tablist" aria-label="تبويبات متابعة الخامات">
+            <button class="active" type="button" role="tab" aria-selected="true" aria-controls="rawMaterialsMainPanel" data-raw-materials-tab="main">خامات رئيسية</button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="rawMaterialsBranPanel" data-raw-materials-tab="bran">مجموعة الردة</button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="rawMaterialsPackagingPanel" data-raw-materials-tab="packaging">مواد تعبئة وتغليف</button>
+          </div>
+          <div class="raw-materials-tab-panel active" id="rawMaterialsMainPanel" role="tabpanel" data-raw-materials-panel="main">
+            <div class="drop-zone raw-materials-focus-container">سيتم إعداد جدول المراجعة وآلية الحساب في المرحلة التالية.</div>
+          </div>
+          <div class="raw-materials-tab-panel" id="rawMaterialsBranPanel" role="tabpanel" data-raw-materials-panel="bran" hidden>
+            <div class="drop-zone raw-materials-focus-container">سيتم إعداد جدول المراجعة وآلية الحساب في المرحلة التالية.</div>
+          </div>
+          <div class="raw-materials-tab-panel" id="rawMaterialsPackagingPanel" role="tabpanel" data-raw-materials-panel="packaging" hidden>
+            <div class="drop-zone raw-materials-focus-container">سيتم إعداد جدول المراجعة وآلية الحساب في المرحلة التالية.</div>
           </div>
         </article>
       </section>      <section id="reports" class="section">
