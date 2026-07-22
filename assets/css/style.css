@@ -3352,3 +3352,25 @@ body.focus-mode-active #inboundTable{table-layout:auto!important;width:max-conte
 #inboundTable [data-column-key="scale_warehouse"]{width:112px!important;min-width:104px!important;max-width:122px!important;white-space:nowrap!important;text-align:center!important;overflow:hidden!important;}
 #inboundTable td[data-column-key="scale_net_weight"] > span,
 #inboundTable td[data-column-key="scale_warehouse"] > span{box-sizing:border-box!important;display:block!important;width:100%!important;max-width:100%!important;overflow:hidden!important;white-space:nowrap!important;text-align:center!important;}
+/* Collapsed sidebar tooltip overlay fix */
+@media (min-width:1101px){
+  .app-shell.sidebar-collapsed{overflow:visible!important;}
+  .app-shell.sidebar-collapsed .sidebar{z-index:10000!important;overflow:visible!important;isolation:isolate;}
+  .app-shell.sidebar-collapsed .sidebar .nav,
+  .app-shell.sidebar-collapsed .sidebar-nav{position:relative;z-index:10001!important;overflow:visible!important;}
+  .app-shell.sidebar-collapsed .sidebar .nav-item{position:relative;z-index:10002!important;overflow:visible!important;}
+  .app-shell.sidebar-collapsed .sidebar .nav-item:hover,
+  .app-shell.sidebar-collapsed .sidebar .nav-item:focus-visible{z-index:10003!important;}
+  .app-shell.sidebar-collapsed .sidebar .nav-item::after{
+    right:calc(100% + 12px)!important;
+    left:auto!important;
+    z-index:100000!important;
+    overflow:visible!important;
+    max-width:calc(100vw - 112px);
+    white-space:nowrap!important;
+    background:rgba(0,26,21,.98)!important;
+    border:1px solid rgba(141,220,89,.55)!important;
+    box-shadow:0 18px 42px rgba(0,0,0,.48),0 0 22px rgba(141,220,89,.22)!important;
+  }
+  .app-shell:not(.sidebar-collapsed) .sidebar .nav-item::after{content:none!important;display:none!important;}
+}
