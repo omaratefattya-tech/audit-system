@@ -6193,7 +6193,7 @@ document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfil
 // Raw materials report upload helpers
 const RAW_MATERIALS_UPLOAD_CHUNK_SIZE=250;
 const RAW_MATERIALS_TEMPLATE_HEADERS={
-  current_plant_stock:{fileName:'رصيد المصنع الحالي.xlsx',sheetName:'Data',headers:['المادة','وصف المادة','رصيد غير مقيد','قيد فحص الجودة','مجموعة المواد','وصف مجموعة المواد','المصنع','إسم المصنع']},
+  current_plant_stock:{fileName:'رصيد المصنع الحالي.xlsx',sheetName:'Data',headers:['المادة','وصف المادة','وحدة القياس','رصيد غير مقيد','قيد فحص الجودة','مجموعة المواد','وصف مجموعة المواد','المصنع','إسم المصنع','المخزن','إسم المخزن']},
   consumption_rate:{fileName:'حساب معدل إستهدلاك الخامات.xlsx',sheetName:'Data',headers:['المادة','وصف المادة','الكمية','وحدة القياس','نوع الحركة','وصف نوع الحركة','المصنع','إسم المصنع','مجموعه المواد','وصف مجموعه المواد','التاريخ']}
 };
 const RAW_MATERIALS_UPLOAD_CONFIG={
@@ -6292,19 +6292,32 @@ function readRawMaterialsWorkbookRows(workbook,key){
 function mapRawMaterialsReportRow(key,row,rowNumber){
   if(key==='current_plant_stock'){
     const materialCode=rawMaterialsText(row[0]);
-    const plantCode=rawMaterialsText(row[6]);
+    const materialName=rawMaterialsText(row[1]);
+    const uom=rawMaterialsText(row[2]);
+    const plantCode=rawMaterialsText(row[7]);
+    const plantName=rawMaterialsText(row[8]);
+    const warehouseCode=rawMaterialsText(row[9]);
+    const warehouseName=rawMaterialsText(row[10]);
     if(!materialCode) throw new Error(`الصف ${rowNumber}: المادة لا يجب أن تكون فارغة.`);
+    if(!materialName) throw new Error(`الصف ${rowNumber}: وصف المادة لا يجب أن يكون فارغًا.`);
+    if(!uom) throw new Error(`الصف ${rowNumber}: وحدة القياس لا يجب أن تكون فارغة.`);
     if(!plantCode) throw new Error(`الصف ${rowNumber}: المصنع لا يجب أن يكون فارغًا.`);
+    if(!plantName) throw new Error(`الصف ${rowNumber}: إسم المصنع لا يجب أن يكون فارغًا.`);
+    if(!warehouseCode) throw new Error(`الصف ${rowNumber}: المخزن لا يجب أن يكون فارغًا.`);
+    if(!warehouseName) throw new Error(`الصف ${rowNumber}: إسم المخزن لا يجب أن يكون فارغًا.`);
     return {
       source_row_number:rowNumber,
       material_code:materialCode,
-      material_name:rawMaterialsText(row[1]),
-      unrestricted_stock:parseRawMaterialsNumber(row[2],'رصيد غير مقيد',rowNumber,{allowBlank:true}),
-      quality_inspection_stock:parseRawMaterialsNumber(row[3],'قيد فحص الجودة',rowNumber,{allowBlank:true}),
-      material_group:rawMaterialsText(row[4]),
-      material_group_description:rawMaterialsText(row[5]),
+      material_name:materialName,
+      uom,
+      unrestricted_stock:parseRawMaterialsNumber(row[3],'رصيد غير مقيد',rowNumber,{allowBlank:true}),
+      quality_inspection_stock:parseRawMaterialsNumber(row[4],'قيد فحص الجودة',rowNumber,{allowBlank:true}),
+      material_group:rawMaterialsText(row[5]),
+      material_group_description:rawMaterialsText(row[6]),
       plant_code:plantCode,
-      plant_name:rawMaterialsText(row[7])
+      plant_name:plantName,
+      warehouse_code:warehouseCode,
+      warehouse_name:warehouseName
     };
   }
   if(key==='consumption_rate'){
