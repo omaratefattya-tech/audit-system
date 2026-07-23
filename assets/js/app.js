@@ -6191,16 +6191,17 @@ function initMainLoginGate(){
 document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initAllSettingsTableControls();initActivityLogSettings();applySettingsSubPermissions();initUsersManagement();initPermissionsManagement();});
 
 // Raw materials report upload helpers
+const RAW_MATERIALS_UPLOAD_CHUNK_SIZE=250;
 const RAW_MATERIALS_TEMPLATE_HEADERS={
   current_plant_stock:{fileName:'رصيد المصنع الحالي.xlsx',sheetName:'Data',headers:['المادة','وصف المادة','رصيد غير مقيد','قيد فحص الجودة','مجموعة المواد','وصف مجموعة المواد','المصنع','إسم المصنع']},
   consumption_rate:{fileName:'حساب معدل إستهدلاك الخامات.xlsx',sheetName:'Data',headers:['المادة','وصف المادة','الكمية','وحدة القياس','نوع الحركة','وصف نوع الحركة','المصنع','إسم المصنع','مجموعه المواد','وصف مجموعه المواد','التاريخ']}
 };
 const RAW_MATERIALS_UPLOAD_CONFIG={
   current_plant_stock:{
-    statusId:'currentPlantStockUploadStatus',inputId:'currentPlantStockExcelInput',buttonId:'pickCurrentPlantStockFileBtn',dropId:'currentPlantStockDropZone',tableId:'currentPlantStockBatchesTable',rpc:'replace_current_plant_stock_report',title:'رصيد المصنع الحالي'
+    statusId:'currentPlantStockUploadStatus',inputId:'currentPlantStockExcelInput',buttonId:'pickCurrentPlantStockFileBtn',dropId:'currentPlantStockDropZone',tableId:'currentPlantStockBatchesTable',chunkRpc:'append_current_plant_stock_upload_chunk',finalizeRpc:'finalize_current_plant_stock_upload',title:'رصيد المصنع الحالي'
   },
   consumption_rate:{
-    statusId:'consumptionRateUploadStatus',inputId:'consumptionRateExcelInput',buttonId:'pickConsumptionRateFileBtn',dropId:'consumptionRateDropZone',tableId:'consumptionRateBatchesTable',rpc:'replace_consumption_rate_report',title:'معدل الاستهلاك'
+    statusId:'consumptionRateUploadStatus',inputId:'consumptionRateExcelInput',buttonId:'pickConsumptionRateFileBtn',dropId:'consumptionRateDropZone',tableId:'consumptionRateBatchesTable',chunkRpc:'append_consumption_rate_upload_chunk',finalizeRpc:'finalize_consumption_rate_upload',title:'معدل الاستهلاك'
   }
 };
 const RAW_MATERIALS_UPLOAD_BUSY={current_plant_stock:false,consumption_rate:false};
@@ -6243,11 +6244,6 @@ function rawMaterialsText(value){
 function isRawMaterialsBlankRow(row){
   return !row.some(value=>rawMaterialsText(value));
 }
-function rawMaterialsRowObject(spec,row){
-  const out={};
-  spec.headers.forEach((header,index)=>{out[header]=rawMaterialsText(row[index]);});
-  return out;
-}
 function parseRawMaterialsNumber(value,label,rowNumber,options={}){
   const text=rawMaterialsText(value);
   if(!text){
@@ -6288,13 +6284,12 @@ function readRawMaterialsWorkbookRows(workbook,key){
     const row=matrix[i];
     const rowNumber=startRow+i+1;
     if(isRawMaterialsBlankRow(row)) continue;
-    data.push(mapRawMaterialsReportRow(key,spec,row,rowNumber));
+    data.push(mapRawMaterialsReportRow(key,row,rowNumber));
   }
   if(!data.length) throw new Error('الملف لا يحتوي على صفوف بيانات صالحة.');
   return data;
 }
-function mapRawMaterialsReportRow(key,spec,row,rowNumber){
-  const rawRow=rawMaterialsRowObject(spec,row);
+function mapRawMaterialsReportRow(key,row,rowNumber){
   if(key==='current_plant_stock'){
     const materialCode=rawMaterialsText(row[0]);
     const plantCode=rawMaterialsText(row[6]);
@@ -6309,8 +6304,7 @@ function mapRawMaterialsReportRow(key,spec,row,rowNumber){
       material_group:rawMaterialsText(row[4]),
       material_group_description:rawMaterialsText(row[5]),
       plant_code:plantCode,
-      plant_name:rawMaterialsText(row[7]),
-      raw_row:rawRow
+      plant_name:rawMaterialsText(row[7])
     };
   }
   if(key==='consumption_rate'){
@@ -6330,23 +6324,68 @@ function mapRawMaterialsReportRow(key,spec,row,rowNumber){
       plant_name:rawMaterialsText(row[7]),
       material_group:rawMaterialsText(row[8]),
       material_group_description:rawMaterialsText(row[9]),
-      transaction_date:parseRawMaterialsDate(row[10],'التاريخ',rowNumber),
-      raw_row:rawRow
+      transaction_date:parseRawMaterialsDate(row[10],'التاريخ',rowNumber)
     };
   }
   throw new Error('نوع تقرير غير معروف.');
 }
-async function replaceRawMaterialsReport(key,file,rows,userData){
-  const config=RAW_MATERIALS_UPLOAD_CONFIG[key];
-  const {data,error}=await WarehouseDB.client.rpc(config.rpc,{
+async function beginRawMaterialsUpload(key,file,rows,userData){
+  const {data,error}=await WarehouseDB.client.rpc('begin_raw_material_report_upload',{
+    p_report_key:key,
     p_file_name:file.name,
     p_uploaded_by_name:currentUploaderName(userData),
-    p_row_count:rows.length,
-    p_file_size_bytes:file.size || 0,
-    p_rows:rows
+    p_expected_rows:rows.length,
+    p_file_size_bytes:file.size || 0
   });
   if(error) throw error;
-  return data;
+  const result=Array.isArray(data) ? data[0] : data;
+  const batchId=result?.batch_id || result?.id || result;
+  if(!batchId) throw new Error('لم يتم إنشاء Batch للرفع.');
+  return batchId;
+}
+async function uploadRawMaterialsChunk(key,batchId,chunk){
+  const config=RAW_MATERIALS_UPLOAD_CONFIG[key];
+  const {error}=await WarehouseDB.client.rpc(config.chunkRpc,{p_batch_id:batchId,p_rows:chunk});
+  if(error) throw error;
+}
+async function uploadRawMaterialsChunks(key,batchId,rows,onProgress){
+  let uploaded=0;
+  for(let i=0;i<rows.length;i+=RAW_MATERIALS_UPLOAD_CHUNK_SIZE){
+    const chunk=rows.slice(i,i+RAW_MATERIALS_UPLOAD_CHUNK_SIZE);
+    await uploadRawMaterialsChunk(key,batchId,chunk);
+    uploaded+=chunk.length;
+    if(onProgress) onProgress(uploaded,rows.length);
+  }
+}
+async function finalizeRawMaterialsUpload(key,batchId){
+  const config=RAW_MATERIALS_UPLOAD_CONFIG[key];
+  const {data,error}=await WarehouseDB.client.rpc(config.finalizeRpc,{p_batch_id:batchId});
+  if(error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+async function failRawMaterialsUpload(batchId,message){
+  if(!batchId || !WarehouseDB?.ready) return;
+  try{
+    await WarehouseDB.client.rpc('fail_raw_material_report_upload',{
+      p_batch_id:batchId,
+      p_error_message:String(message||'Upload failed').slice(0,500)
+    });
+  }catch(err){
+    console.warn('Raw materials upload fail marker skipped',err);
+  }
+}
+async function replaceRawMaterialsReport(key,file,rows,userData,onProgress){
+  let batchId='';
+  let finalizeStarted=false;
+  try{
+    batchId=await beginRawMaterialsUpload(key,file,rows,userData);
+    await uploadRawMaterialsChunks(key,batchId,rows,onProgress);
+    finalizeStarted=true;
+    return await finalizeRawMaterialsUpload(key,batchId);
+  }catch(err){
+    if(batchId && !finalizeStarted) await failRawMaterialsUpload(batchId,err.message || err);
+    throw err;
+  }
 }
 function setRawMaterialsUploadStatus(key,message,type=''){
   const status=$('#'+RAW_MATERIALS_UPLOAD_CONFIG[key].statusId);
@@ -6361,6 +6400,7 @@ async function handleRawMaterialsReportFile(key,file){
   if(!file || RAW_MATERIALS_UPLOAD_BUSY[key]) return;
   RAW_MATERIALS_UPLOAD_BUSY[key]=true;
   if(button) button.disabled=true;
+  if(input) input.disabled=true;
   setRawMaterialsUploadStatus(key,'جاري قراءة الملف...');
   try{
     if(!WarehouseDB?.ready) throw new Error('Supabase غير متصل. راجع ملف supabase-config.js');
@@ -6370,19 +6410,23 @@ async function handleRawMaterialsReportFile(key,file){
     const arrayBuffer=await file.arrayBuffer();
     const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
     const rows=readRawMaterialsWorkbookRows(workbook,key);
-    const ok=confirm(`تم التحقق من ${rows.length} صف صالح في تقرير ${config.title}. سيتم استبدال النسخة الحالية لهذا التقرير فقط. هل تريد المتابعة؟`);
+    const ok=confirm(`تم التحقق من ${rows.length} صف صالح في تقرير ${config.title}. سيتم رفع الصفوف على دفعات ثم استبدال النسخة الحالية لهذا التقرير فقط بعد اكتمال كل الدفعات. هل تريد المتابعة؟`);
     if(!ok){ setRawMaterialsUploadStatus(key,'تم إلغاء الرفع بدون تغيير البيانات.'); return; }
-    setRawMaterialsUploadStatus(key,`جاري حفظ ${rows.length} صف داخل Supabase...`);
-    await replaceRawMaterialsReport(key,file,rows,userData);
-    setRawMaterialsUploadStatus(key,`تم حفظ تقرير ${config.title} بنجاح بعدد ${rows.length} صف.`,'ok');
-    await logSystemActivity('التقارير','رفع تقرير',`رفع تقرير ${config.title} (${rows.length} صف)`);
+    setRawMaterialsUploadStatus(key,`جاري بدء Batch الرفع لتقرير ${config.title}...`);
+    const result=await replaceRawMaterialsReport(key,file,rows,userData,(uploaded,total)=>{
+      const percent=Math.round((uploaded/total)*100);
+      setRawMaterialsUploadStatus(key,`تم رفع ${uploaded.toLocaleString('en-US')} من ${total.toLocaleString('en-US')} صف إلى Staging (${percent}%).`);
+    });
+    const savedRows=Number(result?.row_count || rows.length);
+    setRawMaterialsUploadStatus(key,`تم حفظ تقرير ${config.title} بنجاح بعدد ${savedRows.toLocaleString('en-US')} صف.`,'ok');
+    await logSystemActivity('التقارير','رفع تقرير',`رفع تقرير ${config.title} (${savedRows} صف)`);
     await loadRawMaterialsUploadBatch(key);
   }catch(err){
     setRawMaterialsUploadStatus(key,`خطأ أثناء رفع ${config.title}: ${err.message || err}`,'err');
   }finally{
     RAW_MATERIALS_UPLOAD_BUSY[key]=false;
     if(button) button.disabled=false;
-    if(input) input.value='';
+    if(input){ input.disabled=false; input.value=''; }
   }
 }
 async function loadRawMaterialsUploadBatch(key){
@@ -6391,18 +6435,18 @@ async function loadRawMaterialsUploadBatch(key){
   if(!tbl || !WarehouseDB?.ready) return;
   const {data,error}=await WarehouseDB.client
     .from('raw_material_upload_batches')
-    .select('id,report_key,file_name,upload_date,uploaded_by,uploaded_by_name,row_count,file_size_bytes,status')
+    .select('id,report_key,file_name,upload_date,uploaded_by,uploaded_by_name,row_count,file_size_bytes,status,expected_rows,received_rows,completed_at')
     .eq('report_key',key)
-    .eq('status','active')
+    .in('status',['succeeded','active'])
     .order('upload_date',{ascending:false})
     .limit(1);
   if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل آخر رفع: ${error.message}</td></tr></tbody>`; return; }
   const rows=(data||[]).map(b=>[
     b.file_name || '-',
-    Number(b.row_count||0).toLocaleString('en-US'),
+    Number(b.row_count||b.received_rows||0).toLocaleString('en-US'),
     formatFileSize(b.file_size_bytes),
     b.uploaded_by_name || b.uploaded_by || '-',
-    b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
+    (b.completed_at || b.upload_date) ? new Date(b.completed_at || b.upload_date).toLocaleString('ar-EG') : '-',
     b.status || '-'
   ]);
   table('#'+config.tableId,['اسم الملف','عدد الصفوف','الحجم','الرافع','تاريخ الرفع','الحالة'],rows);
