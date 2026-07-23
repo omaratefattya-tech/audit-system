@@ -424,8 +424,38 @@
             </div>
             <button class="secondary raw-materials-focus-placeholder" type="button" disabled title="سيتم تفعيل Focus Mode بعد إعداد تقارير المراجعة في المرحلة التالية">Focus Mode</button>
           </div>
-          <div class="raw-materials-status drop-zone">
-            سيتم تفعيل التقارير بعد اعتماد قوالب رصيد المصنع الحالي ومعدل الاستهلاك وآلية الحساب.
+          <div class="raw-materials-status upload-status" id="rawMaterialsStatus">جاهز لتحميل بيانات متابعة الخامات.</div>
+          <div class="filters raw-materials-filters" id="rawMaterialsFilters">
+            <label>
+              المصنع
+              <select id="rawMaterialsPlantFilter"><option value="all">كل المصانع</option></select>
+            </label>
+            <label id="rawMaterialsWarehouseField" hidden>
+              المخزن
+              <select id="rawMaterialsWarehouseFilter"><option value="all">كل المخازن</option></select>
+            </label>
+            <label id="rawMaterialsWarehouseTypeField" hidden>
+              نوع المخزن
+              <select id="rawMaterialsWarehouseTypeFilter"><option value="all">كل أنواع المخازن</option></select>
+            </label>
+            <label>
+              مجموعة المواد
+              <select id="rawMaterialsGroupFilter"><option value="all">كل المجموعات</option></select>
+            </label>
+            <label>
+              الحالة
+              <select id="rawMaterialsStatusFilter">
+                <option value="all">كل الحالات</option>
+                <option value="no_consumption">بدون استهلاك</option>
+                <option value="critical">حرج</option>
+                <option value="low">منخفض</option>
+                <option value="safe">آمن</option>
+                <option value="comfortable">مطمئن</option>
+                <option value="surplus">زائد</option>
+              </select>
+            </label>
+            <button class="primary" id="rawMaterialsSearchBtn" type="button">بحث</button>
+            <button class="secondary" id="rawMaterialsResetBtn" type="button">إعادة تعيين</button>
           </div>
           <label class="raw-materials-mobile-tab-field" for="rawMaterialsMobileTabSelect">
             تبويب متابعة الخامات
@@ -441,15 +471,23 @@
             <button type="button" role="tab" aria-selected="false" aria-controls="rawMaterialsPackagingPanel" data-raw-materials-tab="packaging">مواد تعبئة وتغليف</button>
           </div>
           <div class="raw-materials-tab-panel active" id="rawMaterialsMainPanel" role="tabpanel" data-raw-materials-panel="main">
-            <div class="drop-zone raw-materials-focus-container">سيتم إعداد جدول المراجعة وآلية الحساب في المرحلة التالية.</div>
+            <div class="raw-materials-table-card raw-materials-focus-container">
+              <div class="raw-materials-table-head"><h3>خامات رئيسية</h3><span id="rawMaterialsMainCount">0 مادة</span></div>
+              <div class="table-wrap raw-materials-table-wrap"><table id="rawMaterialsMainTable"></table></div>
+            </div>
           </div>
           <div class="raw-materials-tab-panel" id="rawMaterialsBranPanel" role="tabpanel" data-raw-materials-panel="bran" hidden>
-            <div class="drop-zone raw-materials-focus-container">سيتم إعداد جدول المراجعة وآلية الحساب في المرحلة التالية.</div>
+            <div class="raw-materials-table-card raw-materials-focus-container">
+              <div class="raw-materials-table-head"><h3>مجموعة الردة</h3><span id="rawMaterialsBranCount">0 مادة</span></div>
+              <div class="table-wrap raw-materials-table-wrap"><table id="rawMaterialsBranTable"></table></div>
+            </div>
           </div>
           <div class="raw-materials-tab-panel" id="rawMaterialsPackagingPanel" role="tabpanel" data-raw-materials-panel="packaging" hidden>
-            <div class="drop-zone raw-materials-focus-container">سيتم إعداد جدول المراجعة وآلية الحساب في المرحلة التالية.</div>
-          </div>
-        </article>
+            <div class="raw-materials-table-card raw-materials-focus-container">
+              <div class="raw-materials-table-head"><h3>مواد تعبئة وتغليف</h3><span id="rawMaterialsPackagingCount">0 مادة</span></div>
+              <div class="table-wrap raw-materials-table-wrap"><table id="rawMaterialsPackagingTable"></table></div>
+            </div>
+          </div>        </article>
       </section>      <section id="reports" class="section">
         <article class="panel glass reports-center">
           <div class="reports-head">

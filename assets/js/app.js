@@ -2284,6 +2284,7 @@ function switchSection(section){
   closeMobileDashboardPanels();
   updateFiltersVisibility(section);
   if(section==='reports') setTimeout(()=>loadExecutiveReport(),50);
+  if(section==='raw_materials') setTimeout(()=>loadRawMaterialsScreen(),50);
   if(section==='users') setTimeout(()=>loadUsersManagement(),50);
   if(section==='permissions') setTimeout(()=>loadPermissionsManagement(),50);
   setTimeout(()=>applyPermissionActionGuards(section),80);
@@ -6492,6 +6493,289 @@ function initRawMaterialsTemplateDownloads(){
     });
   });
 }
+const RAW_MATERIALS_SCREEN_TABS={
+  main:{tableId:'rawMaterialsMainTable',countId:'rawMaterialsMainCount',label:'خامات رئيسية'},
+  bran:{tableId:'rawMaterialsBranTable',countId:'rawMaterialsBranCount',label:'مجموعة الردة'},
+  packaging:{tableId:'rawMaterialsPackagingTable',countId:'rawMaterialsPackagingCount',label:'مواد تعبئة وتغليف'}
+};
+const RAW_MATERIALS_BRAN_GROUP='Z111-06';
+const RAW_MATERIALS_PACKAGING_GROUPS=new Set(['Z113-01','Z113-02','Z113-03']);
+const RAW_MATERIALS_SCREEN_STATE={stockRows:[],metricRows:[],mergedRows:[],loaded:false,loading:false,activeTab:'main'};
+function rawMaterialsSetStatus(message,type=''){
+  const el=$('#rawMaterialsStatus');
+  if(!el) return;
+  el.className='raw-materials-status upload-status '+(type||'');
+  el.textContent=message||'';
+}
+function rawMaterialsCode(value){return String(value||'').trim().toUpperCase();}
+function rawMaterialsKey(materialCode,plantCode){return rawMaterialsCode(materialCode)+'|'+rawMaterialsCode(plantCode);}
+function rawMaterialsUnitInfo(value){
+  const text=String(value||'').trim();
+  const upper=text.toUpperCase();
+  if(['KG','KILOGRAM'].includes(upper) || ['كيلو','كيلوجرام'].includes(text)) return {unit:'TON',family:'weight',factor:0.001};
+  if(['TON','TO','T','TONS'].includes(upper) || text==='طن') return {unit:'TON',family:'weight',factor:1};
+  if(['PC','PCS','PIECE'].includes(upper) || text==='قطعة') return {unit:'PC',family:'count',factor:1};
+  return {unit:text || '-',family:'unknown',factor:1};
+}
+function rawMaterialsNumber(value){
+  const n=Number(value??0);
+  return Number.isFinite(n)?n:0;
+}
+function rawMaterialsNormalizeQuantity(value,uom){
+  const info=rawMaterialsUnitInfo(uom);
+  return {value:rawMaterialsNumber(value)*info.factor,unit:info.unit,family:info.family};
+}
+function rawMaterialsStatusFromCoverage(avg,coverage){
+  if(!Number.isFinite(avg) || avg<=0) return 'no_consumption';
+  if(coverage<=3) return 'critical';
+  if(coverage<=5) return 'low';
+  if(coverage<=10) return 'safe';
+  if(coverage<=15) return 'comfortable';
+  return 'surplus';
+}
+function rawMaterialsStatusLabel(status){
+  return {no_consumption:'بدون استهلاك',critical:'حرج',low:'منخفض',safe:'آمن',comfortable:'مطمئن',surplus:'زائد'}[status] || '—';
+}
+function rawMaterialsStatusBadge(status){
+  return `<span class="raw-materials-status-badge raw-status-${escapeHtml(status)}">${escapeHtml(rawMaterialsStatusLabel(status))}</span>`;
+}
+function rawMaterialsFormatQuantity(value,unit){
+  const n=Number(value);
+  if(!Number.isFinite(n)) return '—';
+  if(unit==='PC') return n.toLocaleString('en-US',{maximumFractionDigits:Number.isInteger(n)?0:2});
+  return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function rawMaterialsFormatCoverage(value){
+  const n=Number(value);
+  return Number.isFinite(n) ? n.toLocaleString('en-US',{maximumFractionDigits:2,minimumFractionDigits:0}) : '—';
+}
+function rawMaterialsNormalizeStockRows(rows){
+  const map=new Map();
+  (rows||[]).forEach(row=>{
+    const material=rawMaterialsCode(row.material_code);
+    const plant=rawMaterialsCode(row.plant_code);
+    if(!material || !plant) return;
+    const key=rawMaterialsKey(material,plant);
+    const unrestricted=rawMaterialsNumber(row.unrestricted_stock);
+    const quality=rawMaterialsNumber(row.quality_inspection_stock);
+    const stock=rawMaterialsNormalizeQuantity(unrestricted+quality,row.uom);
+    const current=map.get(key) || {
+      key,material_code:material,material_description:row.material_name||'',plant_code:plant,plant_name:row.plant_name||'',
+      material_group:rawMaterialsCode(row.material_group),material_group_description:row.material_group_description||'',stock_by_unit:new Map(),warehouses:new Map()
+    };
+    current.material_description=current.material_description || row.material_name || '';
+    current.plant_name=current.plant_name || row.plant_name || '';
+    current.material_group=current.material_group || rawMaterialsCode(row.material_group);
+    current.material_group_description=current.material_group_description || row.material_group_description || '';
+    current.stock_by_unit.set(stock.unit,(current.stock_by_unit.get(stock.unit)||0)+stock.value);
+    const wh=rawMaterialsCode(row.warehouse_code);
+    if(wh){
+      const meta=warehouseMetaByCode(wh);
+      current.warehouses.set(wh,{code:wh,name:row.warehouse_name||meta.warehouse_name||wh,type:meta.warehouse_type||'',stock_by_unit:new Map()});
+      const w=current.warehouses.get(wh);
+      w.stock_by_unit.set(stock.unit,(w.stock_by_unit.get(stock.unit)||0)+stock.value);
+    }
+    map.set(key,current);
+  });
+  return map;
+}
+function rawMaterialsChooseStock(stockItem,unit){
+  if(!stockItem) return 0;
+  if(stockItem.stock_by_unit.has(unit)) return stockItem.stock_by_unit.get(unit)||0;
+  if(stockItem.stock_by_unit.size===1) return [...stockItem.stock_by_unit.values()][0]||0;
+  return 0;
+}
+function rawMaterialsBuildMergedRows(stockRows,metricRows){
+  const stockMap=rawMaterialsNormalizeStockRows(stockRows);
+  const keys=new Set([...stockMap.keys(),...(metricRows||[]).map(r=>rawMaterialsKey(r.material_code,r.plant_code))]);
+  const metricMap=new Map((metricRows||[]).map(r=>[rawMaterialsKey(r.material_code,r.plant_code),r]));
+  return [...keys].map(key=>{
+    const stock=stockMap.get(key);
+    const metric=metricMap.get(key);
+    const unit=rawMaterialsUnitInfo(metric?.unit_of_measure || (stock?.stock_by_unit?.keys ? [...stock.stock_by_unit.keys()][0] : '')).unit;
+    const currentStock=rawMaterialsChooseStock(stock,unit);
+    const average=rawMaterialsNumber(metric?.average_daily_consumption);
+    const coverage=average>0 ? currentStock/average : null;
+    const status=rawMaterialsStatusFromCoverage(average,coverage);
+    return {
+      key,
+      material_code:stock?.material_code || rawMaterialsCode(metric?.material_code),
+      material_description:stock?.material_description || metric?.material_description || '',
+      plant_code:stock?.plant_code || rawMaterialsCode(metric?.plant_code),
+      plant_name:stock?.plant_name || metric?.plant_name || '',
+      material_group:stock?.material_group || rawMaterialsCode(metric?.material_group),
+      material_group_description:stock?.material_group_description || metric?.material_group_description || '',
+      unit_of_measure:unit,
+      current_stock:currentStock,
+      average_daily_consumption:average,
+      coverage_days:coverage,
+      status,
+      warehouses:stock?.warehouses || new Map(),
+      period_start:metric?.period_start || '',
+      period_end:metric?.period_end || ''
+    };
+  }).sort((a,b)=>a.plant_code.localeCompare(b.plant_code) || a.material_code.localeCompare(b.material_code));
+}
+function rawMaterialsFilterValues(){
+  return {
+    plant:$('#rawMaterialsPlantFilter')?.value || 'all',
+    warehouse:$('#rawMaterialsWarehouseFilter')?.value || 'all',
+    warehouseType:$('#rawMaterialsWarehouseTypeFilter')?.value || 'all',
+    group:$('#rawMaterialsGroupFilter')?.value || 'all',
+    status:$('#rawMaterialsStatusFilter')?.value || 'all'
+  };
+}
+function rawMaterialsRowForWarehouseFilter(row,filters){
+  let warehouseRows=[...(row.warehouses?.values?.() || [])];
+  if(filters.warehouse && filters.warehouse!=='all') warehouseRows=warehouseRows.filter(w=>w.code===rawMaterialsCode(filters.warehouse));
+  if(filters.warehouseType && filters.warehouseType!=='all') warehouseRows=warehouseRows.filter(w=>w.type===filters.warehouseType);
+  if((filters.warehouse && filters.warehouse!=='all') || (filters.warehouseType && filters.warehouseType!=='all')){
+    if(!warehouseRows.length) return null;
+    const stock=warehouseRows.reduce((sum,wh)=>sum+rawMaterialsChooseStock(wh,row.unit_of_measure),0);
+    const average=rawMaterialsNumber(row.average_daily_consumption);
+    const coverage=average>0 ? stock/average : null;
+    return {...row,current_stock:stock,coverage_days:coverage,status:rawMaterialsStatusFromCoverage(average,coverage)};
+  }
+  return row;
+}
+function rawMaterialsMatchesFilters(row,filters){
+  if(filters.plant!=='all' && row.plant_code!==filters.plant) return false;
+  if(filters.group!=='all' && row.material_group!==filters.group) return false;
+  if(filters.status!=='all' && row.status!==filters.status) return false;
+  return true;
+}
+function rawMaterialsTabForGroup(group){
+  const key=rawMaterialsCode(group);
+  if(key===RAW_MATERIALS_BRAN_GROUP) return 'bran';
+  if(RAW_MATERIALS_PACKAGING_GROUPS.has(key)) return 'packaging';
+  return 'main';
+}
+function rawMaterialsVisibleRows(tabKey){
+  const filters=rawMaterialsFilterValues();
+  return RAW_MATERIALS_SCREEN_STATE.mergedRows
+    .map(row=>rawMaterialsRowForWarehouseFilter(row,filters))
+    .filter(Boolean)
+    .filter(row=>rawMaterialsTabForGroup(row.material_group)===tabKey)
+    .filter(row=>rawMaterialsMatchesFilters(row,filters));
+}
+function rawMaterialsTotalsByUnit(rows){
+  const map=new Map();
+  rows.forEach(row=>{
+    const unit=row.unit_of_measure || '-';
+    const item=map.get(unit) || {unit,stock:0,average:0};
+    item.stock+=rawMaterialsNumber(row.current_stock);
+    item.average+=rawMaterialsNumber(row.average_daily_consumption);
+    map.set(unit,item);
+  });
+  return [...map.values()].sort((a,b)=>a.unit.localeCompare(b.unit));
+}
+function rawMaterialsFormatUnitTotals(totals,field){
+  if(!totals.length) return '—';
+  return totals.map(item=>`${rawMaterialsFormatQuantity(item[field],item.unit)} ${escapeHtml(item.unit)}`).join(' / ');
+}
+function rawMaterialsTotalRow(rows,tabKey){
+  const totals=rawMaterialsTotalsByUnit(rows);
+  const unitLabel=totals.length===1 ? totals[0].unit : (totals.length ? 'متعدد' : '—');
+  let coverage='—', status='—';
+  if(tabKey==='bran' && totals.length===1){
+    const item=totals[0];
+    const coverageValue=item.average>0 ? item.stock/item.average : null;
+    coverage=rawMaterialsFormatCoverage(coverageValue);
+    status=rawMaterialsStatusBadge(rawMaterialsStatusFromCoverage(item.average,coverageValue));
+  }
+  return ['الإجمالي','إجمالي التبويب',escapeHtml(unitLabel),rawMaterialsFormatUnitTotals(totals,'stock'),rawMaterialsFormatUnitTotals(totals,'average'),coverage,status];
+}
+function rawMaterialsRenderTable(tabKey){
+  const spec=RAW_MATERIALS_SCREEN_TABS[tabKey];
+  const tableNode=$('#'+spec.tableId);
+  if(!tableNode) return;
+  const rows=rawMaterialsVisibleRows(tabKey);
+  const heads=['المادة','وصف المادة','وحدة القياس','الرصيد الحالي','متوسط الاستهلاك اليومي','أيام التغطية','الحالة'];
+  const body=rows.length ? rows.map(row=>[
+    escapeHtml(row.material_code),
+    escapeHtml(row.material_description || '-'),
+    escapeHtml(row.unit_of_measure || '-'),
+    rawMaterialsFormatQuantity(row.current_stock,row.unit_of_measure),
+    rawMaterialsFormatQuantity(row.average_daily_consumption,row.unit_of_measure),
+    rawMaterialsFormatCoverage(row.coverage_days),
+    rawMaterialsStatusBadge(row.status)
+  ]) : [];
+  const total=rawMaterialsTotalRow(rows,tabKey);
+  tableNode.innerHTML='<thead><tr>'+heads.map(h=>`<th>${escapeHtml(h)}</th>`).join('')+'</tr></thead>'
+    +'<tbody>'+(body.length?body.map(r=>'<tr>'+r.map(c=>`<td>${c}</td>`).join('')+'</tr>').join(''):`<tr><td colspan="${heads.length}" class="empty-row">لا توجد بيانات مطابقة</td></tr>`)
+    +'</tbody><tfoot><tr class="raw-materials-total-row">'+total.map(c=>`<td>${c}</td>`).join('')+'</tr></tfoot>';
+  const count=$('#'+spec.countId);
+  if(count) count.textContent=rows.length.toLocaleString('en-US')+' مادة';
+}
+function renderRawMaterialsActiveTab(){
+  if(!$('#raw_materials')) return;
+  rawMaterialsRenderTable(RAW_MATERIALS_SCREEN_STATE.activeTab || 'main');
+}
+function rawMaterialsAddOptions(select,items,allLabel){
+  if(!select) return;
+  const current=select.value;
+  select.innerHTML=`<option value="all">${escapeHtml(allLabel)}</option>`+items.map(item=>`<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`).join('');
+  select.value=[...select.options].some(o=>o.value===current) ? current : 'all';
+}
+function syncRawMaterialsFilterOptions(){
+  const rows=RAW_MATERIALS_SCREEN_STATE.mergedRows;
+  const plantItems=[...new Map(rows.filter(r=>r.plant_code).map(r=>[r.plant_code,{value:r.plant_code,label:r.plant_code+(r.plant_name?' - '+r.plant_name:'')}])).values()].sort((a,b)=>a.value.localeCompare(b.value));
+  const groupItems=[...new Map(rows.filter(r=>r.material_group).map(r=>[r.material_group,{value:r.material_group,label:r.material_group+(r.material_group_description?' - '+r.material_group_description:'')}])).values()].sort((a,b)=>a.value.localeCompare(b.value));
+  const warehouseMap=new Map();
+  const typeMap=new Map();
+  RAW_MATERIALS_SCREEN_STATE.stockRows.forEach(row=>{
+    const wh=rawMaterialsCode(row.warehouse_code);
+    if(!wh) return;
+    const meta=warehouseMetaByCode(wh);
+    warehouseMap.set(wh,{value:wh,label:wh+(row.warehouse_name||meta.warehouse_name?' - '+(row.warehouse_name||meta.warehouse_name):'')});
+    if(meta.warehouse_type) typeMap.set(meta.warehouse_type,{value:meta.warehouse_type,label:meta.warehouse_type});
+  });
+  rawMaterialsAddOptions($('#rawMaterialsPlantFilter'),plantItems,'كل المصانع');
+  rawMaterialsAddOptions($('#rawMaterialsWarehouseFilter'),[...warehouseMap.values()].sort((a,b)=>a.value.localeCompare(b.value)),'كل المخازن');
+  rawMaterialsAddOptions($('#rawMaterialsWarehouseTypeFilter'),[...typeMap.values()].sort((a,b)=>a.value.localeCompare(b.value)),'كل أنواع المخازن');
+  rawMaterialsAddOptions($('#rawMaterialsGroupFilter'),groupItems,'كل المجموعات');
+  const whField=$('#rawMaterialsWarehouseField');
+  const typeField=$('#rawMaterialsWarehouseTypeField');
+  if(whField) whField.hidden=warehouseMap.size===0;
+  if(typeField) typeField.hidden=typeMap.size===0;
+}
+async function loadRawMaterialsScreen(force=false){
+  if(RAW_MATERIALS_SCREEN_STATE.loading) return;
+  if(RAW_MATERIALS_SCREEN_STATE.loaded && !force){ renderRawMaterialsActiveTab(); return; }
+  if(!WarehouseDB?.ready){ rawMaterialsSetStatus('Supabase غير متصل. لا يمكن تحميل بيانات متابعة الخامات.','err'); return; }
+  RAW_MATERIALS_SCREEN_STATE.loading=true;
+  rawMaterialsSetStatus('جاري تحميل بيانات متابعة الخامات...');
+  try{
+    const [stockRows,metricRows]=await Promise.all([
+      fetchAllRows('current_plant_stock_rows','material_code,material_name,uom,unrestricted_stock,quality_inspection_stock,material_group,material_group_description,plant_code,plant_name,warehouse_code,warehouse_name'),
+      fetchAllRows('raw_material_consumption_metrics','material_code,material_description,plant_code,plant_name,material_group,material_group_description,unit_of_measure,average_daily_consumption,period_start,period_end')
+    ]);
+    RAW_MATERIALS_SCREEN_STATE.stockRows=stockRows||[];
+    RAW_MATERIALS_SCREEN_STATE.metricRows=metricRows||[];
+    RAW_MATERIALS_SCREEN_STATE.mergedRows=rawMaterialsBuildMergedRows(stockRows,metricRows);
+    RAW_MATERIALS_SCREEN_STATE.loaded=true;
+    syncRawMaterialsFilterOptions();
+    renderRawMaterialsActiveTab();
+    rawMaterialsSetStatus(`تم تحميل ${RAW_MATERIALS_SCREEN_STATE.mergedRows.length.toLocaleString('en-US')} مادة من رصيد المصنع ومعدل الاستهلاك.`,'ok');
+  }catch(err){
+    rawMaterialsSetStatus('تعذر تحميل بيانات متابعة الخامات: '+(err.message||err),'err');
+  }finally{
+    RAW_MATERIALS_SCREEN_STATE.loading=false;
+  }
+}
+function initRawMaterialsFilters(){
+  const root=$('#raw_materials');
+  if(!root || root.dataset.rawMaterialsFiltersBound==='1') return;
+  root.dataset.rawMaterialsFiltersBound='1';
+  $('#rawMaterialsSearchBtn')?.addEventListener('click',renderRawMaterialsActiveTab);
+  $('#rawMaterialsResetBtn')?.addEventListener('click',()=>{
+    ['rawMaterialsPlantFilter','rawMaterialsWarehouseFilter','rawMaterialsWarehouseTypeFilter','rawMaterialsGroupFilter','rawMaterialsStatusFilter'].forEach(id=>{ const el=$('#'+id); if(el) el.value='all'; });
+    renderRawMaterialsActiveTab();
+  });
+  ['rawMaterialsPlantFilter','rawMaterialsWarehouseFilter','rawMaterialsWarehouseTypeFilter','rawMaterialsGroupFilter','rawMaterialsStatusFilter'].forEach(id=>{
+    $('#'+id)?.addEventListener('change',renderRawMaterialsActiveTab);
+  });
+}
 function switchRawMaterialsTab(key){
   const root=$('#raw_materials');
   if(!root) return;
@@ -6508,11 +6792,14 @@ function switchRawMaterialsTab(key){
   });
   const select=$('#rawMaterialsMobileTabSelect');
   if(select && select.value!==selected) select.value=selected;
+  RAW_MATERIALS_SCREEN_STATE.activeTab=selected;
+  renderRawMaterialsActiveTab();
 }
 function initRawMaterialsTabs(){
   const root=$('#raw_materials');
   if(!root || root.dataset.rawMaterialsTabsBound==='1') return;
   root.dataset.rawMaterialsTabsBound='1';
+  initRawMaterialsFilters();
   root.querySelectorAll('[data-raw-materials-tab]').forEach(tab=>{
     tab.addEventListener('click',()=>switchRawMaterialsTab(tab.dataset.rawMaterialsTab));
   });
