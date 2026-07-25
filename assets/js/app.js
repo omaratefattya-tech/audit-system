@@ -6680,11 +6680,34 @@ function rawMaterialsRowForWarehouseFilter(row,filters){
   }
   return row;
 }
-function rawMaterialsMatchesFilters(row,filters){
+function rawMaterialsMatchesDimensionFilters(row,filters){
   if(filters.plant!=='all' && row.plant_code!==filters.plant) return false;
   if(filters.group!=='all' && row.material_group!==filters.group) return false;
+  return true;
+}
+function rawMaterialsMatchesFilters(row,filters){
+  if(!rawMaterialsMatchesDimensionFilters(row,filters)) return false;
   if(filters.status!=='all' && row.status!==filters.status) return false;
   return true;
+}
+function rawMaterialsBranGroupDailyConsumption(rows){
+  const seen=new Set();
+  return (rows||[]).reduce((sum,row)=>{
+    if(rawMaterialsTabForGroup(row.material_group)!=='bran') return sum;
+    const key=rawMaterialsKey(row.material_code,row.plant_code);
+    if(!key || seen.has(key)) return sum;
+    seen.add(key);
+    return sum+rawMaterialsNumber(row.source_average_daily_consumption ?? row.average_daily_consumption);
+  },0);
+}
+function rawMaterialsApplyBranGroupConsumption(rows){
+  const groupAverage=rawMaterialsBranGroupDailyConsumption(rows);
+  return (rows||[]).map(row=>{
+    const sourceAverage=rawMaterialsNumber(row.source_average_daily_consumption ?? row.average_daily_consumption);
+    const currentStock=rawMaterialsNumber(row.current_stock);
+    const coverage=groupAverage>0 ? currentStock/groupAverage : null;
+    return {...row,source_average_daily_consumption:sourceAverage,bran_group_average_daily_consumption:groupAverage,average_daily_consumption:groupAverage,coverage_days:coverage,status:rawMaterialsStatusFromCoverage(groupAverage,coverage)};
+  });
 }
 function rawMaterialsTabForGroup(group){
   const key=rawMaterialsCode(group);
@@ -6694,11 +6717,16 @@ function rawMaterialsTabForGroup(group){
 }
 function rawMaterialsVisibleRows(tabKey){
   const filters=rawMaterialsFilterValues();
-  return RAW_MATERIALS_SCREEN_STATE.mergedRows
+  const rows=RAW_MATERIALS_SCREEN_STATE.mergedRows
     .map(row=>rawMaterialsRowForWarehouseFilter(row,filters))
     .filter(Boolean)
     .filter(row=>rawMaterialsTabForGroup(row.material_group)===tabKey)
-    .filter(row=>rawMaterialsMatchesFilters(row,filters));
+    .filter(row=>rawMaterialsMatchesDimensionFilters(row,filters));
+  if(tabKey==='bran'){
+    return rawMaterialsApplyBranGroupConsumption(rows)
+      .filter(row=>filters.status==='all' || row.status===filters.status);
+  }
+  return rows.filter(row=>rawMaterialsMatchesFilters(row,filters));
 }
 function rawMaterialsTotalsByUnit(rows){
   const map=new Map();
@@ -6717,6 +6745,10 @@ function rawMaterialsFormatUnitTotals(totals,field){
 }
 function rawMaterialsTotalRow(rows,tabKey){
   const totals=rawMaterialsTotalsByUnit(rows);
+  if(tabKey==='bran' && totals.length){
+    const groupAverage=rawMaterialsNumber(rows[0]?.bran_group_average_daily_consumption ?? rawMaterialsBranGroupDailyConsumption(rows));
+    totals.forEach((item,index)=>{ item.average=index===0 ? groupAverage : 0; });
+  }
   const unitLabel=totals.length===1 ? totals[0].unit : (totals.length ? 'متعدد' : '—');
   let coverage='—', status='—';
   if(tabKey==='bran' && totals.length===1){
