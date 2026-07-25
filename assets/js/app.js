@@ -6543,7 +6543,7 @@ const RAW_MATERIALS_SCREEN_TABS={
 const RAW_MATERIALS_BRAN_GROUP='Z111-06';
 const RAW_MATERIALS_PACKAGING_GROUPS=new Set(['Z113-01','Z113-02','Z113-03']);
 const RAW_MATERIALS_BRAN_UNKNOWN_UNITS=new Set();
-const RAW_MATERIALS_SCREEN_STATE={stockRows:[],metricRows:[],mergedRows:[],loaded:false,loading:false,activeTab:'main'};
+const RAW_MATERIALS_SCREEN_STATE={stockRows:[],metricRows:[],branConsumptionRows:[],branConsumptionPeriod:null,mergedRows:[],loaded:false,loading:false,activeTab:'main'};
 function rawMaterialsSetStatus(message,type=''){
   const el=$('#rawMaterialsStatus');
   if(!el) return;
@@ -6573,9 +6573,31 @@ function rawMaterialsNormalizeBranDailyConsumption(value,unit,row){
   const warnKey=rawMaterialsKey(row?.material_code,row?.plant_code)+'|'+(text||'-');
   if(!RAW_MATERIALS_BRAN_UNKNOWN_UNITS.has(warnKey)){
     RAW_MATERIALS_BRAN_UNKNOWN_UNITS.add(warnKey);
-    console.warn('Raw materials bran group daily consumption skipped unknown unit', {material_code:row?.material_code,plant_code:row?.plant_code,unit:text||'-'});
+    console.warn('Raw materials bran group consumption skipped unknown unit', {material_code:row?.material_code,plant_code:row?.plant_code,unit:text||'-'});
   }
   return {value:0,unit:'TON',recognized:false};
+}
+function rawMaterialsDateKey(value){
+  const text=String(value||'').trim();
+  return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0,10) : '';
+}
+function rawMaterialsAddDays(dateKey,days){
+  const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateKey||''));
+  if(!match) return '';
+  const date=new Date(Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3])));
+  date.setUTCDate(date.getUTCDate()+days);
+  return date.toISOString().slice(0,10);
+}
+async function rawMaterialsLoadBranConsumptionRows(){
+  const base=q=>q.eq('material_group',RAW_MATERIALS_BRAN_GROUP).in('movement_type',['261','262']);
+  const latestQuery=base(WarehouseDB.client.from('consumption_rate_rows').select('transaction_date').order('transaction_date',{ascending:false}).limit(1));
+  const {data,error}=await latestQuery;
+  if(error) throw error;
+  const periodEnd=rawMaterialsDateKey(data?.[0]?.transaction_date);
+  if(!periodEnd) return {rows:[],periodStart:'',periodEnd:''};
+  const periodStart=rawMaterialsAddDays(periodEnd,-89);
+  const rows=await fetchAllRows('consumption_rate_rows','material_code,material_group,plant_code,movement_type,quantity,uom,transaction_date',q=>base(q).gte('transaction_date',periodStart).lte('transaction_date',periodEnd).order('transaction_date',{ascending:true}));
+  return {rows:rows||[],periodStart,periodEnd};
 }
 function rawMaterialsNormalizeQuantity(value,uom){
   const info=rawMaterialsUnitInfo(uom);
@@ -6706,16 +6728,24 @@ function rawMaterialsMatchesFilters(row,filters){
   return true;
 }
 function rawMaterialsBranGroupDailyConsumption(rows){
-  const seen=new Set();
-  return (rows||[]).reduce((sum,row)=>{
-    if(rawMaterialsTabForGroup(row.material_group)!=='bran') return sum;
-    const key=rawMaterialsKey(row.material_code,row.plant_code);
-    if(!key || seen.has(key)) return sum;
-    seen.add(key);
-    const sourceAverage=row.source_average_daily_consumption ?? row.average_daily_consumption;
-    const sourceUnit=row.metric_unit_of_measure || row.unit_of_measure;
-    return sum+rawMaterialsNormalizeBranDailyConsumption(sourceAverage,sourceUnit,row).value;
-  },0);
+  const plantScope=new Set((rows||[]).map(row=>rawMaterialsCode(row.plant_code)).filter(Boolean));
+  if(!plantScope.size) return 0;
+  let issue=0, returned=0;
+  const activeDates=new Set();
+  (RAW_MATERIALS_SCREEN_STATE.branConsumptionRows||[]).forEach(row=>{
+    const plant=rawMaterialsCode(row.plant_code);
+    if(!plantScope.has(plant)) return;
+    const movement=String(row.movement_type||'').trim();
+    if(movement!=='261' && movement!=='262') return;
+    const dateKey=rawMaterialsDateKey(row.transaction_date);
+    if(dateKey) activeDates.add(dateKey);
+    const quantityTon=rawMaterialsNormalizeBranDailyConsumption(row.quantity,row.uom,row).value;
+    if(movement==='261') issue+=quantityTon;
+    if(movement==='262') returned+=quantityTon;
+  });
+  const activeDays=activeDates.size;
+  if(!activeDays) return 0;
+  return (issue-returned)/activeDays;
 }
 function rawMaterialsApplyBranGroupConsumption(rows){
   const groupAverage=rawMaterialsBranGroupDailyConsumption(rows);
@@ -6837,12 +6867,15 @@ async function loadRawMaterialsScreen(force=false){
   RAW_MATERIALS_SCREEN_STATE.loading=true;
   rawMaterialsSetStatus('جاري تحميل بيانات متابعة الخامات...');
   try{
-    const [stockRows,metricRows]=await Promise.all([
+    const [stockRows,metricRows,branConsumption]=await Promise.all([
       fetchAllRows('current_plant_stock_rows','material_code,material_name,uom,unrestricted_stock,quality_inspection_stock,material_group,material_group_description,plant_code,plant_name,warehouse_code,warehouse_name'),
-      fetchAllRows('raw_material_consumption_metrics','material_code,material_description,plant_code,plant_name,material_group,material_group_description,unit_of_measure,average_daily_consumption,period_start,period_end')
+      fetchAllRows('raw_material_consumption_metrics','material_code,material_description,plant_code,plant_name,material_group,material_group_description,unit_of_measure,average_daily_consumption,period_start,period_end'),
+      rawMaterialsLoadBranConsumptionRows()
     ]);
     RAW_MATERIALS_SCREEN_STATE.stockRows=stockRows||[];
     RAW_MATERIALS_SCREEN_STATE.metricRows=metricRows||[];
+    RAW_MATERIALS_SCREEN_STATE.branConsumptionRows=branConsumption.rows||[];
+    RAW_MATERIALS_SCREEN_STATE.branConsumptionPeriod={periodStart:branConsumption.periodStart||'',periodEnd:branConsumption.periodEnd||''};
     RAW_MATERIALS_SCREEN_STATE.mergedRows=rawMaterialsBuildMergedRows(stockRows,metricRows);
     RAW_MATERIALS_SCREEN_STATE.loaded=true;
     syncRawMaterialsFilterOptions();
