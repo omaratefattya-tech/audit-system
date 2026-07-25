@@ -5,7 +5,7 @@ function roundRect(ctx,x,y,w,h,r,fill,stroke){
 const $=s=>document.querySelector(s);const $$=s=>document.querySelectorAll(s);
 const ENTERPRISE_MULTI_SELECT_IDS=new Set([
   'plantFilter','warehouseFilter','warehouseTypeFilter','movementFilter','inboundStatusFilter',
-  'dashboardPlantFilter','dashboardWarehouseFilter','reportPlantFilter','reportWarehouseFilter',
+  'dashboardPlantFilter','dashboardWarehouseFilter','reportPlantFilter','reportWarehouseFilter','itemAnalyticsItemFilter',
   'rawMaterialsPlantFilter','rawMaterialsWarehouseFilter','rawMaterialsWarehouseTypeFilter','rawMaterialsGroupFilter','rawMaterialsStatusFilter',
   'usersRoleFilter','usersStatusFilter'
 ]);
@@ -7228,9 +7228,9 @@ function fillReportFilters(){
       .forEach(p=>p.warehouses.filter(w=>saleWhCodes.includes(w[0])).forEach(w=>wf.add(new Option(`${w[0]} - ${w[1]}`,w[0]))));
     enterpriseSetMultiSelectValues(wf,old,{silent:true});
   }
-  pf.addEventListener('change',()=>{clearUnifiedSalesRowsCache();fillWh();});
-  wf.addEventListener('change',clearUnifiedSalesRowsCache);
-  ['reportFromDate','reportToDate'].forEach(id=>document.getElementById(id)?.addEventListener('change',clearUnifiedSalesRowsCache));
+  pf.addEventListener('change',()=>{clearUnifiedSalesRowsCache();fillWh(); if(ACTIVE_REPORT_TAB===ITEM_ANALYTICS_TAB) fillItemAnalyticsItemFilter({keepSelection:true});});
+  wf.addEventListener('change',()=>{clearUnifiedSalesRowsCache(); if(ACTIVE_REPORT_TAB===ITEM_ANALYTICS_TAB) fillItemAnalyticsItemFilter({keepSelection:true});});
+  ['reportFromDate','reportToDate'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>{clearUnifiedSalesRowsCache(); if(ACTIVE_REPORT_TAB===ITEM_ANALYTICS_TAB) fillItemAnalyticsItemFilter({keepSelection:true});}));
   fillWh();
   initEnterpriseMultiSelectFilters($('#reports'));
   pf.dataset.ready='1';
@@ -7378,6 +7378,228 @@ async function loadItemsReport(options={}){
 }
 
 
+
+// === Enterprise Item Analytics ===
+const ITEM_ANALYTICS_TAB='item_analytics';
+let ITEM_ANALYTICS_STATE={filters:null,scopeRows:[],selectedRows:[],previousScopeRows:[],model:null,auditSearch:'',auditSort:{key:'date',dir:'asc'},queryCount:0,hiddenDueToInsufficientData:[]};
+function itemAnalyticsSyncFilterVisibility(tab=ACTIVE_REPORT_TAB){
+  const field=$('#itemAnalyticsItemFilterField');
+  if(field) field.hidden=tab!==ITEM_ANALYTICS_TAB;
+  const trigger=$('#mobileReportsFilterBtn small');
+  if(trigger) trigger.textContent=tab===ITEM_ANALYTICS_TAB?'المصنع / المخزن / الصنف / التاريخ':'المصنع / المخزن / التاريخ';
+}
+function itemAnalyticsCode(value){return String(value||'').trim().toUpperCase();}
+function itemAnalyticsDayMs(){return 24*60*60*1000;}
+function itemAnalyticsDateFromKey(key){const v=normalizeDateISO(key);return v?new Date(v+'T00:00:00Z'):null;}
+function itemAnalyticsDateAdd(key,days){const d=itemAnalyticsDateFromKey(key);if(!d)return '';d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);}
+function itemAnalyticsPeriodLength(filters){const a=itemAnalyticsDateFromKey(filters.from),b=itemAnalyticsDateFromKey(filters.to);if(!a||!b)return 0;return Math.max(1,Math.round((b-a)/itemAnalyticsDayMs())+1);}
+function itemAnalyticsPreviousFilters(filters){const days=itemAnalyticsPeriodLength(filters);if(!days||!filters.from)return null;const prevTo=itemAnalyticsDateAdd(filters.from,-1);const prevFrom=itemAnalyticsDateAdd(prevTo,-days+1);return {...filters,from:prevFrom,to:prevTo};}
+function itemAnalyticsBaseFilters(){const filters=getReportFilters();return {plant:filters.plant,warehouse:filters.warehouse,from:filters.from,to:filters.to};}
+function itemAnalyticsSelectedCodes(){return enterpriseFilterActiveValues(enterpriseSelectValues('itemAnalyticsItemFilter')).map(itemAnalyticsCode).filter(Boolean);}
+function itemAnalyticsListItem(label,value,detail=''){return `<div class="item-analytics-list-row"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b>${detail?`<small>${escapeHtml(detail)}</small>`:''}</div>`;}
+function itemAnalyticsSetEmpty(message='اختر صنفًا واحدًا أو أكثر لعرض تحليلات الأصناف'){
+  const empty=$('#itemAnalyticsEmptyState'), results=$('#itemAnalyticsResults'), meta=$('#itemAnalyticsMeta');
+  if(empty){empty.hidden=false;empty.querySelector('h3').textContent=message;}
+  if(results) results.hidden=true;
+  if(meta) meta.textContent=message;
+}
+function itemAnalyticsShowResults(){const empty=$('#itemAnalyticsEmptyState'),results=$('#itemAnalyticsResults');if(empty)empty.hidden=true;if(results)results.hidden=false;}
+async function fillItemAnalyticsItemFilter(options={}){
+  const select=$('#itemAnalyticsItemFilter');
+  if(!select || !WarehouseDB?.ready) return;
+  await ensureReportDefaultDates({keepDates:true});
+  const keep=options.keepSelection!==false;
+  const current=keep?enterpriseMultiSelectValues(select):['all'];
+  const filters=itemAnalyticsBaseFilters();
+  try{
+    const rows=await fetchAllSalesAuditRows(filters,{ascending:true,orderBy:'material_code',select:'material_code,material_name,report_date,plant_code,warehouse_code'});
+    const map=new Map();
+    (rows||[]).forEach(row=>{const code=itemAnalyticsCode(row.material_code);if(code&&!map.has(code))map.set(code,{code,name:row.material_name||''});});
+    const items=[...map.values()].sort((a,b)=>a.code.localeCompare(b.code));
+    select.innerHTML='<option value="all">اختر صنفًا</option>'+items.map(item=>`<option value="${escapeHtml(item.code)}">${escapeHtml(item.code)} — ${escapeHtml(item.name||'بدون وصف')}</option>`).join('');
+    const valid=new Set(items.map(item=>item.code));
+    const next=enterpriseFilterActiveValues(current).map(itemAnalyticsCode).filter(code=>valid.has(code));
+    enterpriseSetMultiSelectValues(select,next.length?next:['all'],{silent:true});
+    initEnterpriseMultiSelectFilters($('#reports'));
+  }catch(error){console.warn('item analytics item filter load error',error);}
+}
+function getItemAnalyticsFilters(){return {...itemAnalyticsBaseFilters(),items:itemAnalyticsSelectedCodes()};}
+function itemAnalyticsValidateFilters(filters){
+  if(filters.from && filters.to && filters.from>filters.to) return 'تاريخ البداية لا يجب أن يتجاوز تاريخ النهاية.';
+  if(!filters.items.length) return 'اختر صنفًا واحدًا أو أكثر لعرض تحليلات الأصناف';
+  return '';
+}
+function itemAnalyticsStats(rows){
+  const stats={sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0,rows:0};
+  (rows||[]).forEach(row=>{const m=unifiedSalesRowMetrics(row);stats.sales+=toNumber(m.sales);stats.actualReturn+=toNumber(m.actualReturn);stats.production+=toNumber(m.production);stats.outgoing+=toNumber(m.outgoing);stats.incoming+=toNumber(m.incoming);stats.loading+=toNumber(m.loading);stats.rows++;});
+  return stats;
+}
+function itemAnalyticsDaily(rows){
+  const map=new Map();
+  (rows||[]).forEach(row=>{const d=dashboardDateKey(row.report_date);if(!map.has(d))map.set(d,{date:d,sales:0,production:0,outgoing:0,incoming:0,loading:0,rows:0});const m=unifiedSalesRowMetrics(row),item=map.get(d);item.sales+=toNumber(m.sales);item.production+=toNumber(m.production);item.outgoing+=toNumber(m.outgoing);item.incoming+=toNumber(m.incoming);item.loading+=toNumber(m.loading);item.rows++;});
+  return [...map.values()].filter(r=>r.date&&r.date!=='غير محدد').sort((a,b)=>a.date.localeCompare(b.date));
+}
+function itemAnalyticsProductMap(rows){
+  const map=new Map();
+  (rows||[]).forEach(row=>{const code=itemAnalyticsCode(row.material_code)||'غير محدد';if(!map.has(code))map.set(code,{code,name:row.material_name||'',sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0,rows:0});const item=map.get(code),m=unifiedSalesRowMetrics(row);item.name=item.name||row.material_name||'';item.sales+=toNumber(m.sales);item.actualReturn+=toNumber(m.actualReturn);item.production+=toNumber(m.production);item.outgoing+=toNumber(m.outgoing);item.incoming+=toNumber(m.incoming);item.loading+=toNumber(m.loading);item.rows++;});
+  return [...map.values()].sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales));
+}
+function itemAnalyticsBuildAbc(scopeRows,selectedCodes){
+  const products=itemAnalyticsProductMap(scopeRows);
+  const total=products.reduce((sum,p)=>sum+Math.abs(p.sales),0);
+  let cumulative=0;
+  const selected=new Map();
+  products.forEach((p,index)=>{const contribution=total?Math.abs(p.sales)/total*100:0;cumulative+=contribution;const cls=cumulative<=80?'A':(cumulative<=95?'B':'C');const row={...p,rank:index+1,contribution,cumulative,abc:cls,totalScopeSales:total};if(selectedCodes.includes(itemAnalyticsCode(p.code)))selected.set(itemAnalyticsCode(p.code),row);});
+  const selectedRows=selectedCodes.map(code=>selected.get(code)).filter(Boolean);
+  const combinedSales=selectedRows.reduce((sum,p)=>sum+Math.abs(p.sales),0);
+  return {products,total,selectedRows,combinedContribution:total?combinedSales/total*100:0};
+}
+function itemAnalyticsBuildAuditRows(rows){
+  const entries=[];
+  const specs=[
+    ['sales','بيع','إجمالي بيع يومي','خارج'],['actualReturn','مرتجع فعلي','مرتجع / إلغاء بيع','إلغاء / مرتجع'],['production','إنتاج','إجمالي إنتاج يومي','داخل'],['incoming','تحويل وارد','إجمالي تحويلات واردة يومية','داخل'],['outgoing','تحويل صادر','إجمالي تحويلات صادرة يومية','خارج'],['loading','تحميل','إجمالي تحميل يومي','خارج']
+  ];
+  (rows||[]).forEach(row=>{const m=unifiedSalesRowMetrics(row);specs.forEach(([key,movement,desc,direction])=>{const qty=toNumber(m[key]);if(!qty)return;entries.push({date:dashboardDateKey(row.report_date),code:row.material_code||'',name:row.material_name||'',plant:row.plant_name||row.plant_code||'',warehouse:row.warehouse_name||row.warehouse_code||'',movement,description:desc,quantity:qty,unit:'طن',direction});});});
+  return entries.sort((a,b)=>a.date.localeCompare(b.date)||a.code.localeCompare(b.code));
+}
+function itemAnalyticsTrend(daily){
+  if((daily||[]).length<6) return {label:'غير كاف',rate:null,detail:'البيانات أقل من 6 أيام'};
+  const mid=Math.floor(daily.length/2);const first=daily.slice(0,mid).reduce((s,d)=>s+Math.abs(d.sales),0);const second=daily.slice(mid).reduce((s,d)=>s+Math.abs(d.sales),0);const rate=first?((second-first)/Math.abs(first))*100:(second?100:0);return {label:rate>8?'صاعد':rate<-8?'هابط':'مستقر',rate,detail:`تغير النصف الثاني عن الأول ${fmt(rate)}%`};
+}
+function itemAnalyticsVolatility(daily){const values=(daily||[]).map(d=>Math.abs(d.sales)).filter(v=>v>0);if(values.length<3)return 0;const avg=values.reduce((a,b)=>a+b,0)/values.length;const variance=values.reduce((s,v)=>s+Math.pow(v-avg,2),0)/values.length;return avg?Math.sqrt(variance)/avg:0;}
+function itemAnalyticsComparison(current,previous){function pct(c,p){if(!p)return null;return ((c-p)/Math.abs(p))*100;}return {sales:pct(current.sales,previous.sales),production:pct(current.production,previous.production),outgoing:pct(current.outgoing,previous.outgoing),incoming:pct(current.incoming,previous.incoming),loading:pct(current.loading,previous.loading)};}
+function itemAnalyticsBuildModel(filters,scopeRows,previousScopeRows){
+  const selectedSet=new Set(filters.items.map(itemAnalyticsCode));
+  const selectedRows=scopeRows.filter(row=>selectedSet.has(itemAnalyticsCode(row.material_code)));
+  const previousSelectedRows=previousScopeRows.filter(row=>selectedSet.has(itemAnalyticsCode(row.material_code)));
+  const stats=itemAnalyticsStats(selectedRows),previousStats=itemAnalyticsStats(previousSelectedRows);
+  const daily=itemAnalyticsDaily(selectedRows),previousDaily=itemAnalyticsDaily(previousSelectedRows);
+  const activeSalesDays=daily.filter(d=>Math.abs(d.sales)>0).length;
+  const comparison=itemAnalyticsComparison(stats,previousStats);
+  const trend=itemAnalyticsTrend(daily);
+  const volatility=itemAnalyticsVolatility(daily);
+  const abc=itemAnalyticsBuildAbc(scopeRows,filters.items);
+  const auditRows=itemAnalyticsBuildAuditRows(selectedRows);
+  const products=itemAnalyticsProductMap(selectedRows);
+  return {filters,scopeRows,selectedRows,previousScopeRows,previousSelectedRows,stats,previousStats,daily,previousDaily,activeSalesDays,comparison,trend,volatility,abc,auditRows,products};
+}
+function itemAnalyticsHealth(model){
+  let score=70;const reasons=[],risks=[],strengths=[];
+  const stats=model.stats,comp=model.comparison,contribution=model.abc.combinedContribution,days=itemAnalyticsPeriodLength(model.filters),activeRate=days?model.activeSalesDays/days*100:0;
+  if(Math.abs(stats.sales)>0){score+=8;strengths.push(`بيع فعلي بقيمة ${fmt(stats.sales)} طن`);}else if(Math.abs(stats.production)+Math.abs(stats.outgoing)+Math.abs(stats.incoming)>0){score-=30;risks.push('توجد حركة بدون بيع خلال الفترة');}
+  if(contribution>=15){score+=8;strengths.push(`مساهمة مرتفعة ${fmt(contribution)}% من إجمالي البيع`);}else reasons.push(`مساهمة البيع ${fmt(contribution)}%`);
+  if(comp.sales!==null){if(comp.sales<-20){score-=15;risks.push(`تراجع البيع ${fmt(Math.abs(comp.sales))}% عن الفترة السابقة`);}else if(comp.sales>15){score+=7;strengths.push(`نمو البيع ${fmt(comp.sales)}% عن الفترة السابقة`);}}
+  else reasons.push('لا توجد بيانات كافية للمقارنة السابقة');
+  const prodGap=Math.abs(Math.abs(stats.production)-Math.abs(stats.sales));const gapBase=Math.max(Math.abs(stats.sales),Math.abs(stats.production),1);if(prodGap/gapBase>.3){score-=10;risks.push(`فرق إنتاج/بيع مرتفع ${fmt(prodGap)} طن`);}else strengths.push('الإنتاج والبيع ضمن نطاق مقبول');
+  if(model.volatility>.75){score-=10;risks.push(`تذبذب الطلب مرتفع (${fmt(model.volatility*100)}%)`);}else if(model.volatility>0){strengths.push(`تذبذب الطلب تحت السيطرة (${fmt(model.volatility*100)}%)`);}
+  if(activeRate<15 && days>=14){score-=8;risks.push(`نسبة أيام البيع النشطة منخفضة ${fmt(activeRate)}%`);}else if(activeRate>=40){score+=5;strengths.push(`نشاط بيع منتظم ${fmt(activeRate)}% من الفترة`);}
+  score=Math.max(0,Math.min(100,Math.round(score)));
+  const status=score>=85?'ممتاز':score>=70?'طبيعي':score>=50?'يحتاج متابعة':'حرج';
+  const action=status==='حرج'?'مراجعة فورية للصنف والفترة':status==='يحتاج متابعة'?'متابعة أسباب المخاطر خلال الفترة':'استمرار المتابعة الدورية';
+  return {score,status,reasons:reasons.slice(0,4),risks:risks.slice(0,4),strengths:strengths.slice(0,4),action};
+}
+function renderItemAnalyticsHealth(model){
+  const health=itemAnalyticsHealth(model);const badge=$('#itemAnalyticsHealthBadge'),node=$('#itemAnalyticsHealthSummary');if(badge){badge.textContent=`${health.status} - ${health.score}/100`;badge.className='item-analytics-health-badge '+(health.status==='حرج'?'danger':health.status==='يحتاج متابعة'?'warning':health.status==='ممتاز'?'excellent':'normal');}
+  if(node) node.innerHTML=`<div class="item-analytics-health-score"><b>${health.score}</b><span>درجة من 100</span><strong>${escapeHtml(health.status)}</strong></div><div class="item-analytics-health-details">${itemAnalyticsListItem('الإجراء المقترح',health.action)}${itemAnalyticsListItem('أهم الأسباب',(health.reasons.length?health.reasons.join(' / '):'لا توجد أسباب سلبية حاسمة'))}${itemAnalyticsListItem('أهم المخاطر',(health.risks.length?health.risks.join(' / '):'لا توجد مخاطر عالية حسب القواعد الحالية'))}${itemAnalyticsListItem('نقاط القوة',(health.strengths.length?health.strengths.join(' / '):'لا توجد نقاط قوة كافية'))}</div>`;
+}
+function renderItemAnalyticsKpis(stats){
+  const cards=[{title:'إجمالي البيع',value:fmt(stats.sales),unit:'طن',icon:'sales'},{title:'إجمالي الإنتاج',value:fmt(stats.production),unit:'طن',icon:'production'},{title:'إجمالي التحويلات الواردة',value:fmt(stats.incoming),unit:'طن',icon:'incoming'},{title:'إجمالي التحويلات الصادرة',value:fmt(stats.outgoing),unit:'طن',icon:'outgoing'},{title:'إجمالي التحميل',value:fmt(stats.loading),unit:'طن',icon:'loading'}];
+  const node=$('#itemAnalyticsKpiCards');if(node)node.innerHTML=cards.map(renderStandardKpiCard).join('');
+}
+function renderItemAnalyticsHeatmap(selector,daily,key){
+  const node=$(selector);if(!node)return;const values=(daily||[]).map(d=>Math.abs(d[key]||0));const nonZero=values.filter(v=>v>0);const max=nonZero.length?Math.max(...nonZero):0,min=nonZero.length?Math.min(...nonZero):0;
+  node.innerHTML=(daily||[]).map(d=>{const v=Math.abs(d[key]||0);let cls='empty';if(v>0&&v===max)cls='max';else if(v>0&&v===min)cls='min';else if(v>0)cls='mid';const pct=max?Math.max(12,Math.min(100,(v/max)*100)):0;return `<div class="item-analytics-heat-cell ${cls}" style="--heat:${pct}%" title="${escapeHtml(d.date)} - ${fmt(v)} طن"><span>${escapeHtml(d.date.slice(5))}</span><b>${fmt(v)}</b></div>`;}).join('') || '<div class="empty-row">لا توجد بيانات يومية</div>';
+}
+function renderItemAnalyticsList(id,rows){const node=$('#'+id);if(node)node.innerHTML=(rows||[]).join('')||'<div class="empty-row">لا توجد بيانات كافية</div>';}
+function renderItemAnalyticsPerformance(model){
+  const daily=model.daily,stats=model.stats,active=model.activeSalesDays,highest=[...daily].sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales))[0],lowest=daily.filter(d=>Math.abs(d.sales)>0).sort((a,b)=>Math.abs(a.sales)-Math.abs(b.sales))[0];
+  const days=itemAnalyticsPeriodLength(model.filters);const avg=days?stats.sales/days:0;const activeAvg=active?stats.sales/active:0;
+  renderItemAnalyticsList('itemAnalyticsSalesPerformance',[itemAnalyticsListItem('إجمالي البيع',fmt(stats.sales)+' طن'),itemAnalyticsListItem('متوسط البيع اليومي',fmt(avg)+' طن'),itemAnalyticsListItem('عدد أيام البيع الفعلية',fmt(active)+' يوم'),itemAnalyticsListItem('أعلى يوم بيع',highest?`${highest.date} - ${fmt(highest.sales)} طن`:'غير متاح'),itemAnalyticsListItem('أقل يوم بيع فعلي',lowest?`${lowest.date} - ${fmt(lowest.sales)} طن`:'غير متاح'),itemAnalyticsListItem('متوسط الكمية في يوم البيع',fmt(activeAvg)+' طن'),itemAnalyticsListItem('اتجاه الأداء',model.trend.label,model.trend.detail),itemAnalyticsListItem('نسبة الأيام النشطة',days?fmt(active/days*100)+'%':'غير متاح'),itemAnalyticsListItem('تذبذب الطلب',fmt(model.volatility*100)+'%')]);
+}
+function renderItemAnalyticsComparison(model){
+  const c=model.stats,p=model.previousStats,comp=model.comparison;const row=(label,key)=>itemAnalyticsListItem(label,`${fmt(c[key])} / السابق: ${fmt(p[key])}`,comp[key]===null?'لا توجد بيانات سابقة':`التغير ${fmt(comp[key])}%`);
+  renderItemAnalyticsList('itemAnalyticsPeriodComparison',[row('البيع الحالي والسابق','sales'),row('الإنتاج الحالي والسابق','production'),row('التحويلات الواردة','incoming'),row('التحويلات الصادرة','outgoing'),row('التحميل','loading')]);
+}
+function renderItemAnalyticsContribution(model){
+  const rows=[itemAnalyticsListItem('نطاق المقارنة','كل الأصناف داخل نفس المصنع والمخزن والفترة بدون فلتر الصنف'),itemAnalyticsListItem('مساهمة الأصناف المختارة',fmt(model.abc.combinedContribution)+'%',`إجمالي نطاق المقام ${fmt(model.abc.total)} طن`)];
+  model.abc.selectedRows.forEach(item=>rows.push(itemAnalyticsListItem(`${item.code} - ${item.name||''}`,`ترتيب ${item.rank} / فئة ${item.abc}`,`مساهمة ${fmt(item.contribution)}% / تراكمي ${fmt(item.cumulative)}%`)));
+  renderItemAnalyticsList('itemAnalyticsContribution',rows);
+}
+function renderItemAnalyticsSeasonality(model){
+  const days=itemAnalyticsPeriodLength(model.filters),daily=model.daily,hidden=[];const rows=[];
+  if(days<90){rows.push(itemAnalyticsListItem('الموسمية','البيانات التاريخية غير كافية لتحديد الموسمية بثقة','الحد الأدنى العملي 90 يومًا للتحليل الشهري'));hidden.push('Seasonality');}
+  else{const monthEnd=daily.filter(d=>Number(d.date.slice(8,10))>=24).reduce((s,d)=>s+Math.abs(d.sales),0);const rest=daily.filter(d=>Number(d.date.slice(8,10))<24).reduce((s,d)=>s+Math.abs(d.sales),0);rows.push(itemAnalyticsListItem('نمط آخر الشهر',rest?`آخر الشهر أعلى/أقل بـ ${fmt(((monthEnd-rest)/Math.abs(rest))*100)}%`:'لا توجد بيانات كافية للمقارنة'));}
+  if(daily.length<30){rows.push(itemAnalyticsListItem('كشف الأنماط','البيانات غير كافية لاستخراج نمط موثوق'));hidden.push('Pattern Detection');}
+  else{const weekdays={};daily.forEach(d=>{const dt=itemAnalyticsDateFromKey(d.date);const k=dt?dt.getUTCDay():0;weekdays[k]=(weekdays[k]||0)+Math.abs(d.sales);});const top=Object.entries(weekdays).sort((a,b)=>b[1]-a[1])[0];rows.push(itemAnalyticsListItem('أعلى يوم أسبوعي',top?`اليوم رقم ${top[0]} بقيمة ${fmt(top[1])} طن`:'غير متاح'));}
+  ITEM_ANALYTICS_STATE.hiddenDueToInsufficientData=hidden;
+  renderItemAnalyticsList('itemAnalyticsSeasonality',rows);
+}
+function renderItemAnalyticsForecast(model){
+  const daily=model.daily.filter(d=>Math.abs(d.sales)>0);if(daily.length<14){renderItemAnalyticsList('itemAnalyticsForecast',[itemAnalyticsListItem('Forecast','لا توجد بيانات كافية لإنتاج توقع موثوق','يحتاج 14 يوم بيع فعلي على الأقل')]);ITEM_ANALYTICS_STATE.hiddenDueToInsufficientData.push('Forecast');return;}
+  const recent=daily.slice(-14);const avg=recent.reduce((s,d)=>s+Math.abs(d.sales),0)/recent.length;const rows=[itemAnalyticsListItem('النموذج','Moving Average بسيط',`عدد أيام الأساس ${recent.length}`),itemAnalyticsListItem('توقع 7 أيام',fmt(avg*7)+' طن','تقديري'),itemAnalyticsListItem('توقع 30 يومًا',fmt(avg*30)+' طن','تقديري')];if(daily.length>=60)rows.push(itemAnalyticsListItem('توقع 90 يومًا',fmt(avg*90)+' طن','تقديري طويل المدى'));else rows.push(itemAnalyticsListItem('توقع 90 يومًا','لا توجد بيانات كافية','يحتاج فترة أطول'));renderItemAnalyticsList('itemAnalyticsForecast',rows);
+}
+function renderItemAnalyticsInventorySignals(model){
+  const rows=[itemAnalyticsListItem('Inventory Turnover','غير معروض كحقيقة','لا يوجد متوسط مخزون تاريخي موثوق'),itemAnalyticsListItem('Stockout تاريخي','غير معروض','لا يوجد رصيد يومي تاريخي موثوق')];
+  if(Math.abs(model.stats.sales)===0 && Math.abs(model.stats.production+model.stats.incoming)>0) rows.push(itemAnalyticsListItem('ركود محتمل','حركة أو إنتاج بدون بيع','إشارة مؤكدة من بيانات الفترة'));
+  renderItemAnalyticsList('itemAnalyticsInventorySignals',rows);
+}
+function renderItemAnalyticsAlertsRecommendations(model){
+  const alerts=[],rec=[];const h=itemAnalyticsHealth(model);const comp=model.comparison;
+  if(comp.sales!==null && comp.sales<-20) alerts.push(itemAnalyticsListItem('انخفاض مفاجئ في البيع',`التراجع ${fmt(Math.abs(comp.sales))}%`,'أولوية مرتفعة'));
+  if(Math.abs(model.stats.loading)>Math.abs(model.stats.sales+model.stats.outgoing)*1.15 && Math.abs(model.stats.loading)>0) alerts.push(itemAnalyticsListItem('تحميل أعلى من النشاط المتوقع',fmt(model.stats.loading)+' طن','أولوية متوسطة'));
+  if(!model.previousSelectedRows.length) alerts.push(itemAnalyticsListItem('لا توجد فترة مقارنة','المقارنة السابقة غير كافية','تنبيه بيانات'));
+  rec.push(itemAnalyticsListItem(h.status==='حرج'?'مراجعة فورية':'متابعة دورية',h.action,`الدرجة ${h.score}/100`));
+  if(model.abc.selectedRows.some(i=>i.abc==='A')) rec.push(itemAnalyticsListItem('صنف فئة A','متابعة يومية للحركة والمخزون','مرتبط بمساهمة عالية'));
+  if(model.volatility>.75) rec.push(itemAnalyticsListItem('تذبذب مرتفع','مراجعة أسباب قمم الطلب','أولوية متوسطة'));
+  renderItemAnalyticsList('itemAnalyticsAlerts',alerts.length?alerts:[itemAnalyticsListItem('لا توجد تنبيهات عالية','حسب القواعد الحالية')]);
+  renderItemAnalyticsList('itemAnalyticsRecommendations',rec);
+}
+function renderItemAnalyticsAuditTrail(model){
+  const search=String(ITEM_ANALYTICS_STATE.auditSearch||'').trim().toLowerCase();let rows=model.auditRows||[];
+  if(search) rows=rows.filter(r=>Object.values(r).some(v=>String(v||'').toLowerCase().includes(search)));
+  const sort=ITEM_ANALYTICS_STATE.auditSort||{key:'date',dir:'asc'};rows=[...rows].sort((a,b)=>{const av=sort.key==='quantity'?toNumber(a[sort.key]):String(a[sort.key]||'');const bv=sort.key==='quantity'?toNumber(b[sort.key]):String(b[sort.key]||'');const cmp=av>bv?1:av<bv?-1:0;return sort.dir==='desc'?-cmp:cmp;});
+  const heads=[['date','التاريخ'],['code','الصنف'],['name','وصف الصنف'],['plant','المصنع'],['warehouse','المخزن'],['movement','الحركة'],['description','وصف الحركة'],['quantity','الكمية'],['unit','الوحدة'],['direction','الاتجاه']];
+  const html='<thead><tr>'+heads.map(([k,h])=>`<th data-ia-sort="${k}">${escapeHtml(h)}</th>`).join('')+'</tr></thead><tbody>'+rows.map(r=>`<tr class="ia-dir-${r.direction==='داخل'?'in':r.direction==='خارج'?'out':'return'}"><td>${escapeHtml(r.date)}</td><td>${escapeHtml(r.code)}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.plant)}</td><td>${escapeHtml(r.warehouse)}</td><td>${escapeHtml(r.movement)}</td><td>${escapeHtml(r.description)}</td><td>${fmt(r.quantity)}</td><td>${escapeHtml(r.unit)}</td><td>${escapeHtml(r.direction)}</td></tr>`).join('')+(rows.length?'':'<tr><td colspan="10">لا توجد بيانات حركة مطابقة</td></tr>')+'</tbody>';
+  const tbl=$('#itemAnalyticsAuditTrailTable');if(tbl)tbl.innerHTML=html;
+}
+function renderItemAnalyticsComparisonTable(model){
+  const rows=model.products.map(item=>{const abc=model.abc.selectedRows.find(a=>itemAnalyticsCode(a.code)===itemAnalyticsCode(item.code));return `<tr><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.name||'')}</td><td>${fmt(item.sales)}</td><td>${fmt(item.production)}</td><td>${fmt(item.incoming)}</td><td>${fmt(item.outgoing)}</td><td>${fmt(item.loading)}</td><td>${abc?fmt(abc.contribution)+'%':'—'}</td><td>${abc?.abc||'—'}</td><td>${model.trend.label}</td><td>${model.daily.length>=14?'Moving Average':'غير كاف'}</td></tr>`;}).join('');
+  const heads='<thead><tr><th>الصنف</th><th>الوصف</th><th>البيع</th><th>الإنتاج</th><th>الوارد</th><th>الصادر</th><th>التحميل</th><th>مساهمة البيع</th><th>ABC</th><th>الاتجاه</th><th>التوقع</th></tr></thead>';
+  const body=`<tbody>${rows||'<tr><td colspan="11">لا توجد بيانات</td></tr>'}</tbody>`;const tbl=$('#itemAnalyticsComparisonTable');if(tbl)tbl.innerHTML=heads+body;const count=$('#itemAnalyticsComparisonCount');if(count)count.textContent=`${model.products.length} صنف`;
+}
+function renderItemAnalyticsExportTable(model){const tbl=$('#itemAnalyticsExportTable');if(!tbl)return;tbl.innerHTML=$('#itemAnalyticsComparisonTable')?.innerHTML||'';}
+function renderItemAnalyticsReport(model){
+  itemAnalyticsShowResults();const meta=$('#itemAnalyticsMeta');if(meta)meta.textContent=reportFilterLabel(model.filters)+` / الأصناف: ${enterpriseFilterText(model.filters.items,$('#itemAnalyticsItemFilter'),'اختر صنفًا')}`;
+  renderItemAnalyticsHealth(model);renderItemAnalyticsKpis(model.stats);renderItemAnalyticsHeatmap('#itemAnalyticsSalesHeatmap',model.daily,'sales');renderItemAnalyticsHeatmap('#itemAnalyticsProductionHeatmap',model.daily,'production');renderItemAnalyticsPerformance(model);renderItemAnalyticsComparison(model);renderItemAnalyticsContribution(model);renderItemAnalyticsSeasonality(model);renderItemAnalyticsInventorySignals(model);renderItemAnalyticsForecast(model);renderItemAnalyticsAlertsRecommendations(model);renderItemAnalyticsAuditTrail(model);renderItemAnalyticsComparisonTable(model);renderItemAnalyticsExportTable(model);
+}
+async function loadItemAnalyticsReport(options={}){
+  if(!WarehouseDB?.ready) return;fillReportFilters();itemAnalyticsSyncFilterVisibility(ITEM_ANALYTICS_TAB);await ensureReportDefaultDates(options);await fillItemAnalyticsItemFilter({keepSelection:true});
+  const filters=getItemAnalyticsFilters();const error=itemAnalyticsValidateFilters(filters);if(error){itemAnalyticsSetEmpty(error);return;}
+  itemAnalyticsShowResults();const meta=$('#itemAnalyticsMeta');if(meta)meta.textContent='جاري تحميل تحليلات الأصناف...';
+  try{
+    const previousFilters=itemAnalyticsPreviousFilters(filters);let queryCount=0;
+    const scopeRows=await fetchUnifiedSalesRows(filters,{ascending:true});queryCount++;
+    const previousScopeRows=previousFilters?await fetchUnifiedSalesRows(previousFilters,{ascending:true}):[];if(previousFilters)queryCount++;
+    const model=itemAnalyticsBuildModel(filters,scopeRows,previousScopeRows);ITEM_ANALYTICS_STATE={...ITEM_ANALYTICS_STATE,filters,scopeRows,previousScopeRows,selectedRows:model.selectedRows,model,queryCount};
+    renderItemAnalyticsReport(model);
+  }catch(error){console.warn('item analytics load error',error);itemAnalyticsSetEmpty('تعذر تحميل تحليلات الأصناف. راجع الاتصال أو الفلاتر.');}
+}
+function itemAnalyticsWorkbookRows(model){
+  const summary=[['العنوان','تحليلات الأصناف'],['الفترة',`${model.filters.from||'البداية'} -> ${model.filters.to||'النهاية'}`],['الأصناف',enterpriseFilterText(model.filters.items,$('#itemAnalyticsItemFilter'),'')],['إجمالي البيع',model.stats.sales],['إجمالي الإنتاج',model.stats.production],['الوارد',model.stats.incoming],['الصادر',model.stats.outgoing],['التحميل',model.stats.loading],['عدد Queries',ITEM_ANALYTICS_STATE.queryCount||0]];
+  const timeline=[['التاريخ','الصنف','وصف الصنف','المصنع','المخزن','الحركة','وصف الحركة','الكمية','الوحدة','الاتجاه'],...(model.auditRows||[]).map(r=>[r.date,r.code,r.name,r.plant,r.warehouse,r.movement,r.description,r.quantity,r.unit,r.direction])];
+  const comparison=[['الصنف','الوصف','البيع','الإنتاج','الوارد','الصادر','التحميل','مساهمة البيع','ABC','الترتيب','التراكمي'],...model.abc.selectedRows.map(r=>[r.code,r.name,r.sales,r.production,r.incoming,r.outgoing,r.loading,r.contribution,r.abc,r.rank,r.cumulative])];
+  const forecast=[['البند','القيمة'],...($('#itemAnalyticsForecast')?.innerText||'').split('\n').filter(Boolean).map(t=>[t,''])];
+  return {summary,timeline,comparison,forecast};
+}
+async function exportItemAnalyticsExcel(){
+  const model=ITEM_ANALYTICS_STATE.model;if(!model||!model.selectedRows.length){alert('اختر صنفًا واحدًا أو أكثر قبل التصدير.');return;}if(!window.XLSX){alert('مكتبة Excel غير محملة.');return;}
+  const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};const sheets=itemAnalyticsWorkbookRows(model);Object.entries(sheets).forEach(([name,rows])=>{if(rows.length>1){const ws=XLSX.utils.aoa_to_sheet(rows);ws['!rtl']=true;XLSX.utils.book_append_sheet(wb,ws,name.slice(0,31));}});
+  const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});await saveBlobWithPicker(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`item-analytics-${todayISO()}.xlsx`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+function bindItemAnalyticsUI(){
+  $('#itemAnalyticsAuditSearch')?.addEventListener('input',event=>{ITEM_ANALYTICS_STATE.auditSearch=event.target.value||'';if(ITEM_ANALYTICS_STATE.model)renderItemAnalyticsAuditTrail(ITEM_ANALYTICS_STATE.model);});
+  $('#itemAnalyticsAuditTrailTable')?.addEventListener('click',event=>{const th=event.target.closest('th[data-ia-sort]');if(!th)return;const key=th.dataset.iaSort;const prev=ITEM_ANALYTICS_STATE.auditSort||{};ITEM_ANALYTICS_STATE.auditSort={key,dir:prev.key===key&&prev.dir==='asc'?'desc':'asc'};if(ITEM_ANALYTICS_STATE.model)renderItemAnalyticsAuditTrail(ITEM_ANALYTICS_STATE.model);});
+}
 let WAREHOUSES_REPORT_STATE={warehouses:[],filters:null,summary:null};
 function warehouseReportRow(w,i,totalSales){
   const pct=totalSales?Math.abs(w.sales||0)/Math.abs(totalSales)*100:0;
@@ -8528,12 +8750,14 @@ function initMobileReportsUI(){
 }
 function switchReportTab(tab){
   ACTIVE_REPORT_TAB=tab;
+  itemAnalyticsSyncFilterVisibility(tab);
   syncMobileReportsDropdown(tab);
   document.querySelectorAll('[data-report-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.reportTab===tab));
-  const exec=$('#executiveReportContent'), salesTotals=$('#salesTotalsReportContent'), items=$('#itemsReportContent'), warehouses=$('#warehousesReportContent'), exceptions=$('#exceptionsReportContent'), smart=$('#smartAnalyticsContent'), production=$('#productionAnalyticsContent');
+  const exec=$("#executiveReportContent"), salesTotals=$("#salesTotalsReportContent"), items=$("#itemsReportContent"), itemAnalytics=$("#itemAnalyticsContent"), warehouses=$("#warehousesReportContent"), exceptions=$("#exceptionsReportContent"), smart=$("#smartAnalyticsContent"), production=$("#productionAnalyticsContent");
   if(exec) exec.style.display=tab==='executive'?'flex':'none';
   if(salesTotals) salesTotals.style.display=tab==='salesTotals'?'flex':'none';
   if(items) items.style.display=tab==='items'?'flex':'none';
+  if(itemAnalytics) itemAnalytics.style.display=tab===ITEM_ANALYTICS_TAB?'flex':'none';
   if(warehouses) warehouses.style.display=tab==='warehouses'?'flex':'none';
   if(exceptions) exceptions.style.display=tab==='exceptions'?'flex':'none';
   if(smart) smart.style.display=tab==='smart'?'flex':'none';
@@ -8541,6 +8765,7 @@ function switchReportTab(tab){
   if(tab==='executive') loadExecutiveReport({keepDates:true});
   if(tab==='salesTotals') loadSalesTotalsReport({keepDates:true});
   if(tab==='items') loadItemsReport({keepDates:true});
+  if(tab===ITEM_ANALYTICS_TAB) loadItemAnalyticsReport({keepDates:true});
   if(tab==='warehouses') loadWarehousesReport({keepDates:true});
   if(tab==='exceptions') loadExceptionsReport({keepDates:true});
   if(tab==='smart') loadSmartAnalyticsReport({keepDates:true});
@@ -8549,6 +8774,7 @@ function switchReportTab(tab){
 function loadActiveReport(options={}){
   if(ACTIVE_REPORT_TAB==='salesTotals') return loadSalesTotalsReport(options);
   if(ACTIVE_REPORT_TAB==='items') return loadItemsReport(options);
+  if(ACTIVE_REPORT_TAB===ITEM_ANALYTICS_TAB) return loadItemAnalyticsReport(options);
   if(ACTIVE_REPORT_TAB==='warehouses') return loadWarehousesReport(options);
   if(ACTIVE_REPORT_TAB==='exceptions') return loadExceptionsReport(options);
   if(ACTIVE_REPORT_TAB==='smart') return loadSmartAnalyticsReport(options);
@@ -8558,6 +8784,7 @@ function loadActiveReport(options={}){
 function exportActiveReportExcel(){
   if(ACTIVE_REPORT_TAB==='salesTotals') return exportTableToExcel('salesTotalsExportTable','ملخص مبيعات المخازن');
   if(ACTIVE_REPORT_TAB==='items') return exportTableToExcel('itemsReportExportTable','تقرير مراجعة الأصناف');
+  if(ACTIVE_REPORT_TAB===ITEM_ANALYTICS_TAB) return exportItemAnalyticsExcel();
   if(ACTIVE_REPORT_TAB==='warehouses') return exportTableToExcel('warehousesReportExportTable','تقرير أداء المخازن');
   if(ACTIVE_REPORT_TAB==='exceptions') return exportTableToExcel('exceptionsReportExportTable','تقرير الاستثناءات والمراجعة');
   if(ACTIVE_REPORT_TAB==='smart') return exportTableToExcel('smartAnalyticsExportTable','التحليلات الذكية');
@@ -8578,6 +8805,7 @@ function activeReportVisualInfo(){
     executive:{id:'executiveReportContent',title:'التقرير التنفيذي لمراجعة المخازن'},
     salesTotals:{id:'salesTotalsReportContent',title:'ملخص مبيعات المخازن'},
     items:{id:'itemsReportContent',title:'تقرير مراجعة الأصناف'},
+    item_analytics:{id:'itemAnalyticsContent',title:'تحليلات الأصناف'},
     warehouses:{id:'warehousesReportContent',title:'تقرير أداء المخازن'},
     exceptions:{id:'exceptionsReportContent',title:'تقرير الاستثناءات والمراجعة'},
     smart:{id:'smartAnalyticsContent',title:'التحليلات الذكية'},
@@ -9193,6 +9421,7 @@ function initExecutiveReports(){
     enterpriseSetSelectValuesById('reportPlantFilter',['all'],{silent:true});
     fillReportFilters();
     enterpriseSetSelectValuesById('reportWarehouseFilter',['all'],{silent:true});
+    enterpriseSetSelectValuesById('itemAnalyticsItemFilter',['all'],{silent:true});
     if($('#reportFromDate')) $('#reportFromDate').value='';
     if($('#reportToDate')) $('#reportToDate').value='';
     loadActiveReport();

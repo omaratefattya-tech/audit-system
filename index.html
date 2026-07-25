@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=rm-export-hotfix-20260725" />
+  <link rel="stylesheet" href="assets/css/style.css?v=ia1-item-analytics-20260725" />
 </head>
 <body>
   <section id="loginScreen" class="login-screen">
@@ -516,6 +516,7 @@
             <button class="report-tab active" type="button" data-report-tab="executive">التقرير التنفيذي</button>
             <button class="report-tab" type="button" data-report-tab="salesTotals">ملخص مبيعات المخازن</button>
             <button class="report-tab" type="button" data-report-tab="items">تقرير الأصناف</button>
+            <button class="report-tab" type="button" data-report-tab="item_analytics">تحليلات الأصناف</button>
             <button class="report-tab" type="button" data-report-tab="warehouses">أداء المخازن</button>
             <button class="report-tab" type="button" data-report-tab="exceptions">الاستثناءات</button>
             <button class="report-tab" type="button" data-report-tab="smart"><span class="tab-svg-icon" data-modern-icon="analytics" aria-hidden="true"></span> التحليلات الذكية</button>
@@ -535,6 +536,7 @@
             <button class="mobile-reports-filter-close" id="mobileReportsFilterCloseBtn" type="button" style="display:none" aria-label="إغلاق الفلاتر">×</button>
             <label>المصنع<select id="reportPlantFilter"><option value="all">كل المصانع</option></select></label>
             <label>المخزن<select id="reportWarehouseFilter"><option value="all">كل مخازن البيع</option></select></label>
+            <label class="item-analytics-filter-field" id="itemAnalyticsItemFilterField" hidden>الصنف<select id="itemAnalyticsItemFilter"><option value="all">اختر صنفًا</option></select></label>
             <label>من<input type="date" id="reportFromDate"></label>
             <label>إلى<input type="date" id="reportToDate"></label>
             <button class="primary" id="reportSearchBtn" type="button">بحث <span class="button-svg-icon" data-modern-icon="search" aria-hidden="true"></span></button>
@@ -592,7 +594,55 @@
             </article>
             <table id="itemsReportExportTable" class="hidden-export-table"></table>
           </div>
-          <div id="warehousesReportContent" class="warehouses-report-content report-panel-content" style="display:none">
+          <div id="itemAnalyticsContent" class="item-analytics-content report-panel-content" style="display:none">
+            <div class="executive-title-card item-analytics-title-card">
+              <div>
+                <h3>تحليلات الأصناف</h3>
+                <p id="itemAnalyticsMeta">اختر صنفًا واحدًا أو أكثر لعرض تحليلات الأصناف</p>
+              </div>
+              <div class="item-analytics-title-note">Enterprise Item Intelligence Center</div>
+            </div>
+            <div id="itemAnalyticsEmptyState" class="panel glass item-analytics-empty">
+              <h3>اختر صنفًا واحدًا أو أكثر لعرض تحليلات الأصناف</h3>
+              <p>لن يتم تحميل التحليلات قبل تحديد الصنف والضغط على بحث.</p>
+            </div>
+            <div id="itemAnalyticsResults" class="item-analytics-results" hidden>
+              <article class="panel glass item-analytics-health-card">
+                <div class="report-section-head"><h3>ملخص حالة الصنف</h3><span id="itemAnalyticsHealthBadge" class="item-analytics-health-badge">--</span></div>
+                <div id="itemAnalyticsHealthSummary" class="item-analytics-health-summary"></div>
+              </article>
+              <div class="cards report-kpis item-analytics-kpis" id="itemAnalyticsKpiCards"></div>
+              <div class="item-analytics-grid-2">
+                <article class="panel glass item-analytics-heatmap-card"><h3>الخريطة الحرارية للبيع</h3><div id="itemAnalyticsSalesHeatmap" class="item-analytics-heatmap"></div></article>
+                <article class="panel glass item-analytics-heatmap-card"><h3>الخريطة الحرارية للإنتاج</h3><div id="itemAnalyticsProductionHeatmap" class="item-analytics-heatmap"></div></article>
+              </div>
+              <div class="item-analytics-grid-2">
+                <article class="panel glass"><h3>تقرير الأداء العام للصنف</h3><div id="itemAnalyticsSalesPerformance" class="item-analytics-list"></div></article>
+                <article class="panel glass"><h3>المقارنة بالفترة السابقة</h3><div id="itemAnalyticsPeriodComparison" class="item-analytics-list"></div></article>
+              </div>
+              <div class="item-analytics-grid-2">
+                <article class="panel glass"><h3>مساهمة الصنف و ABC / Pareto</h3><div id="itemAnalyticsContribution" class="item-analytics-list"></div></article>
+                <article class="panel glass"><h3>الموسمية والأنماط المتكررة</h3><div id="itemAnalyticsSeasonality" class="item-analytics-list"></div></article>
+              </div>
+              <div class="item-analytics-grid-2">
+                <article class="panel glass"><h3>المخزون والركود والنقص</h3><div id="itemAnalyticsInventorySignals" class="item-analytics-list"></div></article>
+                <article class="panel glass"><h3>التوقع المستقبلي</h3><div id="itemAnalyticsForecast" class="item-analytics-list"></div></article>
+              </div>
+              <div class="item-analytics-grid-2">
+                <article class="panel glass"><h3>تنبيهات ذكية</h3><div id="itemAnalyticsAlerts" class="item-analytics-list"></div></article>
+                <article class="panel glass"><h3>توصيات المراجعة</h3><div id="itemAnalyticsRecommendations" class="item-analytics-list"></div></article>
+              </div>
+              <article class="panel glass item-analytics-audit-card">
+                <div class="report-section-head"><div><h3>تتبع حركة الصنف خلال الفترة</h3><p class="hint" id="itemAnalyticsAuditNote">المصدر: تجميع يومي مؤكد من sales_audit_report.</p></div><label class="item-analytics-audit-search">بحث<input type="search" id="itemAnalyticsAuditSearch" placeholder="بحث داخل الحركة"></label></div>
+                <div class="rank-table-wrap item-analytics-table-wrap"><table id="itemAnalyticsAuditTrailTable"></table></div>
+              </article>
+              <article class="panel glass item-analytics-comparison-card">
+                <div class="report-section-head"><h3>جدول مقارنة الأصناف المختارة</h3><span class="hint" id="itemAnalyticsComparisonCount">0 صنف</span></div>
+                <div class="rank-table-wrap item-analytics-table-wrap"><table id="itemAnalyticsComparisonTable"></table></div>
+              </article>
+            </div>
+            <table id="itemAnalyticsExportTable" class="hidden-export-table"></table>
+          </div>          <div id="warehousesReportContent" class="warehouses-report-content report-panel-content" style="display:none">
             <div class="executive-title-card">
               <h3>تقرير أداء المخازن</h3>
               <p id="warehousesReportMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
@@ -1265,7 +1315,7 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=rm-export-hotfix-20260725"></script>
+  <script src="assets/js/app.js?v=ia1-item-analytics-20260725"></script>
   <script>
   </script>
   <script src="assets/js/footer.js"></script>
