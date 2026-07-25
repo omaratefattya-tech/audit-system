@@ -1,4 +1,4 @@
-function roundRect(ctx,x,y,w,h,r,fill,stroke){
+﻿function roundRect(ctx,x,y,w,h,r,fill,stroke){
   const rr=Math.min(r||0, Math.abs(w)/2, Math.abs(h)/2);
   ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.lineTo(x+w-rr,y); ctx.quadraticCurveTo(x+w,y,x+w,y+rr); ctx.lineTo(x+w,y+h-rr); ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h); ctx.lineTo(x+rr,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-rr); ctx.lineTo(x,y+rr); ctx.quadraticCurveTo(x,y,x+rr,y); ctx.closePath(); if(fill)ctx.fill(); if(stroke)ctx.stroke();
 }
@@ -2265,6 +2265,7 @@ function updateMobileDashboardState(section){
   document.body.classList.toggle('mobile-inbound-active', appVisible && active==='inbound');
   document.body.classList.toggle('mobile-upload-reports-active', appVisible && active==='upload');
   document.body.classList.toggle('mobile-reports-active', appVisible && active==='reports');
+  document.body.classList.toggle('mobile-raw-materials-active', appVisible && active==='raw_materials');
   if(active==='dashboard') updateMobileDashboardPeriodLabel();
 }
 function syncMobileDashboardShellState(){
@@ -2295,7 +2296,7 @@ function closeMobileDashboardPanels(){
   if(drawer && drawer.contains(document.activeElement)){
     opener?.focus({preventScroll:true});
   }
-  document.body.classList.remove('mobile-dashboard-filter-open','mobile-dashboard-drawer-open','mobile-inbound-filter-open');
+  document.body.classList.remove('mobile-dashboard-filter-open','mobile-dashboard-drawer-open','mobile-inbound-filter-open','mobile-raw-materials-filter-open');
   $('#mobileDashboardFilterBtn')?.setAttribute('aria-expanded','false');
   $('#mobileInboundFilterBtn')?.setAttribute('aria-expanded','false');
   $('#mobileInboundFilterOverlay')?.setAttribute('aria-hidden','true');
@@ -2327,6 +2328,26 @@ function openMobileInboundFilters(){
   $('#mobileInboundFilterOverlay')?.setAttribute('aria-hidden','false');
   filters?.setAttribute('aria-hidden','false');
   setTimeout(()=>$('#mobileInboundFilterCloseBtn')?.focus({preventScroll:true}),0);
+}
+function isMobileRawMaterialsViewport(){
+  return window.matchMedia ? window.matchMedia('(max-width: 768px)').matches : window.innerWidth<=768;
+}
+function closeRawMaterialsFilters(){
+  const filters=$('#rawMaterialsFilters');
+  const opener=$('#mobileRawMaterialsFilterBtn');
+  if(filters && filters.contains(document.activeElement)) opener?.focus({preventScroll:true});
+  document.body.classList.remove('mobile-raw-materials-filter-open');
+  opener?.setAttribute('aria-expanded','false');
+  $('#mobileRawMaterialsFilterOverlay')?.setAttribute('aria-hidden','true');
+  if(isMobileRawMaterialsViewport()) filters?.setAttribute('aria-hidden','true');
+}
+function openRawMaterialsFilters(){
+  const filters=$('#rawMaterialsFilters');
+  document.body.classList.add('mobile-raw-materials-filter-open');
+  $('#mobileRawMaterialsFilterBtn')?.setAttribute('aria-expanded','true');
+  $('#mobileRawMaterialsFilterOverlay')?.setAttribute('aria-hidden','false');
+  filters?.setAttribute('aria-hidden','false');
+  setTimeout(()=>$('#mobileRawMaterialsFilterCloseBtn')?.focus({preventScroll:true}),0);
 }
 function openMobileDashboardFilters(){
   document.body.classList.add('mobile-dashboard-filter-open');
@@ -2450,6 +2471,17 @@ function initMobileDashboardShell(){
   if(MOBILE_DASHBOARD_SHELL_BOUND) return;
   MOBILE_DASHBOARD_SHELL_BOUND=true;
   document.addEventListener('click',event=>{
+    const rawMaterialsFilterBtn=event.target.closest('#mobileRawMaterialsFilterBtn');
+    if(rawMaterialsFilterBtn){
+      event.preventDefault();
+      openRawMaterialsFilters();
+      return;
+    }
+    if(event.target.closest('#mobileRawMaterialsFilterOverlay,#mobileRawMaterialsFilterCloseBtn')){
+      event.preventDefault();
+      closeRawMaterialsFilters();
+      return;
+    }
     const inboundFilterBtn=event.target.closest('#mobileInboundFilterBtn');
     if(inboundFilterBtn){
       event.preventDefault();
@@ -5513,6 +5545,7 @@ const PERMISSION_SCREENS = [
   {key:'movements', label:'الحركات المخزنية', description:'قواعد وأكواد الحركات المخزنية'},
   {key:'sales', label:'مراجعة البيع', description:'مراجعة مبيعات المنتج التام والتحويلات'},
   {key:'inbound', label:'مراجعة الوارد', description:'مراجعة وارد MB51 والميزان والنولون'},
+  {key:'raw_materials', label:'متابعة الخامات', description:'متابعة أرصدة الخامات ومعدلات الاستهلاك وأيام التغطية'},
   {key:'reports', label:'التقارير', description:'مركز التقارير التنفيذية والتحليلات'},
   {key:'users', label:'إدارة المستخدمين', description:'إنشاء وتعديل وتعطيل وحذف المستخدمين'},
   {key:'permissions', label:'إدارة الصلاحيات', description:'تعديل صلاحيات الأدوار والشاشات'},
@@ -5531,6 +5564,7 @@ let CURRENT_ROLE_PERMISSIONS = {};
 let PERMISSIONS_MANAGEMENT_STATE={role:'admin', rows:[], view:[], dirty:false};
 function permissionColumn(action){ return 'can_'+action; }
 function defaultPermissionValue(role,screen,action){
+  if(screen==='raw_materials') return false;
   if(role==='admin') return true;
   if(role==='auditor'){
     if(String(screen||'').startsWith('settings_')) return false;
@@ -5603,6 +5637,13 @@ function applyNavigationPermissions(){
     btn.disabled=!allowed;
     btn.title=allowed?'':'غير مسموح حسب صلاحيات الدور';
   });
+  const rawMobileItem=$('.mobile-drawer-item[data-mobile-section="raw_materials"]');
+  if(rawMobileItem){
+    const allowed=canViewSection('raw_materials');
+    rawMobileItem.classList.toggle('permission-hidden',!allowed);
+    rawMobileItem.hidden=!allowed;
+    rawMobileItem.disabled=!allowed;
+  }
   const active=$('.nav-item.active');
   if(active && active.disabled){
     const first=[...$$('.nav-item')].find(b=>!b.disabled);
@@ -6768,10 +6809,14 @@ function initRawMaterialsFilters(){
   const root=$('#raw_materials');
   if(!root || root.dataset.rawMaterialsFiltersBound==='1') return;
   root.dataset.rawMaterialsFiltersBound='1';
-  $('#rawMaterialsSearchBtn')?.addEventListener('click',renderRawMaterialsActiveTab);
+  $('#rawMaterialsSearchBtn')?.addEventListener('click',()=>{
+    renderRawMaterialsActiveTab();
+    closeRawMaterialsFilters();
+  });
   $('#rawMaterialsResetBtn')?.addEventListener('click',()=>{
     ['rawMaterialsPlantFilter','rawMaterialsWarehouseFilter','rawMaterialsWarehouseTypeFilter','rawMaterialsGroupFilter','rawMaterialsStatusFilter'].forEach(id=>{ const el=$('#'+id); if(el) el.value='all'; });
     renderRawMaterialsActiveTab();
+    closeRawMaterialsFilters();
   });
   ['rawMaterialsPlantFilter','rawMaterialsWarehouseFilter','rawMaterialsWarehouseTypeFilter','rawMaterialsGroupFilter','rawMaterialsStatusFilter'].forEach(id=>{
     $('#'+id)?.addEventListener('change',renderRawMaterialsActiveTab);

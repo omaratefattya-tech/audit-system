@@ -425,7 +425,13 @@
             <button class="secondary raw-materials-focus-placeholder" type="button" disabled title="سيتم تفعيل Focus Mode بعد إعداد تقارير المراجعة في المرحلة التالية">Focus Mode</button>
           </div>
           <div class="raw-materials-status upload-status" id="rawMaterialsStatus">جاهز لتحميل بيانات متابعة الخامات.</div>
+          <button class="mobile-raw-materials-filter-trigger" id="mobileRawMaterialsFilterBtn" type="button" style="display:none" aria-controls="rawMaterialsFilters" aria-expanded="false">
+            <span class="mobile-filter-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg></span>
+            <span><b>فلترة النتائج</b><small>المصنع / المخزن / المجموعة / الحالة</small></span>
+          </button>
+          <div class="mobile-raw-materials-filter-overlay" id="mobileRawMaterialsFilterOverlay" style="display:none" aria-hidden="true"></div>
           <div class="filters raw-materials-filters" id="rawMaterialsFilters">
+            <button class="mobile-raw-materials-filter-close" id="mobileRawMaterialsFilterCloseBtn" type="button" style="display:none" aria-label="إغلاق الفلاتر">×</button>
             <label>
               المصنع
               <select id="rawMaterialsPlantFilter"><option value="all">كل المصانع</option></select>
