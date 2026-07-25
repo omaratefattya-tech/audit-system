@@ -3470,9 +3470,9 @@ body.focus-mode-active[data-focus-section="raw_materials"] #raw_materials table 
 @media(max-width:768px){body.focus-mode-active[data-focus-section="raw_materials"] #raw_materials>.panel.glass{min-height:calc(100svh - 16px);padding:12px;border-radius:16px;}}
 /* Raw Materials export actions + Enterprise Multi-Select alignment hotfix */
 .enterprise-ms-list{display:grid;gap:2px;}
-.enterprise-ms-option{display:flex!important;flex-direction:row;align-items:center;gap:8px;width:100%;box-sizing:border-box;flex-wrap:nowrap;line-height:1.4;}
+.enterprise-ms-option{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:8px;width:100%;box-sizing:border-box;flex-wrap:nowrap!important;line-height:1.4;}
 .enterprise-ms-option input[type="checkbox"]{flex:0 0 auto!important;width:16px!important;min-width:16px!important;height:16px!important;min-height:16px!important;margin:0!important;padding:0!important;accent-color:#8ddc59;}
-.enterprise-ms-option span{flex:1 1 auto;min-width:0;line-height:1.45;overflow-wrap:anywhere;word-break:normal;}
+.enterprise-ms-option span{display:block!important;flex:1 1 auto;min-width:0;line-height:1.45;overflow-wrap:anywhere;word-break:normal;}
 body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enterprise-ms-option input[type="checkbox"]{width:16px!important;min-width:16px!important;height:16px!important;min-height:16px!important;border-radius:3px!important;}
 #raw_materials .raw-materials-actions{display:flex;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap;}
 #raw_materials .raw-materials-export-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:126px;}
