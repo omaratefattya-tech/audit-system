@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=rm-ui-hotfix-20260725" />
+  <link rel="stylesheet" href="assets/css/style.css?v=rm-export-hotfix-20260725" />
 </head>
 <body>
   <section id="loginScreen" class="login-screen">
@@ -422,7 +422,12 @@
               <h2>متابعة الخامات</h2>
               <p class="hint">متابعة أرصدة الخامات ومعدلات الاستهلاك وعدد أيام التغطية.</p>
             </div>
-            <div class="focus-mode-actions"><button class="secondary focus-mode-btn raw-materials-focus-btn" id="rawMaterialsFocusModeBtn" type="button" data-focus-target="raw_materials">Focus Mode</button><button class="secondary focus-mode-close-btn" id="rawMaterialsFocusModeCloseBtn" type="button" data-focus-close hidden>إغلاق Focus Mode</button></div>
+            <div class="focus-mode-actions raw-materials-actions">
+              <button class="secondary export-btn raw-materials-export-btn" id="rawMaterialsExportExcelBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M8 13h8M8 17h8"></path></svg><span>تصدير Excel</span></button>
+              <button class="secondary export-btn raw-materials-export-btn" id="rawMaterialsExportPdfBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M8 12h8M8 16h5"></path></svg><span>تصدير PDF</span></button>
+              <button class="secondary export-btn raw-materials-export-btn" id="rawMaterialsExportPngBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"></rect><path d="m8 15 3-3 2 2 3-4 2 5"></path><circle cx="9" cy="9" r="1"></circle></svg><span>تصدير PNG</span></button>
+              <button class="secondary focus-mode-btn raw-materials-focus-btn" id="rawMaterialsFocusModeBtn" type="button" data-focus-target="raw_materials">Focus Mode</button><button class="secondary focus-mode-close-btn" id="rawMaterialsFocusModeCloseBtn" type="button" data-focus-close hidden>إغلاق Focus Mode</button>
+            </div>
           </div>
           <div class="raw-materials-status upload-status" id="rawMaterialsStatus">جاهز لتحميل بيانات متابعة الخامات.</div>
           <button class="mobile-raw-materials-filter-trigger" id="mobileRawMaterialsFilterBtn" type="button" style="display:none" aria-controls="rawMaterialsFilters" aria-expanded="false">
@@ -1260,7 +1265,7 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=rm-ui-hotfix-20260725"></script>
+  <script src="assets/js/app.js?v=rm-export-hotfix-20260725"></script>
   <script>
   </script>
   <script src="assets/js/footer.js"></script>

@@ -79,6 +79,7 @@ function initEnterpriseMultiSelect(select){
   const observer=new MutationObserver(()=>enterpriseSetMultiSelectValues(select,enterpriseMultiSelectValues(select),{silent:true}));
   observer.observe(select,{childList:true});
   wrapper.addEventListener('click',event=>{
+    event.stopPropagation();
     const trigger=event.target.closest('.enterprise-ms-trigger');
     if(trigger){
       const open=wrapper.classList.toggle('open');
@@ -929,6 +930,9 @@ function initReportExportButtons(){
   $('#salesExportPngBtn')?.addEventListener('click',exportSalesReviewPng);
   $('#inboundExportExcelBtn')?.addEventListener('click',()=>exportTableToExcel('inboundTable','مراجعة الوارد'));
   $('#inboundExportPdfBtn')?.addEventListener('click',()=>exportTableToPdf('inboundTable','مراجعة الوارد'));
+  $('#rawMaterialsExportExcelBtn')?.addEventListener('click',exportRawMaterialsExcel);
+  $('#rawMaterialsExportPdfBtn')?.addEventListener('click',exportRawMaterialsPdf);
+  $('#rawMaterialsExportPngBtn')?.addEventListener('click',exportRawMaterialsPng);
 }
 
 function renderTables(){table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']));table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحويل'],APP_DATA.salesReviewSample);table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample)}
@@ -6947,6 +6951,143 @@ function rawMaterialsRenderTable(tabKey){
     +'</tbody><tfoot><tr class="raw-materials-total-row">'+total.map(c=>`<td>${c}</td>`).join('')+'</tr></tfoot>';
   const count=$('#'+spec.countId);
   if(count) count.textContent=rows.length.toLocaleString('en-US')+' مادة';
+}
+const RAW_MATERIALS_EXPORT_HEADERS=['المادة','وصف المادة','وحدة القياس','المصنع','الرصيد الحالي','متوسط الاستهلاك اليومي','أيام التغطية','الحالة'];
+function rawMaterialsCurrentTabKey(){return RAW_MATERIALS_SCREEN_STATE.activeTab || 'main';}
+function rawMaterialsExportTabLabel(tabKey){return RAW_MATERIALS_SCREEN_TABS[tabKey]?.label || 'متابعة الخامات';}
+function rawMaterialsExportTabSlug(tabKey){return ({main:'main',bran:'bran',packaging:'packaging'}[tabKey] || 'raw-materials');}
+function rawMaterialsExportNumber(value,decimals=2){
+  const n=Number(value);
+  if(!Number.isFinite(n)) return '—';
+  return Number(n.toFixed(decimals));
+}
+function rawMaterialsExportQuantity(value,unit){
+  const n=Number(value);
+  if(!Number.isFinite(n)) return '—';
+  const decimals=unit==='PC' && Number.isInteger(n) ? 0 : 2;
+  return Number(n.toFixed(decimals));
+}
+function rawMaterialsExportFilterSummary(tabKey){
+  const filters=rawMaterialsFilterValues();
+  const lines=[
+    'التبويب: '+rawMaterialsExportTabLabel(tabKey),
+    'المصانع: '+enterpriseFilterText(filters.plant,$('#rawMaterialsPlantFilter'),'الكل')
+  ];
+  if(!$('#rawMaterialsWarehouseField')?.hidden) lines.push('المخازن: '+enterpriseFilterText(filters.warehouse,$('#rawMaterialsWarehouseFilter'),'الكل'));
+  if(!$('#rawMaterialsWarehouseTypeField')?.hidden) lines.push('نوع المخزن: '+enterpriseFilterText(filters.warehouseType,$('#rawMaterialsWarehouseTypeFilter'),'الكل'));
+  lines.push('مجموعة المواد: '+enterpriseFilterText(filters.group,$('#rawMaterialsGroupFilter'),'الكل'));
+  lines.push('الحالة: '+enterpriseFilterText(filters.status,$('#rawMaterialsStatusFilter'),'الكل'));
+  return lines;
+}
+function rawMaterialsExportData(tabKey=rawMaterialsCurrentTabKey()){
+  const rows=rawMaterialsVisibleRows(tabKey);
+  const body=rows.map(row=>[
+    row.material_code || '',
+    row.material_description || '',
+    row.unit_of_measure || '',
+    row.plant_name || row.plant_code || '—',
+    rawMaterialsExportQuantity(row.current_stock,row.unit_of_measure),
+    rawMaterialsExportQuantity(row.average_daily_consumption,row.unit_of_measure),
+    rawMaterialsExportNumber(row.coverage_days,2),
+    rawMaterialsStatusLabel(row.status)
+  ]);
+  const total=rawMaterialsTotalRow(rows,tabKey).map(cell=>stripHtml(String(cell)).replace(/\s+/g,' ').trim() || '—');
+  return {tabKey,rows,matrix:[RAW_MATERIALS_EXPORT_HEADERS,...body,total],summary:rawMaterialsExportFilterSummary(tabKey)};
+}
+function rawMaterialsExportFileName(tabKey,ext){return `raw-materials-${rawMaterialsExportTabSlug(tabKey)}-${todayISO()}.${ext}`;}
+function rawMaterialsExportTitle(tabKey){return 'متابعة الخامات - '+rawMaterialsExportTabLabel(tabKey);}
+async function exportRawMaterialsExcel(){
+  const data=rawMaterialsExportData();
+  if(!data.rows.length){ alert('لا توجد بيانات للتصدير.'); return; }
+  if(!window.XLSX){ alert('مكتبة Excel غير محملة.'); return; }
+  const meta=[[rawMaterialsExportTitle(data.tabKey)],['تاريخ التصدير',new Date().toLocaleString('ar-EG')],...data.summary.map(line=>[line]),[]];
+  const ws=XLSX.utils.aoa_to_sheet([...meta,...data.matrix]);
+  ws['!cols']=data.matrix[0].map((_,i)=>({wch:Math.max(14,...data.matrix.map(r=>String(r[i]??'').length).slice(0,500).map(n=>Math.min(n,44)))}));
+  ws['!rtl']=true;
+  ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:meta.length,c:0},e:{r:meta.length,c:data.matrix[0].length-1}})};
+  const wb=XLSX.utils.book_new();
+  wb.Workbook={Views:[{RTL:true}]};
+  XLSX.utils.book_append_sheet(wb,ws,'متابعة الخامات');
+  const out=XLSX.write(wb,{bookType:'xlsx',type:'array',cellStyles:true});
+  const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  await saveBlobWithPicker(blob,rawMaterialsExportFileName(data.tabKey,'xlsx'),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+function rawMaterialsExportTableHtml(matrix){
+  const head=matrix[0];
+  const body=matrix.slice(1);
+  return `<table class="raw-materials-export-table"><thead><tr>${head.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${body.map((row,index)=>`<tr class="${index===body.length-1?'is-total':''}">${head.map((_,i)=>`<td>${escapeHtml(row[i] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+function rawMaterialsExportBox(data){
+  const box=document.createElement('section');
+  box.className='raw-materials-export-box';
+  box.dir='rtl';
+  box.lang='ar';
+  box.style.cssText='position:fixed;left:0;top:0;width:1500px;min-height:400px;background:#001611;color:#f4fff5;font-family:Cairo,Arial,Tahoma,sans-serif;padding:22px;box-sizing:border-box;z-index:2147483647;overflow:visible;';
+  box.innerHTML=`<header class="raw-materials-export-header"><h1>${escapeHtml(rawMaterialsExportTitle(data.tabKey))}</h1><p>تاريخ التصدير: ${escapeHtml(new Date().toLocaleString('ar-EG'))}</p><div>${data.summary.map(line=>`<span>${escapeHtml(line)}</span>`).join('')}</div></header>${rawMaterialsExportTableHtml(data.matrix)}`;
+  return box;
+}
+async function rawMaterialsCaptureExportBox(box,backgroundColor='#001611'){
+  const Html2Canvas=window.html2canvas;
+  if(!Html2Canvas) throw new Error('html2canvas is not loaded');
+  document.body.appendChild(box);
+  if(document.fonts && document.fonts.ready) await document.fonts.ready;
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  const width=Math.ceil(box.scrollWidth);
+  const height=Math.ceil(box.scrollHeight);
+  if(!width || !height) throw new Error('Invalid raw materials export dimensions');
+  return Html2Canvas(box,{scale:2,useCORS:true,allowTaint:true,backgroundColor,logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+}
+async function exportRawMaterialsPdf(){
+  const data=rawMaterialsExportData();
+  if(!data.rows.length){ alert('لا توجد بيانات للتصدير.'); return; }
+  const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+  if(!window.html2canvas || !JsPDF){ alert('مكتبة PDF غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
+  const box=rawMaterialsExportBox(data);
+  try{
+    const canvas=await rawMaterialsCaptureExportBox(box,'#001611');
+    const pdf=new JsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
+    const pageWidth=pdf.internal.pageSize.getWidth();
+    const pageHeight=pdf.internal.pageSize.getHeight();
+    const margin=7;
+    const imgWidth=pageWidth-(margin*2);
+    const imgHeight=(canvas.height*imgWidth)/canvas.width;
+    const imgData=canvas.toDataURL('image/jpeg',0.94);
+    let remainingHeight=imgHeight;
+    let y=margin;
+    pdf.addImage(imgData,'JPEG',margin,y,imgWidth,imgHeight,undefined,'FAST');
+    remainingHeight-=pageHeight-(margin*2);
+    while(remainingHeight>0){
+      pdf.addPage('a4','landscape');
+      y=margin-(imgHeight-remainingHeight);
+      pdf.addImage(imgData,'JPEG',margin,y,imgWidth,imgHeight,undefined,'FAST');
+      remainingHeight-=pageHeight-(margin*2);
+    }
+    const blob=pdf.output('blob');
+    await saveBlobWithPicker(blob,rawMaterialsExportFileName(data.tabKey,'pdf'),'application/pdf');
+  }catch(err){
+    console.error('Raw materials PDF export failed',err);
+    alert('تعذر تصدير PDF. حاول مرة أخرى.');
+  }finally{
+    try{ box.remove(); }catch(_){}
+  }
+}
+async function exportRawMaterialsPng(){
+  const data=rawMaterialsExportData();
+  if(!data.rows.length){ alert('لا توجد بيانات للتصدير.'); return; }
+  if(!window.html2canvas){ alert('مكتبة PNG غير محملة.'); return; }
+  const box=rawMaterialsExportBox(data);
+  try{
+    const canvas=await rawMaterialsCaptureExportBox(box,'#001611');
+    canvas.toBlob(async blob=>{
+      if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
+      await saveBlobWithPicker(blob,rawMaterialsExportFileName(data.tabKey,'png'),'image/png');
+    },'image/png',1);
+  }catch(err){
+    console.error('Raw materials PNG export failed',err);
+    alert('تعذر تصدير PNG. حاول مرة أخرى.');
+  }finally{
+    try{ box.remove(); }catch(_){}
+  }
 }
 function renderRawMaterialsActiveTab(){
   if(!$('#raw_materials')) return;
