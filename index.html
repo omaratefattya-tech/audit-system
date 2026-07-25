@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
@@ -422,7 +422,7 @@
               <h2>متابعة الخامات</h2>
               <p class="hint">متابعة أرصدة الخامات ومعدلات الاستهلاك وعدد أيام التغطية.</p>
             </div>
-            <button class="secondary raw-materials-focus-placeholder" type="button" disabled title="سيتم تفعيل Focus Mode بعد إعداد تقارير المراجعة في المرحلة التالية">Focus Mode</button>
+            <div class="focus-mode-actions"><button class="secondary focus-mode-btn raw-materials-focus-btn" id="rawMaterialsFocusModeBtn" type="button" data-focus-target="raw_materials">Focus Mode</button><button class="secondary focus-mode-close-btn" id="rawMaterialsFocusModeCloseBtn" type="button" data-focus-close hidden>إغلاق Focus Mode</button></div>
           </div>
           <div class="raw-materials-status upload-status" id="rawMaterialsStatus">جاهز لتحميل بيانات متابعة الخامات.</div>
           <button class="mobile-raw-materials-filter-trigger" id="mobileRawMaterialsFilterBtn" type="button" style="display:none" aria-controls="rawMaterialsFilters" aria-expanded="false">

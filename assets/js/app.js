@@ -3,6 +3,108 @@
   ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.lineTo(x+w-rr,y); ctx.quadraticCurveTo(x+w,y,x+w,y+rr); ctx.lineTo(x+w,y+h-rr); ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h); ctx.lineTo(x+rr,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-rr); ctx.lineTo(x,y+rr); ctx.quadraticCurveTo(x,y,x+rr,y); ctx.closePath(); if(fill)ctx.fill(); if(stroke)ctx.stroke();
 }
 const $=s=>document.querySelector(s);const $$=s=>document.querySelectorAll(s);
+const ENTERPRISE_MULTI_SELECT_IDS=new Set([
+  'plantFilter','warehouseFilter','warehouseTypeFilter','movementFilter','inboundStatusFilter',
+  'dashboardPlantFilter','dashboardWarehouseFilter','reportPlantFilter','reportWarehouseFilter',
+  'rawMaterialsPlantFilter','rawMaterialsWarehouseFilter','rawMaterialsWarehouseTypeFilter','rawMaterialsGroupFilter','rawMaterialsStatusFilter',
+  'usersRoleFilter','usersStatusFilter'
+]);
+function enterpriseFilterValues(value){
+  if(Array.isArray(value)) return value.map(v=>String(v||'').trim()).filter(Boolean);
+  if(value instanceof Set) return [...value].map(v=>String(v||'').trim()).filter(Boolean);
+  const v=String(value??'all').trim();
+  return !v || v==='all' ? ['all'] : [v];
+}
+function enterpriseFilterActiveValues(value){return enterpriseFilterValues(value).filter(v=>v && v!=='all');}
+function enterpriseFilterIsAll(value){return enterpriseFilterActiveValues(value).length===0;}
+function enterpriseFilterMatches(value,candidate,normalizer=v=>String(v||'').trim()){
+  const active=enterpriseFilterActiveValues(value).map(normalizer).filter(Boolean);
+  if(!active.length) return true;
+  return active.includes(normalizer(candidate));
+}
+function enterpriseFilterApplyQuery(query,column,value,normalizer=v=>String(v||'').trim()){
+  const active=enterpriseFilterActiveValues(value).map(normalizer).filter(Boolean);
+  if(!active.length) return query;
+  return active.length===1 ? query.eq(column,active[0]) : query.in(column,active);
+}
+function enterpriseFilterText(value,select,allText='الكل'){
+  const active=enterpriseFilterActiveValues(value);
+  if(!active.length) return allText;
+  const labels=active.map(v=>[...(select?.options||[])].find(o=>o.value===v)?.textContent?.trim() || v);
+  return labels.length<=3 ? labels.join('، ') : `${labels.slice(0,3).join('، ')} +${labels.length-3}`;
+}
+function enterpriseMultiSelectValues(select){
+  if(!select) return ['all'];
+  if(select.dataset.enterpriseValues){try{return enterpriseFilterValues(JSON.parse(select.dataset.enterpriseValues));}catch(_){ }}
+  return enterpriseFilterValues(select.value||'all');
+}
+function enterpriseSetMultiSelectValues(select,values,{silent=false}={}){
+  if(!select) return;
+  const options=[...select.options].map(o=>o.value);
+  let next=enterpriseFilterValues(values).filter(v=>options.includes(v));
+  if(!next.length || next.includes('all')) next=['all'];
+  select.dataset.enterpriseValues=JSON.stringify(next);
+  select.value=next[0] || 'all';
+  enterpriseRenderMultiSelect(select);
+  if(!silent) select.dispatchEvent(new Event('change',{bubbles:true}));
+}
+function enterpriseRenderMultiSelect(select){
+  const wrapper=select?.nextElementSibling?.classList?.contains('enterprise-multiselect') ? select.nextElementSibling : null;
+  if(!select || !wrapper) return;
+  const values=enterpriseMultiSelectValues(select);
+  const active=enterpriseFilterActiveValues(values);
+  const options=[...select.options].filter(o=>o.value!=='all');
+  const label=active.length ? enterpriseFilterText(active,select) : (select.options[0]?.textContent?.trim() || 'الكل');
+  wrapper.querySelector('.enterprise-ms-label').textContent=label;
+  wrapper.querySelector('.enterprise-ms-count').textContent=active.length ? String(active.length) : 'الكل';
+  const list=wrapper.querySelector('.enterprise-ms-list');
+  list.innerHTML=options.map(option=>{
+    const checked=active.includes(option.value);
+    return `<label class="enterprise-ms-option"><input type="checkbox" value="${option.value.replace(/"/g,'&quot;')}" ${checked?'checked':''}><span>${option.textContent}</span></label>`;
+  }).join('') || '<div class="enterprise-ms-empty">لا توجد خيارات</div>';
+}
+function initEnterpriseMultiSelect(select){
+  if(!select || select.dataset.enterpriseMultiSelectBound==='1' || !ENTERPRISE_MULTI_SELECT_IDS.has(select.id)) return;
+  select.dataset.enterpriseMultiSelectBound='1';
+  select.classList.add('enterprise-native-select');
+  const wrapper=document.createElement('div');
+  wrapper.className='enterprise-multiselect';
+  wrapper.innerHTML='<button type="button" class="enterprise-ms-trigger" aria-expanded="false"><span class="enterprise-ms-label"></span><b class="enterprise-ms-count"></b></button><div class="enterprise-ms-menu" hidden><div class="enterprise-ms-actions"><button type="button" data-ms-action="all">تحديد الكل</button><button type="button" data-ms-action="clear">مسح الكل</button></div><div class="enterprise-ms-list"></div></div>';
+  select.insertAdjacentElement('afterend',wrapper);
+  const observer=new MutationObserver(()=>enterpriseSetMultiSelectValues(select,enterpriseMultiSelectValues(select),{silent:true}));
+  observer.observe(select,{childList:true});
+  wrapper.addEventListener('click',event=>{
+    const trigger=event.target.closest('.enterprise-ms-trigger');
+    if(trigger){
+      const open=wrapper.classList.toggle('open');
+      trigger.setAttribute('aria-expanded',open?'true':'false');
+      wrapper.querySelector('.enterprise-ms-menu').hidden=!open;
+      return;
+    }
+    const action=event.target.closest('[data-ms-action]')?.dataset.msAction;
+    if(action==='all') enterpriseSetMultiSelectValues(select,[...select.options].filter(o=>o.value!=='all').map(o=>o.value));
+    if(action==='clear') enterpriseSetMultiSelectValues(select,['all']);
+    const checkbox=event.target.closest('.enterprise-ms-option input');
+    if(checkbox){
+      const current=new Set(enterpriseFilterActiveValues(enterpriseMultiSelectValues(select)));
+      checkbox.checked ? current.add(checkbox.value) : current.delete(checkbox.value);
+      enterpriseSetMultiSelectValues(select,current.size?[...current]:['all']);
+    }
+  });
+  enterpriseSetMultiSelectValues(select,select.value||'all',{silent:true});
+}
+function enterpriseSelectValues(id){return enterpriseMultiSelectValues(document.getElementById(id));}
+function enterpriseSetSelectValuesById(id,values,options){enterpriseSetMultiSelectValues(document.getElementById(id),values,options||{});}
+function initEnterpriseMultiSelectFilters(root=document){ENTERPRISE_MULTI_SELECT_IDS.forEach(id=>initEnterpriseMultiSelect(document.getElementById(id)));}
+document.addEventListener('click',event=>{
+  if(event.target.closest('.enterprise-multiselect')) return;
+  document.querySelectorAll('.enterprise-multiselect.open').forEach(wrapper=>{
+    wrapper.classList.remove('open');
+    wrapper.querySelector('.enterprise-ms-trigger')?.setAttribute('aria-expanded','false');
+    const menu=wrapper.querySelector('.enterprise-ms-menu');
+    if(menu) menu.hidden=true;
+  });
+});
 const colors=['#51b848','#1f9e9a','#7fc34b','#f1bf35','#526d62','#e88f2d'];
 function fmt(n){return Number(n).toLocaleString('en-US',{maximumFractionDigits:3})}
 function setDefaultDates(){const now=new Date();const cairo=new Date(now.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));const first=new Date(cairo.getFullYear(),cairo.getMonth(),1);const last=new Date(cairo.getFullYear(),cairo.getMonth()+1,0);const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;$('#fromDate').value=iso(first);$('#toDate').value=iso(last)}
@@ -135,14 +237,16 @@ function initFilters(){
   if(!pf || !wf) return;
   fillInboundPlantFilter(pf);
   function fillWh(){
+    const old=enterpriseMultiSelectValues(wf);
     wf.innerHTML='<option value="all">الكل</option>';
     APP_DATA.plants
-      .filter(p=>pf.value==='all'||p.code===pf.value)
+      .filter(p=>enterpriseFilterMatches(enterpriseMultiSelectValues(pf),p.code))
       .forEach(p=>p.warehouses.forEach(w=>{
-        if(!typeFilter || typeFilter.value==='all' || w[2]===typeFilter.value){
+        if(!typeFilter || enterpriseFilterMatches(enterpriseMultiSelectValues(typeFilter),w[2])){
           wf.add(new Option(`${w[0]} - ${w[1]}`,w[0]));
         }
       }));
+    enterpriseSetMultiSelectValues(wf,old,{silent:true});
   }
   function fillIncomingMovements(){
     if(!movementFilter) return;
@@ -151,12 +255,12 @@ function initFilters(){
   function restoreInboundFilters(){
     const saved=readSavedInboundFilters();
     if(!saved) return;
-    if(saved.plant) pf.value=saved.plant;
-    if(typeFilter && saved.warehouseType) typeFilter.value=saved.warehouseType;
+    if(saved.plant) enterpriseSetMultiSelectValues(pf,saved.plant,{silent:true});
+    if(typeFilter && saved.warehouseType) enterpriseSetMultiSelectValues(typeFilter,saved.warehouseType,{silent:true});
     fillWh();
-    if(saved.warehouse && [...wf.options].some(o=>o.value===saved.warehouse)) wf.value=saved.warehouse;
-    if(movementFilter && saved.movement) movementFilter.value=String(saved.movement).toUpperCase();
-    if(statusFilter && saved.status) statusFilter.value=saved.status;
+    if(saved.warehouse) enterpriseSetMultiSelectValues(wf,saved.warehouse,{silent:true});
+    if(movementFilter && saved.movement) enterpriseSetMultiSelectValues(movementFilter,enterpriseFilterValues(saved.movement).map(v=>String(v).toUpperCase()),{silent:true});
+    if(statusFilter && saved.status) enterpriseSetMultiSelectValues(statusFilter,saved.status,{silent:true});
     if(fromDate && saved.from) fromDate.value=saved.from;
     if(toDate && saved.to) toDate.value=saved.to;
   }
@@ -167,11 +271,12 @@ function initFilters(){
   restoreInboundFilters();
   const runInboundFilter=()=>{ saveInboundFilters(getInboundTopFilters()); return loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true}); };
   $('#resetBtn').onclick=()=>{
-    pf.value='all';
-    if(typeFilter) typeFilter.value='all';
+    enterpriseSetMultiSelectValues(pf,['all'],{silent:true});
+    if(typeFilter) enterpriseSetMultiSelectValues(typeFilter,['all'],{silent:true});
     fillWh();
-    if(movementFilter) movementFilter.value='all';
-    if(statusFilter) statusFilter.value='all';
+    enterpriseSetMultiSelectValues(wf,['all'],{silent:true});
+    if(movementFilter) enterpriseSetMultiSelectValues(movementFilter,['all'],{silent:true});
+    if(statusFilter) enterpriseSetMultiSelectValues(statusFilter,['all'],{silent:true});
     if(fromDate || toDate) setDefaultDates();
     clearSavedInboundFilters();
     runInboundFilter();
@@ -248,22 +353,23 @@ function setInboundTopDateRange(date){
 }
 function getInboundTopFilters(){
   return {
-    plant: $('#plantFilter')?.value || 'all',
-    warehouse: $('#warehouseFilter')?.value || 'all',
-    warehouseType: $('#warehouseTypeFilter')?.value || 'all',
-    movement: ($('#movementFilter')?.value || 'all').toUpperCase(),
-    status: $('#inboundStatusFilter')?.value || 'all',
+    plant: enterpriseSelectValues('plantFilter'),
+    warehouse: enterpriseSelectValues('warehouseFilter'),
+    warehouseType: enterpriseSelectValues('warehouseTypeFilter'),
+    movement: enterpriseSelectValues('movementFilter').map(v=>String(v).toUpperCase()),
+    status: enterpriseSelectValues('inboundStatusFilter'),
     from: normalizeDateISO($('#fromDate')?.value || ''),
     to: normalizeDateISO($('#toDate')?.value || '')
   };
 }
 function inboundWarehouseCodesForFilters(filters){
   if(!filters) return [];
-  if(filters.warehouse && filters.warehouse!=='all') return [String(filters.warehouse).toUpperCase()];
+  const whActive=enterpriseFilterActiveValues(filters.warehouse).map(v=>String(v).toUpperCase());
+  if(whActive.length) return whActive;
   return APP_DATA.plants
-    .filter(p=>!filters.plant || filters.plant==='all' || p.code===filters.plant)
+    .filter(p=>enterpriseFilterMatches(filters.plant,p.code))
     .flatMap(p=>p.warehouses)
-    .filter(w=>!filters.warehouseType || filters.warehouseType==='all' || w[2]===filters.warehouseType)
+    .filter(w=>enterpriseFilterMatches(filters.warehouseType,w[2]))
     .map(w=>String(w[0]).toUpperCase());
 }
 function inboundRowMatchesTopFilters(row,filters){
@@ -271,11 +377,11 @@ function inboundRowMatchesTopFilters(row,filters){
   const whCode=String(row.mb51_warehouse_code || row.scale_warehouse_code || '').trim().toUpperCase();
   const meta=warehouseMetaByCode(whCode);
   const movement=String(row.incoming_movement_type || row.raw_result?.movement_type || '').trim().toUpperCase();
-  if(filters.plant && filters.plant!=='all' && meta.plant_code!==filters.plant) return false;
-  if(filters.warehouse && filters.warehouse!=='all' && whCode!==String(filters.warehouse).toUpperCase()) return false;
-  if(filters.warehouseType && filters.warehouseType!=='all' && meta.warehouse_type!==filters.warehouseType) return false;
-  if(filters.movement && filters.movement!=='ALL' && movement!==filters.movement) return false;
-  if(filters.status && filters.status!=='all' && getInboundMovementStatus(row)!==filters.status) return false;
+  if(!enterpriseFilterMatches(filters.plant,meta.plant_code)) return false;
+  if(!enterpriseFilterMatches(filters.warehouse,whCode,v=>String(v||'').toUpperCase())) return false;
+  if(!enterpriseFilterMatches(filters.warehouseType,meta.warehouse_type)) return false;
+  if(!enterpriseFilterMatches(filters.movement,movement,v=>String(v||'').toUpperCase())) return false;
+  if(!enterpriseFilterMatches(filters.status,getInboundMovementStatus(row))) return false;
   return true;
 }
 function comparableValue(v){
@@ -1086,8 +1192,8 @@ function renderDashboardKPIs(stats){
 }
 function getDashboardFilters(){
   return {
-    plant: $('#dashboardPlantFilter')?.value || 'all',
-    warehouse: $('#dashboardWarehouseFilter')?.value || 'all',
+    plant: enterpriseSelectValues('dashboardPlantFilter'),
+    warehouse: enterpriseSelectValues('dashboardWarehouseFilter'),
     from: normalizeDateISO($('#dashboardFromDate')?.value || ''),
     to: normalizeDateISO($('#dashboardToDate')?.value || '')
   };
@@ -1139,16 +1245,16 @@ function initDashboardFilters(){
     getPlantsCatalog().forEach(p=>pf.add(new Option(`${p.code} - ${p.name}`,p.code)));
   }
   function fillWh(){
-    const old=wf.value;
+    const old=enterpriseMultiSelectValues(wf);
     const salesWarehouseCodes = ['W401','W402','N401','N402','N411','N412','E401','E402'];
     wf.innerHTML='<option value="all">كل مخازن البيع</option>';
     APP_DATA.plants
-      .filter(p=>pf.value==='all'||p.code===pf.value)
+      .filter(p=>enterpriseFilterMatches(enterpriseMultiSelectValues(pf),p.code))
       .forEach(p=>p.warehouses
         .filter(w=>salesWarehouseCodes.includes(String(w[0]).toUpperCase()))
         .forEach(w=>wf.add(new Option(`${w[0]} - ${w[1]}`,w[0])))
       );
-    if([...wf.options].some(o=>o.value===old)) wf.value=old;
+    enterpriseSetMultiSelectValues(wf,old,{silent:true});
   }
   pf.onchange=()=>{clearUnifiedSalesRowsCache();fillWh();};
   wf.addEventListener('change',clearUnifiedSalesRowsCache);
@@ -1158,9 +1264,9 @@ function initDashboardFilters(){
   $('#dashboardSearchBtn')?.addEventListener('click',()=>{updateMobileDashboardPeriodLabel();loadDashboardRealData({keepDates:true});});
   $('#dashboardResetBtn')?.addEventListener('click',()=>{
     clearUnifiedSalesRowsCache();
-    pf.value='all';
+    enterpriseSetMultiSelectValues(pf,['all'],{silent:true});
     fillWh();
-    wf.value='all';
+    enterpriseSetMultiSelectValues(wf,['all'],{silent:true});
     $('#dashboardFromDate').value='';
     $('#dashboardToDate').value='';
     loadDashboardRealData({resetDefaultDate:true}).finally(updateMobileDashboardPeriodLabel);
@@ -1191,8 +1297,8 @@ function applyDashboardSalesFilters(rows,filters){
     const meta=dashboardWhMeta(wh);
     const d=dashboardDateKey(r.report_date);
     const plant=String(r.plant_code||meta.plant||'');
-    if(filters.plant && filters.plant!=='all' && plant!==filters.plant) return false;
-    if(filters.warehouse && filters.warehouse!=='all' && wh!==String(filters.warehouse).toUpperCase()) return false;
+    if(!enterpriseFilterMatches(filters.plant,plant)) return false;
+    if(!enterpriseFilterMatches(filters.warehouse,wh,v=>String(v||'').toUpperCase())) return false;
     if(filters.from && d<filters.from) return false;
     if(filters.to && d>filters.to) return false;
     if(!isSalesReviewRow(r)) return false;
@@ -1271,8 +1377,8 @@ function renderDashboardSalesHeatmap(allRows,filters={}){
     if(!/^\d{4}-\d{2}-\d{2}$/.test(d) || !d.startsWith(monthKey)) return;
     if(filters.from && d<filters.from) return;
     if(filters.to && d>filters.to) return;
-    if(filters.plant && filters.plant!=='all' && plant!==filters.plant) return;
-    if(filters.warehouse && filters.warehouse!=='all' && wh!==String(filters.warehouse).toUpperCase()) return;
+    if(!enterpriseFilterMatches(filters.plant,plant)) return;
+    if(!enterpriseFilterMatches(filters.warehouse,wh,v=>String(v||'').toUpperCase())) return;
     daily[d]=(daily[d]||0)+unifiedSalesRowMetrics(r).sales;
   });
   const values=Object.values(daily).filter(v=>v>0);
@@ -1522,8 +1628,8 @@ async function fetchSalesReviewVerificationSourceRows(filters={},options={}){
       .range(from,to);
     if(filters.from) query=query.gte('sales_upload_batches.report_date',filters.from);
     if(filters.to) query=query.lte('sales_upload_batches.report_date',filters.to);
-    if(filters.plant && filters.plant!=='all') query=query.eq('plant_code',filters.plant);
-    if(filters.warehouse && filters.warehouse!=='all') query=query.eq('warehouse_code',String(filters.warehouse).toUpperCase());
+    query=enterpriseFilterApplyQuery(query,'plant_code',filters.plant);
+    query=enterpriseFilterApplyQuery(query,'warehouse_code',filters.warehouse,v=>String(v||'').toUpperCase());
     const {data,error}=await query;
     if(error) throw error;
     const chunk=(data||[]).map(r=>({
@@ -1738,8 +1844,8 @@ async function fetchAllSalesAuditRows(filters={}, options={}){
       .range(from,to);
     if(filters.from) query=query.gte('report_date',filters.from);
     if(filters.to) query=query.lte('report_date',filters.to);
-    if(filters.plant && filters.plant!=='all') query=query.eq('plant_code',filters.plant);
-    if(filters.warehouse && filters.warehouse!=='all') query=query.eq('warehouse_code',String(filters.warehouse).toUpperCase());
+    query=enterpriseFilterApplyQuery(query,'plant_code',filters.plant);
+    query=enterpriseFilterApplyQuery(query,'warehouse_code',filters.warehouse,v=>String(v||'').toUpperCase());
     const {data,error}=await query;
     if(error) throw error;
     const chunk=data||[];
@@ -1848,8 +1954,8 @@ function rowMatchesUnifiedSalesFilters(row,filters={},catalog=null){
   const meta=dashboardWhMeta(wh);
   const d=salesRowReportDate(row) || dashboardDateKey(row?.report_date);
   const plant=String(row?.plant_code||meta.plant||'');
-  if(filters.plant && filters.plant!=='all' && plant!==filters.plant) return false;
-  if(filters.warehouse && filters.warehouse!=='all' && wh!==String(filters.warehouse).toUpperCase()) return false;
+  if(!enterpriseFilterMatches(filters.plant,plant)) return false;
+  if(!enterpriseFilterMatches(filters.warehouse,wh,v=>String(v||'').toUpperCase())) return false;
   if(filters.from && d<filters.from) return false;
   if(filters.to && d>filters.to) return false;
   if(!isSalesReviewRow(row,catalog)) return false;
@@ -2099,7 +2205,8 @@ async function fetchAllSalesRawRows(filters={},options={}){
   const all=[];
   const materialQueryCodes=[...new Set(catalog.fallback ? [...SALES_REVIEW_MATERIAL_CODES] : [...(catalog.materialCodes||[])])];
   const warehouseQueryCodes=[...new Set(catalog.fallback ? [...SALES_WAREHOUSES] : [...(catalog.allAllowedWarehouseCodes||[])])];
-  if(!materialQueryCodes.length || (!(filters.warehouse && filters.warehouse!=='all') && !warehouseQueryCodes.length)){
+  const selectedWarehouseCodes=enterpriseFilterActiveValues(filters.warehouse).map(v=>String(v).toUpperCase());
+  if(!materialQueryCodes.length || (!selectedWarehouseCodes.length && !warehouseQueryCodes.length)){
     salesPerfLog('fetchAllSalesRawRows-skipped-empty-dynamic-catalog',perfStart,{catalogSource:catalog.source,materialCodes:materialQueryCodes.length,warehouses:warehouseQueryCodes.length});
     console.timeEnd(perfLabel);
     return [];
@@ -2120,8 +2227,8 @@ async function fetchAllSalesRawRows(filters={},options={}){
         .range(from,to);
       if(filters.from) query=query.gte('sales_upload_batches.report_date',filters.from);
       if(filters.to) query=query.lte('sales_upload_batches.report_date',filters.to);
-      if(filters.plant && filters.plant!=='all') query=query.eq('plant_code',filters.plant);
-      if(filters.warehouse && filters.warehouse!=='all') query=query.eq('warehouse_code',String(filters.warehouse).toUpperCase());
+      query=enterpriseFilterApplyQuery(query,'plant_code',filters.plant);
+      if(selectedWarehouseCodes.length) query=query.in('warehouse_code',selectedWarehouseCodes);
       else query=query.in('warehouse_code',warehouseQueryCodes);
       const {data,error}=await query;
       if(error) throw error;
@@ -2146,7 +2253,7 @@ async function fetchAllSalesRawRows(filters={},options={}){
       dbFilters:{
         materialCodes:materialQueryCodes.length,
         catalogMaterialCodes:catalog.materialCodes?.size||0,
-        warehouses:(filters.warehouse && filters.warehouse!=='all') ? 1 : warehouseQueryCodes.length,
+        warehouses:selectedWarehouseCodes.length || warehouseQueryCodes.length,
         catalogWarehouses:catalog.allAllowedWarehouseCodes?.size||0,
         catalogSource:catalog.source,
         movements:SALES_REVIEW_MOVEMENT_TYPES.length
@@ -2550,7 +2657,7 @@ function nav(){
   updateFiltersVisibility(active);
 }
 
-const FOCUS_MODE_SECTIONS = new Set(['sales','inbound']);
+const FOCUS_MODE_SECTIONS = new Set(['sales','inbound','raw_materials']);
 let FOCUS_MODE_SCROLL_Y = 0;
 function setFocusModeButtonState(){
   const active=document.body.classList.contains('focus-mode-active');
@@ -2623,7 +2730,7 @@ function initSidebarToggle(){
   };
 }
 function renderAll(){renderPlants();renderTables();renderTabs()}
-document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initFilters();initDashboardFilters();renderModernSidebarIcons();nav();initMobileDashboardShell();initSidebarToggle();initLoginPasswordToggle();initReportExportButtons();initFocusModeControls();initInboundColumnManager();renderAll()});
+document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoClock();dbBadge();initEnterpriseMultiSelectFilters();initFilters();initDashboardFilters();renderModernSidebarIcons();nav();initMobileDashboardShell();initSidebarToggle();initLoginPasswordToggle();initReportExportButtons();initFocusModeControls();initInboundColumnManager();renderAll()});
 
 // === Supabase Sales Upload + Dynamic Sales Report ===
 const SALES_WAREHOUSES = ['W401','W402','N401','N402','N411','N412','E401','E402'];
@@ -5883,16 +5990,16 @@ function usersKpiUpdate(rows){
 function currentUsersFilters(){
   return {
     q:($('#usersQuickSearch')?.value||'').trim().toLowerCase(),
-    role:$('#usersRoleFilter')?.value||'all',
-    status:$('#usersStatusFilter')?.value||'all'
+    role:enterpriseSelectValues('usersRoleFilter'),
+    status:enterpriseSelectValues('usersStatusFilter')
   };
 }
 function applyUsersFilters(){
   const f=currentUsersFilters();
   USERS_MANAGEMENT_VIEW=USERS_MANAGEMENT_ROWS.filter(u=>{
     const hay=[u.full_name,u.email,u.job_title,u.phone,roleLabel(u.role)].join(' ').toLowerCase();
-    const roleOk=f.role==='all' || u.role===f.role || (f.role==='viewer' && u.role==='authenticated');
-    const statusOk=f.status==='all' || (f.status==='active'?u.is_active:!u.is_active);
+    const roleOk=enterpriseFilterIsAll(f.role) || enterpriseFilterMatches(f.role,u.role) || (enterpriseFilterActiveValues(f.role).includes('viewer') && u.role==='authenticated');
+    const statusOk=enterpriseFilterIsAll(f.status) || (enterpriseFilterActiveValues(f.status).includes('active') && u.is_active) || (enterpriseFilterActiveValues(f.status).includes('inactive') && !u.is_active);
     return (!f.q || hay.includes(f.q)) && roleOk && statusOk;
   });
   renderUsersManagementTableBody(USERS_MANAGEMENT_VIEW);
@@ -6697,18 +6804,18 @@ function rawMaterialsBuildMergedRows(stockRows,metricRows){
 }
 function rawMaterialsFilterValues(){
   return {
-    plant:$('#rawMaterialsPlantFilter')?.value || 'all',
-    warehouse:$('#rawMaterialsWarehouseFilter')?.value || 'all',
-    warehouseType:$('#rawMaterialsWarehouseTypeFilter')?.value || 'all',
-    group:$('#rawMaterialsGroupFilter')?.value || 'all',
-    status:$('#rawMaterialsStatusFilter')?.value || 'all'
+    plant:enterpriseSelectValues('rawMaterialsPlantFilter'),
+    warehouse:enterpriseSelectValues('rawMaterialsWarehouseFilter'),
+    warehouseType:enterpriseSelectValues('rawMaterialsWarehouseTypeFilter'),
+    group:enterpriseSelectValues('rawMaterialsGroupFilter'),
+    status:enterpriseSelectValues('rawMaterialsStatusFilter')
   };
 }
 function rawMaterialsRowForWarehouseFilter(row,filters){
   let warehouseRows=[...(row.warehouses?.values?.() || [])];
-  if(filters.warehouse && filters.warehouse!=='all') warehouseRows=warehouseRows.filter(w=>w.code===rawMaterialsCode(filters.warehouse));
-  if(filters.warehouseType && filters.warehouseType!=='all') warehouseRows=warehouseRows.filter(w=>w.type===filters.warehouseType);
-  if((filters.warehouse && filters.warehouse!=='all') || (filters.warehouseType && filters.warehouseType!=='all')){
+  if(!enterpriseFilterIsAll(filters.warehouse)) warehouseRows=warehouseRows.filter(w=>enterpriseFilterMatches(filters.warehouse,w.code,rawMaterialsCode));
+  if(!enterpriseFilterIsAll(filters.warehouseType)) warehouseRows=warehouseRows.filter(w=>enterpriseFilterMatches(filters.warehouseType,w.type));
+  if(!enterpriseFilterIsAll(filters.warehouse) || !enterpriseFilterIsAll(filters.warehouseType)){
     if(!warehouseRows.length) return null;
     const stock=warehouseRows.reduce((sum,wh)=>sum+rawMaterialsChooseStock(wh,row.unit_of_measure),0);
     const average=rawMaterialsNumber(row.average_daily_consumption);
@@ -6718,13 +6825,13 @@ function rawMaterialsRowForWarehouseFilter(row,filters){
   return row;
 }
 function rawMaterialsMatchesDimensionFilters(row,filters){
-  if(filters.plant!=='all' && row.plant_code!==filters.plant) return false;
-  if(filters.group!=='all' && row.material_group!==filters.group) return false;
+  if(!enterpriseFilterMatches(filters.plant,row.plant_code)) return false;
+  if(!enterpriseFilterMatches(filters.group,row.material_group)) return false;
   return true;
 }
 function rawMaterialsMatchesFilters(row,filters){
   if(!rawMaterialsMatchesDimensionFilters(row,filters)) return false;
-  if(filters.status!=='all' && row.status!==filters.status) return false;
+  if(!enterpriseFilterMatches(filters.status,row.status)) return false;
   return true;
 }
 function rawMaterialsBranGroupDailyConsumption(rows){
@@ -6771,7 +6878,7 @@ function rawMaterialsVisibleRows(tabKey){
     .filter(row=>rawMaterialsMatchesDimensionFilters(row,filters));
   if(tabKey==='bran'){
     return rawMaterialsApplyBranGroupConsumption(rows)
-      .filter(row=>filters.status==='all' || row.status===filters.status);
+      .filter(row=>enterpriseFilterMatches(filters.status,row.status));
   }
   return rows.filter(row=>rawMaterialsMatchesFilters(row,filters));
 }
@@ -6804,18 +6911,19 @@ function rawMaterialsTotalRow(rows,tabKey){
     coverage=rawMaterialsFormatCoverage(coverageValue);
     status=rawMaterialsStatusBadge(rawMaterialsStatusFromCoverage(item.average,coverageValue));
   }
-  return ['الإجمالي','إجمالي التبويب',escapeHtml(unitLabel),rawMaterialsFormatUnitTotals(totals,'stock'),rawMaterialsFormatUnitTotals(totals,'average'),coverage,status];
+  return ['الإجمالي','إجمالي التبويب',escapeHtml(unitLabel),'—',rawMaterialsFormatUnitTotals(totals,'stock'),rawMaterialsFormatUnitTotals(totals,'average'),coverage,status];
 }
 function rawMaterialsRenderTable(tabKey){
   const spec=RAW_MATERIALS_SCREEN_TABS[tabKey];
   const tableNode=$('#'+spec.tableId);
   if(!tableNode) return;
   const rows=rawMaterialsVisibleRows(tabKey);
-  const heads=['المادة','وصف المادة','وحدة القياس','الرصيد الحالي','متوسط الاستهلاك اليومي','أيام التغطية','الحالة'];
+  const heads=['المادة','وصف المادة','وحدة القياس','المصنع','الرصيد الحالي','متوسط الاستهلاك اليومي','أيام التغطية','الحالة'];
   const body=rows.length ? rows.map(row=>[
     escapeHtml(row.material_code),
     escapeHtml(row.material_description || '-'),
     escapeHtml(row.unit_of_measure || '-'),
+    escapeHtml(row.plant_name || row.plant_code || '-'),
     rawMaterialsFormatQuantity(row.current_stock,row.unit_of_measure),
     rawMaterialsFormatQuantity(row.average_daily_consumption,row.unit_of_measure),
     rawMaterialsFormatCoverage(row.coverage_days),
@@ -6834,9 +6942,9 @@ function renderRawMaterialsActiveTab(){
 }
 function rawMaterialsAddOptions(select,items,allLabel){
   if(!select) return;
-  const current=select.value;
+  const current=enterpriseMultiSelectValues(select);
   select.innerHTML=`<option value="all">${escapeHtml(allLabel)}</option>`+items.map(item=>`<option value="${escapeHtml(item.value)}">${escapeHtml(item.label)}</option>`).join('');
-  select.value=[...select.options].some(o=>o.value===current) ? current : 'all';
+  enterpriseSetMultiSelectValues(select,current,{silent:true});
 }
 function syncRawMaterialsFilterOptions(){
   const rows=RAW_MATERIALS_SCREEN_STATE.mergedRows;
@@ -6896,7 +7004,7 @@ function initRawMaterialsFilters(){
     closeRawMaterialsFilters();
   });
   $('#rawMaterialsResetBtn')?.addEventListener('click',()=>{
-    ['rawMaterialsPlantFilter','rawMaterialsWarehouseFilter','rawMaterialsWarehouseTypeFilter','rawMaterialsGroupFilter','rawMaterialsStatusFilter'].forEach(id=>{ const el=$('#'+id); if(el) el.value='all'; });
+    ['rawMaterialsPlantFilter','rawMaterialsWarehouseFilter','rawMaterialsWarehouseTypeFilter','rawMaterialsGroupFilter','rawMaterialsStatusFilter'].forEach(id=>enterpriseSetSelectValuesById(id,['all'],{silent:true}));
     renderRawMaterialsActiveTab();
     closeRawMaterialsFilters();
   });
@@ -6959,12 +7067,12 @@ function fillReportFilters(){
   getPlantsCatalog().forEach(p=>pf.add(new Option(`${p.code} - ${p.name}`,p.code)));
   const saleWhCodes=['W401','W402','N401','N402','N411','N412','E401','E402'];
   function fillWh(){
-    const old=wf.value;
+    const old=enterpriseMultiSelectValues(wf);
     wf.innerHTML='<option value="all">كل مخازن البيع</option>';
     APP_DATA.plants
-      .filter(p=>pf.value==='all'||p.code===pf.value)
+      .filter(p=>enterpriseFilterMatches(enterpriseMultiSelectValues(pf),p.code))
       .forEach(p=>p.warehouses.filter(w=>saleWhCodes.includes(w[0])).forEach(w=>wf.add(new Option(`${w[0]} - ${w[1]}`,w[0]))));
-    if([...wf.options].some(o=>o.value===old)) wf.value=old;
+    enterpriseSetMultiSelectValues(wf,old,{silent:true});
   }
   pf.addEventListener('change',()=>{clearUnifiedSalesRowsCache();fillWh();});
   wf.addEventListener('change',clearUnifiedSalesRowsCache);
@@ -6982,11 +7090,11 @@ async function ensureReportDefaultDates(options={}){
   }catch(_){ }
 }
 function getReportFilters(){
-  return {plant:$('#reportPlantFilter')?.value||'all',warehouse:$('#reportWarehouseFilter')?.value||'all',from:normalizeDateISO($('#reportFromDate')?.value||''),to:normalizeDateISO($('#reportToDate')?.value||'')};
+  return {plant:enterpriseSelectValues('reportPlantFilter'),warehouse:enterpriseSelectValues('reportWarehouseFilter'),from:normalizeDateISO($('#reportFromDate')?.value||''),to:normalizeDateISO($('#reportToDate')?.value||'')};
 }
 function reportFilterLabel(filters){
-  const plant=filters.plant==='all'?'جميع المصانع':filters.plant;
-  const wh=filters.warehouse==='all'?'جميع مخازن البيع':filters.warehouse;
+  const plant=enterpriseFilterText(filters.plant,$('#reportPlantFilter'),'جميع المصانع');
+  const wh=enterpriseFilterText(filters.warehouse,$('#reportWarehouseFilter'),'جميع مخازن البيع');
   const period=(filters.from||filters.to)?`${filters.from||'البداية'} → ${filters.to||'النهاية'}`:'كل الفترات';
   return `الفترة: ${period} / المصنع: ${plant} / المخزن: ${wh} / تاريخ الإصدار: ${new Date().toLocaleString('ar-EG')}`;
 }
@@ -8536,11 +8644,11 @@ function itemsReportPngFilterLine(){
   const parts=[`الفترة: من ${range.from || 'البداية'} إلى ${range.to || 'النهاية'}`];
   const plantSelect=$('#reportPlantFilter');
   const warehouseSelect=$('#reportWarehouseFilter');
-  if(filters.plant && filters.plant!=='all'){
-    parts.push(`المصنع: ${plantSelect?.selectedOptions?.[0]?.textContent?.trim() || filters.plant}`);
+  if(!enterpriseFilterIsAll(filters.plant)){
+    parts.push(`المصنع: ${enterpriseFilterText(filters.plant,plantSelect,'جميع المصانع')}`);
   }
-  if(filters.warehouse && filters.warehouse!=='all'){
-    parts.push(`المخزن: ${warehouseSelect?.selectedOptions?.[0]?.textContent?.trim() || filters.warehouse}`);
+  if(!enterpriseFilterIsAll(filters.warehouse)){
+    parts.push(`المخزن: ${enterpriseFilterText(filters.warehouse,warehouseSelect,'جميع مخازن البيع')}`);
   }
   return parts.join(' / ');
 }
@@ -8927,9 +9035,9 @@ function initExecutiveReports(){
   $('#reportSearchBtn')?.addEventListener('click',()=>loadActiveReport({keepDates:true}));
   $('#reportResetBtn')?.addEventListener('click',()=>{
     clearUnifiedSalesRowsCache();
-    if($('#reportPlantFilter')) $('#reportPlantFilter').value='all';
+    enterpriseSetSelectValuesById('reportPlantFilter',['all'],{silent:true});
     fillReportFilters();
-    if($('#reportWarehouseFilter')) $('#reportWarehouseFilter').value='all';
+    enterpriseSetSelectValuesById('reportWarehouseFilter',['all'],{silent:true});
     if($('#reportFromDate')) $('#reportFromDate').value='';
     if($('#reportToDate')) $('#reportToDate').value='';
     loadActiveReport();
