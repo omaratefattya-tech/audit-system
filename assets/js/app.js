@@ -1,4 +1,4 @@
-﻿function roundRect(ctx,x,y,w,h,r,fill,stroke){
+function roundRect(ctx,x,y,w,h,r,fill,stroke){
   const rr=Math.min(r||0, Math.abs(w)/2, Math.abs(h)/2);
   ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.lineTo(x+w-rr,y); ctx.quadraticCurveTo(x+w,y,x+w,y+rr); ctx.lineTo(x+w,y+h-rr); ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h); ctx.lineTo(x+rr,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-rr); ctx.lineTo(x,y+rr); ctx.quadraticCurveTo(x,y,x+rr,y); ctx.closePath(); if(fill)ctx.fill(); if(stroke)ctx.stroke();
 }
@@ -64,7 +64,12 @@ function enterpriseRenderMultiSelect(select){
   }).join('') || '<div class="enterprise-ms-empty">لا توجد خيارات</div>';
 }
 function initEnterpriseMultiSelect(select){
-  if(!select || select.dataset.enterpriseMultiSelectBound==='1' || !ENTERPRISE_MULTI_SELECT_IDS.has(select.id)) return;
+  if(!select || !ENTERPRISE_MULTI_SELECT_IDS.has(select.id)) return;
+  const existingWrapper=select.nextElementSibling?.classList?.contains('enterprise-multiselect') ? select.nextElementSibling : null;
+  if(select.dataset.enterpriseMultiSelectBound==='1'){
+    if(existingWrapper){ enterpriseRenderMultiSelect(select); return; }
+    delete select.dataset.enterpriseMultiSelectBound;
+  }
   select.dataset.enterpriseMultiSelectBound='1';
   select.classList.add('enterprise-native-select');
   const wrapper=document.createElement('div');
@@ -96,15 +101,19 @@ function initEnterpriseMultiSelect(select){
 function enterpriseSelectValues(id){return enterpriseMultiSelectValues(document.getElementById(id));}
 function enterpriseSetSelectValuesById(id,values,options){enterpriseSetMultiSelectValues(document.getElementById(id),values,options||{});}
 function initEnterpriseMultiSelectFilters(root=document){ENTERPRISE_MULTI_SELECT_IDS.forEach(id=>initEnterpriseMultiSelect(document.getElementById(id)));}
-document.addEventListener('click',event=>{
-  if(event.target.closest('.enterprise-multiselect')) return;
+function enterpriseCloseOpenMultiSelects(){
   document.querySelectorAll('.enterprise-multiselect.open').forEach(wrapper=>{
     wrapper.classList.remove('open');
     wrapper.querySelector('.enterprise-ms-trigger')?.setAttribute('aria-expanded','false');
     const menu=wrapper.querySelector('.enterprise-ms-menu');
     if(menu) menu.hidden=true;
   });
+}
+document.addEventListener('click',event=>{
+  if(event.target.closest('.enterprise-multiselect')) return;
+  enterpriseCloseOpenMultiSelects();
 });
+document.addEventListener('keydown',event=>{if(event.key==='Escape') enterpriseCloseOpenMultiSelects();});
 const colors=['#51b848','#1f9e9a','#7fc34b','#f1bf35','#526d62','#e88f2d'];
 function fmt(n){return Number(n).toLocaleString('en-US',{maximumFractionDigits:3})}
 function setDefaultDates(){const now=new Date();const cairo=new Date(now.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));const first=new Date(cairo.getFullYear(),cairo.getMonth(),1);const last=new Date(cairo.getFullYear(),cairo.getMonth()+1,0);const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;$('#fromDate').value=iso(first);$('#toDate').value=iso(last)}
@@ -268,6 +277,7 @@ function initFilters(){
   if(typeFilter) typeFilter.onchange=fillWh;
   fillWh();
   fillIncomingMovements();
+  initEnterpriseMultiSelectFilters($('#globalFilters'));
   restoreInboundFilters();
   const runInboundFilter=()=>{ saveInboundFilters(getInboundTopFilters()); return loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true}); };
   $('#resetBtn').onclick=()=>{
@@ -1260,6 +1270,7 @@ function initDashboardFilters(){
   wf.addEventListener('change',clearUnifiedSalesRowsCache);
   ['dashboardFromDate','dashboardToDate'].forEach(id=>document.getElementById(id)?.addEventListener('change',()=>{clearUnifiedSalesRowsCache();updateMobileDashboardPeriodLabel();}));
   fillWh();
+  initEnterpriseMultiSelectFilters($('#dashboard'));
   updateMobileDashboardPeriodLabel();
   $('#dashboardSearchBtn')?.addEventListener('click',()=>{updateMobileDashboardPeriodLabel();loadDashboardRealData({keepDates:true});});
   $('#dashboardResetBtn')?.addEventListener('click',()=>{
@@ -2299,6 +2310,7 @@ async function fetchUnifiedSalesRows(filters={},options={}){
 async function loadDashboardRealData(options={}){
   if(!WarehouseDB?.ready) return;
   await ensureDashboardDefaultDate(options);
+  initEnterpriseMultiSelectFilters($('#dashboard'));
   updateMobileDashboardPeriodLabel();
   const filters=getDashboardFilters();
   let dashboardRows=[];
@@ -6963,6 +6975,7 @@ function syncRawMaterialsFilterOptions(){
   rawMaterialsAddOptions($('#rawMaterialsWarehouseFilter'),[...warehouseMap.values()].sort((a,b)=>a.value.localeCompare(b.value)),'كل المخازن');
   rawMaterialsAddOptions($('#rawMaterialsWarehouseTypeFilter'),[...typeMap.values()].sort((a,b)=>a.value.localeCompare(b.value)),'كل أنواع المخازن');
   rawMaterialsAddOptions($('#rawMaterialsGroupFilter'),groupItems,'كل المجموعات');
+  initEnterpriseMultiSelectFilters($('#raw_materials'));
   const whField=$('#rawMaterialsWarehouseField');
   const typeField=$('#rawMaterialsWarehouseTypeField');
   if(whField) whField.hidden=warehouseMap.size===0;
@@ -7078,6 +7091,7 @@ function fillReportFilters(){
   wf.addEventListener('change',clearUnifiedSalesRowsCache);
   ['reportFromDate','reportToDate'].forEach(id=>document.getElementById(id)?.addEventListener('change',clearUnifiedSalesRowsCache));
   fillWh();
+  initEnterpriseMultiSelectFilters($('#reports'));
   pf.dataset.ready='1';
 }
 async function ensureReportDefaultDates(options={}){
