@@ -6542,6 +6542,7 @@ const RAW_MATERIALS_SCREEN_TABS={
 };
 const RAW_MATERIALS_BRAN_GROUP='Z111-06';
 const RAW_MATERIALS_PACKAGING_GROUPS=new Set(['Z113-01','Z113-02','Z113-03']);
+const RAW_MATERIALS_BRAN_UNKNOWN_UNITS=new Set();
 const RAW_MATERIALS_SCREEN_STATE={stockRows:[],metricRows:[],mergedRows:[],loaded:false,loading:false,activeTab:'main'};
 function rawMaterialsSetStatus(message,type=''){
   const el=$('#rawMaterialsStatus');
@@ -6562,6 +6563,19 @@ function rawMaterialsUnitInfo(value){
 function rawMaterialsNumber(value){
   const n=Number(value??0);
   return Number.isFinite(n)?n:0;
+}
+function rawMaterialsNormalizeBranDailyConsumption(value,unit,row){
+  const amount=rawMaterialsNumber(value);
+  const text=String(unit||'').trim();
+  const upper=text.toUpperCase();
+  if(['TON','TO','T','TONS'].includes(upper) || text==='طن') return {value:amount,unit:'TON',recognized:true};
+  if(['KG','KGS','KILOGRAM','KILOGRAMS'].includes(upper) || ['كيلو','كيلوجرام','كيلو جرام'].includes(text)) return {value:amount/1000,unit:'TON',recognized:true};
+  const warnKey=rawMaterialsKey(row?.material_code,row?.plant_code)+'|'+(text||'-');
+  if(!RAW_MATERIALS_BRAN_UNKNOWN_UNITS.has(warnKey)){
+    RAW_MATERIALS_BRAN_UNKNOWN_UNITS.add(warnKey);
+    console.warn('Raw materials bran group daily consumption skipped unknown unit', {material_code:row?.material_code,plant_code:row?.plant_code,unit:text||'-'});
+  }
+  return {value:0,unit:'TON',recognized:false};
 }
 function rawMaterialsNormalizeQuantity(value,uom){
   const info=rawMaterialsUnitInfo(uom);
@@ -6648,6 +6662,7 @@ function rawMaterialsBuildMergedRows(stockRows,metricRows){
       material_group:stock?.material_group || rawMaterialsCode(metric?.material_group),
       material_group_description:stock?.material_group_description || metric?.material_group_description || '',
       unit_of_measure:unit,
+      metric_unit_of_measure:metric?.unit_of_measure || '',
       current_stock:currentStock,
       average_daily_consumption:average,
       coverage_days:coverage,
@@ -6697,7 +6712,9 @@ function rawMaterialsBranGroupDailyConsumption(rows){
     const key=rawMaterialsKey(row.material_code,row.plant_code);
     if(!key || seen.has(key)) return sum;
     seen.add(key);
-    return sum+rawMaterialsNumber(row.source_average_daily_consumption ?? row.average_daily_consumption);
+    const sourceAverage=row.source_average_daily_consumption ?? row.average_daily_consumption;
+    const sourceUnit=row.metric_unit_of_measure || row.unit_of_measure;
+    return sum+rawMaterialsNormalizeBranDailyConsumption(sourceAverage,sourceUnit,row).value;
   },0);
 }
 function rawMaterialsApplyBranGroupConsumption(rows){
@@ -6706,7 +6723,7 @@ function rawMaterialsApplyBranGroupConsumption(rows){
     const sourceAverage=rawMaterialsNumber(row.source_average_daily_consumption ?? row.average_daily_consumption);
     const currentStock=rawMaterialsNumber(row.current_stock);
     const coverage=groupAverage>0 ? currentStock/groupAverage : null;
-    return {...row,source_average_daily_consumption:sourceAverage,bran_group_average_daily_consumption:groupAverage,average_daily_consumption:groupAverage,coverage_days:coverage,status:rawMaterialsStatusFromCoverage(groupAverage,coverage)};
+    return {...row,source_average_daily_consumption:sourceAverage,bran_group_average_daily_consumption:groupAverage,average_daily_consumption:groupAverage,unit_of_measure:'TON',coverage_days:coverage,status:rawMaterialsStatusFromCoverage(groupAverage,coverage)};
   });
 }
 function rawMaterialsTabForGroup(group){
