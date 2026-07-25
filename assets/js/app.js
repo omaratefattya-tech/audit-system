@@ -6449,18 +6449,19 @@ async function loadRawMaterialsUploadBatch(key){
   if(!tbl || !WarehouseDB?.ready) return;
   const {data,error}=await WarehouseDB.client
     .from('raw_material_upload_batches')
-    .select('id,report_key,file_name,upload_date,uploaded_by,uploaded_by_name,row_count,file_size_bytes,status,expected_rows,received_rows,completed_at')
+    .select('id,report_key,file_name,upload_date,uploaded_by,uploaded_by_name,row_count,file_size_bytes,status,replaced_at,deleted_at,notes')
     .eq('report_key',key)
-    .in('status',['succeeded','active'])
+    .eq('status','succeeded')
+    .is('deleted_at',null)
     .order('upload_date',{ascending:false})
     .limit(1);
   if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل آخر رفع: ${error.message}</td></tr></tbody>`; return; }
   const rows=(data||[]).map(b=>[
     b.file_name || '-',
-    Number(b.row_count||b.received_rows||0).toLocaleString('en-US'),
+    Number(b.row_count||0).toLocaleString('en-US'),
     formatFileSize(b.file_size_bytes),
     b.uploaded_by_name || b.uploaded_by || '-',
-    (b.completed_at || b.upload_date) ? new Date(b.completed_at || b.upload_date).toLocaleString('ar-EG') : '-',
+    b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
     b.status || '-'
   ]);
   table('#'+config.tableId,['اسم الملف','عدد الصفوف','الحجم','الرافع','تاريخ الرفع','الحالة'],rows);
