@@ -3667,7 +3667,11 @@ async function refreshInboundReportDates(){
 }
 async function loadInboundAuditReport(date='',options={}){
   const tbl=$('#inboundTable');
-  if(!tbl || !WarehouseDB?.ready) return;
+  const incomingTraceId=(window.__INCOMING_TRACE_SEQ__=(window.__INCOMING_TRACE_SEQ__||0)+1);
+  window.__INCOMING_TRACE_LATEST__=incomingTraceId;
+  const incomingTraceStack=(new Error('loadInboundAuditReport stack')).stack;
+  console.info('[Incoming Trace] request started',{requestId:incomingTraceId,date,options,stack:incomingTraceStack});
+  if(!tbl || !WarehouseDB?.ready){ console.info('[Incoming Trace] request stopped before query',{requestId:incomingTraceId,hasTable:!!tbl,dbReady:!!WarehouseDB?.ready}); return; }
   const savedFilters=options.useSavedFilters ? readSavedInboundFilters() : null;
   const useTopFilters=true;
   const topFilters=savedFilters ? {
@@ -3680,25 +3684,56 @@ async function loadInboundAuditReport(date='',options={}){
     to: normalizeDateISO(savedFilters.to || '')
   } : getInboundTopFilters();
   const selected=normalizeDateISO(date || '');
+  const incomingTraceFilters={
+    raw:{
+      plant:$('#plantFilter')?.value || '',
+      warehouse:$('#warehouseFilter')?.value || '',
+      warehouseType:$('#warehouseTypeFilter')?.value || '',
+      movement:$('#movementFilter')?.value || '',
+      status:$('#inboundStatusFilter')?.value || '',
+      from:$('#fromDate')?.value || '',
+      to:$('#toDate')?.value || ''
+    },
+    normalized:topFilters
+  };
+  const incomingTraceQueryFilters=[];
   const heads=['تاريخ التقرير','المادة','وصف المادة','وحدة القياس','الكمية','صافي الميزان','فرق الوزن %','نوع الحركة','مخزن MB51','مخزن الميزان','أمر الشراء MB51','أمر الشراء الميزان','رقم العربية','نوع الوارد','وصف العربية','وصف النولون','قيمة النولون للطن','سبب مطابقة النولون'];
   let query=WarehouseDB.client
     .from('incoming_audit_results')
     .select('*');
   if(useTopFilters){
     if(options.forceDate && selected){
+      incomingTraceQueryFilters.push({column:'report_date',op:'eq',value:selected});
       query=query.eq('report_date',selected);
     }else{
-      if(topFilters.from) query=query.gte('report_date',topFilters.from);
-      if(topFilters.to) query=query.lte('report_date',topFilters.to);
+      if(topFilters.from){ incomingTraceQueryFilters.push({column:'report_date',op:'gte',value:topFilters.from}); query=query.gte('report_date',topFilters.from); }
+      if(topFilters.to){ incomingTraceQueryFilters.push({column:'report_date',op:'lte',value:topFilters.to}); query=query.lte('report_date',topFilters.to); }
     }
-    if(topFilters.warehouse && topFilters.warehouse!=='all') query=query.eq('mb51_warehouse_code',String(topFilters.warehouse).toUpperCase());
-    if(topFilters.movement && topFilters.movement!=='all') query=query.eq('incoming_movement_type',String(topFilters.movement).toUpperCase());
+    if(topFilters.warehouse && topFilters.warehouse!=='all'){ incomingTraceQueryFilters.push({column:'mb51_warehouse_code',op:'eq',value:String(topFilters.warehouse).toUpperCase()}); query=query.eq('mb51_warehouse_code',String(topFilters.warehouse).toUpperCase()); }
+    if(topFilters.movement && topFilters.movement!=='all'){ incomingTraceQueryFilters.push({column:'incoming_movement_type',op:'eq',value:String(topFilters.movement).toUpperCase()}); query=query.eq('incoming_movement_type',String(topFilters.movement).toUpperCase()); }
   }
   const {data,error}=await query
     .order('report_date',{ascending:false})
     .order('material_code',{ascending:true});
-  if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل مراجعة الوارد: ${error.message}</td></tr></tbody>`; return; }
+  if(error){ console.info('[Incoming Trace] query error',{requestId:incomingTraceId,error:error.message,queryFilters:incomingTraceQueryFilters,filters:incomingTraceFilters}); tbl.innerHTML=`<tbody><tr><td>خطأ تحميل مراجعة الوارد: ${error.message}</td></tr></tbody>`; return; }
+  const incomingTraceServerRows=data||[];
+  const incomingTraceCounts={afterSupabaseQuery:incomingTraceServerRows.length};
+  let incomingTraceStage=[...incomingTraceServerRows];
+  incomingTraceStage=incomingTraceStage.filter(r=>{const d=normalizeDateISO(r.report_date); return (!topFilters.from || d>=topFilters.from) && (!topFilters.to || d<=topFilters.to);});
+  incomingTraceCounts.afterDate=incomingTraceStage.length;
+  incomingTraceStage=incomingTraceStage.filter(r=>inboundLegacyFilterMatches(topFilters.plant,warehouseMetaByCode(String(r.mb51_warehouse_code || r.scale_warehouse_code || '')).plant_code,v=>String(v||'').toUpperCase()));
+  incomingTraceCounts.afterPlant=incomingTraceStage.length;
+  incomingTraceStage=incomingTraceStage.filter(r=>inboundLegacyFilterMatches(topFilters.warehouse,String(r.mb51_warehouse_code || r.scale_warehouse_code || '').trim().toUpperCase(),v=>String(v||'').toUpperCase()));
+  incomingTraceCounts.afterWarehouse=incomingTraceStage.length;
+  incomingTraceStage=incomingTraceStage.filter(r=>inboundLegacyFilterMatches(topFilters.warehouseType,warehouseMetaByCode(String(r.mb51_warehouse_code || r.scale_warehouse_code || '')).warehouse_type));
+  incomingTraceCounts.afterWarehouseType=incomingTraceStage.length;
+  incomingTraceStage=incomingTraceStage.filter(r=>inboundLegacyFilterMatches(topFilters.movement,String(r.incoming_movement_type || r.raw_result?.movement_type || '').trim().toUpperCase(),v=>String(v||'').toUpperCase()));
+  incomingTraceCounts.afterMovement=incomingTraceStage.length;
+  incomingTraceStage=incomingTraceStage.filter(r=>inboundLegacyFilterMatches(topFilters.status,getInboundMovementStatus(r)));
+  incomingTraceCounts.afterStatus=incomingTraceStage.length;
+  incomingTraceCounts.afterMatching=incomingTraceServerRows.length;
   const filtered=(data||[]).filter(r=>inboundRowMatchesTopFilters(r,topFilters));
+  incomingTraceCounts.afterCombinedLocalFilters=filtered.length;
   updateInboundResultsCount(filtered.length);
   if((!useTopFilters || selected) && filtered.some(r=>!r.incoming_movement_type || !r.raw_result?.freight_diagnosis || r.raw_result?.movement_color_logic!=='repost_101_gold_v2') && !window.__incomingMovementRebuildOnce){
     window.__incomingMovementRebuildOnce=true;
@@ -3744,7 +3779,14 @@ async function loadInboundAuditReport(date='',options={}){
     }
     return values.map((v,i)=>statuses[i]==='neutral' ? v : auditStatusCell(v,statuses[i]));
   });
+  const incomingTraceTableState=TABLE_STATE.inboundTable || {filters:[],sortIndex:null,sortDir:'asc'};
+  const incomingTraceColumnVisible=rows.filter(row=>(incomingTraceTableState.filters||[]).every((f,i)=>!f || stripHtml(row[i]).toLowerCase().includes(String(f).toLowerCase()))).length;
+  console.info('[Incoming Trace] before render',{requestId:incomingTraceId,counts:incomingTraceCounts,rowsBeforeRender:rows.length,columnFilters:incomingTraceTableState.filters||[],expectedRowsAfterColumnSearch:incomingTraceColumnVisible,queryFilters:incomingTraceQueryFilters,filters:incomingTraceFilters,stack:incomingTraceStack});
   table('#inboundTable',heads,rows);
+  const incomingTraceDomRows=[...tbl.querySelectorAll('tbody tr')];
+  const incomingTraceRenderedRows=incomingTraceDomRows.filter(row=>!row.querySelector('.empty-row')).length;
+  const incomingTraceStale=incomingTraceId!==window.__INCOMING_TRACE_LATEST__;
+  console.info('[Incoming Trace] after render',{requestId:incomingTraceId,rowsReceivedByRender:rows.length,rowsAddedToTable:incomingTraceRenderedRows,emptyRows:incomingTraceDomRows.filter(row=>row.querySelector('.empty-row')).length,dataTable:false,customTableUsesInnerHTMLClear:true,tableWasClearedByRender:true,staleRequest:incomingTraceStale,latestRequestId:window.__INCOMING_TRACE_LATEST__,resultCounterText:$('#inboundResultsCount')?.textContent||'',stack:incomingTraceStack});
 }
 
 async function handleFreightFile(file){
