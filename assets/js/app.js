@@ -369,11 +369,15 @@ function setInboundTopDateRange(date){
 }
 function inboundLegacySingleValue(value){
   if(Array.isArray(value)){
-    const first=value.map(v=>String(v||'').trim()).find(v=>v && v!=='all');
+    const first=value.map(v=>String(v||'').trim()).find(v=>v && v.toLowerCase()!=='all');
     return first || 'all';
   }
   const v=String(value??'all').trim();
-  return v && v!=='all' ? v : 'all';
+  return v && v.toLowerCase()!=='all' ? v : 'all';
+}
+function inboundLegacyMovementValue(value){
+  const v=inboundLegacySingleValue(value);
+  return v==='all' ? 'all' : String(v).toUpperCase();
 }
 function inboundLegacyFilterMatches(filterValue,candidate,normalizer=v=>String(v||'').trim()){
   const value=inboundLegacySingleValue(filterValue);
@@ -385,7 +389,7 @@ function getInboundTopFilters(){
     plant: inboundLegacySingleValue($('#plantFilter')?.value || 'all'),
     warehouse: inboundLegacySingleValue($('#warehouseFilter')?.value || 'all'),
     warehouseType: inboundLegacySingleValue($('#warehouseTypeFilter')?.value || 'all'),
-    movement: inboundLegacySingleValue($('#movementFilter')?.value || 'all').toUpperCase(),
+    movement: inboundLegacyMovementValue($('#movementFilter')?.value || 'all'),
     status: inboundLegacySingleValue($('#inboundStatusFilter')?.value || 'all'),
     from: normalizeDateISO($('#fromDate')?.value || ''),
     to: normalizeDateISO($('#toDate')?.value || '')
@@ -3665,198 +3669,43 @@ document.addEventListener('click',e=>{
 async function refreshInboundReportDates(){
   return [];
 }
-function incomingF3JsonLog(snapshot){
-  try{ console.log('[Incoming F3]', JSON.stringify(snapshot)); }
-  catch(_){ console.log('[Incoming F3]', String(snapshot)); }
-}
-function incomingF3Count(requestId,name,value){
-  console.log('[Incoming F3][request '+requestId+'] '+name+'='+Number(value||0));
-}
-function incomingF3StackSummary(stack){
-  return String(stack||'').split('\n').slice(1,7).map(line=>line.trim()).join(' | ');
-}
-function incomingF3CallSource(stack){
-  const text=String(stack||'');
-  if(text.includes('runInboundFilter')) return 'top filter search/reset';
-  if(text.includes('switchSection')) return 'screen navigation';
-  if(text.includes('DOMContentLoaded')) return 'auto load';
-  if(text.includes('loadActiveReport')) return 'report tab side effect';
-  if(text.includes('setTimeout')) return 'delayed auto load';
-  return 'unknown';
-}
-function incomingF3ActiveScreen(){
-  return document.querySelector('.active-section')?.id || '';
-}
-function incomingF3SelectSnapshot(id){
-  const matches=[...document.querySelectorAll('[id="'+id+'"]')];
-  const element=matches[0] || null;
-  const selected=element?.options?.[element.selectedIndex] || null;
-  return {
-    id,
-    exists:!!element,
-    duplicateCount:matches.length,
-    tagName:element?.tagName || '',
-    value:element?.value ?? '',
-    selectedIndex:typeof element?.selectedIndex==='number' ? element.selectedIndex : null,
-    selectedOptionValue:selected?.value ?? '',
-    selectedOptionText:selected?.textContent?.trim() ?? '',
-    disabled:!!element?.disabled,
-    hidden:!!element?.hidden,
-    hasEnterpriseWrapper:!!element?.nextElementSibling?.classList?.contains('enterprise-multiselect')
-  };
-}
-function incomingF3SampleRow(row){
-  if(!row) return null;
-  return {
-    report_date:row.report_date ?? null,
-    material_code:row.material_code ?? null,
-    uom:row.uom ?? null,
-    quantity_to:row.quantity_to ?? null,
-    mb51_warehouse_code:row.mb51_warehouse_code ?? null,
-    scale_warehouse_code:row.scale_warehouse_code ?? null,
-    incoming_movement_type:row.incoming_movement_type ?? null,
-    incoming_type:row.incoming_type ?? null,
-    scale_match_status:row.scale_match_status ?? null,
-    warehouse_match_status:row.warehouse_match_status ?? null,
-    purchase_order_match_status:row.purchase_order_match_status ?? null,
-    weight_diff_status:row.weight_diff_status ?? null
-  };
-}
-
 async function loadInboundAuditReport(date='',options={}){
   const tbl=$('#inboundTable');
-  const incomingTraceId=(window.__INCOMING_TRACE_SEQ__=(window.__INCOMING_TRACE_SEQ__||0)+1);
-  window.__INCOMING_TRACE_LATEST__=incomingTraceId;
-  const incomingTraceStack=(new Error('loadInboundAuditReport stack')).stack;
-  const incomingTraceStackShort=incomingF3StackSummary(incomingTraceStack);
-  if(!tbl || !WarehouseDB?.ready){
-    incomingF3JsonLog({requestId:incomingTraceId,stage:'early-return',timestamp:new Date().toISOString(),reason:!tbl?'missing inbound table':'warehouse db not ready',hasTable:!!tbl,dbReady:!!WarehouseDB?.ready,callSource:incomingF3CallSource(incomingTraceStack),stack:incomingTraceStackShort});
-    return;
-  }
+  if(!tbl || !WarehouseDB?.ready) return;
   const savedFilters=options.useSavedFilters ? readSavedInboundFilters() : null;
   const useTopFilters=true;
   const topFilters=savedFilters ? {
     plant: inboundLegacySingleValue(savedFilters.plant),
     warehouse: inboundLegacySingleValue(savedFilters.warehouse),
     warehouseType: inboundLegacySingleValue(savedFilters.warehouseType),
-    movement: inboundLegacySingleValue(savedFilters.movement).toUpperCase(),
+    movement: inboundLegacyMovementValue(savedFilters.movement),
     status: inboundLegacySingleValue(savedFilters.status),
     from: normalizeDateISO(savedFilters.from || ''),
     to: normalizeDateISO(savedFilters.to || '')
   } : getInboundTopFilters();
   const selected=normalizeDateISO(date || '');
-  const incomingTraceFilters={
-    raw:{
-      plant:$('#plantFilter')?.value || '',
-      warehouse:$('#warehouseFilter')?.value || '',
-      warehouseType:$('#warehouseTypeFilter')?.value || '',
-      movement:$('#movementFilter')?.value || '',
-      status:$('#inboundStatusFilter')?.value || '',
-      from:$('#fromDate')?.value || '',
-      to:$('#toDate')?.value || ''
-    },
-    normalized:topFilters
-  };
-  incomingF3JsonLog({
-    requestId:incomingTraceId,
-    stage:'request-started',
-    timestamp:new Date().toISOString(),
-    callSource:incomingF3CallSource(incomingTraceStack),
-    pathname:location.pathname,
-    activeScreen:incomingF3ActiveScreen(),
-    date,
-    options,
-    rawFilters:incomingTraceFilters.raw,
-    normalizedFilters:incomingTraceFilters.normalized,
-    fromDate:topFilters.from,
-    toDate:topFilters.to,
-    nativeSelects:['plantFilter','warehouseFilter','warehouseTypeFilter','movementFilter','inboundStatusFilter','fromDate','toDate'].map(incomingF3SelectSnapshot),
-    stack:incomingTraceStackShort
-  });
-  const incomingTraceQueryFilters=[];
   const heads=['تاريخ التقرير','المادة','وصف المادة','وحدة القياس','الكمية','صافي الميزان','فرق الوزن %','نوع الحركة','مخزن MB51','مخزن الميزان','أمر الشراء MB51','أمر الشراء الميزان','رقم العربية','نوع الوارد','وصف العربية','وصف النولون','قيمة النولون للطن','سبب مطابقة النولون'];
   let query=WarehouseDB.client
     .from('incoming_audit_results')
     .select('*');
   if(useTopFilters){
     if(options.forceDate && selected){
-      incomingTraceQueryFilters.push('report_date = '+selected);
       query=query.eq('report_date',selected);
     }else{
-      if(topFilters.from){ incomingTraceQueryFilters.push('report_date >= '+topFilters.from); query=query.gte('report_date',topFilters.from); }
-      if(topFilters.to){ incomingTraceQueryFilters.push('report_date <= '+topFilters.to); query=query.lte('report_date',topFilters.to); }
+      if(topFilters.from) query=query.gte('report_date',topFilters.from);
+      if(topFilters.to) query=query.lte('report_date',topFilters.to);
     }
-    if(topFilters.warehouse && topFilters.warehouse!=='all'){ incomingTraceQueryFilters.push('mb51_warehouse_code = '+String(topFilters.warehouse).toUpperCase()); query=query.eq('mb51_warehouse_code',String(topFilters.warehouse).toUpperCase()); }
-    if(topFilters.movement && topFilters.movement!=='all'){ incomingTraceQueryFilters.push('incoming_movement_type = '+String(topFilters.movement).toUpperCase()); query=query.eq('incoming_movement_type',String(topFilters.movement).toUpperCase()); }
+    if(topFilters.warehouse && topFilters.warehouse!=='all') query=query.eq('mb51_warehouse_code',String(topFilters.warehouse).toUpperCase());
+    if(topFilters.movement && String(topFilters.movement).trim().toLowerCase()!=='all') query=query.eq('incoming_movement_type',String(topFilters.movement).toUpperCase());
   }
-  incomingF3JsonLog({
-    requestId:incomingTraceId,
-    stage:'before-supabase-query',
-    tableName:'incoming_audit_results',
-    selectColumns:'*',
-    dateColumn:'report_date',
-    fromDate:topFilters.from,
-    toDate:topFilters.to,
-    plantCondition:topFilters.plant && topFilters.plant!=='all' ? 'local plant filter = '+topFilters.plant : 'none',
-    warehouseCondition:topFilters.warehouse && topFilters.warehouse!=='all' ? 'server mb51_warehouse_code = '+String(topFilters.warehouse).toUpperCase() : 'none',
-    warehouseTypeCondition:topFilters.warehouseType && topFilters.warehouseType!=='all' ? 'local warehouse type filter = '+topFilters.warehouseType : 'none',
-    movementCondition:topFilters.movement && topFilters.movement!=='all' ? 'server incoming_movement_type = '+String(topFilters.movement).toUpperCase() : 'none',
-    statusCondition:topFilters.status && topFilters.status!=='all' ? 'local inbound status filter = '+topFilters.status : 'none',
-    activeBatchCondition:'none in current UI query',
-    queryConditions:incomingTraceQueryFilters
-  });
-  const incomingTraceQueryResult=await query
+  const {data,error}=await query
     .order('report_date',{ascending:false})
     .order('material_code',{ascending:true});
-  const {data,error,status}=incomingTraceQueryResult;
-  incomingF3JsonLog({
-    requestId:incomingTraceId,
-    stage:'supabase-result',
-    dataIsArray:Array.isArray(data),
-    dataLength:Array.isArray(data)?data.length:null,
-    errorExists:!!error,
-    errorMessage:error?.message || '',
-    errorCode:error?.code || '',
-    errorDetails:error?.details || '',
-    errorHint:error?.hint || '',
-    status:status ?? null,
-    sampleRow:incomingF3SampleRow(Array.isArray(data)?data[0]:null)
-  });
-  if(error){
-    incomingF3JsonLog({requestId:incomingTraceId,stage:'early-return',reason:'supabase error',branch:'query error',errorMessage:error.message,queryConditions:incomingTraceQueryFilters});
-    tbl.innerHTML=`<tbody><tr><td>??? ????? ?????? ??????: ${error.message}</td></tr></tbody>`;
-    return;
-  }
-  const incomingTraceServerRows=data||[];
-  const incomingTraceCounts={afterSupabaseQuery:incomingTraceServerRows.length};
-  incomingF3Count(incomingTraceId,'serverRows',incomingTraceServerRows.length);
-  let incomingTraceStage=[...incomingTraceServerRows];
-  incomingTraceStage=incomingTraceStage.filter(r=>{const d=normalizeDateISO(r.report_date); return (!topFilters.from || d>=topFilters.from) && (!topFilters.to || d<=topFilters.to);});
-  incomingTraceCounts.afterDate=incomingTraceStage.length;
-  incomingF3Count(incomingTraceId,'afterDate',incomingTraceStage.length);
-  incomingTraceStage=incomingTraceStage.filter(r=>inboundLegacyFilterMatches(topFilters.plant,warehouseMetaByCode(String(r.mb51_warehouse_code || r.scale_warehouse_code || '')).plant_code,v=>String(v||'').toUpperCase()));
-  incomingTraceCounts.afterPlant=incomingTraceStage.length;
-  incomingF3Count(incomingTraceId,'afterPlant',incomingTraceStage.length);
-  incomingTraceStage=incomingTraceStage.filter(r=>inboundLegacyFilterMatches(topFilters.warehouse,String(r.mb51_warehouse_code || r.scale_warehouse_code || '').trim().toUpperCase(),v=>String(v||'').toUpperCase()));
-  incomingTraceCounts.afterWarehouse=incomingTraceStage.length;
-  incomingF3Count(incomingTraceId,'afterWarehouse',incomingTraceStage.length);
-  incomingTraceStage=incomingTraceStage.filter(r=>inboundLegacyFilterMatches(topFilters.warehouseType,warehouseMetaByCode(String(r.mb51_warehouse_code || r.scale_warehouse_code || '')).warehouse_type));
-  incomingTraceCounts.afterWarehouseType=incomingTraceStage.length;
-  incomingF3Count(incomingTraceId,'afterWarehouseType',incomingTraceStage.length);
-  incomingTraceStage=incomingTraceStage.filter(r=>inboundLegacyFilterMatches(topFilters.movement,String(r.incoming_movement_type || r.raw_result?.movement_type || '').trim().toUpperCase(),v=>String(v||'').toUpperCase()));
-  incomingTraceCounts.afterMovement=incomingTraceStage.length;
-  incomingF3Count(incomingTraceId,'afterMovement',incomingTraceStage.length);
-  incomingTraceStage=incomingTraceStage.filter(r=>inboundLegacyFilterMatches(topFilters.status,getInboundMovementStatus(r)));
-  incomingTraceCounts.afterStatus=incomingTraceStage.length;
-  incomingF3Count(incomingTraceId,'afterInboundStatus',incomingTraceStage.length);
-  incomingTraceCounts.afterMatching=incomingTraceServerRows.length;
-  incomingF3Count(incomingTraceId,'afterMatching',incomingTraceServerRows.length);
+  if(error){ tbl.innerHTML='<tbody><tr><td>خطأ تحميل مراجعة الوارد: '+error.message+'</td></tr></tbody>'; return; }
   const filtered=(data||[]).filter(r=>inboundRowMatchesTopFilters(r,topFilters));
-  incomingTraceCounts.afterCombinedLocalFilters=filtered.length;
   updateInboundResultsCount(filtered.length);
   if((!useTopFilters || selected) && filtered.some(r=>!r.incoming_movement_type || !r.raw_result?.freight_diagnosis || r.raw_result?.movement_color_logic!=='repost_101_gold_v2') && !window.__incomingMovementRebuildOnce){
     window.__incomingMovementRebuildOnce=true;
-    incomingF3JsonLog({requestId:incomingTraceId,stage:'early-return',reason:'trigger incoming audit rebuild once',branch:'movement rebuild',selected,filteredRows:filtered.length});
     try{
       await tryBuildIncomingAudit(selected);
       return loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});
@@ -3899,21 +3748,8 @@ async function loadInboundAuditReport(date='',options={}){
     }
     return values.map((v,i)=>statuses[i]==='neutral' ? v : auditStatusCell(v,statuses[i]));
   });
-  const incomingTraceTableState=TABLE_STATE.inboundTable || {filters:[],sortIndex:null,sortDir:'asc'};
-  const incomingTraceColumnVisible=rows.filter(row=>(incomingTraceTableState.filters||[]).every((f,i)=>!f || stripHtml(row[i]).toLowerCase().includes(String(f).toLowerCase()))).length;
-  incomingF3Count(incomingTraceId,'afterColumnSearch',incomingTraceColumnVisible);
-  incomingF3Count(incomingTraceId,'rowsBeforeRender',rows.length);
-  incomingF3JsonLog({requestId:incomingTraceId,stage:'before-render',counts:incomingTraceCounts,rowsBeforeRender:rows.length,columnFilters:incomingTraceTableState.filters||[],expectedRowsAfterColumnSearch:incomingTraceColumnVisible,queryConditions:incomingTraceQueryFilters,filters:incomingTraceFilters,stack:incomingTraceStackShort});
   table('#inboundTable',heads,rows);
-  const incomingTraceDomRows=[...tbl.querySelectorAll('tbody tr')];
-  const incomingTraceRenderedRows=incomingTraceDomRows.filter(row=>!row.querySelector('.empty-row')).length;
-  const incomingTraceStale=incomingTraceId!==window.__INCOMING_TRACE_LATEST__;
-  incomingF3Count(incomingTraceId,'rowsReceivedByRender',rows.length);
-  incomingF3Count(incomingTraceId,'rowsAddedToTable',incomingTraceRenderedRows);
-  incomingF3Count(incomingTraceId,'domRows',incomingTraceDomRows.length);
-  incomingF3JsonLog({requestId:incomingTraceId,stage:'after-render',rowsReceivedByRender:rows.length,rowsAddedToTable:incomingTraceRenderedRows,emptyRows:incomingTraceDomRows.filter(row=>row.querySelector('.empty-row')).length,domRows:incomingTraceDomRows.length,dataTable:false,customTableUsesInnerHTMLClear:true,tableWasClearedByRender:true,staleRequest:incomingTraceStale,latestRequestId:window.__INCOMING_TRACE_LATEST__,writesFinalScreen:!incomingTraceStale,resultCounterText:$('#inboundResultsCount')?.textContent||'',stack:incomingTraceStackShort});
 }
-
 async function handleFreightFile(file){
   const status=$('#freightUploadStatus');
   const referenceDate=normalizeDateISO($('#freightReferenceDateInput')?.value) || todayISO();
