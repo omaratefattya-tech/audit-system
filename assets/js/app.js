@@ -1,4 +1,4 @@
-function roundRect(ctx,x,y,w,h,r,fill,stroke){
+﻿function roundRect(ctx,x,y,w,h,r,fill,stroke){
   const rr=Math.min(r||0, Math.abs(w)/2, Math.abs(h)/2);
   ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.lineTo(x+w-rr,y); ctx.quadraticCurveTo(x+w,y,x+w,y+rr); ctx.lineTo(x+w,y+h-rr); ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h); ctx.lineTo(x+rr,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-rr); ctx.lineTo(x,y+rr); ctx.quadraticCurveTo(x,y,x+rr,y); ctx.closePath(); if(fill)ctx.fill(); if(stroke)ctx.stroke();
 }
@@ -3668,7 +3668,7 @@ async function loadInboundAuditReport(date='',options={}){
     }
     const warehouseCodes=inboundWarehouseCodesForFilters(topFilters);
     if(warehouseCodes.length && warehouseCodes.length<APP_DATA.plants.flatMap(p=>p.warehouses).length) query=query.in('mb51_warehouse_code',warehouseCodes);
-    if(topFilters.movement && topFilters.movement!=='ALL') query=query.eq('incoming_movement_type',topFilters.movement);
+    query=enterpriseFilterApplyQuery(query,'incoming_movement_type',topFilters.movement,v=>String(v||'').trim().toUpperCase());
   }
   const {data,error}=await query
     .order('report_date',{ascending:false})
