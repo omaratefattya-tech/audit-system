@@ -1,4 +1,4 @@
-﻿function roundRect(ctx,x,y,w,h,r,fill,stroke){
+function roundRect(ctx,x,y,w,h,r,fill,stroke){
   const rr=Math.min(r||0, Math.abs(w)/2, Math.abs(h)/2);
   ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.lineTo(x+w-rr,y); ctx.quadraticCurveTo(x+w,y,x+w,y+rr); ctx.lineTo(x+w,y+h-rr); ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h); ctx.lineTo(x+rr,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-rr); ctx.lineTo(x,y+rr); ctx.quadraticCurveTo(x,y,x+rr,y); ctx.closePath(); if(fill)ctx.fill(); if(stroke)ctx.stroke();
 }
@@ -2694,7 +2694,7 @@ function nav(){
   updateFiltersVisibility(active);
 }
 
-const FOCUS_MODE_SECTIONS = new Set(['sales','inbound','raw_materials']);
+const FOCUS_MODE_SECTIONS = new Set(['sales','inbound','raw_materials','inventory_closing']);
 let FOCUS_MODE_SCROLL_Y = 0;
 function setFocusModeButtonState(){
   const active=document.body.classList.contains('focus-mode-active');
@@ -9484,3 +9484,97 @@ document.addEventListener('DOMContentLoaded',()=>{ ensureDashboardPngButtons(); 
 
 
 
+
+// === Inventory Closing Module (UI Skeleton) ===
+function initInventoryClosing() {
+  const tabs = document.querySelectorAll('.subtabs [data-inventory-closing-tab]');
+  const panels = document.querySelectorAll('[data-inventory-closing-panel]');
+  
+  if(tabs.length === 0) return;
+  
+  // Setup tabs switching
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.inventoryClosingTab;
+      tabs.forEach(t => t.classList.toggle('active', t === tab));
+      panels.forEach(p => {
+        const isTarget = p.dataset.inventoryClosingPanel === target;
+        p.classList.toggle('active', isTarget);
+        if (isTarget) {
+          p.removeAttribute('hidden');
+        } else {
+          p.setAttribute('hidden', '');
+        }
+      });
+    });
+  });
+
+  // Setup export buttons
+  const exportConfigs = [
+    { id: 'Wf01', title: 'تقفيل الواحة' },
+    { id: 'El01', title: 'تقفيل المصنع الرئيسي' },
+    { id: 'El02', title: 'تقفيل مصنع العامرية' }
+  ];
+
+  exportConfigs.forEach(cfg => {
+    const excelBtn = document.getElementById(inventoryClosing + cfg.id + ExportExcelBtn);
+    const pdfBtn = document.getElementById(inventoryClosing + cfg.id + ExportPdfBtn);
+    const pngBtn = document.getElementById(inventoryClosing + cfg.id + ExportPngBtn);
+    const tableId = inventoryClosing + cfg.id + Table;
+    const panelId = inventoryClosing + cfg.id + Panel;
+
+    if(excelBtn) {
+      excelBtn.addEventListener('click', () => {
+        if(typeof exportTableToExcel === 'function') exportTableToExcel(tableId, cfg.title);
+      });
+    }
+    
+    if(pdfBtn) {
+      pdfBtn.addEventListener('click', () => {
+        if(typeof exportTableToPdf === 'function') exportTableToPdf(tableId, cfg.title);
+      });
+    }
+    
+    if(pngBtn) {
+      pngBtn.addEventListener('click', async () => {
+        const panel = document.getElementById(panelId);
+        if(!panel) return;
+        if(!window.html2canvas) { alert('مكتبة PNG غير متوفرة'); return; }
+        
+        try {
+          const canvas = await html2canvas(panel, {
+            scale: 2,
+            backgroundColor: '#001611',
+            useCORS: true
+          });
+          canvas.toBlob(async blob => {
+            if(!blob) return;
+            const fileName = cfg.title + '-' + new Date().toISOString().slice(0,10) + '.png';
+            if(typeof saveBlobWithPicker === 'function') {
+              await saveBlobWithPicker(blob, fileName, 'image/png');
+            } else {
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = fileName;
+              a.click();
+              URL.revokeObjectURL(url);
+            }
+          }, 'image/png', 1);
+        } catch (err) {
+          console.error('PNG Export error:', err);
+          alert('حدث خطأ أثناء تصدير PNG');
+        }
+      });
+    }
+  });
+  
+  // Set user placeholders
+  const placeholders = document.querySelectorAll('.inventory-closing-user-placeholder');
+  const currentUserName = document.getElementById('currentUserName')?.textContent || '';
+  placeholders.forEach(p => {
+    p.textContent = currentUserName && currentUserName !== '--' ? currentUserName : '';
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initInventoryClosing);
