@@ -9638,7 +9638,7 @@ async function icLoadLastUploadBatch(tabKey) {
       .select('*')
       .eq('report_key', config.reportKey)
       .eq('status', 'succeeded')
-      .order('created_at', { ascending: false })
+      .order('upload_date', { ascending: false })
       .limit(5);
 
     if (error) throw error;
@@ -9649,8 +9649,8 @@ async function icLoadLastUploadBatch(tabKey) {
 
     let html = '<thead><tr><th>تاريخ التقرير</th><th>تاريخ الرفع</th><th>المستخدم</th><th>الصفوف</th><th>الحالة</th></tr></thead><tbody>';
     data.forEach(batch => {
-      const bDate = new Date(batch.created_at).toLocaleString('ar-EG');
-      html += '<tr><td>' + batch.report_date + '</td><td>' + bDate + '</td><td>' + (batch.uploaded_by_name || '--') + '</td><td>' + batch.total_rows + '</td><td><span class="badge green">ناجح</span></td></tr>';
+      const bDate = new Date(batch.upload_date).toLocaleString('ar-EG');
+      html += '<tr><td>' + batch.report_date + '</td><td>' + bDate + '</td><td>' + (batch.uploaded_by_name || '--') + '</td><td>' + batch.row_count + '</td><td><span class="badge green">ناجح</span></td></tr>';
     });
     html += '</tbody>';
     table.innerHTML = html;
