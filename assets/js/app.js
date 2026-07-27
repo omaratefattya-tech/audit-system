@@ -9783,7 +9783,10 @@ async function handleInventoryClosingReportFile(tabKey, file) {
     });
     
     if (beginErr) throw beginErr;
-    batchId = Array.isArray(beginData) ? beginData[0] : beginData;
+    const _beginResult = Array.isArray(beginData) ? beginData[0] : beginData;
+    batchId = (_beginResult !== null && typeof _beginResult === 'object')
+      ? (_beginResult.batch_id || _beginResult.id || _beginResult)
+      : _beginResult;
     if(!batchId) throw new Error('لم يتم إرجاع batch_id من الخادم.');
 
     const CHUNK_SIZE = 250;
@@ -9805,9 +9808,12 @@ async function handleInventoryClosingReportFile(tabKey, file) {
     });
     if (finErr) throw finErr;
     
-    const finStatus = Array.isArray(finData) ? finData[0] : finData;
+    const _finResult = Array.isArray(finData) ? finData[0] : finData;
+    const finStatus = (_finResult !== null && typeof _finResult === 'object')
+      ? (_finResult.status || _finResult.new_status || _finResult)
+      : _finResult;
     if (finStatus !== 'succeeded') {
-      throw new Error('فشل اعتماد التقرير: الحالة ليست succeeded');
+      throw new Error('فشل اعتماد التقرير: الحالة ليست succeeded (الحالة المُرجَعة: ' + JSON.stringify(_finResult) + ')');
     }
 
     setStatus('تم رفع التقرير بنجاح. (' + parsedRows.length + ' صف)', 'ok');
@@ -9817,17 +9823,21 @@ async function handleInventoryClosingReportFile(tabKey, file) {
 
   } catch (err) {
     if (batchId) {
-      await WarehouseDB.client.rpc('fail_inventory_closing_upload', {
-        p_batch_id: batchId,
-        p_error_message: err.message || 'خطأ غير معروف'
-      }).catch(e => console.error('Failed to fail batch', e));
+      try {
+        await WarehouseDB.client.rpc('fail_inventory_closing_upload', {
+          p_batch_id: batchId,
+          p_error_message: String(err.message || 'Upload failed').slice(0, 500)
+        });
+      } catch (failErr) {
+        console.error('IC: fail_inventory_closing_upload cleanup failed', failErr);
+      }
     }
-    console.error(err);
-    setStatus('فشل رفع التقرير: ' + err.message, 'err');
-    fileInput.value = '';
+    console.error('IC Upload Error:', err);
+    setStatus('فشل رفع التقرير: ' + (err.message || 'خطأ غير معروف'), 'err');
   } finally {
     btn.disabled = false;
     dateInput.disabled = false;
+    if (fileInput) fileInput.value = '';
   }
 }
 
