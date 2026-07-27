@@ -2993,7 +2993,7 @@ async function fetchAllRows(tableName, select='*', buildQuery){
   return all;
 }
 function auditStatusCell(value,status){
-  const map={green:'#0f5f35',red:'#7a1f1f',yellow:'#7a6a1f',gold:'#b98612',neutral:'transparent'};
+  const map={green:'#0f5f35',red:'#7a1f1f',yellow:'#7a6a1f',gold:'#b98612',blue:'#1d4f8f',neutral:'transparent'};
   const color=map[status]||map.neutral;
   const glow=status==='gold' ? 'box-shadow:0 0 12px rgba(241,191,48,.85);border:1px solid rgba(255,225,120,.9);font-weight:800;' : '';
   return `<span style="display:block;padding:6px 8px;border-radius:8px;background:${color};color:#fff;${glow}">${value ?? '-'}</span>`;
@@ -3153,9 +3153,10 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
       weightDiffTo=quantityTo-Number(scale.net_weight_to ?? (Number(scale.net_weight_kg||0)/1000));
       weightDiffPercent=quantityTo ? Math.abs(weightDiffTo)/Math.abs(quantityTo)*100 : null;
       weightDiffStatus=(weightDiffPercent!==null && weightDiffPercent<=0.3) ? 'ok' : 'out_of_tolerance';
-      warehouseStatus=normKey(r.warehouse_code)===normKey(scale.warehouse_code)?'matched':'mismatch';
+      const missingMb51Warehouse=!normKey(r.warehouse_code);
+      warehouseStatus=missingMb51Warehouse?'missing_mb51':(normKey(r.warehouse_code)===normKey(scale.warehouse_code)?'matched':'mismatch');
       poStatus=normKey(r.purchase_order)===normKey(scale.purchase_order)?'matched':'mismatch';
-      rowStatus=(weightDiffStatus==='ok' && warehouseStatus==='matched' && poStatus==='matched')?'ok':'error';
+      rowStatus=(weightDiffStatus==='ok' && ['matched','missing_mb51'].includes(warehouseStatus) && poStatus==='matched')?'ok':'error';
       rowColor=rowStatus==='ok'?'green':'red';
     }else{
       warning='لم يتم التصفية في تاريخه';
@@ -3715,6 +3716,8 @@ async function loadInboundAuditReport(date='',options={}){
     const scaleStatus=r.scale_cell_status || (r.scale_match_status==='matched'?'green':r.row_color);
     const weightStatus=r.weight_diff_status==='ok'?'green':(r.weight_diff_status==='not_applicable'?'yellow':'red');
     const whStatus=r.warehouse_match_status==='matched'?'green':(r.warehouse_match_status==='not_applicable'?'yellow':'red');
+    const mb51WarehouseStatus=r.warehouse_match_status==='missing_mb51'?'blue':whStatus;
+    const scaleWarehouseStatus=r.warehouse_match_status==='missing_mb51'?'neutral':whStatus;
     const poStatus=r.purchase_order_match_status==='matched'?'green':(r.purchase_order_match_status==='not_cleared'?'yellow':'red');
     const freightStatus=['matched','supplier_vehicle_ok'].includes(r.freight_match_status)?'green':(r.freight_match_status==='not_applicable'?'yellow':'red');
     const movementStatus=r.movement_cell_status || r.raw_result?.movement_cell_status || 'neutral';
@@ -3739,7 +3742,7 @@ async function loadInboundAuditReport(date='',options={}){
       r.mb51_freight_rate_per_ton==null ? '-' : fmt(r.mb51_freight_rate_per_ton),
       r.raw_result?.freight_diagnosis || '-'
     ];
-    const normalStatuses=['neutral','neutral','neutral','neutral','neutral',scaleStatus,weightStatus,movementStatus,whStatus,whStatus,poStatus,poStatus,'neutral','neutral','neutral',freightStatus,freightStatus,freightStatus];
+    const normalStatuses=['neutral','neutral','neutral','neutral','neutral',scaleStatus,weightStatus,movementStatus,mb51WarehouseStatus,scaleWarehouseStatus,poStatus,poStatus,'neutral','neutral','neutral',freightStatus,freightStatus,freightStatus];
     let statuses=normalStatuses;
     if(movementStatus==='red'){
       statuses=values.map(()=> 'red');
