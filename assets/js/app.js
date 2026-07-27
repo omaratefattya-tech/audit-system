@@ -9578,3 +9578,297 @@ function initInventoryClosing() {
 }
 
 document.addEventListener('DOMContentLoaded', initInventoryClosing);
+// === Phase IC-02: Inventory Closing Upload Engine ===
+
+const INVENTORY_CLOSING_CONFIG = {
+  'inventory_closing_wf01': { plantCode: 'WF01', warehouseCode: 'W401', reportKey: 'closing_wf01' },
+  'inventory_closing_el01': { plantCode: 'EL01', warehouseCode: 'N401', reportKey: 'closing_el01' },
+  'inventory_closing_el02': { plantCode: 'EL02', warehouseCode: 'E401', reportKey: 'closing_el02' }
+};
+
+const IC_ALLOWED_UOM = ['TO', 'TON', 'T', 'KG', 'KGS', 'KILOGRAM', 'طن', 'كجم'];
+
+function icCleanHeader(h) {
+  if (typeof h !== 'string') return '';
+  return h.trim().replace(/\s+/g, ' ');
+}
+
+function icMapRow(row, headers, sourceRowNumber) {
+  const getVal = (name) => {
+    const idx = headers.indexOf(name);
+    return idx > -1 ? row[idx] : null;
+  };
+  
+  let tDate = getVal('التاريخ');
+  if (tDate instanceof Date) {
+    tDate = new Date(tDate.getTime() - (tDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+  }
+  
+  return {
+    source_row_number: sourceRowNumber,
+    material_code: String(getVal('كود المادة') || '').trim(),
+    material_name: String(getVal('وصف المادة') || '').trim(),
+    quantity: parseFloat(getVal('الكمية')),
+    uom: String(getVal('وحدة القياس') || '').trim(),
+    movement_type: String(getVal('نوع الحركة') || '').trim(),
+    movement_text: String(getVal('وصف نوع الحركة') || '').trim(),
+    warehouse_code: String(getVal('المخزن') || '').trim(),
+    plant_code: String(getVal('المصنع') || '').trim(),
+    plant_name: String(getVal('إسم المصنع') || '').trim(),
+    transaction_date: String(tDate || '').trim(),
+    worker_group: String(getVal('مجموعة العمال') || '').trim(),
+    raw_row: JSON.stringify(row)
+  };
+}
+
+async function icLoadLastUploadBatch(tabKey) {
+  const config = INVENTORY_CLOSING_CONFIG[tabKey];
+  const prefix = tabKey.replace(/_(.)/g, (_, c) => c.toUpperCase());
+  const table = document.getElementById(prefix + 'BatchesTable');
+  if (!table) return;
+
+  if(!window.WarehouseDB?.ready) {
+    table.innerHTML = '<tr><td>قاعدة البيانات غير متصلة</td></tr>';
+    return;
+  }
+
+  try {
+    const {data, error} = await WarehouseDB.client
+      .from('inventory_closing_upload_batches')
+      .select('*')
+      .eq('report_key', config.reportKey)
+      .eq('status', 'succeeded')
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      table.innerHTML = '<tr><td>لا يوجد عمليات رفع سابقة</td></tr>';
+      return;
+    }
+
+    let html = '<thead><tr><th>تاريخ التقرير</th><th>تاريخ الرفع</th><th>المستخدم</th><th>الصفوف</th><th>الحالة</th></tr></thead><tbody>';
+    data.forEach(batch => {
+      const bDate = new Date(batch.created_at).toLocaleString('ar-EG');
+      html += '<tr><td>' + batch.report_date + '</td><td>' + bDate + '</td><td>' + (batch.uploaded_by_name || '--') + '</td><td>' + batch.total_rows + '</td><td><span class="badge green">ناجح</span></td></tr>';
+    });
+    html += '</tbody>';
+    table.innerHTML = html;
+  } catch (err) {
+    console.error('Failed to load IC history:', err);
+    table.innerHTML = '<tr><td>فشل جلب سجل الرفع</td></tr>';
+  }
+}
+
+async function handleInventoryClosingReportFile(tabKey, file) {
+  const config = INVENTORY_CLOSING_CONFIG[tabKey];
+  const prefix = tabKey.replace(/_(.)/g, (_, c) => c.toUpperCase());
+  const dateInput = document.getElementById(prefix + 'DateInput');
+  const fileInput = document.getElementById(prefix + 'ExcelInput');
+  const btn = document.getElementById('pick' + prefix.charAt(0).toUpperCase() + prefix.slice(1) + 'FileBtn');
+  const statusEl = document.getElementById(prefix + 'UploadStatus');
+  
+  const setStatus = (msg, type='') => {
+    if(statusEl) {
+      statusEl.className = 'upload-status ' + type;
+      statusEl.textContent = msg;
+    }
+  };
+
+  const reportDate = dateInput?.value;
+  if (!reportDate) {
+    alert('يرجى اختيار تاريخ المراجعة.');
+    fileInput.value = '';
+    return;
+  }
+
+  try {
+    if(!window.WarehouseDB?.ready) throw new Error('قاعدة البيانات غير متصلة.');
+    const {data: permData, error: permErr} = await WarehouseDB.client.rpc('can_upload_inventory_closing_reports');
+    if (permErr) throw permErr;
+    if (!permData) {
+      alert('ليس لديك صلاحية لرفع تقارير الجرد.');
+      fileInput.value = '';
+      return;
+    }
+  } catch (err) {
+    console.error(err);
+    alert('حدث خطأ أثناء التحقق من الصلاحيات.');
+    fileInput.value = '';
+    return;
+  }
+
+  btn.disabled = true;
+  dateInput.disabled = true;
+  setStatus('جاري قراءة الملف...');
+
+  let batchId = null;
+
+  try {
+    if (!window.XLSX) throw new Error('مكتبة Excel غير متوفرة.');
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    if (!sheet) throw new Error('الملف لا يحتوي على أوراق صالحة.');
+
+    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+    
+    let headerRowIdx = -1;
+    for(let i=0; i<matrix.length; i++){
+      if(matrix[i] && matrix[i].length > 0 && matrix[i].some(v => v !== null && String(v).trim() !== '')) {
+        headerRowIdx = i;
+        break;
+      }
+    }
+    
+    if(headerRowIdx === -1) throw new Error('الملف لا يحتوي على بيانات.');
+    
+    const headers = matrix[headerRowIdx].map(icCleanHeader);
+    const required = [
+      'كود المادة', 'وصف المادة', 'الكمية', 'وحدة القياس', 'نوع الحركة',
+      'وصف نوع الحركة', 'المخزن', 'المصنع', 'إسم المصنع', 'التاريخ', 'مجموعة العمال'
+    ];
+    for (let r of required) {
+      if (headers.indexOf(r) === -1) throw new Error('يوجد عمود مطلوب غير موجود: ' + r);
+    }
+
+    setStatus('جاري التحقق من البيانات...');
+    const parsedRows = [];
+    
+    for (let i = headerRowIdx + 1; i < matrix.length; i++) {
+      const row = matrix[i];
+      if (!row || row.length === 0 || !row.some(v => v !== null && String(v).trim() !== '')) continue;
+      
+      const mapped = icMapRow(row, headers, i + 1);
+      
+      if (!mapped.material_code || !mapped.uom || !mapped.movement_type || !mapped.movement_text || !mapped.transaction_date || isNaN(mapped.quantity)) {
+        if(isNaN(mapped.quantity)) {
+            throw new Error('توجد قيمة كمية غير صالحة في الصف رقم ' + (i + 1));
+        }
+        throw new Error('يوجد قيم إلزامية مفقودة في الصف رقم ' + (i + 1));
+      }
+      
+      const d = new Date(mapped.transaction_date);
+      if (isNaN(d.getTime())) {
+        throw new Error('يوجد تاريخ غير صالح في الصف رقم ' + (i + 1) + ': ' + mapped.transaction_date);
+      }
+      mapped.transaction_date = d.toISOString().split('T')[0];
+      
+      if (!IC_ALLOWED_UOM.includes(mapped.uom.toUpperCase())) {
+         throw new Error('وحدة قياس غير مدعومة في الصف رقم ' + (i + 1) + ': ' + mapped.uom);
+      }
+      
+      if (mapped.plant_code !== config.plantCode || mapped.warehouse_code !== config.warehouseCode) {
+        throw new Error('بيانات المصنع أو المخزن لا تطابق تقرير التقفيل المختار في الصف رقم ' + (i + 1) + '. متوقع: ' + config.plantCode + '-' + config.warehouseCode);
+      }
+      
+      parsedRows.push(mapped);
+    }
+
+    if(parsedRows.length === 0) throw new Error('الملف لا يحتوي على بيانات فعلية.');
+
+    setStatus('جاري رفع البيانات...');
+
+    const { data: userData } = await WarehouseDB.getUser();
+    const uploaderName = userData?.user?.user_metadata?.full_name || userData?.user?.email || null;
+
+    const { data: beginData, error: beginErr } = await WarehouseDB.client.rpc('begin_inventory_closing_upload', {
+      p_report_key: config.reportKey,
+      p_report_date: reportDate,
+      p_file_name: file.name,
+      p_uploaded_by_name: uploaderName,
+      p_expected_rows: parsedRows.length,
+      p_file_size_bytes: file.size || 0
+    });
+    
+    if (beginErr) throw beginErr;
+    batchId = Array.isArray(beginData) ? beginData[0] : beginData;
+    if(!batchId) throw new Error('لم يتم إرجاع batch_id من الخادم.');
+
+    const CHUNK_SIZE = 250;
+    for (let i = 0; i < parsedRows.length; i += CHUNK_SIZE) {
+      const chunk = parsedRows.slice(i, i + CHUNK_SIZE);
+      const { error: chunkErr } = await WarehouseDB.client.rpc('append_inventory_closing_upload_chunk', {
+        p_batch_id: batchId,
+        p_rows: chunk
+      });
+      if (chunkErr) throw chunkErr;
+      
+      const percent = Math.round((Math.min(i + CHUNK_SIZE, parsedRows.length) / parsedRows.length) * 100);
+      setStatus('جاري رفع البيانات... (' + percent + '%)');
+    }
+
+    setStatus('جاري اعتماد التقرير...');
+    const { data: finData, error: finErr } = await WarehouseDB.client.rpc('finalize_inventory_closing_upload', {
+      p_batch_id: batchId
+    });
+    if (finErr) throw finErr;
+    
+    const finStatus = Array.isArray(finData) ? finData[0] : finData;
+    if (finStatus !== 'succeeded') {
+      throw new Error('فشل اعتماد التقرير: الحالة ليست succeeded');
+    }
+
+    setStatus('تم رفع التقرير بنجاح. (' + parsedRows.length + ' صف)', 'ok');
+    fileInput.value = '';
+    
+    await icLoadLastUploadBatch(tabKey);
+
+  } catch (err) {
+    if (batchId) {
+      await WarehouseDB.client.rpc('fail_inventory_closing_upload', {
+        p_batch_id: batchId,
+        p_error_message: err.message || 'خطأ غير معروف'
+      }).catch(e => console.error('Failed to fail batch', e));
+    }
+    console.error(err);
+    setStatus('فشل رفع التقرير: ' + err.message, 'err');
+    fileInput.value = '';
+  } finally {
+    btn.disabled = false;
+    dateInput.disabled = false;
+  }
+}
+
+function bindInventoryClosingUploader(tabKey) {
+  const prefix = tabKey.replace(/_(.)/g, (_, c) => c.toUpperCase());
+  const input = document.getElementById(prefix + 'ExcelInput');
+  const btn = document.getElementById('pick' + prefix.charAt(0).toUpperCase() + prefix.slice(1) + 'FileBtn');
+  const dz = document.getElementById(prefix + 'DropZone');
+  
+  if (!input || !btn) return;
+  
+  btn.onclick = () => input.click();
+  input.onchange = () => {
+    if (input.files && input.files[0]) {
+      handleInventoryClosingReportFile(tabKey, input.files[0]);
+    }
+  };
+  
+  if (dz) {
+    dz.ondragover = e => { e.preventDefault(); dz.classList.add('drag'); };
+    dz.ondragleave = () => dz.classList.remove('drag');
+    dz.ondrop = e => {
+      e.preventDefault();
+      dz.classList.remove('drag');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleInventoryClosingReportFile(tabKey, e.dataTransfer.files[0]);
+      }
+    };
+  }
+  
+  icLoadLastUploadBatch(tabKey);
+}
+
+function initInventoryClosingUploaders() {
+  bindInventoryClosingUploader('inventory_closing_wf01');
+  bindInventoryClosingUploader('inventory_closing_el01');
+  bindInventoryClosingUploader('inventory_closing_el02');
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initInventoryClosingUploaders);
+} else {
+  initInventoryClosingUploaders();
+}
