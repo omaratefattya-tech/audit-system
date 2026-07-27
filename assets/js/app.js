@@ -2910,20 +2910,21 @@ function mapScaleRows(rows,batchId){
     const normalized={};
     Object.entries(row).forEach(([k,v])=>normalized[normalizeHeader(k)]=v);
     const trxDateValue=getRowValue(normalized,['التاريخ','تاريخ','Date']);
+    const warehouseValue=getRowValue(normalized,['المخزن','Storage Location','SLoc']);
     return {
       batch_id: batchId,
       material_code: String(getRowValue(normalized,['المادة','كود المادة','Material','Material Code'])).trim(),
       material_name: String(getRowValue(normalized,['وصف المادة','وصف الصنف','Material Description'])).trim(),
       net_weight_kg: parseArabicNumber(getRowValue(normalized,['صافي الميزان','صافى الميزان','صافي الوزن','Net Weight'])),
       plant_code: String(getRowValue(normalized,['المصنع','Plant'])).trim(),
-      warehouse_code: String(getRowValue(normalized,['المخزن','Storage Location','SLoc'])).trim(),
+      warehouse_code: warehouseValue == null ? null : (String(warehouseValue).trim() || null),
       purchase_order: String(getRowValue(normalized,['Purchasing Document','Purchase Order','PO','أمر الشراء','رقم أمر الشراء'])).trim(),
       transaction_date: typeof trxDateValue === 'number' ? excelDateToISO(trxDateValue) : excelDateToISO(trxDateValue),
       vehicle_number: String(getRowValue(normalized,['رقم العربية','رقم السياره','رقم السيارة','Vehicle Number','Truck No'])).trim(),
       vehicle_description: String(getRowValue(normalized,['وصف العربية','وصف السياره','وصف السيارة','Vehicle Description'])).trim(),
       raw_row: normalized
     };
-  }).filter(r=>r.material_code && r.net_weight_kg && r.plant_code && r.warehouse_code && r.purchase_order && r.vehicle_number);
+  }).filter(r=>r.material_code && r.net_weight_kg && r.plant_code && r.purchase_order && r.vehicle_number);
 }
 
 function mapFreightRows(rows,batchId){
@@ -9467,6 +9468,7 @@ function initExecutiveReports(){
 document.addEventListener('DOMContentLoaded',initExecutiveReports);
 document.addEventListener('DOMContentLoaded',initAuditScoreDetails);
 document.addEventListener('DOMContentLoaded',()=>{ ensureDashboardPngButtons(); setTimeout(ensureDashboardPngButtons,800); });
+
 
 
 
