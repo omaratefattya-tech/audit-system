@@ -3153,10 +3153,10 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
       weightDiffTo=quantityTo-Number(scale.net_weight_to ?? (Number(scale.net_weight_kg||0)/1000));
       weightDiffPercent=quantityTo ? Math.abs(weightDiffTo)/Math.abs(quantityTo)*100 : null;
       weightDiffStatus=(weightDiffPercent!==null && weightDiffPercent<=0.3) ? 'ok' : 'out_of_tolerance';
-      const missingMb51Warehouse=!normKey(r.warehouse_code);
-      warehouseStatus=missingMb51Warehouse?'missing_mb51':(normKey(r.warehouse_code)===normKey(scale.warehouse_code)?'matched':'mismatch');
+      const missingScaleWarehouse=!normKey(scale.warehouse_code);
+      warehouseStatus=missingScaleWarehouse?'missing_scale':(normKey(r.warehouse_code)===normKey(scale.warehouse_code)?'matched':'mismatch');
       poStatus=normKey(r.purchase_order)===normKey(scale.purchase_order)?'matched':'mismatch';
-      rowStatus=(weightDiffStatus==='ok' && ['matched','missing_mb51'].includes(warehouseStatus) && poStatus==='matched')?'ok':'error';
+      rowStatus=(weightDiffStatus==='ok' && ['matched','missing_scale'].includes(warehouseStatus) && poStatus==='matched')?'ok':'error';
       rowColor=rowStatus==='ok'?'green':'red';
     }else{
       warning='لم يتم التصفية في تاريخه';
@@ -3716,8 +3716,8 @@ async function loadInboundAuditReport(date='',options={}){
     const scaleStatus=r.scale_cell_status || (r.scale_match_status==='matched'?'green':r.row_color);
     const weightStatus=r.weight_diff_status==='ok'?'green':(r.weight_diff_status==='not_applicable'?'yellow':'red');
     const whStatus=r.warehouse_match_status==='matched'?'green':(r.warehouse_match_status==='not_applicable'?'yellow':'red');
-    const mb51WarehouseStatus=r.warehouse_match_status==='missing_mb51'?'blue':whStatus;
-    const scaleWarehouseStatus=r.warehouse_match_status==='missing_mb51'?'neutral':whStatus;
+    const mb51WarehouseStatus=r.warehouse_match_status==='missing_scale'?'neutral':whStatus;
+    const scaleWarehouseStatus=r.warehouse_match_status==='missing_scale'?'blue':whStatus;
     const poStatus=r.purchase_order_match_status==='matched'?'green':(r.purchase_order_match_status==='not_cleared'?'yellow':'red');
     const freightStatus=['matched','supplier_vehicle_ok'].includes(r.freight_match_status)?'green':(r.freight_match_status==='not_applicable'?'yellow':'red');
     const movementStatus=r.movement_cell_status || r.raw_result?.movement_cell_status || 'neutral';
@@ -3732,7 +3732,7 @@ async function loadInboundAuditReport(date='',options={}){
       r.weight_diff_percent==null ? '-' : fmt(r.weight_diff_percent)+'%',
       movementValue,
       r.mb51_warehouse_code || '-',
-      r.scale_warehouse_code || 'لم يتم التصفية في تاريخه',
+      r.warehouse_match_status==='missing_scale' ? '—' : (r.scale_warehouse_code || 'لم يتم التصفية في تاريخه'),
       r.mb51_purchase_order || '-',
       r.scale_purchase_order || 'لم يتم التصفية في تاريخه',
       r.vehicle_number || '-',
