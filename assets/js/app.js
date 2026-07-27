@@ -2910,21 +2910,20 @@ function mapScaleRows(rows,batchId){
     const normalized={};
     Object.entries(row).forEach(([k,v])=>normalized[normalizeHeader(k)]=v);
     const trxDateValue=getRowValue(normalized,['التاريخ','تاريخ','Date']);
-    const warehouseValue=getRowValue(normalized,['المخزن','Storage Location','SLoc']);
     return {
       batch_id: batchId,
       material_code: String(getRowValue(normalized,['المادة','كود المادة','Material','Material Code'])).trim(),
       material_name: String(getRowValue(normalized,['وصف المادة','وصف الصنف','Material Description'])).trim(),
       net_weight_kg: parseArabicNumber(getRowValue(normalized,['صافي الميزان','صافى الميزان','صافي الوزن','Net Weight'])),
       plant_code: String(getRowValue(normalized,['المصنع','Plant'])).trim(),
-      warehouse_code: warehouseValue == null ? null : (String(warehouseValue).trim() || null),
+      warehouse_code: String(getRowValue(normalized,['المخزن','Storage Location','SLoc'])).trim(),
       purchase_order: String(getRowValue(normalized,['Purchasing Document','Purchase Order','PO','أمر الشراء','رقم أمر الشراء'])).trim(),
       transaction_date: typeof trxDateValue === 'number' ? excelDateToISO(trxDateValue) : excelDateToISO(trxDateValue),
       vehicle_number: String(getRowValue(normalized,['رقم العربية','رقم السياره','رقم السيارة','Vehicle Number','Truck No'])).trim(),
       vehicle_description: String(getRowValue(normalized,['وصف العربية','وصف السياره','وصف السيارة','Vehicle Description'])).trim(),
       raw_row: normalized
     };
-  }).filter(r=>r.material_code && r.net_weight_kg && r.plant_code && r.purchase_order && r.vehicle_number);
+  }).filter(r=>r.material_code && r.net_weight_kg && r.plant_code && r.warehouse_code && r.purchase_order && r.vehicle_number);
 }
 
 function mapFreightRows(rows,batchId){
@@ -2994,7 +2993,7 @@ async function fetchAllRows(tableName, select='*', buildQuery){
   return all;
 }
 function auditStatusCell(value,status){
-  const map={green:'#0f5f35',red:'#7a1f1f',yellow:'#7a6a1f',gold:'#b98612',blue:'#1d4f8f',neutral:'transparent'};
+  const map={green:'#0f5f35',red:'#7a1f1f',yellow:'#7a6a1f',gold:'#b98612',neutral:'transparent'};
   const color=map[status]||map.neutral;
   const glow=status==='gold' ? 'box-shadow:0 0 12px rgba(241,191,48,.85);border:1px solid rgba(255,225,120,.9);font-weight:800;' : '';
   return `<span style="display:block;padding:6px 8px;border-radius:8px;background:${color};color:#fff;${glow}">${value ?? '-'}</span>`;
@@ -3154,10 +3153,9 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
       weightDiffTo=quantityTo-Number(scale.net_weight_to ?? (Number(scale.net_weight_kg||0)/1000));
       weightDiffPercent=quantityTo ? Math.abs(weightDiffTo)/Math.abs(quantityTo)*100 : null;
       weightDiffStatus=(weightDiffPercent!==null && weightDiffPercent<=0.3) ? 'ok' : 'out_of_tolerance';
-      const missingScaleWarehouse=!normKey(scale.warehouse_code);
-      warehouseStatus=missingScaleWarehouse?'missing_scale':(normKey(r.warehouse_code)===normKey(scale.warehouse_code)?'matched':'mismatch');
+      warehouseStatus=normKey(r.warehouse_code)===normKey(scale.warehouse_code)?'matched':'mismatch';
       poStatus=normKey(r.purchase_order)===normKey(scale.purchase_order)?'matched':'mismatch';
-      rowStatus=(weightDiffStatus==='ok' && ['matched','missing_scale'].includes(warehouseStatus) && poStatus==='matched')?'ok':'error';
+      rowStatus=(weightDiffStatus==='ok' && warehouseStatus==='matched' && poStatus==='matched')?'ok':'error';
       rowColor=rowStatus==='ok'?'green':'red';
     }else{
       warning='لم يتم التصفية في تاريخه';
@@ -3717,8 +3715,6 @@ async function loadInboundAuditReport(date='',options={}){
     const scaleStatus=r.scale_cell_status || (r.scale_match_status==='matched'?'green':r.row_color);
     const weightStatus=r.weight_diff_status==='ok'?'green':(r.weight_diff_status==='not_applicable'?'yellow':'red');
     const whStatus=r.warehouse_match_status==='matched'?'green':(r.warehouse_match_status==='not_applicable'?'yellow':'red');
-    const mb51WarehouseStatus=r.warehouse_match_status==='missing_scale'?'neutral':whStatus;
-    const scaleWarehouseStatus=r.warehouse_match_status==='missing_scale'?'blue':whStatus;
     const poStatus=r.purchase_order_match_status==='matched'?'green':(r.purchase_order_match_status==='not_cleared'?'yellow':'red');
     const freightStatus=['matched','supplier_vehicle_ok'].includes(r.freight_match_status)?'green':(r.freight_match_status==='not_applicable'?'yellow':'red');
     const movementStatus=r.movement_cell_status || r.raw_result?.movement_cell_status || 'neutral';
@@ -3733,7 +3729,7 @@ async function loadInboundAuditReport(date='',options={}){
       r.weight_diff_percent==null ? '-' : fmt(r.weight_diff_percent)+'%',
       movementValue,
       r.mb51_warehouse_code || '-',
-      r.warehouse_match_status==='missing_scale' ? '—' : (r.scale_warehouse_code || 'لم يتم التصفية في تاريخه'),
+      r.scale_warehouse_code || 'لم يتم التصفية في تاريخه',
       r.mb51_purchase_order || '-',
       r.scale_purchase_order || 'لم يتم التصفية في تاريخه',
       r.vehicle_number || '-',
@@ -3743,7 +3739,7 @@ async function loadInboundAuditReport(date='',options={}){
       r.mb51_freight_rate_per_ton==null ? '-' : fmt(r.mb51_freight_rate_per_ton),
       r.raw_result?.freight_diagnosis || '-'
     ];
-    const normalStatuses=['neutral','neutral','neutral','neutral','neutral',scaleStatus,weightStatus,movementStatus,mb51WarehouseStatus,scaleWarehouseStatus,poStatus,poStatus,'neutral','neutral','neutral',freightStatus,freightStatus,freightStatus];
+    const normalStatuses=['neutral','neutral','neutral','neutral','neutral',scaleStatus,weightStatus,movementStatus,whStatus,whStatus,poStatus,poStatus,'neutral','neutral','neutral',freightStatus,freightStatus,freightStatus];
     let statuses=normalStatuses;
     if(movementStatus==='red'){
       statuses=values.map(()=> 'red');
@@ -9468,7 +9464,6 @@ function initExecutiveReports(){
 document.addEventListener('DOMContentLoaded',initExecutiveReports);
 document.addEventListener('DOMContentLoaded',initAuditScoreDetails);
 document.addEventListener('DOMContentLoaded',()=>{ ensureDashboardPngButtons(); setTimeout(ensureDashboardPngButtons,800); });
-
 
 
 

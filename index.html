@@ -1,13 +1,13 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#003c2d" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-title" content="ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ط®ط§ط²ظ†" />
+  <meta name="apple-mobile-web-app-title" content="مراجعة المخازن" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>ط¨ط±ظ†ط§ظ…ط¬ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ط®ط§ط²ظ†</title>
+  <title>برنامج مراجعة المخازن</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -19,170 +19,170 @@
 <body>
   <section id="loginScreen" class="login-screen">
     <div class="login-card glass">
-      <img class="login-logo" src="assets/img/logo.png" alt="ط´ط¹ط§ط± ط§ظ„ط¨ط±ظ†ط§ظ…ط¬" />
-      <h1>ط¨ط±ظ†ط§ظ…ط¬ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ط®ط§ط²ظ†</h1>
-      <p>ط³ط¬ظ„ ط§ظ„ط¯ط®ظˆظ„ ظ„ظ„ظ…طھط§ط¨ط¹ط© ط¥ظ„ظ‰ ظ†ط¸ط§ظ… ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ط®ط§ط²ظ†</p>
-      <label>ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ
+      <img class="login-logo" src="assets/img/logo.png" alt="شعار البرنامج" />
+      <h1>برنامج مراجعة المخازن</h1>
+      <p>سجل الدخول للمتابعة إلى نظام مراجعة المخازن</p>
+      <label>البريد الإلكتروني
         <input type="email" id="mainLoginEmail" placeholder="example@company.com" autocomplete="username" />
       </label>
-      <label>ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±
-        <span class="login-password-wrap"><input type="password" id="mainLoginPassword" placeholder="ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±" autocomplete="current-password" /><button class="login-password-toggle" id="mainLoginPasswordToggle" type="button" aria-label="ط¥ط¸ظ‡ط§ط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±" aria-pressed="false"><span class="password-icon password-icon-eye" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg></span></button></span>
+      <label>كلمة المرور
+        <span class="login-password-wrap"><input type="password" id="mainLoginPassword" placeholder="كلمة المرور" autocomplete="current-password" /><button class="login-password-toggle" id="mainLoginPasswordToggle" type="button" aria-label="إظهار كلمة المرور" aria-pressed="false"><span class="password-icon password-icon-eye" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="3"></circle></svg></span></button></span>
       </label>
-      <button class="primary login-submit" id="mainLoginBtn" type="button">طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„</button>
-      <div class="login-status" id="mainLoginStatus">ظٹط±ط¬ظ‰ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط£ظˆظ„ط§ظ‹.</div>
+      <button class="primary login-submit" id="mainLoginBtn" type="button">تسجيل الدخول</button>
+      <div class="login-status" id="mainLoginStatus">يرجى تسجيل الدخول أولاً.</div>
       <small class="login-note">Supabase Authentication</small>
       <small class="login-author">By: Ahmed Alaa</small>
     </div>
   </section>
   <div class="app-shell app-hidden" id="appShell">
     <aside class="sidebar" id="appSidebar">
-      <button class="sidebar-toggle" id="sidebarToggleBtn" type="button" aria-label="ظپطھط­ ط£ظˆ ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ط¬ط§ظ†ط¨ظٹط©" title="ظپطھط­ ط£ظˆ ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظ‚ط§ط¦ظ…ط©"><span class="sidebar-toggle-icon" data-modern-icon="menu" aria-hidden="true"></span></button>
+      <button class="sidebar-toggle" id="sidebarToggleBtn" type="button" aria-label="فتح أو إغلاق القائمة الجانبية" title="فتح أو إغلاق القائمة"><span class="sidebar-toggle-icon" data-modern-icon="menu" aria-hidden="true"></span></button>
       <div class="brand">
-        <img class="brand-logo" src="assets/img/logo.png" alt="ط´ط¹ط§ط± ط§ظ„ظ…طµط§ظ†ط¹" />
+        <img class="brand-logo" src="assets/img/logo.png" alt="شعار المصانع" />
         <div>
-          <h2>ط§ظ„ط¥ظٹظ…ط§ظ† ظ„ظ„ط£ط¹ظ„ط§ظپ</h2>
+          <h2>الإيمان للأعلاف</h2>
           <p>WAREHOUSE AUDIT SYSTEM</p>
         </div>
       </div>
-      <nav class="nav" aria-label="ط§ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ط±ط¦ظٹط³ظٹط©">
-        <button class="nav-item active" data-section="dashboard">ط§ظ„ط±ط¦ظٹط³ظٹط© <span class="nav-icon" data-icon="home"></span></button>
-        <button class="nav-item" data-section="upload">ط±ظپط¹ ط§ظ„طھظ‚ط§ط±ظٹط± <span class="nav-icon" data-icon="upload"></span></button>
-        <button class="nav-item" data-section="plants">ظ…طµط§ظ†ط¹ ظˆظ…ط®ط§ط²ظ† <span class="nav-icon" data-icon="warehouses"></span></button>
-        <button class="nav-item" data-section="movements">ط§ظ„ط­ط±ظƒط§طھ ط§ظ„ظ…ط®ط²ظ†ظٹط© <span class="nav-icon" data-icon="movements"></span></button>
-        <button class="nav-item" data-section="sales">ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¨ظٹط¹ <span class="nav-icon" data-icon="sales"></span></button>
-        <button class="nav-item" data-section="inbound">ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظˆط§ط±ط¯ <span class="nav-icon" data-icon="inbound"></span></button>
+      <nav class="nav" aria-label="القائمة الرئيسية">
+        <button class="nav-item active" data-section="dashboard">الرئيسية <span class="nav-icon" data-icon="home"></span></button>
+        <button class="nav-item" data-section="upload">رفع التقارير <span class="nav-icon" data-icon="upload"></span></button>
+        <button class="nav-item" data-section="plants">مصانع ومخازن <span class="nav-icon" data-icon="warehouses"></span></button>
+        <button class="nav-item" data-section="movements">الحركات المخزنية <span class="nav-icon" data-icon="movements"></span></button>
+        <button class="nav-item" data-section="sales">مراجعة البيع <span class="nav-icon" data-icon="sales"></span></button>
+        <button class="nav-item" data-section="inbound">مراجعة الوارد <span class="nav-icon" data-icon="inbound"></span></button>
                 <button class="nav-item" data-section="raw_materials">&#x0645;&#x062A;&#x0627;&#x0628;&#x0639;&#x0629; &#x0627;&#x0644;&#x062E;&#x0627;&#x0645;&#x0627;&#x062A; <span class="nav-icon" data-icon="production"></span></button>
-<button class="nav-item" data-section="reports">ط§ظ„طھظ‚ط§ط±ظٹط± <span class="nav-icon" data-icon="reports"></span></button>
-        <button class="nav-item" data-section="users">ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ† <span class="nav-icon" data-icon="users"></span></button>
-        <button class="nav-item" data-section="permissions">ط¥ط¯ط§ط±ط© ط§ظ„طµظ„ط§ط­ظٹط§طھ <span class="nav-icon" data-icon="shield"></span></button>
-        <button class="nav-item" data-section="settings">ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ <span class="nav-icon" data-icon="settings"></span></button>
+<button class="nav-item" data-section="reports">التقارير <span class="nav-icon" data-icon="reports"></span></button>
+        <button class="nav-item" data-section="users">إدارة المستخدمين <span class="nav-icon" data-icon="users"></span></button>
+        <button class="nav-item" data-section="permissions">إدارة الصلاحيات <span class="nav-icon" data-icon="shield"></span></button>
+        <button class="nav-item" data-section="settings">الإعدادات <span class="nav-icon" data-icon="settings"></span></button>
       </nav>
     </aside>
 
     <main class="main">
       <header class="topbar">
         <div class="user-card">
-          <div class="avatar" id="currentUserAvatar">ط£</div>
+          <div class="avatar" id="currentUserAvatar">أ</div>
           <div><strong id="currentUserName">--</strong><small id="currentUserRole">--</small></div>
-          <div class="clock" aria-live="polite"><b id="cairoTime">--:--</b><small id="cairoDate">طھظˆظ‚ظٹطھ ط§ظ„ظ‚ط§ظ‡ط±ط©</small></div><button class="top-logout" id="topLogoutBtn" type="button" title="طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬">ط®ط±ظˆط¬</button>
+          <div class="clock" aria-live="polite"><b id="cairoTime">--:--</b><small id="cairoDate">توقيت القاهرة</small></div><button class="top-logout" id="topLogoutBtn" type="button" title="تسجيل الخروج">خروج</button>
         </div>
         <div class="page-title">
-          <img src="assets/img/logo.png" alt="ط´ط¹ط§ط± ط§ظ„ط¨ط±ظ†ط§ظ…ط¬" />
+          <img src="assets/img/logo.png" alt="شعار البرنامج" />
           <div>
-            <h1>ط¨ط±ظ†ط§ظ…ط¬ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ط®ط§ط²ظ†</h1>
-            <p>ظ…ط±ط§ط¬ط¹ط© ط­ط±ظƒط§طھ ط§ظ„ظ…ظ†طھط¬ ط§ظ„طھط§ظ… ظˆط§ظ„ط®ط§ظ…ط§طھ ظپظٹ ظ…طµط§ظ†ط¹ ط§ظ„ط£ط¹ظ„ط§ظپ</p>
+            <h1>برنامج مراجعة المخازن</h1>
+            <p>مراجعة حركات المنتج التام والخامات في مصانع الأعلاف</p>
           </div>
         </div>
       </header>
 
       <section id="globalFilters" class="filters glass filters-hidden" aria-hidden="true">
-        <button class="mobile-inbound-filter-close" id="mobileInboundFilterCloseBtn" type="button" style="display:none" aria-label="ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظپظ„ط§طھط±">أ—</button>
-        <label>ط§ظ„ظ…طµظ†ط¹<select id="plantFilter"><option value="all">ط§ظ„ظƒظ„</option></select></label>
-        <label>ط§ظ„ظ…ط®ط²ظ†<select id="warehouseFilter"><option value="all">ط§ظ„ظƒظ„</option></select></label>
-        <label>ظ†ظˆط¹ ط§ظ„ظ…ط®ط²ظ†<select id="warehouseTypeFilter"><option value="all">ط§ظ„ظƒظ„</option><option value="finished">ظ…ظ†طھط¬ طھط§ظ…</option><option value="raw">ط®ط§ظ…ط§طھ/طھطµظ†ظٹط¹</option></select></label>
-        <label>ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©<select id="movementFilter"><option value="all">ط§ظ„ظƒظ„</option><option value="sales">ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¨ظٹط¹</option><option value="inbound">ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظˆط§ط±ط¯</option><option value="transfer">طھط­ظˆظٹظ„ط§طھ</option><option value="adjustment">طھط³ظˆظٹط§طھ</option></select></label>
-        <label>ط­ط§ظ„ط© ط§ظ„ظˆط§ط±ط¯<select id="inboundStatusFilter"><option value="all">ظƒظ„ ط§ظ„ط­ط±ظƒط§طھ</option><option value="matched">ظ…ط·ط§ط¨ظ‚</option><option value="weight_diff">ظپط±ظ‚ ظˆط²ظ†</option><option value="not_cleared">ظ„ظ… ظٹطھظ… ط§ظ„طھطµظپظٹط©</option><option value="cancelled">ظ…ظ„ط؛ظٹ (101/102)</option><option value="settled_after">ظ…ط³طھظ„ظ… ط¨ط¹ط¯ ط§ظ„طھطµظپظٹط© (Z13 / 101)</option></select></label>
-        <label>ظ…ظ†<input type="date" id="fromDate"></label>
-        <label>ط¥ظ„ظ‰<input type="date" id="toDate"></label>
-        <button class="primary" id="searchBtn">ط¨ط­ط« <span class="button-svg-icon" data-modern-icon="search" aria-hidden="true"></span></button>
-        <button class="secondary" id="resetBtn">ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† <span class="button-svg-icon" data-modern-icon="reset" aria-hidden="true"></span></button>
+        <button class="mobile-inbound-filter-close" id="mobileInboundFilterCloseBtn" type="button" style="display:none" aria-label="إغلاق الفلاتر">×</button>
+        <label>المصنع<select id="plantFilter"><option value="all">الكل</option></select></label>
+        <label>المخزن<select id="warehouseFilter"><option value="all">الكل</option></select></label>
+        <label>نوع المخزن<select id="warehouseTypeFilter"><option value="all">الكل</option><option value="finished">منتج تام</option><option value="raw">خامات/تصنيع</option></select></label>
+        <label>نوع الحركة<select id="movementFilter"><option value="all">الكل</option><option value="sales">مراجعة البيع</option><option value="inbound">مراجعة الوارد</option><option value="transfer">تحويلات</option><option value="adjustment">تسويات</option></select></label>
+        <label>حالة الوارد<select id="inboundStatusFilter"><option value="all">كل الحركات</option><option value="matched">مطابق</option><option value="weight_diff">فرق وزن</option><option value="not_cleared">لم يتم التصفية</option><option value="cancelled">ملغي (101/102)</option><option value="settled_after">مستلم بعد التصفية (Z13 / 101)</option></select></label>
+        <label>من<input type="date" id="fromDate"></label>
+        <label>إلى<input type="date" id="toDate"></label>
+        <button class="primary" id="searchBtn">بحث <span class="button-svg-icon" data-modern-icon="search" aria-hidden="true"></span></button>
+        <button class="secondary" id="resetBtn">إعادة تعيين <span class="button-svg-icon" data-modern-icon="reset" aria-hidden="true"></span></button>
       </section>
 
         <div class="mobile-dashboard-shell" style="display:none">
           <header class="mobile-dashboard-header">
             <div class="mobile-dashboard-user">
-              <div class="avatar mobile-dashboard-avatar" id="mobileDashboardAvatar">ط£</div>
+              <div class="avatar mobile-dashboard-avatar" id="mobileDashboardAvatar">أ</div>
               <div class="mobile-dashboard-user-text">
                 <strong id="mobileDashboardUserName">--</strong>
                 <small id="mobileDashboardUserRole">--</small>
               </div>
             </div>
-            <button class="mobile-dashboard-logout" id="mobileDashboardLogoutBtn" type="button" aria-label="طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬">
+            <button class="mobile-dashboard-logout" id="mobileDashboardLogoutBtn" type="button" aria-label="تسجيل الخروج">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M7.2 6.8a7 7 0 1 0 9.6 0"/></svg>
             </button>
           </header>
-          <nav class="mobile-dashboard-tabs" aria-label="ط§ط®طھطµط§ط±ط§طھ ط§ظ„ط´ط§ط´ط© ط§ظ„ط±ط¦ظٹط³ظٹط©" aria-hidden="true">
-            <button class="mobile-dashboard-tab nav-item active" data-section="dashboard" type="button" aria-label="ط§ظ„ط±ط¦ظٹط³ظٹط©" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/></svg></button>
-            <button class="mobile-dashboard-tab nav-item" data-section="users" type="button" aria-label="ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M5 21a7 7 0 0 1 14 0"/></svg></button>
-            <button class="mobile-dashboard-tab nav-item" data-section="inbound" type="button" aria-label="ط§ظ„ظ…ط®ط§ط²ظ†" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M12 4v9"/><path d="m8 9 4 4 4-4"/></svg></button>
-            <button class="mobile-dashboard-tab nav-item" data-section="settings" type="button" aria-label="ط§ظ„ط­ط³ط§ط¨" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg></button>
-            <button class="mobile-dashboard-tab nav-item" data-section="reports" type="button" aria-label="ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></button>
-            <button class="mobile-dashboard-tab nav-item" data-section="settings" type="button" aria-label="ط§ظ„ظ‚ط§ط¦ظ…ط©" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+          <nav class="mobile-dashboard-tabs" aria-label="اختصارات الشاشة الرئيسية" aria-hidden="true">
+            <button class="mobile-dashboard-tab nav-item active" data-section="dashboard" type="button" aria-label="الرئيسية" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/></svg></button>
+            <button class="mobile-dashboard-tab nav-item" data-section="users" type="button" aria-label="المستخدمين" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M5 21a7 7 0 0 1 14 0"/></svg></button>
+            <button class="mobile-dashboard-tab nav-item" data-section="inbound" type="button" aria-label="المخازن" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M12 4v9"/><path d="m8 9 4 4 4-4"/></svg></button>
+            <button class="mobile-dashboard-tab nav-item" data-section="settings" type="button" aria-label="الحساب" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg></button>
+            <button class="mobile-dashboard-tab nav-item" data-section="reports" type="button" aria-label="الإشعارات" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></button>
+            <button class="mobile-dashboard-tab nav-item" data-section="settings" type="button" aria-label="القائمة" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
           </nav>
           <button class="mobile-dashboard-filter-trigger" id="mobileDashboardFilterBtn" type="button" style="display:none" aria-controls="dashboardFilters" aria-expanded="false">
             <span class="mobile-filter-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg></span>
-            <span><b>ظپظ„طھط±ط© ط§ظ„ظ†طھط§ط¦ط¬</b><small>ط§ظ„ظ…طµظ†ط¹ / ط§ظ„ظ…ط®ط²ظ† / ط§ظ„طھط§ط±ظٹط®</small></span>
+            <span><b>فلترة النتائج</b><small>المصنع / المخزن / التاريخ</small></span>
           </button>
           <div class="mobile-dashboard-filter-overlay" id="mobileDashboardFilterOverlay" style="display:none" aria-hidden="true"></div>
-          <nav class="mobile-dashboard-bottom-nav" aria-label="ط§ظ„طھظ†ظ‚ظ„ ط§ظ„ط³ظپظ„ظٹ">
-            <button class="mobile-bottom-nav-item nav-item active" data-section="dashboard" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-5h5v5"/></svg><b>ط§ظ„ط±ط¦ظٹط³ظٹط©</b></button>
-            <button class="mobile-bottom-nav-item nav-item" data-section="reports" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V4h14v16"/><path d="M8 17v-5M12 17V7M16 17v-8"/></svg><b>ط§ظ„طھظ‚ط§ط±ظٹط±</b></button>
-            <button class="mobile-bottom-nav-item nav-item" data-section="sales" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v11H4z"/><path d="M7 7V5h10v2"/><path d="M8 12h8M8 15h5"/></svg><b>ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¨ظٹط¹</b></button>
-            <button class="mobile-bottom-nav-item nav-item" data-section="settings" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14.2 3h-4.4l-.3 2.7a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.4-1a7 7 0 0 0 2 1.2l.3 2.7h4.4l.3-2.7a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg><b>ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ</b></button>
-            <button class="mobile-bottom-nav-item mobile-drawer-open" type="button" aria-label="ظپطھط­ ط§ظ„ظ‚ط§ط¦ظ…ط©" aria-controls="mobileDashboardDrawer" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><b>ط§ظ„ظ‚ط§ط¦ظ…ط©</b></button>
+          <nav class="mobile-dashboard-bottom-nav" aria-label="التنقل السفلي">
+            <button class="mobile-bottom-nav-item nav-item active" data-section="dashboard" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/><path d="M9.5 20v-5h5v5"/></svg><b>الرئيسية</b></button>
+            <button class="mobile-bottom-nav-item nav-item" data-section="reports" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V4h14v16"/><path d="M8 17v-5M12 17V7M16 17v-8"/></svg><b>التقارير</b></button>
+            <button class="mobile-bottom-nav-item nav-item" data-section="sales" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v11H4z"/><path d="M7 7V5h10v2"/><path d="M8 12h8M8 15h5"/></svg><b>مراجعة البيع</b></button>
+            <button class="mobile-bottom-nav-item nav-item" data-section="settings" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14.2 3h-4.4l-.3 2.7a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.4-1a7 7 0 0 0 2 1.2l.3 2.7h4.4l.3-2.7a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2Z"/></svg><b>الإعدادات</b></button>
+            <button class="mobile-bottom-nav-item mobile-drawer-open" type="button" aria-label="فتح القائمة" aria-controls="mobileDashboardDrawer" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><b>القائمة</b></button>
           </nav>
           <div class="mobile-drawer-overlay" id="mobileDrawerOverlay" style="display:none" aria-hidden="true"></div>
           <aside class="mobile-side-drawer" id="mobileDashboardDrawer" style="display:none" aria-hidden="true">
-            <div class="mobile-drawer-head"><strong>ط§ظ„ظ‚ط§ط¦ظ…ط©</strong><button class="mobile-drawer-close" type="button" aria-label="ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظ‚ط§ط¦ظ…ط©">أ—</button></div>
-            <button class="mobile-drawer-item" data-mobile-section="upload" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg><span>ط±ظپط¹ ط§ظ„طھظ‚ط§ط±ظٹط±</span></button>
-            <button class="mobile-drawer-item" data-mobile-section="plants" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-4 8 4v11"/><path d="M8 20v-6h8v6"/><path d="M8 11h.01M12 11h.01M16 11h.01"/></svg><span>ظ…طµط§ظ†ط¹ ظˆظ…ط®ط§ط²ظ†</span></button>
-            <button class="mobile-drawer-item" data-mobile-section="movements" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3"/><path d="M17 17H6l3 3"/><path d="M18 7l-3 3"/><path d="M6 17l3-3"/></svg><span>ط§ظ„ط­ط±ظƒط§طھ ط§ظ„ظ…ط®ط²ظ†ظٹط©</span></button>
-            <button class="mobile-drawer-item" data-mobile-section="inbound" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M12 4v9"/><path d="m8 9 4 4 4-4"/></svg><span>ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظˆط§ط±ط¯</span></button>
-                        <button class="mobile-drawer-item" data-mobile-section="raw_materials" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-4 8 4v11"/><path d="M8 20v-6h8v6"/><path d="M8 11h.01M12 11h.01M16 11h.01"/></svg><span>ظ…طھط§ط¨ط¹ط© ط§ظ„ط®ط§ظ…ط§طھ</span></button>
-            <button class="mobile-drawer-item" data-mobile-section="users" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M5 21a7 7 0 0 1 14 0"/><path d="M18 8a3 3 0 0 1 3 3"/></svg><span>ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†</span></button>
-            <button class="mobile-drawer-item" data-mobile-section="permissions" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-5"/></svg><span>ط¥ط¯ط§ط±ط© ط§ظ„طµظ„ط§ط­ظٹط§طھ</span></button>
+            <div class="mobile-drawer-head"><strong>القائمة</strong><button class="mobile-drawer-close" type="button" aria-label="إغلاق القائمة">×</button></div>
+            <button class="mobile-drawer-item" data-mobile-section="upload" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg><span>رفع التقارير</span></button>
+            <button class="mobile-drawer-item" data-mobile-section="plants" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-4 8 4v11"/><path d="M8 20v-6h8v6"/><path d="M8 11h.01M12 11h.01M16 11h.01"/></svg><span>مصانع ومخازن</span></button>
+            <button class="mobile-drawer-item" data-mobile-section="movements" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3"/><path d="M17 17H6l3 3"/><path d="M18 7l-3 3"/><path d="M6 17l3-3"/></svg><span>الحركات المخزنية</span></button>
+            <button class="mobile-drawer-item" data-mobile-section="inbound" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M12 4v9"/><path d="m8 9 4 4 4-4"/></svg><span>مراجعة الوارد</span></button>
+                        <button class="mobile-drawer-item" data-mobile-section="raw_materials" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-4 8 4v11"/><path d="M8 20v-6h8v6"/><path d="M8 11h.01M12 11h.01M16 11h.01"/></svg><span>متابعة الخامات</span></button>
+            <button class="mobile-drawer-item" data-mobile-section="users" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M5 21a7 7 0 0 1 14 0"/><path d="M18 8a3 3 0 0 1 3 3"/></svg><span>إدارة المستخدمين</span></button>
+            <button class="mobile-drawer-item" data-mobile-section="permissions" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-5"/></svg><span>إدارة الصلاحيات</span></button>
           </aside>
         </div>
       <section id="dashboard" class="section active-section">
         <div class="mobile-dashboard-period-label" id="mobileDashboardPeriodLabel" style="display:none" aria-live="polite">
           <span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3v4M17 3v4"/><path d="M4 8h16"/><path d="M5 5h14v16H5z"/><path d="M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01"/></svg></span>
-          <b>طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±: --/--/----</b>
-          <button class="mobile-period-png-btn" id="mobileDashboardPeriodPngBtn" type="button" aria-label="طھطµط¯ظٹط± ط§ظ„ط¯ط§ط´ط¨ظˆط±ط¯ PNG">PNG</button>
+          <b>تاريخ التقرير: --/--/----</b>
+          <button class="mobile-period-png-btn" id="mobileDashboardPeriodPngBtn" type="button" aria-label="تصدير الداشبورد PNG">PNG</button>
         </div>
-        <h2 class="mobile-dashboard-stats-title" style="display:none"><span>Total Key Stats</span><button class="mobile-kpi-group-png-btn" id="mobileKpiGroupPngBtn" type="button" aria-label="طھطµط¯ظٹط± ظƒط±ظˆطھ ط§ظ„ظ…ط¤ط´ط±ط§طھ PNG">PNG</button></h2>
+        <h2 class="mobile-dashboard-stats-title" style="display:none"><span>Total Key Stats</span><button class="mobile-kpi-group-png-btn" id="mobileKpiGroupPngBtn" type="button" aria-label="تصدير كروت المؤشرات PNG">PNG</button></h2>
         <section class="filters glass dashboard-filters" id="dashboardFilters">
-          <button class="mobile-filter-close" id="mobileFilterCloseBtn" type="button" style="display:none" aria-label="ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظپظ„ط§طھط±">أ—</button>
-          <label>ط§ظ„ظ…طµظ†ط¹<select id="dashboardPlantFilter"><option value="all">ظƒظ„ ط§ظ„ظ…طµط§ظ†ط¹</option></select></label>
-          <label>ط§ظ„ظ…ط®ط²ظ†<select id="dashboardWarehouseFilter"><option value="all">ظƒظ„ ط§ظ„ظ…ط®ط§ط²ظ†</option></select></label>
-          <label>ظ…ظ†<input type="date" id="dashboardFromDate"></label>
-          <label>ط¥ظ„ظ‰<input type="date" id="dashboardToDate"></label>
-          <button class="primary" id="dashboardSearchBtn" type="button">ط¨ط­ط« <span class="button-svg-icon" data-modern-icon="search" aria-hidden="true"></span></button>
-          <button class="secondary" id="dashboardResetBtn" type="button">ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† <span class="button-svg-icon" data-modern-icon="reset" aria-hidden="true"></span></button>
+          <button class="mobile-filter-close" id="mobileFilterCloseBtn" type="button" style="display:none" aria-label="إغلاق الفلاتر">×</button>
+          <label>المصنع<select id="dashboardPlantFilter"><option value="all">كل المصانع</option></select></label>
+          <label>المخزن<select id="dashboardWarehouseFilter"><option value="all">كل المخازن</option></select></label>
+          <label>من<input type="date" id="dashboardFromDate"></label>
+          <label>إلى<input type="date" id="dashboardToDate"></label>
+          <button class="primary" id="dashboardSearchBtn" type="button">بحث <span class="button-svg-icon" data-modern-icon="search" aria-hidden="true"></span></button>
+          <button class="secondary" id="dashboardResetBtn" type="button">إعادة تعيين <span class="button-svg-icon" data-modern-icon="reset" aria-hidden="true"></span></button>
         </section>
         <div class="cards" id="kpiCards"></div>
         <div class="grid-3">
-          <article class="panel glass"><h3>طھظˆط²ظٹط¹ ط§ظ„ظ…ط¨ظٹط¹ط§طھ ط¹ظ„ظ‰ ظ…ط®ط§ط²ظ† ط§ظ„ظ…ظ†طھط¬ ط§ظ„طھط§ظ…</h3><canvas id="donutChart" width="340" height="240"></canvas><div id="movementLegend" class="legend"></div></article>
-          <article class="panel glass warehouse-summary"><h3>ظ…ظ‚ط§ط±ظ†ط© ط£ط¯ط§ط، ط§ظ„ظ…طµط§ظ†ط¹</h3><div id="plantBarLegend" class="chart-clean-legend"></div><canvas id="plantBarChart" width="430" height="250"></canvas><div id="stockSummary"></div></article>
-          <article class="panel glass line-chart-panel"><h3>ط§طھط¬ط§ظ‡ ط§ظ„ط¨ظٹط¹ ظˆط§ظ„ط¥ظ†طھط§ط¬ ط®ظ„ط§ظ„ ط§ظ„ظپطھط±ط©</h3><div id="lineChartLegend" class="chart-clean-legend"></div><canvas id="lineChart" width="560" height="320"></canvas></article>
+          <article class="panel glass"><h3>توزيع المبيعات على مخازن المنتج التام</h3><canvas id="donutChart" width="340" height="240"></canvas><div id="movementLegend" class="legend"></div></article>
+          <article class="panel glass warehouse-summary"><h3>مقارنة أداء المصانع</h3><div id="plantBarLegend" class="chart-clean-legend"></div><canvas id="plantBarChart" width="430" height="250"></canvas><div id="stockSummary"></div></article>
+          <article class="panel glass line-chart-panel"><h3>اتجاه البيع والإنتاج خلال الفترة</h3><div id="lineChartLegend" class="chart-clean-legend"></div><canvas id="lineChart" width="560" height="320"></canvas></article>
         </div>
         <div class="bottom-grid executive-bottom-grid">
-          <article class="panel glass review-panel heatmap-panel"><h3>ط§ظ„ط®ط±ظٹط·ط© ط§ظ„ط­ط±ط§ط±ظٹط© ظ„ظ„ط¨ظٹط¹ (ط·ظ†)</h3><small class="panel-subtitle">ط­ط³ط¨ ط§ظ„ط´ظ‡ط± ط§ظ„ط­ط§ظ„ظٹ</small><div class="sales-heatmap" id="alertsBox"></div></article>
-          <article class="panel glass top-products-panel"><h3>ط£ط¹ظ„ظ‰ 10 ط£طµظ†ط§ظپ ط¨ظٹط¹ط§ظ‹</h3><div class="rank-table-wrap"><table id="latestTable"></table></div></article>
-          <article class="panel glass top-warehouses-panel"><h3>ط£ظƒط«ط± 10 ظ…ط®ط§ط²ظ† ظ†ط´ط§ط·ط§ظ‹</h3><div class="rank-table-wrap"><table id="topWarehousesTable"></table></div></article>
-          <article class="panel glass plant-performance-panel"><h3>ط£ط¯ط§ط، ط§ظ„ظ…طµط§ظ†ط¹</h3><div id="plantsCards" class="plants-cards plant-progress-list"></div></article>
+          <article class="panel glass review-panel heatmap-panel"><h3>الخريطة الحرارية للبيع (طن)</h3><small class="panel-subtitle">حسب الشهر الحالي</small><div class="sales-heatmap" id="alertsBox"></div></article>
+          <article class="panel glass top-products-panel"><h3>أعلى 10 أصناف بيعاً</h3><div class="rank-table-wrap"><table id="latestTable"></table></div></article>
+          <article class="panel glass top-warehouses-panel"><h3>أكثر 10 مخازن نشاطاً</h3><div class="rank-table-wrap"><table id="topWarehousesTable"></table></div></article>
+          <article class="panel glass plant-performance-panel"><h3>أداء المصانع</h3><div id="plantsCards" class="plants-cards plant-progress-list"></div></article>
         </div>
       </section>
 
       <section id="upload" class="section">
         <article class="panel glass">
-          <h2>ط±ظپط¹ ط§ظ„طھظ‚ط§ط±ظٹط±</h2>
-          <p class="hint">ط§ط±ظپط¹ ظ…ظ„ظپط§طھ ط§ظ„طھظ‚ط§ط±ظٹط± ط§ظ„ظٹظˆظ…ظٹط© ظ…ط¹ طھط­ط¯ظٹط¯ طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±طŒ ظˆظٹظ…ظƒظ†ظƒ ط¹ط±ط¶ ط³ط¬ظ„ ط§ظ„ظ†ط³ط® ط§ظ„ظ…ط±ظپظˆط¹ط© ط£ظˆ ط­ط°ظپظ‡ط§ ط£ظˆ ط§ط³طھط¨ط¯ط§ظ„ظ‡ط§ ط¹ظ†ط¯ ط§ظ„ط­ط§ط¬ط©.</p>
+          <h2>رفع التقارير</h2>
+          <p class="hint">ارفع ملفات التقارير اليومية مع تحديد تاريخ التقرير، ويمكنك عرض سجل النسخ المرفوعة أو حذفها أو استبدالها عند الحاجة.</p>
 
-          <div class="upload-report-tabs" role="tablist" aria-label="ط£ظ†ظˆط§ط¹ ط§ظ„طھظ‚ط§ط±ظٹط±">
-            <button class="upload-report-tab active" type="button" data-upload-tab="sales">ظ…ط±ط§ط¬ط¹ط© ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظ…ظ†طھط¬ ط§ظ„طھط§ظ… ظˆط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظ…ط®ط²ظ†ظٹط©</button>
-            <button class="upload-report-tab" type="button" data-upload-tab="incoming">ط§ظ„ظˆط§ط±ط¯ ظ…ظ† MB51</button>
-            <button class="upload-report-tab" type="button" data-upload-tab="scale">طھظ‚ط±ظٹط± ط§ظ„ظ…ظٹط²ط§ظ†</button>
-            <button class="upload-report-tab" type="button" data-upload-tab="freight">ظ†ظˆظ„ظˆظ† ط§ظ„ظˆط§ط±ط¯</button>
+          <div class="upload-report-tabs" role="tablist" aria-label="أنواع التقارير">
+            <button class="upload-report-tab active" type="button" data-upload-tab="sales">مراجعة مبيعات المنتج التام والتحويلات المخزنية</button>
+            <button class="upload-report-tab" type="button" data-upload-tab="incoming">الوارد من MB51</button>
+            <button class="upload-report-tab" type="button" data-upload-tab="scale">تقرير الميزان</button>
+            <button class="upload-report-tab" type="button" data-upload-tab="freight">نولون الوارد</button>
                       <button class="upload-report-tab" type="button" data-upload-tab="current_plant_stock">&#x0631;&#x0641;&#x0639; &#x0631;&#x0635;&#x064A;&#x062F; &#x0627;&#x0644;&#x0645;&#x0635;&#x0646;&#x0639; &#x0627;&#x0644;&#x062D;&#x0627;&#x0644;&#x064A;</button>
             <button class="upload-report-tab" type="button" data-upload-tab="consumption_rate">&#x0645;&#x0639;&#x062F;&#x0644; &#x0627;&#x0644;&#x0627;&#x0633;&#x062A;&#x0647;&#x0644;&#x0627;&#x0643;</button>
 </div>
           <label class="mobile-upload-type-field" for="mobileUploadReportType" style="display:none">
-            ظ†ظˆط¹ ط§ظ„طھظ‚ط±ظٹط±
-            <select id="mobileUploadReportType" aria-label="ظ†ظˆط¹ ط§ظ„طھظ‚ط±ظٹط±">
-              <option value="sales">ظ…ط±ط§ط¬ط¹ط© ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظ…ظ†طھط¬ ط§ظ„طھط§ظ… ظˆط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظ…ط®ط²ظ†ظٹط©</option>
-              <option value="incoming">ط§ظ„ظˆط§ط±ط¯ ظ…ظ† MB51</option>
-              <option value="scale">طھظ‚ط±ظٹط± ط§ظ„ظ…ظٹط²ط§ظ†</option>
-              <option value="freight">ظ†ظˆظ„ظˆظ† ط§ظ„ظˆط§ط±ط¯</option>
+            نوع التقرير
+            <select id="mobileUploadReportType" aria-label="نوع التقرير">
+              <option value="sales">مراجعة مبيعات المنتج التام والتحويلات المخزنية</option>
+              <option value="incoming">الوارد من MB51</option>
+              <option value="scale">تقرير الميزان</option>
+              <option value="freight">نولون الوارد</option>
                           <option value="current_plant_stock">&#x0631;&#x0641;&#x0639; &#x0631;&#x0635;&#x064A;&#x062F; &#x0627;&#x0644;&#x0645;&#x0635;&#x0646;&#x0639; &#x0627;&#x0644;&#x062D;&#x0627;&#x0644;&#x064A;</option>
               <option value="consumption_rate">&#x0645;&#x0639;&#x062F;&#x0644; &#x0627;&#x0644;&#x0627;&#x0633;&#x062A;&#x0647;&#x0644;&#x0627;&#x0643;</option>
 </select>
@@ -191,31 +191,31 @@
           <div class="upload-tab-panel active" id="salesUploadPanel" data-upload-panel="sales">
             <div class="daily-upload-box">
               <label class="report-date-field">
-                طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±
+                تاريخ التقرير
                 <input type="date" id="salesReportDateInput" />
               </label>
-              <button class="primary" id="pickSalesFileBtn" type="button">ط§ط®طھظٹط§ط± ظˆط±ظپط¹ ظ…ظ„ظپ ط§ظ„ظ…ط¨ظٹط¹ط§طھ</button>
+              <button class="primary" id="pickSalesFileBtn" type="button">اختيار ورفع ملف المبيعات</button>
             </div>
             <input type="file" id="salesExcelInput" accept=".xlsx,.xls,.csv" hidden />
             <div class="drop-zone" id="salesDropZone">
-              ط§ط®طھط± ظ…ظ„ظپ Excel ظ„ظ„ظ…ط¨ظٹط¹ط§طھ ط£ظˆ ط§ط³ط­ط¨ظ‡ ظ‡ظ†ط§
+              اختر ملف Excel للمبيعات أو اسحبه هنا
               <br>
-              <small>ط³ظٹطھظ… ط­ظپط¸ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط®ط§ظ… ظپظٹ sales_raw_transactions ظˆط±ط¨ط·ظ‡ط§ ط¨طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط± ط§ظ„ظ…ط®طھط§ط±.</small>
+              <small>سيتم حفظ البيانات الخام في sales_raw_transactions وربطها بتاريخ التقرير المختار.</small>
               <div class="mobile-upload-card-content" style="display:none">
                 <span class="mobile-upload-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" focusable="false"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>
                 </span>
-                <strong>ط§ط³ط­ط¨ ظ…ظ„ظپ Excel ظ‡ظ†ط§</strong>
-                <em>ط£ظˆ ط§ط¶ط؛ط· ظ„ط§ط®طھظٹط§ط± ط§ظ„ظ…ظ„ظپ</em>
-                <small>ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰: 10 MB</small>
+                <strong>اسحب ملف Excel هنا</strong>
+                <em>أو اضغط لاختيار الملف</em>
+                <small>الحد الأقصى: 10 MB</small>
                 <div class="mobile-upload-selected" id="salesMobileFileMeta" aria-live="polite"></div>
               </div>
             </div>
             <div class="upload-status" id="salesUploadStatus"></div>
 
             <div class="history-panel">
-              <h3>ط³ط¬ظ„ ط§ظ„ظ†ط³ط® ط§ظ„ظ…ط±ظپظˆط¹ط©</h3>
-              <p class="hint">ظٹظ…ظƒظ†ظƒ ط§ظ„ط¨ط­ط« ظˆط§ظ„طھط±طھظٹط¨ ظ…ظ† ط±ط£ط³ ظƒظ„ ط¹ظ…ظˆط¯طŒ ظˆط¹ط±ط¶ ط£ظˆ ط§ط³طھط¨ط¯ط§ظ„ ط£ظˆ ط­ط°ظپ ط£ظٹ ظ†ط³ط®ط©.</p>
+              <h3>سجل النسخ المرفوعة</h3>
+              <p class="hint">يمكنك البحث والترتيب من رأس كل عمود، وعرض أو استبدال أو حذف أي نسخة.</p>
               <div class="table-wrap"><table id="salesBatchesTable"></table></div>
             </div>
           </div>
@@ -223,31 +223,31 @@
           <div class="upload-tab-panel" id="incomingUploadPanel" data-upload-panel="incoming">
             <div class="daily-upload-box">
               <label class="report-date-field">
-                طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±
+                تاريخ التقرير
                 <input type="date" id="incomingReportDateInput" />
               </label>
-              <button class="primary" id="pickIncomingFileBtn" type="button">ط§ط®طھظٹط§ط± ظˆط±ظپط¹ ظ…ظ„ظپ ط§ظ„ظˆط§ط±ط¯ MB51</button>
+              <button class="primary" id="pickIncomingFileBtn" type="button">اختيار ورفع ملف الوارد MB51</button>
             </div>
             <input type="file" id="incomingExcelInput" accept=".xlsx,.xls,.csv" hidden />
             <div class="drop-zone" id="incomingDropZone">
-              ط§ط®طھط± ظ…ظ„ظپ Excel ظ„ظ„ظˆط§ط±ط¯ ظ…ظ† MB51 ط£ظˆ ط§ط³ط­ط¨ظ‡ ظ‡ظ†ط§
+              اختر ملف Excel للوارد من MB51 أو اسحبه هنا
               <br>
-              <small>ط³ظٹطھظ… ط­ظپط¸ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط®ط§ظ… ظپظٹ incoming_raw_transactions ظˆط±ط¨ط·ظ‡ط§ ط¨طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط± ط§ظ„ظ…ط®طھط§ط±.</small>
+              <small>سيتم حفظ البيانات الخام في incoming_raw_transactions وربطها بتاريخ التقرير المختار.</small>
               <div class="mobile-upload-card-content" style="display:none">
                 <span class="mobile-upload-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" focusable="false"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>
                 </span>
-                <strong>ط§ط³ط­ط¨ ظ…ظ„ظپ Excel ظ‡ظ†ط§</strong>
-                <em>ط£ظˆ ط§ط¶ط؛ط· ظ„ط§ط®طھظٹط§ط± ط§ظ„ظ…ظ„ظپ</em>
-                <small>ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰: 10 MB</small>
+                <strong>اسحب ملف Excel هنا</strong>
+                <em>أو اضغط لاختيار الملف</em>
+                <small>الحد الأقصى: 10 MB</small>
                 <div class="mobile-upload-selected" id="incomingMobileFileMeta" aria-live="polite"></div>
               </div>
             </div>
             <div class="upload-status" id="incomingUploadStatus"></div>
 
             <div class="history-panel">
-              <h3>ط³ط¬ظ„ ظ†ط³ط® ط§ظ„ظˆط§ط±ط¯ ط§ظ„ظ…ط±ظپظˆط¹ط©</h3>
-              <p class="hint">ظٹظ…ظƒظ†ظƒ ط§ظ„ط¨ط­ط« ظˆط§ظ„طھط±طھظٹط¨ ظ…ظ† ط±ط£ط³ ظƒظ„ ط¹ظ…ظˆط¯طŒ ظˆط¹ط±ط¶ ط£ظˆ ط§ط³طھط¨ط¯ط§ظ„ ط£ظˆ ط­ط°ظپ ط£ظٹ ظ†ط³ط®ط©.</p>
+              <h3>سجل نسخ الوارد المرفوعة</h3>
+              <p class="hint">يمكنك البحث والترتيب من رأس كل عمود، وعرض أو استبدال أو حذف أي نسخة.</p>
               <div class="table-wrap"><table id="incomingBatchesTable"></table></div>
             </div>
           </div>
@@ -255,31 +255,31 @@
           <div class="upload-tab-panel" id="scaleUploadPanel" data-upload-panel="scale">
             <div class="daily-upload-box">
               <label class="report-date-field">
-                طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±
+                تاريخ التقرير
                 <input type="date" id="scaleReportDateInput" />
               </label>
-              <button class="primary" id="pickScaleFileBtn" type="button">ط§ط®طھظٹط§ط± ظˆط±ظپط¹ ظ…ظ„ظپ ط§ظ„ظ…ظٹط²ط§ظ†</button>
+              <button class="primary" id="pickScaleFileBtn" type="button">اختيار ورفع ملف الميزان</button>
             </div>
             <input type="file" id="scaleExcelInput" accept=".xlsx,.xls,.csv" hidden />
             <div class="drop-zone" id="scaleDropZone">
-              ط§ط®طھط± ظ…ظ„ظپ Excel ظ„طھظ‚ط±ظٹط± ط§ظ„ظ…ظٹط²ط§ظ† ط£ظˆ ط§ط³ط­ط¨ظ‡ ظ‡ظ†ط§
+              اختر ملف Excel لتقرير الميزان أو اسحبه هنا
               <br>
-              <small>ط³ظٹطھظ… ط­ظپط¸ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط®ط§ظ… ظپظٹ scale_raw_transactions ظˆط±ط¨ط·ظ‡ط§ ط¨طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط± ط§ظ„ظ…ط®طھط§ط±. ط¹ظ†ط¯ طھظˆظپط± MB51 ظˆط§ظ„ظ…ظٹط²ط§ظ† ظ„ظ†ظپط³ ط§ظ„طھط§ط±ظٹط® ظٹطھظ… ط¥ظ†ط´ط§ط، ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظˆط§ط±ط¯ طھظ„ظ‚ط§ط¦ظٹط§ظ‹.</small>
+              <small>سيتم حفظ البيانات الخام في scale_raw_transactions وربطها بتاريخ التقرير المختار. عند توفر MB51 والميزان لنفس التاريخ يتم إنشاء مراجعة الوارد تلقائياً.</small>
               <div class="mobile-upload-card-content" style="display:none">
                 <span class="mobile-upload-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" focusable="false"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>
                 </span>
-                <strong>ط§ط³ط­ط¨ ظ…ظ„ظپ Excel ظ‡ظ†ط§</strong>
-                <em>ط£ظˆ ط§ط¶ط؛ط· ظ„ط§ط®طھظٹط§ط± ط§ظ„ظ…ظ„ظپ</em>
-                <small>ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰: 10 MB</small>
+                <strong>اسحب ملف Excel هنا</strong>
+                <em>أو اضغط لاختيار الملف</em>
+                <small>الحد الأقصى: 10 MB</small>
                 <div class="mobile-upload-selected" id="scaleMobileFileMeta" aria-live="polite"></div>
               </div>
             </div>
             <div class="upload-status" id="scaleUploadStatus"></div>
 
             <div class="history-panel">
-              <h3>ط³ط¬ظ„ ظ†ط³ط® ط§ظ„ظ…ظٹط²ط§ظ† ط§ظ„ظ…ط±ظپظˆط¹ط©</h3>
-              <p class="hint">ظٹظ…ظƒظ†ظƒ ط§ظ„ط¨ط­ط« ظˆط§ظ„طھط±طھظٹط¨ ظ…ظ† ط±ط£ط³ ظƒظ„ ط¹ظ…ظˆط¯طŒ ظˆط¹ط±ط¶ ط§ظ„ظ…ط±ط§ط¬ط¹ط© ط£ظˆ ط§ط³طھط¨ط¯ط§ظ„ ط£ظˆ ط­ط°ظپ ط£ظٹ ظ†ط³ط®ط©.</p>
+              <h3>سجل نسخ الميزان المرفوعة</h3>
+              <p class="hint">يمكنك البحث والترتيب من رأس كل عمود، وعرض المراجعة أو استبدال أو حذف أي نسخة.</p>
               <div class="table-wrap"><table id="scaleBatchesTable"></table></div>
             </div>
           </div>
@@ -287,102 +287,102 @@
           <div class="upload-tab-panel" id="freightUploadPanel" data-upload-panel="freight">
             <div class="daily-upload-box">
               <label class="report-date-field">
-                طھط§ط±ظٹط® طھط­ط¯ظٹط« ط§ظ„ظ…ط±ط¬ط¹
+                تاريخ تحديث المرجع
                 <input type="date" id="freightReferenceDateInput" />
               </label>
-              <button class="primary" id="pickFreightFileBtn" type="button">ط§ط®طھظٹط§ط± ظˆط±ظپط¹ ظ…ظ„ظپ ظ†ظˆظ„ظˆظ† ط§ظ„ظˆط§ط±ط¯</button>
+              <button class="primary" id="pickFreightFileBtn" type="button">اختيار ورفع ملف نولون الوارد</button>
             </div>
             <input type="file" id="freightExcelInput" accept=".xlsx,.xls,.csv" hidden />
             <div class="drop-zone" id="freightDropZone">
-              ط§ط®طھط± ظ…ظ„ظپ Excel ظ„ظ†ظˆظ„ظˆظ† ط§ظ„ظˆط§ط±ط¯ ط£ظˆ ط§ط³ط­ط¨ظ‡ ظ‡ظ†ط§
+              اختر ملف Excel لنولون الوارد أو اسحبه هنا
               <br>
-              <small>ط³ظٹطھظ… طھط­ط¯ظٹط« ط¬ط¯ظˆظ„ incoming_freight_rates ظƒظ…ط±ط¬ط¹ ط«ط§ط¨طھ ظ„ظ…ط·ط§ط¨ظ‚ط© ط§ظ„ظ†ظˆظ„ظˆظ† ظپظٹ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظˆط§ط±ط¯.</small>
+              <small>سيتم تحديث جدول incoming_freight_rates كمرجع ثابت لمطابقة النولون في مراجعة الوارد.</small>
               <div class="mobile-upload-card-content" style="display:none">
                 <span class="mobile-upload-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" focusable="false"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>
                 </span>
-                <strong>ط§ط³ط­ط¨ ظ…ظ„ظپ Excel ظ‡ظ†ط§</strong>
-                <em>ط£ظˆ ط§ط¶ط؛ط· ظ„ط§ط®طھظٹط§ط± ط§ظ„ظ…ظ„ظپ</em>
-                <small>ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰: 10 MB</small>
+                <strong>اسحب ملف Excel هنا</strong>
+                <em>أو اضغط لاختيار الملف</em>
+                <small>الحد الأقصى: 10 MB</small>
                 <div class="mobile-upload-selected" id="freightMobileFileMeta" aria-live="polite"></div>
               </div>
             </div>
             <div class="upload-status" id="freightUploadStatus"></div>
 
             <div class="history-panel">
-              <h3>ط³ط¬ظ„ طھط­ط¯ظٹط«ط§طھ ظ†ظˆظ„ظˆظ† ط§ظ„ظˆط§ط±ط¯</h3>
-              <p class="hint">ظٹظ…ظƒظ†ظƒ ط§ظ„ط¨ط­ط« ظˆط§ظ„طھط±طھظٹط¨ ظ…ظ† ط±ط£ط³ ظƒظ„ ط¹ظ…ظˆط¯طŒ ظˆط¹ط±ط¶ ط§ظ„ظ…ط±ط¬ط¹ ط§ظ„ط­ط§ظ„ظٹ ط£ظˆ ط­ط°ظپ طھط­ط¯ظٹط« ط³ط§ط¨ظ‚.</p>
+              <h3>سجل تحديثات نولون الوارد</h3>
+              <p class="hint">يمكنك البحث والترتيب من رأس كل عمود، وعرض المرجع الحالي أو حذف تحديث سابق.</p>
               <div class="table-wrap"><table id="freightBatchesTable"></table></div>
             </div>
 
             <div class="history-panel">
-              <h3>ط§ظ„ظ…ط±ط¬ط¹ ط§ظ„ط­ط§ظ„ظٹ ظ„ظ†ظˆظ„ظˆظ† ط§ظ„ظˆط§ط±ط¯</h3>
-              <p class="hint">ط§ظ„طµظپظˆظپ ط§ظ„ظ†ط´ط·ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ط© ط­ط§ظ„ظٹط§ظ‹ ظپظٹ ظ…ط·ط§ط¨ظ‚ط© ط§ظ„ظ†ظˆظ„ظˆظ†.</p>
+              <h3>المرجع الحالي لنولون الوارد</h3>
+              <p class="hint">الصفوف النشطة المستخدمة حالياً في مطابقة النولون.</p>
               <div class="table-wrap"><table id="freightRatesTable"></table></div>
             </div>
             
           </div>
           <div class="upload-tab-panel" id="currentPlantStockUploadPanel" data-upload-panel="current_plant_stock" data-report-key="current_plant_stock">
             <div class="daily-upload-box">
-              <button class="primary" id="pickCurrentPlantStockFileBtn" type="button">ط§ط®طھظٹط§ط± ظˆط±ظپط¹ ظ…ظ„ظپ ط±طµظٹط¯ ط§ظ„ظ…طµظ†ط¹ ط§ظ„ط­ط§ظ„ظٹ</button>
-              <button class="secondary raw-template-download-btn" id="downloadCurrentPlantStockTemplateBtn" type="button" data-template-key="current_plant_stock">طھط­ظ…ظٹظ„ ظ‚ط§ظ„ط¨ ط§ظ„طھظ‚ط±ظٹط±</button>
+              <button class="primary" id="pickCurrentPlantStockFileBtn" type="button">اختيار ورفع ملف رصيد المصنع الحالي</button>
+              <button class="secondary raw-template-download-btn" id="downloadCurrentPlantStockTemplateBtn" type="button" data-template-key="current_plant_stock">تحميل قالب التقرير</button>
             </div>
             <input type="file" id="currentPlantStockExcelInput" accept=".xlsx,.xls" hidden />
             <div class="drop-zone" id="currentPlantStockDropZone">
-              ط§ط®طھط± ظ…ظ„ظپ Excel ظ„ط±طµظٹط¯ ط§ظ„ظ…طµظ†ط¹ ط§ظ„ط­ط§ظ„ظٹ ط£ظˆ ط§ط³ط­ط¨ظ‡ ظ‡ظ†ط§
+              اختر ملف Excel لرصيد المصنع الحالي أو اسحبه هنا
               <br>
-              <small>ط³ظٹطھظ… ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط±ظ‚ط© Data ظˆط±ط¤ظˆط³ ط§ظ„ط£ط¹ظ…ط¯ط© ظ‚ط¨ظ„ ط§ط³طھط¨ط¯ط§ظ„ ط§ظ„ظ†ط³ط®ط© ط§ظ„ط­ط§ظ„ظٹط© ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ.</small>
+              <small>سيتم التحقق من ورقة Data ورؤوس الأعمدة قبل استبدال النسخة الحالية في قاعدة البيانات.</small>
             </div>
-            <div class="upload-status" id="currentPlantStockUploadStatus">ظ„ظ… ظٹطھظ… ط±ظپط¹ ط±طµظٹط¯ ط§ظ„ظ…طµظ†ط¹ ط§ظ„ط­ط§ظ„ظٹ ط¨ط¹ط¯.</div>
+            <div class="upload-status" id="currentPlantStockUploadStatus">لم يتم رفع رصيد المصنع الحالي بعد.</div>
             <div class="history-panel">
-              <h3>ط¢ط®ط± ط±ظپط¹ ظ„ط±طµظٹط¯ ط§ظ„ظ…طµظ†ط¹ ط§ظ„ط­ط§ظ„ظٹ</h3>
-              <p class="hint">ظٹط¹ط±ط¶ ط§ظ„ظ†ط³ط®ط© ط§ظ„ط­ط§ظ„ظٹط© ظپظ‚ط· ط¨ط¹ط¯ ظ†ط¬ط§ط­ ط§ظ„ط­ظپط¸ ط§ظ„ظپط¹ظ„ظٹ.</p>
+              <h3>آخر رفع لرصيد المصنع الحالي</h3>
+              <p class="hint">يعرض النسخة الحالية فقط بعد نجاح الحفظ الفعلي.</p>
               <div class="table-wrap"><table id="currentPlantStockBatchesTable"></table></div>
             </div>
           </div>
 
           <div class="upload-tab-panel" id="consumptionRateUploadPanel" data-upload-panel="consumption_rate" data-report-key="consumption_rate">
             <div class="daily-upload-box">
-              <button class="primary" id="pickConsumptionRateFileBtn" type="button">ط§ط®طھظٹط§ط± ظˆط±ظپط¹ ظ…ظ„ظپ ظ…ط¹ط¯ظ„ ط§ظ„ط§ط³طھظ‡ظ„ط§ظƒ</button>
-              <button class="secondary raw-template-download-btn" id="downloadConsumptionRateTemplateBtn" type="button" data-template-key="consumption_rate">طھط­ظ…ظٹظ„ ظ‚ط§ظ„ط¨ ط§ظ„طھظ‚ط±ظٹط±</button>
+              <button class="primary" id="pickConsumptionRateFileBtn" type="button">اختيار ورفع ملف معدل الاستهلاك</button>
+              <button class="secondary raw-template-download-btn" id="downloadConsumptionRateTemplateBtn" type="button" data-template-key="consumption_rate">تحميل قالب التقرير</button>
             </div>
             <input type="file" id="consumptionRateExcelInput" accept=".xlsx,.xls" hidden />
             <div class="drop-zone" id="consumptionRateDropZone">
-              ط§ط®طھط± ظ…ظ„ظپ Excel ظ„ظ…ط¹ط¯ظ„ ط§ظ„ط§ط³طھظ‡ظ„ط§ظƒ ط£ظˆ ط§ط³ط­ط¨ظ‡ ظ‡ظ†ط§
+              اختر ملف Excel لمعدل الاستهلاك أو اسحبه هنا
               <br>
-              <small>ط³ظٹطھظ… ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط±ظ‚ط© Data ظˆط±ط¤ظˆط³ ط§ظ„ط£ط¹ظ…ط¯ط© ظ‚ط¨ظ„ ط§ط³طھط¨ط¯ط§ظ„ ط§ظ„ظ†ط³ط®ط© ط§ظ„ط­ط§ظ„ظٹط© ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ.</small>
+              <small>سيتم التحقق من ورقة Data ورؤوس الأعمدة قبل استبدال النسخة الحالية في قاعدة البيانات.</small>
             </div>
-            <div class="upload-status" id="consumptionRateUploadStatus">ظ„ظ… ظٹطھظ… ط±ظپط¹ ظ…ط¹ط¯ظ„ ط§ظ„ط§ط³طھظ‡ظ„ط§ظƒ ط¨ط¹ط¯.</div>
+            <div class="upload-status" id="consumptionRateUploadStatus">لم يتم رفع معدل الاستهلاك بعد.</div>
             <div class="history-panel">
-              <h3>ط¢ط®ط± ط±ظپط¹ ظ„ظ…ط¹ط¯ظ„ ط§ظ„ط§ط³طھظ‡ظ„ط§ظƒ</h3>
-              <p class="hint">ظٹط¹ط±ط¶ ط§ظ„ظ†ط³ط®ط© ط§ظ„ط­ط§ظ„ظٹط© ظپظ‚ط· ط¨ط¹ط¯ ظ†ط¬ط§ط­ ط§ظ„ط­ظپط¸ ط§ظ„ظپط¹ظ„ظٹ.</p>
+              <h3>آخر رفع لمعدل الاستهلاك</h3>
+              <p class="hint">يعرض النسخة الحالية فقط بعد نجاح الحفظ الفعلي.</p>
               <div class="table-wrap"><table id="consumptionRateBatchesTable"></table></div>
             </div>
           </div>        </article>
       </section>
-      <section id="plants" class="section"><article class="panel glass"><h2>ظ…طµط§ظ†ط¹ ظˆظ…ط®ط§ط²ظ†</h2><div id="plantsFull" class="plants-full"></div></article></section>
-      <section id="movements" class="section"><article class="panel glass"><h2>ط§ظ„ط­ط±ظƒط§طھ ط§ظ„ظ…ط®ط²ظ†ظٹط©</h2><p class="hint">طھط¹ط±ظٹظپط§طھ ط£ظƒظˆط§ط¯ SAP ط§ظ„ظ…ط³طھط®ط¯ظ…ط© ظپظٹ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ط®ط§ط²ظ†.</p><div class="table-wrap"><table id="movementsTable"></table></div></article></section>
+      <section id="plants" class="section"><article class="panel glass"><h2>مصانع ومخازن</h2><div id="plantsFull" class="plants-full"></div></article></section>
+      <section id="movements" class="section"><article class="panel glass"><h2>الحركات المخزنية</h2><p class="hint">تعريفات أكواد SAP المستخدمة في مراجعة المخازن.</p><div class="table-wrap"><table id="movementsTable"></table></div></article></section>
       <section id="sales" class="section">
         <article class="panel glass">
           <div class="focus-mode-title-row" data-focus-section="sales">
-            <h2>ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¨ظٹط¹ ظˆط§ظ„طھط­ظˆظٹظ„ط§طھ</h2>
+            <h2>مراجعة البيع والتحويلات</h2>
             <div class="focus-mode-actions">
               <button class="secondary focus-mode-btn" id="salesFocusModeBtn" type="button" data-focus-target="sales">Focus Mode</button>
-              <button class="secondary focus-mode-close-btn" id="salesFocusModeCloseBtn" type="button" data-focus-close hidden>ط¥ط؛ظ„ط§ظ‚ Focus Mode</button>
+              <button class="secondary focus-mode-close-btn" id="salesFocusModeCloseBtn" type="button" data-focus-close hidden>إغلاق Focus Mode</button>
             </div>
           </div>
-          <p class="hint">ط§ط®طھط± طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط± ط«ظ… ظ…ط®ط²ظ† ط§ظ„ط¨ظٹط¹ ظ„ط¹ط±ط¶ ط§ظ„طھظ‚ط±ظٹط± ط§ظ„ظ…ط¬ظ…ط¹: ظƒظ…ظٹط© ط§ظ„ط¨ظٹط¹طŒ ط§ظ„ط¥ظ†طھط§ط¬طŒ ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ط©طŒ ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظˆط§ط±ط¯ط©طŒ ظˆط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„.</p>
+          <p class="hint">اختر تاريخ التقرير ثم مخزن البيع لعرض التقرير المجمع: كمية البيع، الإنتاج، التحويلات الصادرة، التحويلات الواردة، وإجمالي التحميل.</p>
           <div class="sales-report-date-bar">
             <label>
-              طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±
-              <select id="salesReportDateSelect"><option value="">ظƒظ„ ط§ظ„ظ†ط³ط® ط§ظ„ظ…طھط§ط­ط©</option></select>
+              تاريخ التقرير
+              <select id="salesReportDateSelect"><option value="">كل النسخ المتاحة</option></select>
             </label>
           </div>
           <div id="salesTabs" class="subtabs"></div>
           <div class="export-actions">
-            <button class="secondary export-btn" id="salesExportExcelBtn" type="button">طھطµط¯ظٹط± Excel</button>
-            <button class="secondary export-btn" id="salesExportPdfBtn" type="button">طھطµط¯ظٹط± PDF</button>
-            <button class="secondary export-btn" id="salesExportPngBtn" type="button">طھطµط¯ظٹط± PNG</button>
+            <button class="secondary export-btn" id="salesExportExcelBtn" type="button">تصدير Excel</button>
+            <button class="secondary export-btn" id="salesExportPdfBtn" type="button">تصدير PDF</button>
+            <button class="secondary export-btn" id="salesExportPngBtn" type="button">تصدير PNG</button>
           </div>
           <div class="table-wrap"><table id="salesTable"></table></div>
         </article>
@@ -390,24 +390,24 @@
       <section id="inbound" class="section">
         <article class="panel glass">
           <div class="focus-mode-title-row" data-focus-section="inbound">
-            <h2>ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظˆط§ط±ط¯</h2>
+            <h2>مراجعة الوارد</h2>
             <div class="focus-mode-actions">
               <button class="secondary focus-mode-btn" id="inboundFocusModeBtn" type="button" data-focus-target="inbound">Focus Mode</button>
-              <button class="secondary focus-mode-close-btn" id="inboundFocusModeCloseBtn" type="button" data-focus-close hidden>ط¥ط؛ظ„ط§ظ‚ Focus Mode</button>
+              <button class="secondary focus-mode-close-btn" id="inboundFocusModeCloseBtn" type="button" data-focus-close hidden>إغلاق Focus Mode</button>
             </div>
           </div>
-          <p class="hint">ظٹطھظ… ط¥ظ†ط´ط§ط، ظ†طھط§ط¦ط¬ ط§ظ„ظ…ط±ط§ط¬ط¹ط© طھظ„ظ‚ط§ط¦ظٹط§ظ‹ ط¹ظ†ط¯ طھظˆظپط± طھظ‚ط±ظٹط± ط§ظ„ظˆط§ط±ط¯ MB51 ظˆطھظ‚ط±ظٹط± ط§ظ„ظ…ظٹط²ط§ظ† ظ„ظ†ظپط³ طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±.</p>
+          <p class="hint">يتم إنشاء نتائج المراجعة تلقائياً عند توفر تقرير الوارد MB51 وتقرير الميزان لنفس تاريخ التقرير.</p>
           <button class="mobile-inbound-filter-trigger" id="mobileInboundFilterBtn" type="button" style="display:none" aria-controls="globalFilters" aria-expanded="false">
             <span class="mobile-filter-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg></span>
-            <span><b>ظپظ„طھط±ط© ط§ظ„ظ†طھط§ط¦ط¬</b><small>ط§ظ„ظ…طµظ†ط¹ / ط§ظ„ظ…ط®ط²ظ† / ط§ظ„ط­ط§ظ„ط© / ط§ظ„طھط§ط±ظٹط®</small></span>
+            <span><b>فلترة النتائج</b><small>المصنع / المخزن / الحالة / التاريخ</small></span>
           </button>
           <div class="mobile-inbound-filter-overlay" id="mobileInboundFilterOverlay" style="display:none" aria-hidden="true"></div>
           <div class="report-tools-row">
-            <div id="inboundResultsCount" class="hint">ط¹ط¯ط¯ ط§ظ„ط­ط±ظƒط§طھ ط§ظ„ظ…ط¹ط±ظˆط¶ط©: 0</div>            <div class="export-actions compact">
-              <button class="secondary export-btn" id="inboundExportExcelBtn" type="button">طھطµط¯ظٹط± Excel</button>
-              <button class="secondary export-btn" id="inboundExportPdfBtn" type="button">طھطµط¯ظٹط± PDF</button>
+            <div id="inboundResultsCount" class="hint">عدد الحركات المعروضة: 0</div>            <div class="export-actions compact">
+              <button class="secondary export-btn" id="inboundExportExcelBtn" type="button">تصدير Excel</button>
+              <button class="secondary export-btn" id="inboundExportPdfBtn" type="button">تصدير PDF</button>
               <div class="inbound-column-manager" id="inboundColumnManager">
-                <button class="secondary export-btn inbound-columns-btn" id="inboundColumnManagerBtn" type="button" aria-expanded="false" aria-controls="inboundColumnManagerPopover">ط¥ط¯ط§ط±ط© ط§ظ„ط£ط¹ظ…ط¯ط©</button>
+                <button class="secondary export-btn inbound-columns-btn" id="inboundColumnManagerBtn" type="button" aria-expanded="false" aria-controls="inboundColumnManagerPopover">إدارة الأعمدة</button>
                 <div class="inbound-column-popover" id="inboundColumnManagerPopover" hidden></div>
               </div>
             </div>
@@ -419,83 +419,83 @@
         <article class="panel glass raw-materials-shell">
           <div class="raw-materials-head">
             <div>
-              <h2>ظ…طھط§ط¨ط¹ط© ط§ظ„ط®ط§ظ…ط§طھ</h2>
-              <p class="hint">ظ…طھط§ط¨ط¹ط© ط£ط±طµط¯ط© ط§ظ„ط®ط§ظ…ط§طھ ظˆظ…ط¹ط¯ظ„ط§طھ ط§ظ„ط§ط³طھظ‡ظ„ط§ظƒ ظˆط¹ط¯ط¯ ط£ظٹط§ظ… ط§ظ„طھط؛ط·ظٹط©.</p>
+              <h2>متابعة الخامات</h2>
+              <p class="hint">متابعة أرصدة الخامات ومعدلات الاستهلاك وعدد أيام التغطية.</p>
             </div>
             <div class="focus-mode-actions raw-materials-actions">
-              <button class="secondary export-btn raw-materials-export-btn" id="rawMaterialsExportExcelBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M8 13h8M8 17h8"></path></svg><span>طھطµط¯ظٹط± Excel</span></button>
-              <button class="secondary export-btn raw-materials-export-btn" id="rawMaterialsExportPdfBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M8 12h8M8 16h5"></path></svg><span>طھطµط¯ظٹط± PDF</span></button>
-              <button class="secondary export-btn raw-materials-export-btn" id="rawMaterialsExportPngBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"></rect><path d="m8 15 3-3 2 2 3-4 2 5"></path><circle cx="9" cy="9" r="1"></circle></svg><span>طھطµط¯ظٹط± PNG</span></button>
-              <button class="secondary focus-mode-btn raw-materials-focus-btn" id="rawMaterialsFocusModeBtn" type="button" data-focus-target="raw_materials">Focus Mode</button><button class="secondary focus-mode-close-btn" id="rawMaterialsFocusModeCloseBtn" type="button" data-focus-close hidden>ط¥ط؛ظ„ط§ظ‚ Focus Mode</button>
+              <button class="secondary export-btn raw-materials-export-btn" id="rawMaterialsExportExcelBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M8 13h8M8 17h8"></path></svg><span>تصدير Excel</span></button>
+              <button class="secondary export-btn raw-materials-export-btn" id="rawMaterialsExportPdfBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M8 12h8M8 16h5"></path></svg><span>تصدير PDF</span></button>
+              <button class="secondary export-btn raw-materials-export-btn" id="rawMaterialsExportPngBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"></rect><path d="m8 15 3-3 2 2 3-4 2 5"></path><circle cx="9" cy="9" r="1"></circle></svg><span>تصدير PNG</span></button>
+              <button class="secondary focus-mode-btn raw-materials-focus-btn" id="rawMaterialsFocusModeBtn" type="button" data-focus-target="raw_materials">Focus Mode</button><button class="secondary focus-mode-close-btn" id="rawMaterialsFocusModeCloseBtn" type="button" data-focus-close hidden>إغلاق Focus Mode</button>
             </div>
           </div>
-          <div class="raw-materials-status upload-status" id="rawMaterialsStatus">ط¬ط§ظ‡ط² ظ„طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ ظ…طھط§ط¨ط¹ط© ط§ظ„ط®ط§ظ…ط§طھ.</div>
+          <div class="raw-materials-status upload-status" id="rawMaterialsStatus">جاهز لتحميل بيانات متابعة الخامات.</div>
           <button class="mobile-raw-materials-filter-trigger" id="mobileRawMaterialsFilterBtn" type="button" style="display:none" aria-controls="rawMaterialsFilters" aria-expanded="false">
             <span class="mobile-filter-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg></span>
-            <span><b>ظپظ„طھط±ط© ط§ظ„ظ†طھط§ط¦ط¬</b><small>ط§ظ„ظ…طµظ†ط¹ / ط§ظ„ظ…ط®ط²ظ† / ط§ظ„ظ…ط¬ظ…ظˆط¹ط© / ط§ظ„ط­ط§ظ„ط©</small></span>
+            <span><b>فلترة النتائج</b><small>المصنع / المخزن / المجموعة / الحالة</small></span>
           </button>
           <div class="mobile-raw-materials-filter-overlay" id="mobileRawMaterialsFilterOverlay" style="display:none" aria-hidden="true"></div>
           <div class="filters raw-materials-filters" id="rawMaterialsFilters">
-            <button class="mobile-raw-materials-filter-close" id="mobileRawMaterialsFilterCloseBtn" type="button" style="display:none" aria-label="ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظپظ„ط§طھط±">أ—</button>
+            <button class="mobile-raw-materials-filter-close" id="mobileRawMaterialsFilterCloseBtn" type="button" style="display:none" aria-label="إغلاق الفلاتر">×</button>
             <label>
-              ط§ظ„ظ…طµظ†ط¹
-              <select id="rawMaterialsPlantFilter"><option value="all">ظƒظ„ ط§ظ„ظ…طµط§ظ†ط¹</option></select>
+              المصنع
+              <select id="rawMaterialsPlantFilter"><option value="all">كل المصانع</option></select>
             </label>
             <label id="rawMaterialsWarehouseField" hidden>
-              ط§ظ„ظ…ط®ط²ظ†
-              <select id="rawMaterialsWarehouseFilter"><option value="all">ظƒظ„ ط§ظ„ظ…ط®ط§ط²ظ†</option></select>
+              المخزن
+              <select id="rawMaterialsWarehouseFilter"><option value="all">كل المخازن</option></select>
             </label>
             <label id="rawMaterialsWarehouseTypeField" hidden>
-              ظ†ظˆط¹ ط§ظ„ظ…ط®ط²ظ†
-              <select id="rawMaterialsWarehouseTypeFilter"><option value="all">ظƒظ„ ط£ظ†ظˆط§ط¹ ط§ظ„ظ…ط®ط§ط²ظ†</option></select>
+              نوع المخزن
+              <select id="rawMaterialsWarehouseTypeFilter"><option value="all">كل أنواع المخازن</option></select>
             </label>
             <label>
-              ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظˆط§ط¯
-              <select id="rawMaterialsGroupFilter"><option value="all">ظƒظ„ ط§ظ„ظ…ط¬ظ…ظˆط¹ط§طھ</option></select>
+              مجموعة المواد
+              <select id="rawMaterialsGroupFilter"><option value="all">كل المجموعات</option></select>
             </label>
             <label>
-              ط§ظ„ط­ط§ظ„ط©
+              الحالة
               <select id="rawMaterialsStatusFilter">
-                <option value="all">ظƒظ„ ط§ظ„ط­ط§ظ„ط§طھ</option>
-                <option value="no_consumption">ط¨ط¯ظˆظ† ط§ط³طھظ‡ظ„ط§ظƒ</option>
-                <option value="critical">ط­ط±ط¬</option>
-                <option value="low">ظ…ظ†ط®ظپط¶</option>
-                <option value="safe">ط¢ظ…ظ†</option>
-                <option value="comfortable">ظ…ط·ظ…ط¦ظ†</option>
-                <option value="surplus">ط²ط§ط¦ط¯</option>
+                <option value="all">كل الحالات</option>
+                <option value="no_consumption">بدون استهلاك</option>
+                <option value="critical">حرج</option>
+                <option value="low">منخفض</option>
+                <option value="safe">آمن</option>
+                <option value="comfortable">مطمئن</option>
+                <option value="surplus">زائد</option>
               </select>
             </label>
-            <button class="primary" id="rawMaterialsSearchBtn" type="button">ط¨ط­ط«</button>
-            <button class="secondary" id="rawMaterialsResetBtn" type="button">ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ†</button>
+            <button class="primary" id="rawMaterialsSearchBtn" type="button">بحث</button>
+            <button class="secondary" id="rawMaterialsResetBtn" type="button">إعادة تعيين</button>
           </div>
           <label class="raw-materials-mobile-tab-field" for="rawMaterialsMobileTabSelect">
-            طھط¨ظˆظٹط¨ ظ…طھط§ط¨ط¹ط© ط§ظ„ط®ط§ظ…ط§طھ
-            <select id="rawMaterialsMobileTabSelect" aria-label="ط§ط®طھظٹط§ط± طھط¨ظˆظٹط¨ ظ…طھط§ط¨ط¹ط© ط§ظ„ط®ط§ظ…ط§طھ">
-              <option value="main">ط®ط§ظ…ط§طھ ط±ط¦ظٹط³ظٹط©</option>
-              <option value="bran">ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ط±ط¯ط©</option>
-              <option value="packaging">ظ…ظˆط§ط¯ طھط¹ط¨ط¦ط© ظˆطھط؛ظ„ظٹظپ</option>
+            تبويب متابعة الخامات
+            <select id="rawMaterialsMobileTabSelect" aria-label="اختيار تبويب متابعة الخامات">
+              <option value="main">خامات رئيسية</option>
+              <option value="bran">مجموعة الردة</option>
+              <option value="packaging">مواد تعبئة وتغليف</option>
             </select>
           </label>
-          <div class="subtabs raw-materials-tabs" role="tablist" aria-label="طھط¨ظˆظٹط¨ط§طھ ظ…طھط§ط¨ط¹ط© ط§ظ„ط®ط§ظ…ط§طھ">
-            <button class="active" type="button" role="tab" aria-selected="true" aria-controls="rawMaterialsMainPanel" data-raw-materials-tab="main">ط®ط§ظ…ط§طھ ط±ط¦ظٹط³ظٹط©</button>
-            <button type="button" role="tab" aria-selected="false" aria-controls="rawMaterialsBranPanel" data-raw-materials-tab="bran">ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ط±ط¯ط©</button>
-            <button type="button" role="tab" aria-selected="false" aria-controls="rawMaterialsPackagingPanel" data-raw-materials-tab="packaging">ظ…ظˆط§ط¯ طھط¹ط¨ط¦ط© ظˆطھط؛ظ„ظٹظپ</button>
+          <div class="subtabs raw-materials-tabs" role="tablist" aria-label="تبويبات متابعة الخامات">
+            <button class="active" type="button" role="tab" aria-selected="true" aria-controls="rawMaterialsMainPanel" data-raw-materials-tab="main">خامات رئيسية</button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="rawMaterialsBranPanel" data-raw-materials-tab="bran">مجموعة الردة</button>
+            <button type="button" role="tab" aria-selected="false" aria-controls="rawMaterialsPackagingPanel" data-raw-materials-tab="packaging">مواد تعبئة وتغليف</button>
           </div>
           <div class="raw-materials-tab-panel active" id="rawMaterialsMainPanel" role="tabpanel" data-raw-materials-panel="main">
             <div class="raw-materials-table-card raw-materials-focus-container">
-              <div class="raw-materials-table-head"><h3>ط®ط§ظ…ط§طھ ط±ط¦ظٹط³ظٹط©</h3><span id="rawMaterialsMainCount">0 ظ…ط§ط¯ط©</span></div>
+              <div class="raw-materials-table-head"><h3>خامات رئيسية</h3><span id="rawMaterialsMainCount">0 مادة</span></div>
               <div class="table-wrap raw-materials-table-wrap"><table id="rawMaterialsMainTable"></table></div>
             </div>
           </div>
           <div class="raw-materials-tab-panel" id="rawMaterialsBranPanel" role="tabpanel" data-raw-materials-panel="bran" hidden>
             <div class="raw-materials-table-card raw-materials-focus-container">
-              <div class="raw-materials-table-head"><h3>ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ط±ط¯ط©</h3><span id="rawMaterialsBranCount">0 ظ…ط§ط¯ط©</span></div>
+              <div class="raw-materials-table-head"><h3>مجموعة الردة</h3><span id="rawMaterialsBranCount">0 مادة</span></div>
               <div class="table-wrap raw-materials-table-wrap"><table id="rawMaterialsBranTable"></table></div>
             </div>
           </div>
           <div class="raw-materials-tab-panel" id="rawMaterialsPackagingPanel" role="tabpanel" data-raw-materials-panel="packaging" hidden>
             <div class="raw-materials-table-card raw-materials-focus-container">
-              <div class="raw-materials-table-head"><h3>ظ…ظˆط§ط¯ طھط¹ط¨ط¦ط© ظˆطھط؛ظ„ظٹظپ</h3><span id="rawMaterialsPackagingCount">0 ظ…ط§ط¯ط©</span></div>
+              <div class="raw-materials-table-head"><h3>مواد تعبئة وتغليف</h3><span id="rawMaterialsPackagingCount">0 مادة</span></div>
               <div class="table-wrap raw-materials-table-wrap"><table id="rawMaterialsPackagingTable"></table></div>
             </div>
           </div>        </article>
@@ -503,70 +503,70 @@
         <article class="panel glass reports-center">
           <div class="reports-head">
             <div>
-              <h2>ظ…ط±ظƒط² ط§ظ„طھظ‚ط§ط±ظٹط± ط§ظ„طھظ†ظپظٹط°ظٹط©</h2>
-              <p class="hint">طھظ‚ط§ط±ظٹط± ط¥ط¯ط§ط±ظٹط© ظ…ط¨ظ†ظٹط© ط¹ظ„ظ‰ ط¨ظٹط§ظ†ط§طھ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¨ظٹط¹ ط§ظ„ظ…ط±ظپظˆط¹ط©طŒ ظ…ط¹ ظپظ„ط§طھط± ظ…ظˆط­ط¯ط© ظˆطھطµط¯ظٹط± PDF / Excel.</p>
+              <h2>مركز التقارير التنفيذية</h2>
+              <p class="hint">تقارير إدارية مبنية على بيانات مراجعة البيع المرفوعة، مع فلاتر موحدة وتصدير PDF / Excel.</p>
             </div>
             <div class="report-export-actions">
-              <button class="secondary export-btn" id="executiveReportExcelBtn" type="button">طھطµط¯ظٹط± Excel</button>
-              <button class="secondary export-btn" id="activeReportPdfBtn" type="button">طھطµط¯ظٹط± PDF</button>
-              <button class="secondary export-btn" id="activeReportPngBtn" type="button">طھطµط¯ظٹط± PNG</button>
+              <button class="secondary export-btn" id="executiveReportExcelBtn" type="button">تصدير Excel</button>
+              <button class="secondary export-btn" id="activeReportPdfBtn" type="button">تصدير PDF</button>
+              <button class="secondary export-btn" id="activeReportPngBtn" type="button">تصدير PNG</button>
             </div>
           </div>
           <div class="report-tabs" role="tablist">
-            <button class="report-tab active" type="button" data-report-tab="executive">ط§ظ„طھظ‚ط±ظٹط± ط§ظ„طھظ†ظپظٹط°ظٹ</button>
-            <button class="report-tab" type="button" data-report-tab="salesTotals">ظ…ظ„ط®طµ ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظ…ط®ط§ط²ظ†</button>
-            <button class="report-tab" type="button" data-report-tab="items">طھظ‚ط±ظٹط± ط§ظ„ط£طµظ†ط§ظپ</button>
-            <button class="report-tab" type="button" data-report-tab="item_analytics">طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط£طµظ†ط§ظپ</button>
-            <button class="report-tab" type="button" data-report-tab="warehouses">ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ†</button>
-            <button class="report-tab" type="button" data-report-tab="exceptions">ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ</button>
-            <button class="report-tab" type="button" data-report-tab="smart"><span class="tab-svg-icon" data-modern-icon="analytics" aria-hidden="true"></span> ط§ظ„طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط°ظƒظٹط©</button>
-            <button class="report-tab" type="button" data-report-tab="production"><span class="tab-svg-icon" data-modern-icon="production" aria-hidden="true"></span> طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط¥ظ†طھط§ط¬</button>
+            <button class="report-tab active" type="button" data-report-tab="executive">التقرير التنفيذي</button>
+            <button class="report-tab" type="button" data-report-tab="salesTotals">ملخص مبيعات المخازن</button>
+            <button class="report-tab" type="button" data-report-tab="items">تقرير الأصناف</button>
+            <button class="report-tab" type="button" data-report-tab="item_analytics">تحليلات الأصناف</button>
+            <button class="report-tab" type="button" data-report-tab="warehouses">أداء المخازن</button>
+            <button class="report-tab" type="button" data-report-tab="exceptions">الاستثناءات</button>
+            <button class="report-tab" type="button" data-report-tab="smart"><span class="tab-svg-icon" data-modern-icon="analytics" aria-hidden="true"></span> التحليلات الذكية</button>
+            <button class="report-tab" type="button" data-report-tab="production"><span class="tab-svg-icon" data-modern-icon="production" aria-hidden="true"></span> تحليلات الإنتاج</button>
           </div>
           <label class="mobile-reports-tab-field" for="mobileReportsTabSelect" style="display:none">
             <span class="mobile-reports-select-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 20V4h14v16"/><path d="M8 17v-5M12 17V7M16 17v-8"/></svg></span>
-            <span>ط§ط®طھط± ط§ظ„طھظ‚ط±ظٹط±</span>
-            <select id="mobileReportsTabSelect" aria-label="ط§ط®طھط± ط§ظ„طھظ‚ط±ظٹط±"></select>
+            <span>اختر التقرير</span>
+            <select id="mobileReportsTabSelect" aria-label="اختر التقرير"></select>
           </label>
           <button class="mobile-reports-filter-trigger" id="mobileReportsFilterBtn" type="button" style="display:none" aria-controls="executiveReportFilters" aria-expanded="false">
             <span class="mobile-filter-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/><circle cx="8" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="12" cy="18" r="2"/></svg></span>
-            <span><b>ظپظ„طھط±ط© ط§ظ„ظ†طھط§ط¦ط¬</b><small>ط§ظ„ظ…طµظ†ط¹ / ط§ظ„ظ…ط®ط²ظ† / ط§ظ„طھط§ط±ظٹط®</small></span>
+            <span><b>فلترة النتائج</b><small>المصنع / المخزن / التاريخ</small></span>
           </button>
           <div class="mobile-reports-filter-overlay" id="mobileReportsFilterOverlay" style="display:none" aria-hidden="true"></div>
           <section class="filters glass report-filters" id="executiveReportFilters">
-            <button class="mobile-reports-filter-close" id="mobileReportsFilterCloseBtn" type="button" style="display:none" aria-label="ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظپظ„ط§طھط±">أ—</button>
-            <label>ط§ظ„ظ…طµظ†ط¹<select id="reportPlantFilter"><option value="all">ظƒظ„ ط§ظ„ظ…طµط§ظ†ط¹</option></select></label>
-            <label>ط§ظ„ظ…ط®ط²ظ†<select id="reportWarehouseFilter"><option value="all">ظƒظ„ ظ…ط®ط§ط²ظ† ط§ظ„ط¨ظٹط¹</option></select></label>
-            <label class="item-analytics-filter-field" id="itemAnalyticsItemFilterField" hidden>ط§ظ„طµظ†ظپ<select id="itemAnalyticsItemFilter"><option value="all">ط§ط®طھط± طµظ†ظپظ‹ط§</option></select></label>
-            <label>ظ…ظ†<input type="date" id="reportFromDate"></label>
-            <label>ط¥ظ„ظ‰<input type="date" id="reportToDate"></label>
-            <button class="primary" id="reportSearchBtn" type="button">ط¨ط­ط« <span class="button-svg-icon" data-modern-icon="search" aria-hidden="true"></span></button>
-            <button class="secondary" id="reportResetBtn" type="button">ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† <span class="button-svg-icon" data-modern-icon="reset" aria-hidden="true"></span></button>
+            <button class="mobile-reports-filter-close" id="mobileReportsFilterCloseBtn" type="button" style="display:none" aria-label="إغلاق الفلاتر">×</button>
+            <label>المصنع<select id="reportPlantFilter"><option value="all">كل المصانع</option></select></label>
+            <label>المخزن<select id="reportWarehouseFilter"><option value="all">كل مخازن البيع</option></select></label>
+            <label class="item-analytics-filter-field" id="itemAnalyticsItemFilterField" hidden>الصنف<select id="itemAnalyticsItemFilter"><option value="all">اختر صنفًا</option></select></label>
+            <label>من<input type="date" id="reportFromDate"></label>
+            <label>إلى<input type="date" id="reportToDate"></label>
+            <button class="primary" id="reportSearchBtn" type="button">بحث <span class="button-svg-icon" data-modern-icon="search" aria-hidden="true"></span></button>
+            <button class="secondary" id="reportResetBtn" type="button">إعادة تعيين <span class="button-svg-icon" data-modern-icon="reset" aria-hidden="true"></span></button>
           </section>
           <div id="executiveReportContent" class="executive-report-content">
             <div class="executive-title-card">
-              <h3>ط§ظ„طھظ‚ط±ظٹط± ط§ظ„طھظ†ظپظٹط°ظٹ ظ„ظ…ط±ط§ط¬ط¹ط© ظ…ط®ط§ط²ظ† ط§ظ„ظ…ظ†طھط¬ ط§ظ„طھط§ظ…</h3>
-              <p id="executiveReportMeta">ط§ظ„ظپطھط±ط©: -- / ط§ظ„ظ…طµظ†ط¹: ط¬ظ…ظٹط¹ ط§ظ„ظ…طµط§ظ†ط¹ / ط§ظ„ظ…ط®ط²ظ†: ط¬ظ…ظٹط¹ ظ…ط®ط§ط²ظ† ط§ظ„ط¨ظٹط¹</p>
+              <h3>التقرير التنفيذي لمراجعة مخازن المنتج التام</h3>
+              <p id="executiveReportMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
             </div>
             <div class="cards report-kpis" id="executiveKpiCards"></div>
             <div class="report-grid-3">
-              <article class="panel glass report-chart-card"><h3>ط§طھط¬ط§ظ‡ ط§ظ„ط¨ظٹط¹ ظˆط§ظ„ط¥ظ†طھط§ط¬</h3><canvas id="reportLineChart" width="520" height="260"></canvas></article>
-              <article class="panel glass report-chart-card"><h3>ظ…ظ‚ط§ط±ظ†ط© ط£ط¯ط§ط، ط§ظ„ظ…طµط§ظ†ط¹</h3><canvas id="reportPlantChart" width="520" height="260"></canvas></article>
-              <article class="panel glass report-chart-card"><h3>طھظˆط²ظٹط¹ ط§ظ„ط¨ظٹط¹ ط¹ظ„ظ‰ ط§ظ„ظ…ط®ط§ط²ظ†</h3><canvas id="reportDonutChart" width="520" height="260"></canvas><div id="reportDonutLegend" class="legend report-donut-legend"></div></article>
+              <article class="panel glass report-chart-card"><h3>اتجاه البيع والإنتاج</h3><canvas id="reportLineChart" width="520" height="260"></canvas></article>
+              <article class="panel glass report-chart-card"><h3>مقارنة أداء المصانع</h3><canvas id="reportPlantChart" width="520" height="260"></canvas></article>
+              <article class="panel glass report-chart-card"><h3>توزيع البيع على المخازن</h3><canvas id="reportDonutChart" width="520" height="260"></canvas><div id="reportDonutLegend" class="legend report-donut-legend"></div></article>
             </div>
             <div class="report-grid-2">
-              <article class="panel glass"><h3>ط£ط¹ظ„ظ‰ 10 ط£طµظ†ط§ظپ ط¨ظٹط¹ط§ظ‹</h3><div class="rank-table-wrap report-rank-wrap"><table id="executiveTopProductsTable"></table></div></article>
-              <article class="panel glass"><h3>ط£ط¹ظ„ظ‰ 10 ظ…ط®ط§ط²ظ† ظ†ط´ط§ط·ط§ظ‹</h3><div class="rank-table-wrap report-rank-wrap"><table id="executiveTopWarehousesTable"></table></div></article>
+              <article class="panel glass"><h3>أعلى 10 أصناف بيعاً</h3><div class="rank-table-wrap report-rank-wrap"><table id="executiveTopProductsTable"></table></div></article>
+              <article class="panel glass"><h3>أعلى 10 مخازن نشاطاً</h3><div class="rank-table-wrap report-rank-wrap"><table id="executiveTopWarehousesTable"></table></div></article>
             </div>
             <article class="panel glass report-insights-card">
-              <h3>ظ…ط¤ط´ط±ط§طھ طھط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©</h3>
+              <h3>مؤشرات تحتاج مراجعة</h3>
               <div id="executiveInsights" class="executive-insights"></div>
             </article>
             <table id="executiveExportTable" class="hidden-export-table"></table>
           </div>
           <div id="salesTotalsReportContent" class="sales-totals-report-content report-panel-content" style="display:none">
             <div class="executive-title-card">
-              <h3>ظ…ظ„ط®طµ ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظ…ط®ط§ط²ظ†</h3>
-              <p id="salesTotalsReportMeta">ط§ظ„ظپطھط±ط©: --</p>
+              <h3>ملخص مبيعات المخازن</h3>
+              <p id="salesTotalsReportMeta">الفترة: --</p>
             </div>
             <div id="salesTotalsRows" class="sales-totals-rows"></div>
             <table id="salesTotalsExportTable" class="hidden-export-table"></table>
@@ -574,21 +574,21 @@
           <div id="itemsReportContent" class="items-report-content report-panel-content" style="display:none">
             <div class="executive-title-card items-report-title-card">
               <div class="items-report-title-text">
-                <h3>طھظ‚ط±ظٹط± ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط£طµظ†ط§ظپ</h3>
-                <p id="itemsReportMeta">ط§ظ„ظپطھط±ط©: -- / ط§ظ„ظ…طµظ†ط¹: ط¬ظ…ظٹط¹ ط§ظ„ظ…طµط§ظ†ط¹ / ط§ظ„ظ…ط®ط²ظ†: ط¬ظ…ظٹط¹ ظ…ط®ط§ط²ظ† ط§ظ„ط¨ظٹط¹</p>
+                <h3>تقرير مراجعة الأصناف</h3>
+                <p id="itemsReportMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
               </div>
-              <button class="secondary png-export-btn items-report-png-btn" id="itemsSummaryPngBtn" type="button">طھطµط¯ظٹط± ظ…ظ„ط®طµ PNG</button>
+              <button class="secondary png-export-btn items-report-png-btn" id="itemsSummaryPngBtn" type="button">تصدير ملخص PNG</button>
             </div>
             <div class="cards report-kpis item-report-summary" id="itemsReportKpis"></div>
             <div class="report-grid-2 item-report-top-grid">
-              <article class="panel glass"><h3>ط£ط¹ظ„ظ‰ 10 ط£طµظ†ط§ظپ طھط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©</h3><div class="rank-table-wrap report-rank-wrap tall"><table id="itemsReviewTopTable"></table></div></article>
-              <article class="panel glass"><h3>طھظˆط²ظٹط¹ ط­ط§ظ„ط§طھ ط§ظ„ط£طµظ†ط§ظپ</h3><div class="item-status-board" id="itemsStatusBoard"></div></article>
+              <article class="panel glass"><h3>أعلى 10 أصناف تحتاج مراجعة</h3><div class="rank-table-wrap report-rank-wrap tall"><table id="itemsReviewTopTable"></table></div></article>
+              <article class="panel glass"><h3>توزيع حالات الأصناف</h3><div class="item-status-board" id="itemsStatusBoard"></div></article>
             </div>
             <article class="panel glass item-report-main-card">
               <div class="report-section-head items-report-table-head">
-                <h3>ط¬ط¯ظˆظ„ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط£طµظ†ط§ظپ ط§ظ„ظ…ط¬ظ…ط¹</h3>
-                <span class="hint" id="itemsReportCount">ط¹ط¯ط¯ ط§ظ„ط£طµظ†ط§ظپ: 0</span>
-                <button class="secondary png-export-btn items-report-png-btn" id="itemsReviewTablePngBtn" type="button">طھطµط¯ظٹط± ط§ظ„ط¬ط¯ظˆظ„ PNG</button>
+                <h3>جدول مراجعة الأصناف المجمع</h3>
+                <span class="hint" id="itemsReportCount">عدد الأصناف: 0</span>
+                <button class="secondary png-export-btn items-report-png-btn" id="itemsReviewTablePngBtn" type="button">تصدير الجدول PNG</button>
               </div>
               <div class="rank-table-wrap item-report-table-wrap"><table id="itemsReportTable"></table></div>
             </article>
@@ -597,84 +597,84 @@
           <div id="itemAnalyticsContent" class="item-analytics-content report-panel-content" style="display:none">
             <div class="executive-title-card item-analytics-title-card">
               <div>
-                <h3>طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط£طµظ†ط§ظپ</h3>
-                <p id="itemAnalyticsMeta">ط§ط®طھط± طµظ†ظپظ‹ط§ ظˆط§ط­ط¯ظ‹ط§ ط£ظˆ ط£ظƒط«ط± ظ„ط¹ط±ط¶ طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط£طµظ†ط§ظپ</p>
+                <h3>تحليلات الأصناف</h3>
+                <p id="itemAnalyticsMeta">اختر صنفًا واحدًا أو أكثر لعرض تحليلات الأصناف</p>
               </div>
               <div class="item-analytics-title-note">Enterprise Item Intelligence Center</div>
             </div>
             <div id="itemAnalyticsEmptyState" class="panel glass item-analytics-empty">
-              <h3>ط§ط®طھط± طµظ†ظپظ‹ط§ ظˆط§ط­ط¯ظ‹ط§ ط£ظˆ ط£ظƒط«ط± ظ„ط¹ط±ط¶ طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط£طµظ†ط§ظپ</h3>
-              <p>ظ„ظ† ظٹطھظ… طھط­ظ…ظٹظ„ ط§ظ„طھط­ظ„ظٹظ„ط§طھ ظ‚ط¨ظ„ طھط­ط¯ظٹط¯ ط§ظ„طµظ†ظپ ظˆط§ظ„ط¶ط؛ط· ط¹ظ„ظ‰ ط¨ط­ط«.</p>
+              <h3>اختر صنفًا واحدًا أو أكثر لعرض تحليلات الأصناف</h3>
+              <p>لن يتم تحميل التحليلات قبل تحديد الصنف والضغط على بحث.</p>
             </div>
             <div id="itemAnalyticsResults" class="item-analytics-results" hidden>
               <article class="panel glass item-analytics-health-card">
-                <div class="report-section-head"><h3>ظ…ظ„ط®طµ ط­ط§ظ„ط© ط§ظ„طµظ†ظپ</h3><span id="itemAnalyticsHealthBadge" class="item-analytics-health-badge">--</span></div>
+                <div class="report-section-head"><h3>ملخص حالة الصنف</h3><span id="itemAnalyticsHealthBadge" class="item-analytics-health-badge">--</span></div>
                 <div id="itemAnalyticsHealthSummary" class="item-analytics-health-summary"></div>
               </article>
               <div class="cards report-kpis item-analytics-kpis" id="itemAnalyticsKpiCards"></div>
               <div class="item-analytics-grid-2">
-                <article class="panel glass item-analytics-heatmap-card"><h3>ط§ظ„ط®ط±ظٹط·ط© ط§ظ„ط­ط±ط§ط±ظٹط© ظ„ظ„ط¨ظٹط¹</h3><div id="itemAnalyticsSalesHeatmap" class="item-analytics-heatmap"></div></article>
-                <article class="panel glass item-analytics-heatmap-card"><h3>ط§ظ„ط®ط±ظٹط·ط© ط§ظ„ط­ط±ط§ط±ظٹط© ظ„ظ„ط¥ظ†طھط§ط¬</h3><div id="itemAnalyticsProductionHeatmap" class="item-analytics-heatmap"></div></article>
+                <article class="panel glass item-analytics-heatmap-card"><h3>الخريطة الحرارية للبيع</h3><div id="itemAnalyticsSalesHeatmap" class="item-analytics-heatmap"></div></article>
+                <article class="panel glass item-analytics-heatmap-card"><h3>الخريطة الحرارية للإنتاج</h3><div id="itemAnalyticsProductionHeatmap" class="item-analytics-heatmap"></div></article>
               </div>
               <div class="item-analytics-grid-2">
-                <article class="panel glass"><h3>طھظ‚ط±ظٹط± ط§ظ„ط£ط¯ط§ط، ط§ظ„ط¹ط§ظ… ظ„ظ„طµظ†ظپ</h3><div id="itemAnalyticsSalesPerformance" class="item-analytics-list"></div></article>
-                <article class="panel glass"><h3>ط§ظ„ظ…ظ‚ط§ط±ظ†ط© ط¨ط§ظ„ظپطھط±ط© ط§ظ„ط³ط§ط¨ظ‚ط©</h3><div id="itemAnalyticsPeriodComparison" class="item-analytics-list"></div></article>
+                <article class="panel glass"><h3>تقرير الأداء العام للصنف</h3><div id="itemAnalyticsSalesPerformance" class="item-analytics-list"></div></article>
+                <article class="panel glass"><h3>المقارنة بالفترة السابقة</h3><div id="itemAnalyticsPeriodComparison" class="item-analytics-list"></div></article>
               </div>
               <div class="item-analytics-grid-2">
-                <article class="panel glass"><h3>ظ…ط³ط§ظ‡ظ…ط© ط§ظ„طµظ†ظپ ظˆ ABC / Pareto</h3><div id="itemAnalyticsContribution" class="item-analytics-list"></div></article>
-                <article class="panel glass"><h3>ط§ظ„ظ…ظˆط³ظ…ظٹط© ظˆط§ظ„ط£ظ†ظ…ط§ط· ط§ظ„ظ…طھظƒط±ط±ط©</h3><div id="itemAnalyticsSeasonality" class="item-analytics-list"></div></article>
+                <article class="panel glass"><h3>مساهمة الصنف و ABC / Pareto</h3><div id="itemAnalyticsContribution" class="item-analytics-list"></div></article>
+                <article class="panel glass"><h3>الموسمية والأنماط المتكررة</h3><div id="itemAnalyticsSeasonality" class="item-analytics-list"></div></article>
               </div>
               <div class="item-analytics-grid-2">
-                <article class="panel glass"><h3>ط§ظ„ظ…ط®ط²ظˆظ† ظˆط§ظ„ط±ظƒظˆط¯ ظˆط§ظ„ظ†ظ‚طµ</h3><div id="itemAnalyticsInventorySignals" class="item-analytics-list"></div></article>
-                <article class="panel glass"><h3>ط§ظ„طھظˆظ‚ط¹ ط§ظ„ظ…ط³طھظ‚ط¨ظ„ظٹ</h3><div id="itemAnalyticsForecast" class="item-analytics-list"></div></article>
+                <article class="panel glass"><h3>المخزون والركود والنقص</h3><div id="itemAnalyticsInventorySignals" class="item-analytics-list"></div></article>
+                <article class="panel glass"><h3>التوقع المستقبلي</h3><div id="itemAnalyticsForecast" class="item-analytics-list"></div></article>
               </div>
               <div class="item-analytics-grid-2">
-                <article class="panel glass"><h3>طھظ†ط¨ظٹظ‡ط§طھ ط°ظƒظٹط©</h3><div id="itemAnalyticsAlerts" class="item-analytics-list"></div></article>
-                <article class="panel glass"><h3>طھظˆطµظٹط§طھ ط§ظ„ظ…ط±ط§ط¬ط¹ط©</h3><div id="itemAnalyticsRecommendations" class="item-analytics-list"></div></article>
+                <article class="panel glass"><h3>تنبيهات ذكية</h3><div id="itemAnalyticsAlerts" class="item-analytics-list"></div></article>
+                <article class="panel glass"><h3>توصيات المراجعة</h3><div id="itemAnalyticsRecommendations" class="item-analytics-list"></div></article>
               </div>
               <article class="panel glass item-analytics-audit-card">
-                <div class="report-section-head"><div><h3>طھطھط¨ط¹ ط­ط±ظƒط© ط§ظ„طµظ†ظپ ط®ظ„ط§ظ„ ط§ظ„ظپطھط±ط©</h3><p class="hint" id="itemAnalyticsAuditNote">ط§ظ„ظ…طµط¯ط±: طھط¬ظ…ظٹط¹ ظٹظˆظ…ظٹ ظ…ط¤ظƒط¯ ظ…ظ† sales_audit_report.</p></div><label class="item-analytics-audit-search">ط¨ط­ط«<input type="search" id="itemAnalyticsAuditSearch" placeholder="ط¨ط­ط« ط¯ط§ط®ظ„ ط§ظ„ط­ط±ظƒط©"></label></div>
+                <div class="report-section-head"><div><h3>تتبع حركة الصنف خلال الفترة</h3><p class="hint" id="itemAnalyticsAuditNote">المصدر: تجميع يومي مؤكد من sales_audit_report.</p></div><label class="item-analytics-audit-search">بحث<input type="search" id="itemAnalyticsAuditSearch" placeholder="بحث داخل الحركة"></label></div>
                 <div class="rank-table-wrap item-analytics-table-wrap"><table id="itemAnalyticsAuditTrailTable"></table></div>
               </article>
               <article class="panel glass item-analytics-comparison-card">
-                <div class="report-section-head"><h3>ط¬ط¯ظˆظ„ ظ…ظ‚ط§ط±ظ†ط© ط§ظ„ط£طµظ†ط§ظپ ط§ظ„ظ…ط®طھط§ط±ط©</h3><span class="hint" id="itemAnalyticsComparisonCount">0 طµظ†ظپ</span></div>
+                <div class="report-section-head"><h3>جدول مقارنة الأصناف المختارة</h3><span class="hint" id="itemAnalyticsComparisonCount">0 صنف</span></div>
                 <div class="rank-table-wrap item-analytics-table-wrap"><table id="itemAnalyticsComparisonTable"></table></div>
               </article>
             </div>
             <table id="itemAnalyticsExportTable" class="hidden-export-table"></table>
           </div>          <div id="warehousesReportContent" class="warehouses-report-content report-panel-content" style="display:none">
             <div class="executive-title-card">
-              <h3>طھظ‚ط±ظٹط± ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ†</h3>
-              <p id="warehousesReportMeta">ط§ظ„ظپطھط±ط©: -- / ط§ظ„ظ…طµظ†ط¹: ط¬ظ…ظٹط¹ ط§ظ„ظ…طµط§ظ†ط¹ / ط§ظ„ظ…ط®ط²ظ†: ط¬ظ…ظٹط¹ ظ…ط®ط§ط²ظ† ط§ظ„ط¨ظٹط¹</p>
+              <h3>تقرير أداء المخازن</h3>
+              <p id="warehousesReportMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
             </div>
             <div class="cards report-kpis warehouse-report-summary" id="warehousesReportKpis"></div>
             <div class="warehouse-report-performance-layout">
               <article class="panel glass warehouse-ranking-card">
-                <h3>طھط±طھظٹط¨ ط§ظ„ظ…ط®ط§ط²ظ† ط­ط³ط¨ ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„</h3>
+                <h3>ترتيب المخازن حسب إجمالي التحميل</h3>
                 <div class="warehouse-ranking-list" id="warehousesRankingList"></div>
               </article>
               <div class="warehouse-performance-main">
                 <div class="warehouse-quick-tiles" id="warehousesQuickTiles"></div>
                 <article class="panel glass warehouse-chart-card warehouse-chart-card-wide">
-                  <h3>ظ…ظ‚ط§ط±ظ†ط© ظ…ط®ط§ط²ظ† ط§ظ„ظ…ظ†طھط¬ ط§ظ„طھط§ظ…</h3>
+                  <h3>مقارنة مخازن المنتج التام</h3>
                   <canvas id="warehousesReportChart" width="1200" height="520"></canvas>
                 </article>
               </div>
             </div>
             <div class="warehouse-report-bottom-insights">
               <article class="panel glass warehouse-donut-card">
-                <h3>طھظˆط²ظٹط¹ ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„ ط¹ظ„ظ‰ ط§ظ„ظ…ط®ط§ط²ظ†</h3>
+                <h3>توزيع إجمالي التحميل على المخازن</h3>
                 <canvas id="warehousesLoadingDonut" width="420" height="300"></canvas>
                 <div id="warehousesLoadingLegend" class="warehouse-donut-legend"></div>
               </article>
-              <article class="panel glass warehouse-mini-table-card"><h3>ط£ط¹ظ„ظ‰ 5 ظ…ط®ط§ط²ظ† ط­ط³ط¨ ط§ظ„ط¨ظٹط¹</h3><div id="warehouseTopSalesMini" class="warehouse-mini-table"></div></article>
-              <article class="panel glass warehouse-mini-table-card"><h3>ط£ط¹ظ„ظ‰ 5 ظ…ط®ط§ط²ظ† ط­ط³ط¨ ط§ظ„ط¥ظ†طھط§ط¬</h3><div id="warehouseTopProductionMini" class="warehouse-mini-table"></div></article>
-              <article class="panel glass warehouse-mini-table-card"><h3>ط£ط¹ظ„ظ‰ 5 ظ…ط®ط§ط²ظ† ط­ط³ط¨ ط§ظ„طھط­ظ…ظٹظ„</h3><div id="warehouseTopLoadingMini" class="warehouse-mini-table"></div></article>
+              <article class="panel glass warehouse-mini-table-card"><h3>أعلى 5 مخازن حسب البيع</h3><div id="warehouseTopSalesMini" class="warehouse-mini-table"></div></article>
+              <article class="panel glass warehouse-mini-table-card"><h3>أعلى 5 مخازن حسب الإنتاج</h3><div id="warehouseTopProductionMini" class="warehouse-mini-table"></div></article>
+              <article class="panel glass warehouse-mini-table-card"><h3>أعلى 5 مخازن حسب التحميل</h3><div id="warehouseTopLoadingMini" class="warehouse-mini-table"></div></article>
             </div>
             <article class="panel glass warehouse-report-main-card">
               <div class="report-section-head">
-                <h3>ط¬ط¯ظˆظ„ ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ† ط§ظ„ظ…ط¬ظ…ط¹</h3>
-                <span class="hint" id="warehousesReportCount">ط¹ط¯ط¯ ط§ظ„ظ…ط®ط§ط²ظ†: 0</span>
+                <h3>جدول أداء المخازن المجمع</h3>
+                <span class="hint" id="warehousesReportCount">عدد المخازن: 0</span>
               </div>
               <div class="rank-table-wrap warehouse-report-table-wrap"><table id="warehousesReportTable"></table></div>
             </article>
@@ -682,24 +682,24 @@
           </div>
           <div id="exceptionsReportContent" class="exceptions-report-content report-panel-content" style="display:none">
             <div class="executive-title-card">
-              <h3>طھظ‚ط±ظٹط± ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ ظˆط§ظ„ظ…ط±ط§ط¬ط¹ط©</h3>
-              <p id="exceptionsReportMeta">ط§ظ„ظپطھط±ط©: -- / ط§ظ„ظ…طµظ†ط¹: ط¬ظ…ظٹط¹ ط§ظ„ظ…طµط§ظ†ط¹ / ط§ظ„ظ…ط®ط²ظ†: ط¬ظ…ظٹط¹ ظ…ط®ط§ط²ظ† ط§ظ„ط¨ظٹط¹</p>
+              <h3>تقرير الاستثناءات والمراجعة</h3>
+              <p id="exceptionsReportMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
             </div>
             <div class="cards report-kpis exceptions-report-summary" id="exceptionsReportKpis"></div>
             <div class="exceptions-report-layout">
               <article class="panel glass exceptions-chart-card">
-                <h3>طھظˆط²ظٹط¹ ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ ط­ط³ط¨ ط§ظ„ظ†ظˆط¹</h3>
+                <h3>توزيع الاستثناءات حسب النوع</h3>
                 <canvas id="exceptionsReportChart" width="760" height="360"></canvas>
               </article>
               <article class="panel glass exceptions-priority-card">
-                <h3>ط£ظˆظ„ظˆظٹط§طھ ط§ظ„ظ…ط±ط§ط¬ط¹ط©</h3>
+                <h3>أولويات المراجعة</h3>
                 <div id="exceptionsPriorityList" class="exceptions-priority-list"></div>
               </article>
             </div>
             <article class="panel glass exceptions-report-main-card">
               <div class="report-section-head">
-                <h3>ط¬ط¯ظˆظ„ ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ ط§ظ„طھظپطµظٹظ„ظٹ</h3>
-                <span class="hint" id="exceptionsReportCount">ط¹ط¯ط¯ ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ: 0</span>
+                <h3>جدول الاستثناءات التفصيلي</h3>
+                <span class="hint" id="exceptionsReportCount">عدد الاستثناءات: 0</span>
               </div>
               <div class="rank-table-wrap exceptions-report-table-wrap"><table id="exceptionsReportTable"></table></div>
             </article>
@@ -710,42 +710,42 @@
           <div id="productionAnalyticsContent" class="production-analytics-content report-panel-content" style="display:none">
             <div class="executive-title-card production-title-card">
               <div>
-                <h3><span class="tab-svg-icon" data-modern-icon="production" aria-hidden="true"></span> طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط¥ظ†طھط§ط¬</h3>
-                <p id="productionAnalyticsMeta">ط§ظ„ظپطھط±ط©: -- / ط§ظ„ظ…طµظ†ط¹: ط¬ظ…ظٹط¹ ط§ظ„ظ…طµط§ظ†ط¹ / ط§ظ„ظ…ط®ط²ظ†: ط¬ظ…ظٹط¹ ظ…ط®ط§ط²ظ† ط§ظ„ط¨ظٹط¹</p>
+                <h3><span class="tab-svg-icon" data-modern-icon="production" aria-hidden="true"></span> تحليلات الإنتاج</h3>
+                <p id="productionAnalyticsMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
               </div>
-              <div class="production-title-note">طھط­ظ„ظٹظ„ ط´ط§ظ…ظ„ ظ„ط¥ظ†طھط§ط¬ ط§ظ„ظ…طµط§ظ†ط¹ ط­ط³ط¨ ط§ظ„ظپظ„ط§طھط± ط§ظ„ط­ط§ظ„ظٹط©</div>
+              <div class="production-title-note">تحليل شامل لإنتاج المصانع حسب الفلاتر الحالية</div>
             </div>
             <div class="cards report-kpis production-kpis" id="productionKpiCards"></div>
             <div class="production-grid-main">
               <article class="panel glass production-chart-card">
-                <h3>ط¥ط¬ظ…ط§ظ„ظٹ ط¥ظ†طھط§ط¬ ظƒظ„ ظ…طµظ†ط¹</h3>
+                <h3>إجمالي إنتاج كل مصنع</h3>
                 <canvas id="productionPlantBarChart" width="680" height="320"></canvas>
               </article>
               <article class="panel glass production-chart-card">
-                <h3>ظ†ط³ط¨ط© ظ…ط³ط§ظ‡ظ…ط© ظƒظ„ ظ…طµظ†ط¹ ظپظٹ ط§ظ„ط¥ظ†طھط§ط¬</h3>
+                <h3>نسبة مساهمة كل مصنع في الإنتاج</h3>
                 <canvas id="productionContributionDonut" width="520" height="320"></canvas>
                 <div id="productionContributionLegend" class="legend production-legend"></div>
               </article>
             </div>
             <div class="production-grid-main production-heatmap-row">
               <article class="panel glass production-heatmap-card">
-                <h3>ط®ط±ظٹط·ط© ط­ط±ط§ط±ظٹط© ظ„ظ„ط¥ظ†طھط§ط¬ ظپظٹ ظƒظ„ ظ…طµظ†ط¹</h3>
-                <p class="hint">ط£ط¹ظ„ظ‰ ظٹظˆظ… ط¨ط§ظ„ظ„ظˆظ† ط§ظ„ط°ظ‡ط¨ظٹ ظˆط£ظ‚ظ„ ظٹظˆظ… ط¨ط§ظ„ظ„ظˆظ† ط§ظ„ط£ط­ظ…ط±</p>
+                <h3>خريطة حرارية للإنتاج في كل مصنع</h3>
+                <p class="hint">أعلى يوم باللون الذهبي وأقل يوم باللون الأحمر</p>
                 <div id="productionPlantHeatmap" class="production-heatmap-matrix"></div>
               </article>
               <article class="panel glass production-heatmap-card">
-                <h3>ط§ظ„ط®ط±ظٹط·ط© ط§ظ„ط­ط±ط§ط±ظٹط© ظ„ط¥ظ†طھط§ط¬ ط¬ظ…ظٹط¹ ط§ظ„ظ…طµط§ظ†ط¹</h3>
-                <p class="hint">ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ظ†طھط§ط¬ ط§ظ„ظٹظˆظ…ظٹ ظ„ظƒظ„ ط§ظ„ظ…طµط§ظ†ط¹ ط­ط³ط¨ ط§ظ„ظپظ„طھط±</p>
+                <h3>الخريطة الحرارية لإنتاج جميع المصانع</h3>
+                <p class="hint">إجمالي الإنتاج اليومي لكل المصانع حسب الفلتر</p>
                 <div id="productionAllHeatmap" class="production-all-heatmap"></div>
               </article>
             </div>
             <div class="production-grid-main production-bottom-row">
               <article class="panel glass production-top-card">
-                <h3>ط£ط¹ظ„ظ‰ 10 ط£طµظ†ط§ظپ ط¥ظ†طھط§ط¬ط§ظ‹</h3>
+                <h3>أعلى 10 أصناف إنتاجاً</h3>
                 <div class="rank-table-wrap production-top-wrap"><table id="productionTopProductsTable"></table></div>
               </article>
               <article class="panel glass production-insights-card">
-                <h3>طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط¥ظ†طھط§ط¬</h3>
+                <h3>تحليلات الإنتاج</h3>
                 <div id="productionInsights" class="production-insights-list"></div>
               </article>
             </div>
@@ -755,8 +755,8 @@
           <div id="smartAnalyticsContent" class="smart-analytics-content report-panel-content" style="display:none">
             <div class="executive-title-card smart-title-card smart-title-actions-card">
               <div>
-                <h3><span class="tab-svg-icon" data-modern-icon="analytics" aria-hidden="true"></span> ط§ظ„طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط°ظƒظٹط© ظ„ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ط®ط§ط²ظ†</h3>
-                <p id="smartAnalyticsMeta">ط§ظ„ظپطھط±ط©: -- / ط§ظ„ظ…طµظ†ط¹: ط¬ظ…ظٹط¹ ط§ظ„ظ…طµط§ظ†ط¹ / ط§ظ„ظ…ط®ط²ظ†: ط¬ظ…ظٹط¹ ظ…ط®ط§ط²ظ† ط§ظ„ط¨ظٹط¹</p>
+                <h3><span class="tab-svg-icon" data-modern-icon="analytics" aria-hidden="true"></span> التحليلات الذكية لمراجعة المخازن</h3>
+                <p id="smartAnalyticsMeta">الفترة: -- / المصنع: جميع المصانع / المخزن: جميع مخازن البيع</p>
               </div>
               <div class="smart-export-actions">
                 <button class="secondary export-btn" id="smartVisualPdfBtn" type="button">PDF</button>
@@ -766,45 +766,45 @@
             <div class="cards report-kpis smart-kpis" id="smartKpiCards"></div>
             <div class="smart-visual-grid">
               <article class="panel glass smart-chart-card">
-                <div class="smart-card-head"><h3>ظ…ط¤ط´ط± ط§ظ„طھظˆط§ط²ظ† ط¨ظٹظ† ط§ظ„ط¨ظٹط¹ ظˆط§ظ„ط¥ظ†طھط§ط¬</h3><span class="smart-badge">Balance</span></div>
+                <div class="smart-card-head"><h3>مؤشر التوازن بين البيع والإنتاج</h3><span class="smart-badge">Balance</span></div>
                 <canvas id="smartMixChart" width="700" height="280"></canvas>
               </article>
               <article class="panel glass smart-chart-card">
-                <div class="smart-card-head"><h3>ط¯ط±ط¬ط§طھ ط§ظ„ظ…طµط§ظ†ط¹ ط¨طµط±ظٹط§ظ‹</h3><span class="smart-badge">Score</span></div>
+                <div class="smart-card-head"><h3>درجات المصانع بصرياً</h3><span class="smart-badge">Score</span></div>
                 <canvas id="smartPlantScoreChart" width="700" height="280"></canvas>
               </article>
             </div>
             <div class="smart-summary-layout">
               <article class="panel glass smart-summary-card">
                 <div class="smart-card-head">
-                  <h3>ط§ظ„ظ…ظ„ط®طµ ط§ظ„طھظ†ظپظٹط°ظٹ ط§ظ„طھظ„ظ‚ط§ط¦ظٹ</h3>
+                  <h3>الملخص التنفيذي التلقائي</h3>
                   <span class="smart-badge">Auto Insights</span>
                 </div>
                 <div id="smartExecutiveSummary" class="smart-summary-list"></div>
               </article>
               <article class="panel glass smart-score-card">
-                <div class="smart-card-head"><h3>ط¯ط±ط¬ط© ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…طµط§ظ†ط¹</h3><span class="smart-badge">Audit Score</span></div>
+                <div class="smart-card-head"><h3>درجة مراجعة المصانع</h3><span class="smart-badge">Audit Score</span></div>
                 <div id="smartPlantScores" class="smart-score-list"></div>
               </article>
             </div>
             <div class="smart-grid-3">
               <article class="panel glass smart-panel">
-                <h3><span class="title-svg-icon" data-modern-icon="alert" aria-hidden="true"></span> طھظ†ط¨ظٹظ‡ط§طھ ط°ظƒظٹط©</h3>
+                <h3><span class="title-svg-icon" data-modern-icon="alert" aria-hidden="true"></span> تنبيهات ذكية</h3>
                 <div id="smartAlerts" class="smart-alerts-list"></div>
               </article>
               <article class="panel glass smart-panel">
-                <h3><span class="title-svg-icon" data-modern-icon="reports" aria-hidden="true"></span> ط£ط¹ظ„ظ‰ ط§ظ„ظ…ط¤ط´ط±ط§طھ</h3>
+                <h3><span class="title-svg-icon" data-modern-icon="reports" aria-hidden="true"></span> أعلى المؤشرات</h3>
                 <div id="smartTopInsights" class="smart-top-list"></div>
               </article>
               <article class="panel glass smart-panel">
-                <h3><span class="title-svg-icon" data-modern-icon="check" aria-hidden="true"></span> طھظˆطµظٹط§طھ ط§ظ„ظ…ط±ط§ط¬ط¹ط©</h3>
+                <h3><span class="title-svg-icon" data-modern-icon="check" aria-hidden="true"></span> توصيات المراجعة</h3>
                 <div id="smartRecommendations" class="smart-recommendations-list"></div>
               </article>
             </div>
             <article class="panel glass smart-trend-card">
               <div class="smart-card-head">
-                <h3>طھط­ظ„ظٹظ„ ط§ظ„ط§طھط¬ط§ظ‡ ط®ظ„ط§ظ„ ط§ظ„ظپطھط±ط©</h3>
-                <span class="hint" id="smartTrendHint">ط¢ط®ط± 30 ظٹظˆظ… ط­ط³ط¨ ط§ظ„ظپظ„ط§طھط±</span>
+                <h3>تحليل الاتجاه خلال الفترة</h3>
+                <span class="hint" id="smartTrendHint">آخر 30 يوم حسب الفلاتر</span>
               </div>
               <div id="smartTrendAnalysis" class="smart-trend-list"></div>
             </article>
@@ -816,43 +816,43 @@
         <article class="panel glass users-management-panel users-enterprise-panel" id="usersManagementCapture">
           <div class="users-hero">
             <div>
-              <div class="section-eyebrow">ط¥ط¯ط§ط±ط© ط§ظ„ظ†ط¸ط§ظ…</div>
-              <h2>ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ† <span class="hero-icon" data-modern-icon="users" aria-hidden="true"></span></h2>
-              <p class="hint">ط¥ط¯ط§ط±ط© ظ…ط³طھط®ط¯ظ…ظٹ ط§ظ„ظ†ط¸ط§ظ… ظˆطھط­ط¯ظٹط¯ ط£ط¯ظˆط§ط±ظ‡ظ… ظˆط­ط§ظ„ط© ط§ظ„طھظپط¹ظٹظ„. ط¬ظ…ظٹط¹ ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ† ظ„ط¯ظٹظ‡ظ… ط±ط¤ظٹط© ظƒط§ظ…ظ„ط© ظ„ظ„ظ…طµط§ظ†ط¹ ط§ظ„ط«ظ„ط§ط«ط©طŒ ظˆظٹطھظ… ط§ظ„طھط­ظƒظ… ظپظ‚ط· ظپظٹ ط§ظ„ط¯ظˆط± ظˆط­ط§ظ„ط© ط§ظ„ط­ط³ط§ط¨.</p>
+              <div class="section-eyebrow">إدارة النظام</div>
+              <h2>إدارة المستخدمين <span class="hero-icon" data-modern-icon="users" aria-hidden="true"></span></h2>
+              <p class="hint">إدارة مستخدمي النظام وتحديد أدوارهم وحالة التفعيل. جميع المستخدمين لديهم رؤية كاملة للمصانع الثلاثة، ويتم التحكم فقط في الدور وحالة الحساب.</p>
             </div>
             <div class="users-hero-actions">
-              <button class="primary users-open-create" id="openCreateUserModalBtn" type="button">+ ظ…ط³طھط®ط¯ظ… ط¬ط¯ظٹط¯</button>
-              <button class="secondary" id="refreshUsersBtn" type="button">طھط­ط¯ظٹط« <span class="button-svg-icon" data-modern-icon="refresh" aria-hidden="true"></span></button>
+              <button class="primary users-open-create" id="openCreateUserModalBtn" type="button">+ مستخدم جديد</button>
+              <button class="secondary" id="refreshUsersBtn" type="button">تحديث <span class="button-svg-icon" data-modern-icon="refresh" aria-hidden="true"></span></button>
             </div>
           </div>
 
           <div class="users-kpi-grid">
-            <article class="users-kpi-card"><span class="users-kpi-icon blue" data-modern-icon="users" aria-hidden="true"></span><b id="usersTotalCount">0</b><small>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†</small></article>
-            <article class="users-kpi-card"><span class="users-kpi-icon green" data-modern-icon="userCheck" aria-hidden="true"></span><b id="usersActiveCount">0</b><small>ط§ظ„ظ…ط³طھط®ط¯ظ…ظˆظ† ط§ظ„ظ†ط´ط·ظˆظ†</small></article>
-            <article class="users-kpi-card"><span class="users-kpi-icon red" data-modern-icon="userX" aria-hidden="true"></span><b id="usersInactiveCount">0</b><small>ط§ظ„ظ…ط³طھط®ط¯ظ…ظˆظ† ط§ظ„ظ…ط¹ط·ظ„ظˆظ†</small></article>
-            <article class="users-kpi-card super"><span class="users-kpi-icon gold" data-modern-icon="shield" aria-hidden="true"></span><b id="usersSuperCount">0</b><small>ظ…ظ†ط´ط¦ ط§ظ„ظ†ط¸ط§ظ…</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon blue" data-modern-icon="users" aria-hidden="true"></span><b id="usersTotalCount">0</b><small>إجمالي المستخدمين</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon green" data-modern-icon="userCheck" aria-hidden="true"></span><b id="usersActiveCount">0</b><small>المستخدمون النشطون</small></article>
+            <article class="users-kpi-card"><span class="users-kpi-icon red" data-modern-icon="userX" aria-hidden="true"></span><b id="usersInactiveCount">0</b><small>المستخدمون المعطلون</small></article>
+            <article class="users-kpi-card super"><span class="users-kpi-icon gold" data-modern-icon="shield" aria-hidden="true"></span><b id="usersSuperCount">0</b><small>منشئ النظام</small></article>
             <article class="users-kpi-card"><span class="users-kpi-icon purple" data-modern-icon="role" aria-hidden="true"></span><b id="usersAdminCount">0</b><small>Admin</small></article>
             <article class="users-kpi-card"><span class="users-kpi-icon cyan" data-modern-icon="userCheck" aria-hidden="true"></span><b id="usersAuditorCount">0</b><small>Auditor</small></article>
             <article class="users-kpi-card"><span class="users-kpi-icon slate" data-modern-icon="eye" aria-hidden="true"></span><b id="usersViewerCount">0</b><small>Viewer</small></article>
           </div>
 
           <div class="users-toolbar glass-soft">
-            <button class="primary users-open-create" type="button">+ ظ…ط³طھط®ط¯ظ… ط¬ط¯ظٹط¯</button>
+            <button class="primary users-open-create" type="button">+ مستخدم جديد</button>
             <div class="users-search-box">
               <span class="ui-svg-icon" data-modern-icon="search" aria-hidden="true"></span>
-              <input id="usersQuickSearch" type="search" placeholder="ط¨ط­ط« ط¨ط§ظ„ط§ط³ظ… ط£ظˆ ط§ظ„ط¨ط±ظٹط¯ ط£ظˆ ط§ظ„ظˆط¸ظٹظپط© ط£ظˆ ط§ظ„ظ‡ط§طھظپ..." />
+              <input id="usersQuickSearch" type="search" placeholder="بحث بالاسم أو البريد أو الوظيفة أو الهاتف..." />
             </div>
-            <select id="usersRoleFilter" title="ظپظ„طھط± ط§ظ„ط¯ظˆط±">
-              <option value="all">ظƒظ„ ط§ظ„ط£ط¯ظˆط§ط±</option>
+            <select id="usersRoleFilter" title="فلتر الدور">
+              <option value="all">كل الأدوار</option>
               <option value="admin">Admin</option>
               <option value="auditor">Auditor</option>
               <option value="viewer">Viewer</option>
-              <option value="super_admin">ظ…ظ†ط´ط¦ ط§ظ„ظ†ط¸ط§ظ…</option>
+              <option value="super_admin">منشئ النظام</option>
             </select>
-            <select id="usersStatusFilter" title="ظپظ„طھط± ط§ظ„ط­ط§ظ„ط©">
-              <option value="all">ظƒظ„ ط§ظ„ط­ط§ظ„ط§طھ</option>
-              <option value="active">ط§ظ„ظ†ط´ط· ظپظ‚ط·</option>
-              <option value="inactive">ط§ظ„ظ…ط¹ط·ظ„ ظپظ‚ط·</option>
+            <select id="usersStatusFilter" title="فلتر الحالة">
+              <option value="all">كل الحالات</option>
+              <option value="active">النشط فقط</option>
+              <option value="inactive">المعطل فقط</option>
             </select>
             <button class="secondary" id="usersExportExcelBtn" type="button">Excel</button>
             <button class="secondary" id="usersExportPdfBtn" type="button">PDF</button>
@@ -867,19 +867,19 @@
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>ط§ظ„طµظˆط±ط©</th>
-                    <th>ط§ظ„ط§ط³ظ…</th>
-                    <th>ط§ظ„ظˆط¸ظٹظپط©</th>
-                    <th>ط§ظ„ط¨ط±ظٹط¯</th>
-                    <th>ط§ظ„ظ‡ط§طھظپ</th>
-                    <th>ط§ظ„ط¯ظˆط±</th>
-                    <th>ط§ظ„ط­ط§ظ„ط©</th>
-                    <th>ط¢ط®ط± طھط­ط¯ظٹط«</th>
-                    <th>ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ</th>
+                    <th>الصورة</th>
+                    <th>الاسم</th>
+                    <th>الوظيفة</th>
+                    <th>البريد</th>
+                    <th>الهاتف</th>
+                    <th>الدور</th>
+                    <th>الحالة</th>
+                    <th>آخر تحديث</th>
+                    <th>الإجراءات</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td colspan="10" class="empty-row">ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†...</td></tr>
+                  <tr><td colspan="10" class="empty-row">جاري تحميل المستخدمين...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -891,30 +891,30 @@
         <div class="modal-card users-modal-card" role="dialog" aria-modal="true" aria-labelledby="userFormTitle">
           <div class="modal-head users-modal-head">
             <div>
-              <h3 id="userFormTitle">ط¥ط¶ط§ظپط© ظ…ط³طھط®ط¯ظ… ط¬ط¯ظٹط¯</h3>
-              <p class="hint small-hint">Super Admin ظ„ط§ ظٹطھظ… ط¥ظ†ط´ط§ط¤ظ‡ ظ…ظ† ظ‡ط°ظ‡ ط§ظ„ط´ط§ط´ط©. ط§ظ„ط£ط¯ظˆط§ط± ط§ظ„ظ…طھط§ط­ط©: Admin / Auditor / Viewer ظپظ‚ط·.</p>
+              <h3 id="userFormTitle">إضافة مستخدم جديد</h3>
+              <p class="hint small-hint">Super Admin لا يتم إنشاؤه من هذه الشاشة. الأدوار المتاحة: Admin / Auditor / Viewer فقط.</p>
             </div>
-            <button type="button" class="modal-close" id="closeUserModalBtn">أ—</button>
+            <button type="button" class="modal-close" id="closeUserModalBtn">×</button>
           </div>
           <form id="userManagementForm" class="user-form-card users-modal-form">
             <input type="hidden" id="managedUserId" />
             <div class="users-form-grid">
-              <label>ط§ظ„ط§ط³ظ…
-                <input type="text" id="managedUserFullName" placeholder="ط§ط³ظ… ط§ظ„ظ…ط³طھط®ط¯ظ…" required />
+              <label>الاسم
+                <input type="text" id="managedUserFullName" placeholder="اسم المستخدم" required />
               </label>
-              <label>ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ
+              <label>البريد الإلكتروني
                 <input type="email" id="managedUserEmail" placeholder="user@company.com" autocomplete="off" required />
               </label>
-              <label>ط§ظ„ظˆط¸ظٹظپط©
-                <input type="text" id="managedUserJobTitle" placeholder="ظ…ط«ط§ظ„: ظ…ط±ط§ط¬ط¹ ظ…ط®ط§ط²ظ†" />
+              <label>الوظيفة
+                <input type="text" id="managedUserJobTitle" placeholder="مثال: مراجع مخازن" />
               </label>
-              <label>ط±ظ‚ظ… ط§ظ„طھظ„ظٹظپظˆظ†
+              <label>رقم التليفون
                 <input type="tel" id="managedUserPhone" placeholder="01000000000" />
               </label>
-              <label>ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ظ…ط¤ظ‚طھط©
-                <input type="password" id="managedUserPassword" placeholder="ظ…ط·ظ„ظˆط¨ط© ط¹ظ†ط¯ ط¥ط¶ط§ظپط© ظ…ط³طھط®ط¯ظ… ط¬ط¯ظٹط¯" autocomplete="new-password" />
+              <label>كلمة المرور المؤقتة
+                <input type="password" id="managedUserPassword" placeholder="مطلوبة عند إضافة مستخدم جديد" autocomplete="new-password" />
               </label>
-              <label>ط§ظ„ط¯ظˆط±
+              <label>الدور
                 <select id="managedUserRole">
                   <option value="admin">Admin</option>
                   <option value="auditor">Auditor</option>
@@ -924,12 +924,12 @@
             </div>
             <label class="inline-check users-active-check">
               <input type="checkbox" id="managedUserActive" checked />
-              <span>ظ…ط³طھط®ط¯ظ… ظ…ظپط¹ظ„</span>
+              <span>مستخدم مفعل</span>
             </label>
             <div class="form-actions users-form-actions">
-              <button class="primary" id="saveManagedUserBtn" type="submit">ط­ظپط¸ ط§ظ„ظ…ط³طھط®ط¯ظ…</button>
-              <button class="secondary" id="resetManagedUserFormBtn" type="button">طھظپط±ظٹط؛ ط§ظ„ظ†ظ…ظˆط°ط¬</button>
-              <button class="secondary" id="cancelUserModalBtn" type="button">ط¥ظ„ط؛ط§ط،</button>
+              <button class="primary" id="saveManagedUserBtn" type="submit">حفظ المستخدم</button>
+              <button class="secondary" id="resetManagedUserFormBtn" type="button">تفريغ النموذج</button>
+              <button class="secondary" id="cancelUserModalBtn" type="button">إلغاء</button>
             </div>
           </form>
         </div>
@@ -940,25 +940,25 @@
         <article class="panel glass permissions-management-panel" id="permissionsManagementCapture">
           <div class="permissions-hero">
             <div>
-              <span class="section-badge">ط£ظ…ظ† ط§ظ„ظ†ط¸ط§ظ…</span>
-              <h2>ط¥ط¯ط§ط±ط© ط§ظ„طµظ„ط§ط­ظٹط§طھ <span class="hero-icon" data-modern-icon="shield" aria-hidden="true"></span></h2>
-              <p class="hint">طھط­ط¯ظٹط¯ طµظ„ط§ط­ظٹط§طھ ظƒظ„ ط¯ظˆط± ط¹ظ„ظ‰ ط§ظ„ط´ط§ط´ط§طھ ظˆط§ظ„ط¥ط¬ط±ط§ط،ط§طھ. Super Admin ظٹظ…ظ„ظƒ ظƒظ„ ط§ظ„طµظ„ط§ط­ظٹط§طھ ظˆظ„ط§ ظٹطھظ… طھط¹ط¯ظٹظ„ظ‡ ظ…ظ† ظ‡ط°ظ‡ ط§ظ„ط´ط§ط´ط©.</p>
+              <span class="section-badge">أمن النظام</span>
+              <h2>إدارة الصلاحيات <span class="hero-icon" data-modern-icon="shield" aria-hidden="true"></span></h2>
+              <p class="hint">تحديد صلاحيات كل دور على الشاشات والإجراءات. Super Admin يملك كل الصلاحيات ولا يتم تعديله من هذه الشاشة.</p>
             </div>
             <div class="permissions-hero-actions">
-              <button class="primary" id="savePermissionsBtn" type="button"><span class="button-svg-icon" data-modern-icon="save" aria-hidden="true"></span> ط­ظپط¸ ط§ظ„طµظ„ط§ط­ظٹط§طھ</button>
-              <button class="secondary" id="reloadPermissionsBtn" type="button">طھط­ط¯ظٹط« <span class="button-svg-icon" data-modern-icon="refresh" aria-hidden="true"></span></button>
+              <button class="primary" id="savePermissionsBtn" type="button"><span class="button-svg-icon" data-modern-icon="save" aria-hidden="true"></span> حفظ الصلاحيات</button>
+              <button class="secondary" id="reloadPermissionsBtn" type="button">تحديث <span class="button-svg-icon" data-modern-icon="refresh" aria-hidden="true"></span></button>
             </div>
           </div>
 
           <div class="permissions-kpi-grid">
-            <article class="permissions-kpi-card"><span data-modern-icon="reports" aria-hidden="true"></span><b id="permissionsScreensCount">0</b><small>ط§ظ„ط´ط§ط´ط§طھ</small></article>
-            <article class="permissions-kpi-card"><span data-modern-icon="check" aria-hidden="true"></span><b id="permissionsEnabledCount">0</b><small>طµظ„ط§ط­ظٹط§طھ ظ…ظپط¹ظ„ط©</small></article>
-            <article class="permissions-kpi-card"><span data-modern-icon="lock" aria-hidden="true"></span><b id="permissionsDisabledCount">0</b><small>طµظ„ط§ط­ظٹط§طھ ظ…ظ‚ظپظ„ط©</small></article>
-            <article class="permissions-kpi-card"><span data-modern-icon="role" aria-hidden="true"></span><b id="permissionsSelectedRoleLabel">Admin</b><small>ط§ظ„ط¯ظˆط± ط§ظ„ظ…ط®طھط§ط±</small></article>
+            <article class="permissions-kpi-card"><span data-modern-icon="reports" aria-hidden="true"></span><b id="permissionsScreensCount">0</b><small>الشاشات</small></article>
+            <article class="permissions-kpi-card"><span data-modern-icon="check" aria-hidden="true"></span><b id="permissionsEnabledCount">0</b><small>صلاحيات مفعلة</small></article>
+            <article class="permissions-kpi-card"><span data-modern-icon="lock" aria-hidden="true"></span><b id="permissionsDisabledCount">0</b><small>صلاحيات مقفلة</small></article>
+            <article class="permissions-kpi-card"><span data-modern-icon="role" aria-hidden="true"></span><b id="permissionsSelectedRoleLabel">Admin</b><small>الدور المختار</small></article>
           </div>
 
           <div class="permissions-toolbar glass-soft">
-            <label class="permissions-role-picker">ط§ظ„ط¯ظˆط±
+            <label class="permissions-role-picker">الدور
               <select id="permissionsRoleSelect">
                 <option value="admin">Admin</option>
                 <option value="auditor">Auditor</option>
@@ -967,11 +967,11 @@
             </label>
             <div class="permissions-search-box">
               <span class="ui-svg-icon" data-modern-icon="search" aria-hidden="true"></span>
-              <input id="permissionsQuickSearch" type="search" placeholder="ط¨ط­ط« ط¨ط§ط³ظ… ط§ظ„ط´ط§ط´ط© ط£ظˆ ط§ظ„ظˆطµظپ..." />
+              <input id="permissionsQuickSearch" type="search" placeholder="بحث باسم الشاشة أو الوصف..." />
             </div>
-            <button class="secondary" id="permissionsSelectAllBtn" type="button">طھط­ط¯ظٹط¯ ط§ظ„ظƒظ„</button>
-            <button class="secondary" id="permissionsClearAllBtn" type="button">ط¥ظ„ط؛ط§ط، ط§ظ„ظƒظ„</button>
-            <button class="secondary" id="permissionsDefaultsBtn" type="button">ط§ط³طھط¹ط§ط¯ط© ط§ظ„ط§ظپطھط±ط§ط¶ظٹ</button>
+            <button class="secondary" id="permissionsSelectAllBtn" type="button">تحديد الكل</button>
+            <button class="secondary" id="permissionsClearAllBtn" type="button">إلغاء الكل</button>
+            <button class="secondary" id="permissionsDefaultsBtn" type="button">استعادة الافتراضي</button>
           </div>
 
           <div class="upload-status permissions-status-bar" id="permissionsManagementStatus"></div>
@@ -981,31 +981,31 @@
               <table id="permissionsMatrixTable" class="permissions-matrix-table">
                 <thead>
                   <tr>
-                    <th>ط§ظ„ط´ط§ط´ط© / ط§ظ„ظ‚ط³ظ…</th>
-                    <th>ط¹ط±ط¶</th>
-                    <th>ط¥ط¶ط§ظپط©</th>
-                    <th>طھط¹ط¯ظٹظ„</th>
-                    <th>ط­ط°ظپ</th>
-                    <th>ط±ظپط¹</th>
+                    <th>الشاشة / القسم</th>
+                    <th>عرض</th>
+                    <th>إضافة</th>
+                    <th>تعديل</th>
+                    <th>حذف</th>
+                    <th>رفع</th>
                     <th>Excel</th>
                     <th>PDF</th>
                     <th>PNG</th>
-                    <th>ط§ط¹طھظ…ط§ط¯</th>
-                    <th>ط¥ط¯ط§ط±ط©</th>
+                    <th>اعتماد</th>
+                    <th>إدارة</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td colspan="11" class="empty-row">ط§ط®طھط± ط§ظ„ط¯ظˆط± ظ„طھط­ظ…ظٹظ„ ط§ظ„طµظ„ط§ط­ظٹط§طھ...</td></tr>
+                  <tr><td colspan="11" class="empty-row">اختر الدور لتحميل الصلاحيات...</td></tr>
                 </tbody>
               </table>
             </div>
             <aside class="permissions-side-card glass-soft">
-              <h3>ظ‚ظˆط§ط¹ط¯ ظ…ظ‡ظ…ط©</h3>
+              <h3>قواعد مهمة</h3>
               <ul>
-                <li>Super Admin ظ„ط§ ظٹط¸ظ‡ط± ظ‡ظ†ط§ ظ„ط£ظ†ظ‡ ظٹظ…ظ„ظƒ ظƒظ„ ط§ظ„طµظ„ط§ط­ظٹط§طھ طھظ„ظ‚ط§ط¦ظٹط§ظ‹.</li>
-                <li>ط¥ظ„ط؛ط§ط، طµظ„ط§ط­ظٹط© ط§ظ„ط¹ط±ط¶ ظٹط®ظپظٹ ط§ظ„ط´ط§ط´ط© ظ…ظ† ط§ظ„ظ‚ط§ط¦ظ…ط© ط§ظ„ط¬ط§ظ†ط¨ظٹط©.</li>
-                <li>ط§ظ„ط£ط²ط±ط§ط± ط§ظ„ط­ط³ط§ط³ط© ظ…ط«ظ„ ط§ظ„ط­ط°ظپ ظˆط§ظ„ط±ظپط¹ ظˆط§ظ„طھطµط¯ظٹط± طھطھط£ط«ط± ط¨ط§ظ„طµظ„ط§ط­ظٹط§طھ.</li>
-                <li>ظٹطھظ… طھط·ط¨ظٹظ‚ ط§ظ„طµظ„ط§ط­ظٹط§طھ ط¨ط¹ط¯ ط§ظ„ط­ظپط¸ ظˆطھط­ط¯ظٹط« ط§ظ„طµظپط­ط© ط£ظˆ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„.</li>
+                <li>Super Admin لا يظهر هنا لأنه يملك كل الصلاحيات تلقائياً.</li>
+                <li>إلغاء صلاحية العرض يخفي الشاشة من القائمة الجانبية.</li>
+                <li>الأزرار الحساسة مثل الحذف والرفع والتصدير تتأثر بالصلاحيات.</li>
+                <li>يتم تطبيق الصلاحيات بعد الحفظ وتحديث الصفحة أو تسجيل الدخول.</li>
               </ul>
               <div class="permissions-role-info" id="permissionsRoleInfo"></div>
             </aside>
@@ -1015,11 +1015,11 @@
 
       <section id="settings" class="section">
         <article class="panel glass">
-          <h2>ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ</h2>
-          <p class="hint">ط¨ظٹط§ظ†ط§طھ طµط§ط­ط¨ ط§ظ„ط­ط³ط§ط¨ طھط¸ظ‡ط± ظپظٹ ط§ظ„ظ‡ظٹط¯ط± ظˆظٹطھظ… ط­ظپط¸ظ‡ط§ ظپظٹ Supabase ظ„طھط¸ظ‡ط± ط¹ظ„ظ‰ ط£ظٹ ط¬ظ‡ط§ط².</p>
-          <div class="settings-tabs" role="tablist" aria-label="طھط¨ظˆظٹط¨ط§طھ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ">
-            <button class="settings-tab active" id="settingsProfileTab" type="button" role="tab" aria-selected="true" aria-controls="settingsProfilePanel" data-settings-tab="profile">ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط´ط®طµظٹط©</button>
-            <button class="settings-tab" id="settingsAccountTab" type="button" role="tab" aria-selected="false" aria-controls="settingsAccountPanel" data-settings-tab="account">ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ… ظˆظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</button>
+          <h2>الإعدادات</h2>
+          <p class="hint">بيانات صاحب الحساب تظهر في الهيدر ويتم حفظها في Supabase لتظهر على أي جهاز.</p>
+          <div class="settings-tabs" role="tablist" aria-label="تبويبات الإعدادات">
+            <button class="settings-tab active" id="settingsProfileTab" type="button" role="tab" aria-selected="true" aria-controls="settingsProfilePanel" data-settings-tab="profile">البيانات الشخصية</button>
+            <button class="settings-tab" id="settingsAccountTab" type="button" role="tab" aria-selected="false" aria-controls="settingsAccountPanel" data-settings-tab="account">بيانات المستخدم وكلمة المرور</button>
             <button class="settings-tab" id="settingsSystemTab" type="button" role="tab" aria-selected="false" aria-controls="settingsSystemPanel" data-settings-tab="system">&#x2699;&#xFE0F; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0646;&#x0638;&#x0627;&#x0645;</button>
             <button class="settings-tab" id="settingsPlantsTab" type="button" role="tab" aria-selected="false" aria-controls="settingsPlantsPanel" data-settings-tab="plants-settings">&#x1F3ED; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x0635;&#x0627;&#x0646;&#x0639;</button>
             <button class="settings-tab" id="settingsWarehousesTab" type="button" role="tab" aria-selected="false" aria-controls="settingsWarehousesPanel" data-settings-tab="warehouses-settings">&#x1F3EC; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x062E;&#x0627;&#x0632;&#x0646;</button>
@@ -1027,16 +1027,16 @@
             <button class="settings-tab" id="settingsActivityLogTab" type="button" role="tab" aria-selected="false" aria-controls="settingsActivityLogPanel" data-settings-tab="activity-log">&#x0633;&#x062C;&#x0644; &#x0627;&#x0644;&#x062D;&#x0631;&#x0643;&#x0627;&#x062A;</button>
           </div>
           <div class="settings-mobile-tab-select" id="settingsMobileTabSelectWrap">
-            <label for="settingsMobileTabSelect">طھط¨ظˆظٹط¨ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ</label>
+            <label for="settingsMobileTabSelect">تبويب الإعدادات</label>
             <div class="settings-mobile-select-control">
-              <select id="settingsMobileTabSelect" aria-label="ط§ط®طھظٹط§ط± طھط¨ظˆظٹط¨ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ">
-                <option value="profile">ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط´ط®طµظٹط©</option>
-                <option value="account">ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ… ظˆظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</option>
-                <option value="system">ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ†ط¸ط§ظ…</option>
-                <option value="plants-settings">ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…طµط§ظ†ط¹</option>
-                <option value="warehouses-settings">ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…ط®ط§ط²ظ†</option>
-                <option value="sales-products-settings">ط¥ط¹ط¯ط§ط¯ط§طھ ط£طµظ†ط§ظپ ط§ظ„ط¨ظٹط¹</option>
-                <option value="activity-log">ط³ط¬ظ„ ط§ظ„ط­ط±ظƒط§طھ</option>
+              <select id="settingsMobileTabSelect" aria-label="اختيار تبويب الإعدادات">
+                <option value="profile">البيانات الشخصية</option>
+                <option value="account">بيانات المستخدم وكلمة المرور</option>
+                <option value="system">إعدادات النظام</option>
+                <option value="plants-settings">إعدادات المصانع</option>
+                <option value="warehouses-settings">إعدادات المخازن</option>
+                <option value="sales-products-settings">إعدادات أصناف البيع</option>
+                <option value="activity-log">سجل الحركات</option>
               </select>
               <span class="settings-mobile-select-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m7 10 5 5 5-5"/></svg></span>
             </div>
@@ -1045,25 +1045,25 @@
             <section class="settings-tab-panel active" id="settingsProfilePanel" role="tabpanel" aria-labelledby="settingsProfileTab" data-settings-panel="profile">
           <div class="profile-settings">
             <div class="profile-preview-card">
-              <div class="avatar profile-preview-avatar" id="profilePreviewAvatar">ط£</div>
+              <div class="avatar profile-preview-avatar" id="profilePreviewAvatar">أ</div>
               <strong id="profilePreviewName">--</strong>
               <small id="profilePreviewJob">--</small>
               <small id="profilePreviewEmail">--</small>
             </div>
             <form id="profileForm" class="profile-form">
-              <label>ط§ظ„ط¥ط³ظ…
-                <input type="text" id="profileFullName" placeholder="ط§ظƒطھط¨ ط§ظ„ط§ط³ظ…" />
+              <label>الإسم
+                <input type="text" id="profileFullName" placeholder="اكتب الاسم" />
               </label>
-              <label>ط§ظ„ظˆط¸ظٹظپط©
-                <input type="text" id="profileJobTitle" placeholder="ظ…ط«ط§ظ„: ظ…ط¯ظٹط± ط§ظ„ظ†ط¸ط§ظ…" />
+              <label>الوظيفة
+                <input type="text" id="profileJobTitle" placeholder="مثال: مدير النظام" />
               </label>
-              <label>ط±ظ‚ظ… ط§ظ„طھظ„ظٹظپظˆظ†
-                <input type="tel" id="profilePhone" placeholder="ظ…ط«ط§ظ„: 01094938005" />
+              <label>رقم التليفون
+                <input type="tel" id="profilePhone" placeholder="مثال: 01094938005" />
               </label>
-              <label>ط§ظ„طµظˆط±ط© ط§ظ„ط´ط®طµظٹط©
+              <label>الصورة الشخصية
                 <input type="file" id="profileAvatarInput" accept="image/*" />
               </label>
-              <button class="primary" id="saveProfileBtn" type="submit">ط­ظپط¸ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط­ط³ط§ط¨</button>
+              <button class="primary" id="saveProfileBtn" type="submit">حفظ بيانات الحساب</button>
               <div class="upload-status" id="profileSaveStatus"></div>
             </form>
           </div>
@@ -1071,41 +1071,41 @@
             <section class="settings-tab-panel" id="settingsAccountPanel" role="tabpanel" aria-labelledby="settingsAccountTab" data-settings-panel="account">
               <div class="settings-account-grid">
                 <article class="settings-readonly-card">
-                  <h3>ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ…</h3>
+                  <h3>بيانات المستخدم</h3>
                   <div class="settings-readonly-fields">
-                    <label>ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ
+                    <label>البريد الإلكتروني
                       <input type="email" id="settingsUserEmail" readonly />
                     </label>
-                    <label>ط§ط³ظ… ط§ظ„ظ…ط³طھط®ط¯ظ…
+                    <label>اسم المستخدم
                       <input type="text" id="settingsUserName" readonly />
                     </label>
-                    <label>ط§ظ„طµظ„ط§ط­ظٹط© / ط§ظ„ط¯ظˆط±
+                    <label>الصلاحية / الدور
                       <input type="text" id="settingsUserRole" readonly />
                     </label>
                   </div>
                 </article>
                 <article class="settings-password-card">
-                  <h3>طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</h3>
+                  <h3>تغيير كلمة المرور</h3>
                   <form id="passwordChangeForm" class="settings-password-form">
-                    <label>ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط­ط§ظ„ظٹط©
+                    <label>كلمة المرور الحالية
                       <span class="password-input-wrap">
                         <input type="password" id="currentPasswordInput" autocomplete="current-password" />
-                        <button type="button" class="password-toggle-btn" id="toggleCurrentPassword" data-password-toggle="currentPasswordInput">ط¥ط¸ظ‡ط§ط±</button>
+                        <button type="button" class="password-toggle-btn" id="toggleCurrentPassword" data-password-toggle="currentPasswordInput">إظهار</button>
                       </span>
                     </label>
-                    <label>ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط¬ط¯ظٹط¯ط©
+                    <label>كلمة المرور الجديدة
                       <span class="password-input-wrap">
                         <input type="password" id="newPasswordInput" autocomplete="new-password" />
-                        <button type="button" class="password-toggle-btn" id="toggleNewPassword" data-password-toggle="newPasswordInput">ط¥ط¸ظ‡ط§ط±</button>
+                        <button type="button" class="password-toggle-btn" id="toggleNewPassword" data-password-toggle="newPasswordInput">إظهار</button>
                       </span>
                     </label>
-                    <label>طھط£ظƒظٹط¯ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط¬ط¯ظٹط¯ط©
+                    <label>تأكيد كلمة المرور الجديدة
                       <span class="password-input-wrap">
                         <input type="password" id="confirmPasswordInput" autocomplete="new-password" />
-                        <button type="button" class="password-toggle-btn" id="toggleConfirmPassword" data-password-toggle="confirmPasswordInput">ط¥ط¸ظ‡ط§ط±</button>
+                        <button type="button" class="password-toggle-btn" id="toggleConfirmPassword" data-password-toggle="confirmPasswordInput">إظهار</button>
                       </span>
                     </label>
-                    <button class="primary" id="savePasswordBtn" type="submit">طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±</button>
+                    <button class="primary" id="savePasswordBtn" type="submit">تغيير كلمة المرور</button>
                     <div class="upload-status" id="passwordChangeStatus"></div>
                   </form>
                 </article>
@@ -1315,13 +1315,12 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=scale-missing-warehouse-final-20260727-1"></script>
+  <script src="assets/js/app.js?v=ir-final-hotfix-20260726"></script>
   <script>
   </script>
   <script src="assets/js/footer.js"></script>
 </body>
 </html>
-
 
 
 
