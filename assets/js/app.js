@@ -2964,6 +2964,34 @@ function normalizeIncomingMatchKeyPart(value){
 function incomingAuditMatchKey(row){
   return [row?.material_code,row?.purchase_order,row?.vehicle_number].map(normalizeIncomingMatchKeyPart).join('|');
 }
+function incomingScaleDiagnosticSnapshot(r,scaleRows,matches,scale,reportDate,scaleBatch){
+  const sameMaterial=(scaleRows||[]).filter(s=>normalizeIncomingMatchKeyPart(s.material_code)===normalizeIncomingMatchKeyPart(r.material_code));
+  const samePurchase=sameMaterial.filter(s=>normalizeIncomingMatchKeyPart(s.purchase_order)===normalizeIncomingMatchKeyPart(r.purchase_order));
+  const sameVehicle=samePurchase.filter(s=>normalizeIncomingMatchKeyPart(s.vehicle_number)===normalizeIncomingMatchKeyPart(r.vehicle_number));
+  let firstDropCondition='matchedScale';
+  if(!scale){
+    if(!(scaleRows||[]).length) firstDropCondition='date mismatch or empty scale batch';
+    else if(!sameMaterial.length) firstDropCondition='material mismatch';
+    else if(!samePurchase.length) firstDropCondition='purchase order mismatch';
+    else if(!sameVehicle.length) firstDropCondition='vehicle mismatch';
+    else if((matches||[]).length>1) firstDropCondition='multiple scale rows for same key';
+    else firstDropCondition='unknown pre-warehouse mismatch';
+  }
+  return {
+    reportDate,
+    scaleBatchReportDate:scaleBatch?.report_date || '',
+    incomingId:r.id || null,
+    matchedScale:!!scale,
+    firstDropCondition,
+    incomingKey:incomingAuditMatchKey(r),
+    incoming:{material_code:r.material_code || '',purchase_order:r.purchase_order || '',vehicle_number:r.vehicle_number || '',warehouse_code:r.warehouse_code || '',quantity:r.quantity ?? null,quantity_to:r.quantity_to ?? null,uom:r.uom || ''},
+    candidates:{totalScaleRows:(scaleRows||[]).length,sameMaterial:sameMaterial.length,samePurchase:samePurchase.length,sameVehicle:sameVehicle.length,exactKeyMatches:(matches||[]).length},
+    scale:scale?{id:scale.id || null,material_code:scale.material_code || '',purchase_order:scale.purchase_order || '',vehicle_number:scale.vehicle_number || '',warehouse_code:scale.warehouse_code ?? null,net_weight_to:scale.net_weight_to ?? null,net_weight_kg:scale.net_weight_kg ?? null}:null,
+    scaleWarehouseBlank:scale ? !normKey(scale.warehouse_code) : null,
+    reasonIfNoMissingScale:scale ? (!normKey(scale.warehouse_code) ? 'should enter missing_scale branch' : 'scale warehouse is not blank') : 'no matched scale row before warehouse check'
+  };
+}
+
 function normKeyKeepSapSpaces(v){return normKeepSapSpaces(v).toLowerCase();}
 function containsNormalizedText(full,part){
   const f=normKey(full);
@@ -3138,6 +3166,9 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
     const key=incomingAuditMatchKey(r);
     const matches=scaleIndex.get(key)||[];
     const scale=matches.length===1?matches[0]:null;
+    if(!scale || !normKey(scale.warehouse_code)){
+      console.log('[Incoming Match Diagnostic]', JSON.stringify(incomingScaleDiagnosticSnapshot(r,scaleRows,matches,scale,reportDate,scaleBatch)));
+    }
     const quantityTo=String(r.uom||'').toUpperCase()==='KG' ? Number(r.quantity||0)/1000 : Number(r.quantity_to ?? r.quantity ?? 0);
     const movementGroup=movementGroupIndex.get(key)||{};
     const incomingMovementType=getIncomingMovementType(r);
