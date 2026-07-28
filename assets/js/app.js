@@ -9517,11 +9517,11 @@ function initInventoryClosing() {
   ];
 
   exportConfigs.forEach(cfg => {
-    const excelBtn = document.getElementById(inventoryClosing + cfg.id + ExportExcelBtn);
-    const pdfBtn = document.getElementById(inventoryClosing + cfg.id + ExportPdfBtn);
-    const pngBtn = document.getElementById(inventoryClosing + cfg.id + ExportPngBtn);
-    const tableId = inventoryClosing + cfg.id + Table;
-    const panelId = inventoryClosing + cfg.id + Panel;
+    const excelBtn = document.getElementById('inventoryClosing' + cfg.id + 'ExportExcelBtn');
+    const pdfBtn = document.getElementById('inventoryClosing' + cfg.id + 'ExportPdfBtn');
+    const pngBtn = document.getElementById('inventoryClosing' + cfg.id + 'ExportPngBtn');
+    const tableId = 'inventoryClosing' + cfg.id + 'Table';
+    const panelId = 'inventoryClosing' + cfg.id + 'Panel';
 
     if(excelBtn) {
       excelBtn.addEventListener('click', () => {
