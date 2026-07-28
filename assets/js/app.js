@@ -9633,12 +9633,13 @@ async function icLoadLastUploadBatch(tabKey) {
   }
 
   try {
+    // Order by `id` (primary key — always exists) to avoid 42703 on missing timestamp columns
     const {data, error} = await WarehouseDB.client
       .from('inventory_closing_upload_batches')
       .select('*')
       .eq('report_key', config.reportKey)
       .eq('status', 'succeeded')
-      .order('upload_date', { ascending: false })
+      .order('id', { ascending: false })
       .limit(5);
 
     if (error) throw error;
@@ -9647,15 +9648,25 @@ async function icLoadLastUploadBatch(tabKey) {
       return;
     }
 
-    let html = '<thead><tr><th>تاريخ التقرير</th><th>تاريخ الرفع</th><th>المستخدم</th><th>الصفوف</th><th>الحالة</th></tr></thead><tbody>';
+    let html = '<thead><tr><th>تاريخ التقرير</th><th>وقت الرفع</th><th>المستخدم</th><th>الصفوف</th><th>الحالة</th></tr></thead><tbody>';
     data.forEach(batch => {
-      const bDate = new Date(batch.upload_date).toLocaleString('ar-EG');
-      html += '<tr><td>' + batch.report_date + '</td><td>' + bDate + '</td><td>' + (batch.uploaded_by_name || '--') + '</td><td>' + batch.row_count + '</td><td><span class="badge green">ناجح</span></td></tr>';
+      // Resolve upload timestamp — try known possible column names defensively
+      const rawTs = batch.completed_at ?? batch.created_at ?? batch.upload_date ?? batch.uploaded_at ?? batch.inserted_at ?? null;
+      const bDate = rawTs ? new Date(rawTs).toLocaleString('ar-EG') : '--';
+      // Resolve row count — try known possible column names defensively
+      const rowCount = batch.row_count ?? batch.received_rows ?? batch.final_row_count ?? batch.expected_rows ?? '--';
+      html += '<tr>'
+        + '<td>' + (batch.report_date || '--') + '</td>'
+        + '<td>' + bDate + '</td>'
+        + '<td>' + (batch.uploaded_by_name || '--') + '</td>'
+        + '<td>' + rowCount + '</td>'
+        + '<td><span class="badge green">ناجح</span></td>'
+        + '</tr>';
     });
     html += '</tbody>';
     table.innerHTML = html;
   } catch (err) {
-    console.error('Failed to load IC history:', err);
+    console.error('IC: Failed to load upload history:', err);
     table.innerHTML = '<tr><td>فشل جلب سجل الرفع</td></tr>';
   }
 }
