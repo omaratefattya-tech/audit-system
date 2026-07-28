@@ -1609,6 +1609,51 @@
   <script>
   </script>
   <script src="assets/js/footer.js"></script>
+
+  <!-- IC Batch View Modal — Phase IC-03.0 — independent of section#inventory_closing -->
+  <div id="icBatchViewOverlay"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="icBatchViewTitle">
+    <div id="icBatchViewModal">
+      <div class="ic-batch-view-head">
+        <div class="ic-batch-view-head-info">
+          <h3 id="icBatchViewTitle">عرض بيانات دفعة التقفيل</h3>
+          <div class="ic-batch-view-meta">
+            <div class="ic-batch-view-meta-item">اسم الملف: <span id="icBatchViewFileName">--</span></div>
+            <div class="ic-batch-view-meta-item">تاريخ التقرير: <span id="icBatchViewReportDate">--</span></div>
+            <div class="ic-batch-view-meta-item">عدد الصفوف: <span id="icBatchViewRowCount">--</span></div>
+          </div>
+        </div>
+        <button type="button" id="icBatchViewCloseBtn" aria-label="إغلاق">×</button>
+      </div>
+      <div id="icBatchViewStatus" aria-live="polite"></div>
+      <div class="ic-batch-view-table-wrap">
+        <table id="icBatchViewTable">
+          <thead>
+            <tr>
+              <th>رقم الصف</th>
+              <th>كود المادة</th>
+              <th>وصف المادة</th>
+              <th>الكمية الأصلية</th>
+              <th>الوحدة الأصلية</th>
+              <th>الكمية بالطن</th>
+              <th>الوحدة الموحدة</th>
+              <th>نوع الحركة</th>
+              <th>وصف الحركة</th>
+              <th>المصنع</th>
+              <th>المخزن</th>
+              <th>اسم المصنع</th>
+              <th>تاريخ الحركة</th>
+              <th>مجموعة العمال</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
 

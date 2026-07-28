@@ -9649,6 +9649,16 @@ async function icLoadLastUploadBatch(tabKey) {
       return;
     }
 
+    // Store metadata for each batch in an isolated Map (keyed by batch.id)
+    data.forEach(batch => {
+      const rowCount = batch.row_count ?? batch.received_rows ?? batch.final_row_count ?? batch.expected_rows ?? null;
+      inventoryClosingBatchMeta.set(String(batch.id), {
+        fileName: batch.file_name || '--',
+        reportDate: batch.report_date || '--',
+        rowCount: rowCount !== null ? rowCount : '--'
+      });
+    });
+
     const rows = data.map(batch => {
       // Resolve upload timestamp — try known possible column names defensively
       const rawTs = batch.completed_at ?? batch.created_at ?? batch.upload_date ?? batch.uploaded_at ?? batch.inserted_at ?? null;
@@ -9660,6 +9670,9 @@ async function icLoadLastUploadBatch(tabKey) {
       const fileSize = typeof formatFileSize === 'function' ? formatFileSize(batch.file_size_bytes) : '-';
       const rDate = typeof normalizeDateISO === 'function' ? normalizeDateISO(batch.report_date) : batch.report_date;
       
+      // View button: carries ONLY data-action and data-batch-id (no file_name, report_date, row_count in DOM)
+      const viewBtn = `<button type="button" class="ic-batch-view-btn" data-action="view-ic" data-batch-id="${escapeHtml(String(batch.id))}">عرض</button>`;
+      
       return [
         rDate || batch.report_date || '--',
         batch.file_name || '--',
@@ -9667,7 +9680,7 @@ async function icLoadLastUploadBatch(tabKey) {
         fileSize,
         uploader,
         bDate,
-        `<span style="color:#888;font-size:12px;">غير متاح</span>`
+        viewBtn
       ];
     });
 
@@ -9686,6 +9699,208 @@ async function icLoadLastUploadBatch(tabKey) {
     console.error('IC: Failed to load upload history:', err);
     tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">فشل جلب سجل الرفع</td></tr>';
   }
+}
+
+// ============================================================
+// IC Batch View Modal Engine — Phase IC-03.0
+// ============================================================
+
+/** Isolated metadata Map — key: batch.id (string), value: {fileName, reportDate, rowCount} */
+const inventoryClosingBatchMeta = new Map();
+
+/** Active request token for race-condition prevention */
+let _icViewRequestToken = null;
+
+function _icSetStatus(msg, type = '') {
+  const el = document.getElementById('icBatchViewStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = type ? 'ic-batch-view-status-' + type : '';
+}
+
+function _icFormatQty(val) {
+  if (val === null || val === undefined || val === '') return '<span class="ic-batch-view-null">-</span>';
+  const n = Number(val);
+  if (isNaN(n)) return '<span class="ic-batch-view-null">-</span>';
+  return escapeHtml(String(val));
+}
+
+async function openIcBatchViewModal(batchId, triggerBtn) {
+  if (!batchId) return;
+
+  const overlay = document.getElementById('icBatchViewOverlay');
+  const modal   = document.getElementById('icBatchViewModal');
+  const tbody   = document.querySelector('#icBatchViewTable tbody');
+  const closeBtn = document.getElementById('icBatchViewCloseBtn');
+  if (!overlay || !modal || !tbody) return;
+
+  // Populate metadata from Map (not from DOM attributes)
+  const meta = inventoryClosingBatchMeta.get(String(batchId)) || {};
+  const fnEl = document.getElementById('icBatchViewFileName');
+  const rdEl = document.getElementById('icBatchViewReportDate');
+  const rcEl = document.getElementById('icBatchViewRowCount');
+  if (fnEl) fnEl.textContent = meta.fileName || '--';
+  if (rdEl) rdEl.textContent = meta.reportDate || '--';
+  if (rcEl) rcEl.textContent = meta.rowCount !== undefined && meta.rowCount !== null ? String(meta.rowCount) : '--';
+
+  // Clear old data
+  tbody.innerHTML = '';
+  _icSetStatus('جاري تحميل البيانات...', '');
+
+  // Open modal
+  overlay.classList.add('ic-batch-view-open');
+  document.body.classList.add('modal-open');
+
+  // Focus close button for accessibility
+  requestAnimationFrame(() => { closeBtn && closeBtn.focus(); });
+
+  // Issue a new request token — any previous request becomes stale
+  const token = Symbol('ic-view-' + batchId);
+  _icViewRequestToken = token;
+
+  // Store trigger button for focus-restore on close
+  overlay._icTriggerBtn = triggerBtn || null;
+
+  // Paginated sequential fetch
+  const PAGE_SIZE = 1000;
+  let from = 0;
+  let allRows = [];
+
+  try {
+    if (!window.WarehouseDB?.ready) throw new Error('قاعدة البيانات غير متصلة.');
+
+    while (true) {
+      // Race condition check before each page fetch
+      if (_icViewRequestToken !== token) return;
+
+      const to = from + PAGE_SIZE - 1;
+      const { data, error } = await WarehouseDB.client
+        .from('inventory_closing_transactions')
+        .select('source_row_number,material_code,material_name,quantity_raw,uom_raw,quantity_to,uom,movement_type,movement_text,plant_code,warehouse_code,plant_name,transaction_date,worker_group')
+        .eq('batch_id', batchId)
+        .order('source_row_number', { ascending: true })
+        .range(from, to);
+
+      if (error) throw error;
+
+      // Race condition check after fetch returns
+      if (_icViewRequestToken !== token) return;
+
+      if (data && data.length > 0) {
+        allRows = allRows.concat(data);
+      }
+
+      const fetched = data ? data.length : 0;
+      _icSetStatus('جاري تحميل البيانات: ' + allRows.length.toLocaleString('en-US') + ' صف', '');
+
+      if (fetched < PAGE_SIZE) break; // Last page
+      from += PAGE_SIZE;
+    }
+
+    // Final race condition check before rendering
+    if (_icViewRequestToken !== token) return;
+
+    if (allRows.length === 0) {
+      _icSetStatus('لا توجد بيانات لهذه الدفعة.', 'empty');
+      return;
+    }
+
+    // Render all rows
+    const fragment = document.createDocumentFragment();
+    allRows.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = [
+        `<td class="ic-batch-view-row-num">${escapeHtml(String(row.source_row_number ?? ''))}</td>`,
+        `<td class="ic-batch-view-code">${escapeHtml(String(row.material_code ?? ''))}</td>`,
+        `<td class="ic-batch-view-name">${escapeHtml(String(row.material_name ?? ''))}</td>`,
+        `<td class="ic-batch-view-qty">${_icFormatQty(row.quantity_raw)}</td>`,
+        `<td>${escapeHtml(String(row.uom_raw ?? ''))}</td>`,
+        `<td class="ic-batch-view-qty">${_icFormatQty(row.quantity_to)}</td>`,
+        `<td>${escapeHtml(String(row.uom ?? ''))}</td>`,
+        `<td>${escapeHtml(String(row.movement_type ?? ''))}</td>`,
+        `<td>${escapeHtml(String(row.movement_text ?? ''))}</td>`,
+        `<td>${escapeHtml(String(row.plant_code ?? ''))}</td>`,
+        `<td>${escapeHtml(String(row.warehouse_code ?? ''))}</td>`,
+        `<td>${escapeHtml(String(row.plant_name ?? ''))}</td>`,
+        `<td>${escapeHtml(String(row.transaction_date ?? ''))}</td>`,
+        `<td>${escapeHtml(String(row.worker_group ?? ''))}</td>`
+      ].join('');
+      fragment.appendChild(tr);
+    });
+    tbody.appendChild(fragment);
+
+    _icSetStatus('تم تحميل ' + allRows.length.toLocaleString('en-US') + ' صف', '');
+    if (rcEl && (meta.rowCount === '--' || meta.rowCount === null || meta.rowCount === undefined)) {
+      rcEl.textContent = allRows.length.toLocaleString('en-US');
+    }
+
+  } catch (err) {
+    if (_icViewRequestToken !== token) return;
+    console.error('IC Batch View: fetch error', err);
+    _icSetStatus('فشل تحميل البيانات: ' + (err.message || 'خطأ غير معروف'), 'error');
+  }
+}
+
+function closeIcBatchViewModal() {
+  // Invalidate any in-flight request
+  _icViewRequestToken = null;
+
+  const overlay = document.getElementById('icBatchViewOverlay');
+  const tbody   = document.querySelector('#icBatchViewTable tbody');
+  if (!overlay) return;
+
+  overlay.classList.remove('ic-batch-view-open');
+  document.body.classList.remove('modal-open');
+
+  // Clear tbody and status
+  if (tbody) tbody.innerHTML = '';
+  _icSetStatus('', '');
+
+  // Restore focus to the trigger button
+  const trigger = overlay._icTriggerBtn;
+  overlay._icTriggerBtn = null;
+  if (trigger && typeof trigger.focus === 'function') {
+    requestAnimationFrame(() => trigger.focus());
+  }
+}
+
+function initIcBatchViewModal() {
+  const overlay  = document.getElementById('icBatchViewOverlay');
+  const modal    = document.getElementById('icBatchViewModal');
+  const closeBtn = document.getElementById('icBatchViewCloseBtn');
+  if (!overlay || !modal || !closeBtn) return;
+
+  // Close button
+  closeBtn.addEventListener('click', closeIcBatchViewModal);
+
+  // Close on Overlay click (but NOT on modal content click)
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeIcBatchViewModal();
+  });
+  modal.addEventListener('click', (e) => e.stopPropagation());
+
+  // Close on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && overlay.classList.contains('ic-batch-view-open')) {
+      closeIcBatchViewModal();
+    }
+  });
+
+  // Delegate click events for view-ic buttons (works for dynamically rendered buttons)
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action="view-ic"]');
+    if (!btn) return;
+    const batchId = btn.dataset.batchId;
+    if (!batchId) return;
+    openIcBatchViewModal(batchId, btn);
+  });
+}
+
+// Initialize modal after DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initIcBatchViewModal);
+} else {
+  initIcBatchViewModal();
 }
 
 async function handleInventoryClosingReportFile(tabKey, file) {

@@ -3531,3 +3531,233 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
 #itemAnalyticsContent .ia-dir-return td{background:rgba(50,174,233,.045);}
 @media(max-width:1200px){#itemAnalyticsContent .item-analytics-grid-2{grid-template-columns:1fr;}#itemAnalyticsContent .item-analytics-kpis.report-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}#itemAnalyticsContent .item-analytics-health-summary{grid-template-columns:1fr;}}
 @media(max-width:768px){body.mobile-reports-active #reports #itemAnalyticsContent .item-analytics-title-card{flex-direction:column;align-items:stretch;text-align:center;}body.mobile-reports-active #reports #itemAnalyticsContent .item-analytics-title-note{white-space:normal;text-align:center;}body.mobile-reports-active #reports #itemAnalyticsContent .item-analytics-kpis.report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px;}body.mobile-reports-active #reports #itemAnalyticsContent .item-analytics-grid-2{grid-template-columns:1fr!important;gap:12px;}body.mobile-reports-active #reports #itemAnalyticsContent .item-analytics-list-row{grid-template-columns:1fr;}body.mobile-reports-active #reports #itemAnalyticsContent .item-analytics-list-row small{grid-column:auto;}body.mobile-reports-active #reports #itemAnalyticsContent .item-analytics-heatmap{grid-template-columns:repeat(2,minmax(0,1fr));}body.mobile-reports-active #reports #itemAnalyticsContent .item-analytics-table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}body.mobile-reports-active #reports #itemAnalyticsContent .item-analytics-audit-search{width:100%;flex-direction:column;align-items:stretch;}body.mobile-reports-active #reports #itemAnalyticsContent .item-analytics-audit-search input{width:100%;}}
+
+/* ============================================================
+   IC Batch View Modal — Phase IC-03.0
+   All rules scoped under .ic-batch-view- or #icBatchViewModal
+   ============================================================ */
+#icBatchViewOverlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 10, 8, .76);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 10000;
+  padding: 20px;
+  direction: rtl;
+}
+#icBatchViewOverlay.ic-batch-view-open {
+  display: flex;
+}
+#icBatchViewModal {
+  position: relative;
+  width: min(1200px, 97vw);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(131, 255, 190, .24);
+  background: linear-gradient(145deg, rgba(0, 51, 39, .97), rgba(0, 24, 20, .99));
+  border-radius: 24px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .50), inset 0 0 40px rgba(91, 194, 71, .03);
+  overflow: hidden;
+  color: #efffee;
+  font-family: "Cairo", sans-serif;
+}
+.ic-batch-view-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid rgba(131, 255, 190, .12);
+  flex-shrink: 0;
+}
+.ic-batch-view-head-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.ic-batch-view-head-info h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+.ic-batch-view-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+}
+.ic-batch-view-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .82rem;
+  color: #b8e8b4;
+  font-weight: 800;
+}
+.ic-batch-view-meta-item span {
+  color: #78e87e;
+  font-weight: 900;
+}
+#icBatchViewCloseBtn {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  background: rgba(255, 255, 255, .06);
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: background .18s, border-color .18s;
+}
+#icBatchViewCloseBtn:hover {
+  background: rgba(255, 80, 80, .22);
+  border-color: rgba(255, 80, 80, .45);
+}
+#icBatchViewStatus {
+  padding: 8px 22px;
+  font-size: .88rem;
+  font-weight: 800;
+  color: #a7ee73;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(131, 255, 190, .08);
+}
+#icBatchViewStatus.ic-batch-view-status-error {
+  color: #ff9a9a;
+}
+#icBatchViewStatus.ic-batch-view-status-empty {
+  color: #c8d8c2;
+}
+.ic-batch-view-table-wrap {
+  flex: 1;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 0 0 22px 22px;
+}
+#icBatchViewTable {
+  width: 100%;
+  min-width: 1320px;
+  border-collapse: collapse;
+  direction: rtl;
+}
+#icBatchViewTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: linear-gradient(180deg, rgba(0, 94, 55, .97), rgba(0, 72, 48, .97));
+  color: #dfffce;
+  font-weight: 900;
+  font-size: .83rem;
+  padding: 11px 10px;
+  border-bottom: 1px solid rgba(131, 255, 190, .22);
+  white-space: nowrap;
+  text-align: center;
+}
+#icBatchViewTable tbody td {
+  padding: 9px 10px;
+  border-bottom: 1px solid rgba(131, 255, 190, .08);
+  color: #f1fff0;
+  font-size: .82rem;
+  font-weight: 800;
+  text-align: center;
+  vertical-align: middle;
+}
+#icBatchViewTable tbody tr:hover td {
+  background: rgba(91, 194, 71, .055);
+}
+#icBatchViewTable .ic-batch-view-row-num {
+  color: #f2c94c;
+  font-weight: 1000;
+  min-width: 44px;
+}
+#icBatchViewTable .ic-batch-view-code {
+  font-family: monospace;
+  color: #8cffb4;
+  direction: ltr;
+  text-align: center;
+}
+#icBatchViewTable .ic-batch-view-name {
+  text-align: right;
+  min-width: 160px;
+  max-width: 260px;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.4;
+}
+#icBatchViewTable .ic-batch-view-qty {
+  direction: ltr;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+#icBatchViewTable .ic-batch-view-null {
+  color: rgba(200, 220, 200, .45);
+  font-weight: 700;
+}
+.ic-batch-view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(91, 194, 71, .55);
+  background: linear-gradient(135deg, rgba(57, 170, 56, .82), rgba(14, 92, 48, .88));
+  color: #efffee;
+  font-family: "Cairo", sans-serif;
+  font-size: .8rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: filter .18s, transform .15s;
+  white-space: nowrap;
+}
+.ic-batch-view-btn:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+.ic-batch-view-btn:active {
+  transform: translateY(0);
+}
+@media (max-width: 900px) {
+  #icBatchViewModal {
+    max-height: 96vh;
+    border-radius: 18px;
+  }
+  .ic-batch-view-head {
+    padding: 14px 16px 12px;
+  }
+  .ic-batch-view-meta {
+    gap: 8px;
+  }
+}
+@media (max-width: 600px) {
+  #icBatchViewOverlay {
+    padding: 8px;
+  }
+  .ic-batch-view-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  #icBatchViewCloseBtn {
+    align-self: flex-end;
+  }
+  .ic-batch-view-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
