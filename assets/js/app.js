@@ -9639,9 +9639,9 @@ async function icLoadLastUploadBatch(tabKey) {
       .from('inventory_closing_upload_batches')
       .select('*')
       .eq('report_key', config.reportKey)
-      .eq('status', 'succeeded')
+      .in('status', ['succeeded', 'replaced'])
       .order('id', { ascending: false })
-      .limit(5);
+      .limit(10);
 
     if (error) throw error;
     if (!data || data.length === 0) {
@@ -9655,7 +9655,10 @@ async function icLoadLastUploadBatch(tabKey) {
       inventoryClosingBatchMeta.set(String(batch.id), {
         fileName: batch.file_name || '--',
         reportDate: batch.report_date || '--',
-        rowCount: rowCount !== null ? rowCount : '--'
+        rowCount: rowCount !== null ? rowCount : '--',
+        status: batch.status,
+        reportKey: batch.report_key,
+        tabKey: tabKey
       });
     });
 
@@ -9673,14 +9676,24 @@ async function icLoadLastUploadBatch(tabKey) {
       // View button: carries ONLY data-action and data-batch-id (no file_name, report_date, row_count in DOM)
       const viewBtn = `<button type="button" class="ic-batch-view-btn" data-action="view-ic" data-batch-id="${escapeHtml(String(batch.id))}">عرض</button>`;
       
+      let replaceBtn = '';
+      if (batch.status === 'succeeded') {
+        replaceBtn = `<button type="button" class="small-action replace" data-action="replace-ic" data-batch-id="${escapeHtml(String(batch.id))}">استبدال</button>`;
+      }
+      const deleteBtn = `<button type="button" class="small-action delete" data-action="delete-ic" data-batch-id="${escapeHtml(String(batch.id))}">حذف</button>`;
+      
+      const actionsHtml = `<div style="display:flex;gap:4px;align-items:center;">${viewBtn}${replaceBtn}${deleteBtn}</div>`;
+      
+      let statusIndicator = batch.status === 'replaced' ? ' <span style="font-size:10px;color:#f1bf35;background:rgba(241,191,53,0.15);padding:2px 4px;border-radius:4px;">(مستبدل)</span>' : '';
+
       return [
-        rDate || batch.report_date || '--',
+        (rDate || batch.report_date || '--') + statusIndicator,
         batch.file_name || '--',
         Number(rowCount || 0).toLocaleString('en-US'),
         fileSize,
         uploader,
         bDate,
-        viewBtn
+        actionsHtml
       ];
     });
 
@@ -9888,12 +9901,90 @@ function initIcBatchViewModal() {
 
   // Delegate click events for view-ic buttons (works for dynamically rendered buttons)
   document.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-action="view-ic"]');
-    if (!btn) return;
-    const batchId = btn.dataset.batchId;
-    if (!batchId) return;
-    openIcBatchViewModal(batchId, btn);
+    const viewBtn = e.target.closest('[data-action="view-ic"]');
+    if (viewBtn) {
+      const batchId = viewBtn.dataset.batchId;
+      if (batchId) openIcBatchViewModal(batchId, viewBtn);
+      return;
+    }
+    
+    const replaceBtn = e.target.closest('[data-action="replace-ic"]');
+    if (replaceBtn) {
+      const batchId = replaceBtn.dataset.batchId;
+      if (batchId) handleReplaceIc(batchId);
+      return;
+    }
+    
+    const deleteBtn = e.target.closest('[data-action="delete-ic"]');
+    if (deleteBtn) {
+      const batchId = deleteBtn.dataset.batchId;
+      if (batchId) handleDeleteIc(batchId);
+      return;
+    }
   });
+}
+
+function handleReplaceIc(batchId) {
+  const meta = inventoryClosingBatchMeta.get(String(batchId));
+  if (!meta) return;
+  
+  const titles = {
+    'closing_wf01': 'تقفيل الواحة',
+    'closing_el01': 'تقفيل المصنع الرئيسي',
+    'closing_el02': 'تقفيل مصنع العامرية'
+  };
+  const reportName = titles[meta.reportKey] || meta.reportKey;
+  
+  const msg = `سيتم استبدال النسخة الحالية بملف جديد.\nالملف الحالي: ${meta.fileName}\nتاريخ التقرير: ${meta.reportDate}\nالتقرير: ${reportName}\n\nهل تريد المتابعة؟`;
+
+  if (!window.confirm(msg)) return;
+  
+  const tab = document.querySelector(`.subtabs [data-inventory-closing-tab="${meta.tabKey}"]`);
+  if (tab) tab.click();
+  
+  const prefix = meta.tabKey.replace(/_(.)/g, (_, c) => c.toUpperCase());
+  const dateInput = document.getElementById(prefix + 'DateInput');
+  if (dateInput) {
+     dateInput.value = meta.reportDate;
+  }
+  
+  const btn = document.getElementById('pick' + prefix.charAt(0).toUpperCase() + prefix.slice(1) + 'FileBtn');
+  if (btn) btn.click();
+}
+
+async function handleDeleteIc(batchId) {
+  const meta = inventoryClosingBatchMeta.get(String(batchId));
+  if (!meta) return;
+  
+  let msg = '';
+  if (meta.status === 'succeeded') {
+     msg = "هذه هي النسخة النشطة لهذا التقرير والتاريخ. سيتم حذف ملف الـBatch وكل صفوف البيانات المرتبطة به نهائيًا من قاعدة البيانات، ولن يمكن استعادتها، ولن يتم تنشيط نسخة قديمة تلقائيًا. هل تريد المتابعة؟";
+  } else if (meta.status === 'replaced') {
+     msg = "سيتم حذف النسخة المستبدلة وكل صفوفها نهائيًا من قاعدة البيانات لتحرير المساحة. لا يمكن التراجع عن هذا الإجراء. هل تريد المتابعة؟";
+  } else {
+     return;
+  }
+  
+  if (!window.confirm(msg)) return;
+  
+  try {
+     const { error } = await WarehouseDB.client.rpc('delete_inventory_closing_batch', {
+        p_batch_id: batchId
+     });
+     if (error) throw error;
+     
+     if (window.showToast) {
+       window.showToast('تم الحذف بنجاح.', 'success');
+     } else {
+       alert('تم الحذف بنجاح.');
+     }
+     
+     inventoryClosingBatchMeta.delete(String(batchId));
+     icLoadLastUploadBatch(meta.tabKey);
+  } catch (err) {
+     console.error('Delete error', err);
+     alert('فشل الحذف: ' + (err.message || 'خطأ غير معروف'));
+  }
 }
 
 // Initialize modal after DOM is ready
