@@ -4380,6 +4380,7 @@ const SETTINGS_TAB_PERMISSION_MAP={
   'plants-settings':'settings_plants',
   'warehouses-settings':'settings_warehouses',
   'sales-products-settings':'settings_sales_products',
+  'storekeepers':'settings_storekeepers',
   'activity-log':'settings_activity_log'
 };
 function canViewSettingsTab(key){
