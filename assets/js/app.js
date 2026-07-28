@@ -4370,6 +4370,7 @@ function initAllSettingsTableControls(){
   initSettingsTableControls('plantsSettingsTable');
   initSettingsTableControls('warehousesSettingsTable');
   initSettingsTableControls('salesProductsSettingsTable');
+  initSettingsTableControls('storekeepersSettingsTable');
 }
 
 const SETTINGS_TAB_PERMISSION_MAP={
@@ -5670,6 +5671,7 @@ function initSettingsTabs(){
     if(key==='plants-settings') ensurePlantsSettingsLoaded();
     if(key==='warehouses-settings') ensureWarehousesSettingsLoaded();
     if(key==='sales-products-settings') ensureSalesProductsSettingsLoaded();
+    if(key==='storekeepers') ensureStorekeepersLoaded();
     if(key==='activity-log') ensureActivityLogLoaded();
     initAllSettingsTableControls();
     applySettingsSubPermissions();
@@ -10216,3 +10218,190 @@ if (document.readyState === 'loading') {
 } else {
   initInventoryClosingUploaders();
 }
+
+// === Storekeepers Settings ===
+let storekeepersLoaded = false;
+async function ensureStorekeepersLoaded() {
+  if (storekeepersLoaded) return;
+  storekeepersLoaded = true;
+  await loadStorekeepersTable();
+}
+
+async function loadStorekeepersTable() {
+  const tbody = document.querySelector('#storekeepersSettingsTable tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري التحميل...</td></tr>';
+  
+  try {
+    let query = WarehouseDB.client.from('storekeepers').select('*').order('created_at', { ascending: false });
+    
+    const searchVal = document.getElementById('storekeepersSearchInput')?.value.trim().toLowerCase();
+    const plantVal = document.getElementById('storekeepersPlantFilter')?.value;
+    const statusVal = document.getElementById('storekeepersStatusFilter')?.value;
+    
+    if (searchVal) {
+      query = query.ilike('full_name', `%${searchVal}%`);
+    }
+    if (plantVal && plantVal !== 'all') {
+      query = query.eq('plant_code', plantVal);
+    }
+    if (statusVal && statusVal !== 'all') {
+      query = query.eq('is_active', statusVal === 'active');
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;" class="empty-row">لا يوجد بيانات لعرضها</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = data.map(st => `
+      <tr>
+        <td>${escapeHtml(st.full_name || '')}</td>
+        <td>${escapeHtml(st.job_title || '')}</td>
+        <td>${escapeHtml(st.plant_code || '')}</td>
+        <td>
+          <span class="status-badge ${st.is_active ? 'status-active' : 'status-inactive'}">
+            ${st.is_active ? 'نشط' : 'غير نشط'}
+          </span>
+        </td>
+        <td>
+          <div class="actions-cell">
+            <button class="small-action edit" type="button" 
+              onclick="editStorekeeper('${st.id}', '${escapeHtml(st.full_name)}', '${escapeHtml(st.job_title)}', '${st.plant_code}', ${st.is_active})">
+              تعديل
+            </button>
+            <button class="small-action ${st.is_active ? 'delete' : 'view'}" type="button" 
+              onclick="toggleStorekeeperStatus('${st.id}', ${!st.is_active})">
+              ${st.is_active ? 'إيقاف' : 'تفعيل'}
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+    
+  } catch (err) {
+    console.error('Error loading storekeepers:', err);
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">حدث خطأ أثناء جلب البيانات</td></tr>';
+  }
+}
+
+document.getElementById('storekeepersSearchInput')?.addEventListener('input', loadStorekeepersTable);
+document.getElementById('storekeepersPlantFilter')?.addEventListener('change', loadStorekeepersTable);
+document.getElementById('storekeepersStatusFilter')?.addEventListener('change', loadStorekeepersTable);
+
+document.getElementById('storekeeperSettingsForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('saveStorekeeperBtn');
+  const originalText = btn.textContent;
+  btn.textContent = 'جاري الحفظ...';
+  btn.disabled = true;
+  
+  try {
+    const id = document.getElementById('storekeeperIdInput').value;
+    const full_name = document.getElementById('storekeeperNameInput').value.trim();
+    const job_title = document.getElementById('storekeeperTitleInput').value.trim();
+    const plant_code = document.getElementById('storekeeperPlantInput').value;
+    const is_active = document.getElementById('storekeeperActiveInput').checked;
+    
+    if (id) {
+      // Update
+      const { error } = await WarehouseDB.client.from('storekeepers')
+        .update({ full_name, job_title, plant_code, is_active, updated_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+      if (window.showToast) window.showToast('تم التعديل بنجاح', 'success');
+    } else {
+      // Insert
+      const { error } = await WarehouseDB.client.from('storekeepers')
+        .insert([{ full_name, job_title, plant_code, is_active }]);
+      if (error) throw error;
+      if (window.showToast) window.showToast('تمت الإضافة بنجاح', 'success');
+    }
+    
+    resetStorekeeperForm();
+    await loadStorekeepersTable();
+    await reloadInventoryCountStorekeepers(); // Refresh dropdowns in inventory closing
+  } catch (err) {
+    console.error('Error saving storekeeper:', err);
+    alert('حدث خطأ أثناء الحفظ: ' + (err.message || ''));
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+});
+
+function editStorekeeper(id, full_name, job_title, plant_code, is_active) {
+  document.getElementById('storekeeperIdInput').value = id;
+  document.getElementById('storekeeperNameInput').value = full_name;
+  document.getElementById('storekeeperTitleInput').value = job_title;
+  document.getElementById('storekeeperPlantInput').value = plant_code;
+  document.getElementById('storekeeperActiveInput').checked = is_active;
+  
+  document.getElementById('saveStorekeeperBtn').textContent = 'تحديث أمين المخزن';
+  document.getElementById('cancelStorekeeperBtn').style.display = 'inline-block';
+}
+
+function resetStorekeeperForm() {
+  document.getElementById('storekeeperIdInput').value = '';
+  document.getElementById('storekeeperSettingsForm').reset();
+  document.getElementById('saveStorekeeperBtn').textContent = 'حفظ أمين المخزن';
+  document.getElementById('cancelStorekeeperBtn').style.display = 'none';
+}
+
+document.getElementById('cancelStorekeeperBtn')?.addEventListener('click', resetStorekeeperForm);
+
+async function toggleStorekeeperStatus(id, newStatus) {
+  try {
+    const { error } = await WarehouseDB.client.from('storekeepers')
+      .update({ is_active: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw error;
+    if (window.showToast) window.showToast('تم تحديث الحالة بنجاح', 'success');
+    await loadStorekeepersTable();
+    await reloadInventoryCountStorekeepers();
+  } catch (err) {
+    console.error('Status update error', err);
+    alert('حدث خطأ أثناء التحديث');
+  }
+}
+
+// === Inventory Count integration ===
+async function reloadInventoryCountStorekeepers() {
+  try {
+    const { data, error } = await WarehouseDB.client.from('storekeepers')
+      .select('*')
+      .eq('is_active', true)
+      .order('full_name');
+    if (error) throw error;
+    
+    const selects = document.querySelectorAll('.inventory-closing-storekeeper-select');
+    selects.forEach(select => {
+      const plant = select.dataset.plant;
+      const currentVal = select.value;
+      
+      const filtered = (data || []).filter(st => st.plant_code === plant);
+      
+      let html = '<option value="">اختر القائم بالجرد</option>';
+      filtered.forEach(st => {
+        html += \`<option value="\${escapeHtml(st.id)}">\${escapeHtml(st.full_name)} — \${escapeHtml(st.job_title)}</option>\`;
+      });
+      select.innerHTML = html;
+      
+      if (currentVal && select.querySelector(\`option[value="\${currentVal}"]\`)) {
+        select.value = currentVal;
+      }
+    });
+  } catch (err) {
+    console.error('Error loading storekeepers for dropdown:', err);
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', reloadInventoryCountStorekeepers);
+} else {
+  reloadInventoryCountStorekeepers();
+}
+

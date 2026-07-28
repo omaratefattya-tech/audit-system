@@ -631,7 +631,10 @@
               <span>Plant Name: مصنع الواحة للأعلاف</span>
             </div>
             <div class="report-tools-row" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
-              <label>تاريخ المراجعة: <input type="date" class="inventory-closing-date"></label>
+              <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                <label>تاريخ المراجعة: <input type="date" class="inventory-closing-date"></label>
+                <label>القائم بالجرد: <select class="inventory-closing-storekeeper-select" data-plant="WF01"><option value="">اختر القائم بالجرد</option></select></label>
+              </div>
               <div class="export-actions compact">
                 <button class="secondary export-btn" id="inventoryClosingWf01ExportExcelBtn" type="button">تصدير Excel</button>
                 <button class="secondary export-btn" id="inventoryClosingWf01ExportPdfBtn" type="button">تصدير PDF</button>
@@ -686,7 +689,10 @@
               <span>Plant Name: مصنع الإيمان للأعلاف - السواقي</span>
             </div>
             <div class="report-tools-row" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
-              <label>تاريخ المراجعة: <input type="date" class="inventory-closing-date"></label>
+              <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                <label>تاريخ المراجعة: <input type="date" class="inventory-closing-date"></label>
+                <label>القائم بالجرد: <select class="inventory-closing-storekeeper-select" data-plant="EL01"><option value="">اختر القائم بالجرد</option></select></label>
+              </div>
               <div class="export-actions compact">
                 <button class="secondary export-btn" id="inventoryClosingEl01ExportExcelBtn" type="button">تصدير Excel</button>
                 <button class="secondary export-btn" id="inventoryClosingEl01ExportPdfBtn" type="button">تصدير PDF</button>
@@ -741,7 +747,10 @@
               <span>Plant Name: مصنع الإيمان للأعلاف - العامرية</span>
             </div>
             <div class="report-tools-row" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
-              <label>تاريخ المراجعة: <input type="date" class="inventory-closing-date"></label>
+              <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                <label>تاريخ المراجعة: <input type="date" class="inventory-closing-date"></label>
+                <label>القائم بالجرد: <select class="inventory-closing-storekeeper-select" data-plant="EL02"><option value="">اختر القائم بالجرد</option></select></label>
+              </div>
               <div class="export-actions compact">
                 <button class="secondary export-btn" id="inventoryClosingEl02ExportExcelBtn" type="button">تصدير Excel</button>
                 <button class="secondary export-btn" id="inventoryClosingEl02ExportPdfBtn" type="button">تصدير PDF</button>
@@ -1314,6 +1323,7 @@
             <button class="settings-tab" id="settingsPlantsTab" type="button" role="tab" aria-selected="false" aria-controls="settingsPlantsPanel" data-settings-tab="plants-settings">&#x1F3ED; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x0635;&#x0627;&#x0646;&#x0639;</button>
             <button class="settings-tab" id="settingsWarehousesTab" type="button" role="tab" aria-selected="false" aria-controls="settingsWarehousesPanel" data-settings-tab="warehouses-settings">&#x1F3EC; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x062E;&#x0627;&#x0632;&#x0646;</button>
             <button class="settings-tab" id="settingsSalesProductsTab" type="button" role="tab" aria-selected="false" aria-controls="settingsSalesProductsPanel" data-settings-tab="sales-products-settings">&#x1F4E6; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0623;&#x0635;&#x0646;&#x0627;&#x0641; &#x0627;&#x0644;&#x0628;&#x064A;&#x0639;</button>
+            <button class="settings-tab" id="settingsStorekeepersTab" type="button" role="tab" aria-selected="false" aria-controls="settingsStorekeepersPanel" data-settings-tab="storekeepers">أمناء المخازن</button>
             <button class="settings-tab" id="settingsActivityLogTab" type="button" role="tab" aria-selected="false" aria-controls="settingsActivityLogPanel" data-settings-tab="activity-log">&#x0633;&#x062C;&#x0644; &#x0627;&#x0644;&#x062D;&#x0631;&#x0643;&#x0627;&#x062A;</button>
           </div>
           <div class="settings-mobile-tab-select" id="settingsMobileTabSelectWrap">
@@ -1326,6 +1336,7 @@
                 <option value="plants-settings">إعدادات المصانع</option>
                 <option value="warehouses-settings">إعدادات المخازن</option>
                 <option value="sales-products-settings">إعدادات أصناف البيع</option>
+                <option value="storekeepers">أمناء المخازن</option>
                 <option value="activity-log">سجل الحركات</option>
               </select>
               <span class="settings-mobile-select-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m7 10 5 5 5-5"/></svg></span>
@@ -1569,6 +1580,54 @@
                   <div class="upload-status" id="salesProductWarehousesStatus"></div>
                 </div>
                 <div class="upload-status" id="salesProductsSettingsStatus"></div>
+              </div>
+            </section>
+            <section class="settings-tab-panel" id="settingsStorekeepersPanel" role="tabpanel" aria-labelledby="settingsStorekeepersTab" data-settings-panel="storekeepers">
+              <div class="settings-storekeepers-wrap">
+                <div class="activity-log-toolbar glass-soft" style="margin-bottom: 15px;">
+                  <div class="users-search-box">
+                    <span class="ui-svg-icon" data-modern-icon="search" aria-hidden="true"></span>
+                    <input id="storekeepersSearchInput" type="search" placeholder="بحث بالاسم..." />
+                  </div>
+                  <select id="storekeepersPlantFilter" class="secondary">
+                    <option value="all">كل المصانع</option>
+                    <option value="WF01">مصنع الواحة</option>
+                    <option value="EL01">المصنع الرئيسي</option>
+                    <option value="EL02">مصنع العامرية</option>
+                  </select>
+                  <select id="storekeepersStatusFilter" class="secondary">
+                    <option value="all">كل الحالات</option>
+                    <option value="active">نشط</option>
+                    <option value="inactive">غير نشط</option>
+                  </select>
+                </div>
+                
+                <form id="storekeeperSettingsForm" class="sales-product-settings-form" style="margin-bottom: 15px;">
+                  <input type="hidden" id="storekeeperIdInput" />
+                  <label>الاسم
+                    <input type="text" id="storekeeperNameInput" required placeholder="الاسم الكامل" autocomplete="off" />
+                  </label>
+                  <label>الوظيفة
+                    <input type="text" id="storekeeperTitleInput" required placeholder="مثال: أمين مخزن" autocomplete="off" />
+                  </label>
+                  <label>المصنع
+                    <select id="storekeeperPlantInput" required>
+                      <option value="WF01">WF01 — مصنع الواحة</option>
+                      <option value="EL01">EL01 — المصنع الرئيسي</option>
+                      <option value="EL02">EL02 — مصنع العامرية</option>
+                    </select>
+                  </label>
+                  <label class="settings-check sales-product-flag-check"><input type="checkbox" id="storekeeperActiveInput" checked /> <span>نشط</span></label>
+                  <button class="primary" id="saveStorekeeperBtn" type="submit">حفظ أمين المخزن</button>
+                  <button class="secondary" id="cancelStorekeeperBtn" type="button" style="display:none">إلغاء</button>
+                </form>
+                
+                <div class="table-wrap">
+                  <table id="storekeepersSettingsTable" data-no-universal-table="1">
+                    <thead><tr><th>الاسم</th><th>الوظيفة</th><th>المصنع</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
               </div>
             </section>
             <section class="settings-tab-panel" id="settingsActivityLogPanel" role="tabpanel" aria-labelledby="settingsActivityLogTab" data-settings-panel="activity-log">
