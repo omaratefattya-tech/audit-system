@@ -370,42 +370,96 @@
           
           <div class="upload-tab-panel" id="inventoryClosingWf01UploadPanel" data-upload-panel="inventory_closing_wf01">
             <div class="daily-upload-box">
-              <label class="report-date-field">تاريخ المراجعة<input type="date" class="inventory-closing-upload-date" id="inventoryClosingWf01DateInput"></label>
-              <button class="primary" type="button" id="pickInventoryClosingWf01FileBtn">اختيار ورفع تقرير تقفيل الواحة</button>
+              <label class="report-date-field">
+                تاريخ التقرير
+                <input type="date" class="inventory-closing-upload-date" id="inventoryClosingWf01DateInput" />
+              </label>
+              <button class="primary" id="pickInventoryClosingWf01FileBtn" type="button">اختيار ورفع تقرير تقفيل الواحة</button>
             </div>
             <input type="file" id="inventoryClosingWf01ExcelInput" accept=".xlsx,.xls" hidden />
-            <div class="drop-zone" id="inventoryClosingWf01DropZone">اختر ملف Excel لتقفيل الواحة أو اسحبه هنا</div>
+            <div class="drop-zone" id="inventoryClosingWf01DropZone">
+              اختر ملف Excel لتقفيل الواحة أو اسحبه هنا
+              <br>
+              <small>سيتم حفظ البيانات الخام لتقفيل الواحة وربطها بتاريخ التقرير المختار.</small>
+              <div class="mobile-upload-card-content" style="display:none">
+                <span class="mobile-upload-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>
+                </span>
+                <strong>اسحب ملف Excel هنا</strong>
+                <em>أو اضغط لاختيار الملف</em>
+                <small>الحد الأقصى: 10 MB</small>
+                <div class="mobile-upload-selected" id="inventoryClosingWf01MobileFileMeta" aria-live="polite"></div>
+              </div>
+            </div>
             <div class="upload-status" id="inventoryClosingWf01UploadStatus">لم يتم رفع التقرير بعد.</div>
+
             <div class="history-panel">
-              <h3>آخر رفع للتقفيل</h3>
+              <h3>سجل النسخ المرفوعة</h3>
+              <p class="hint">يمكنك البحث والترتيب من رأس كل عمود، وعرض أو استبدال أو حذف أي نسخة.</p>
               <div class="table-wrap"><table id="inventoryClosingWf01BatchesTable"></table></div>
             </div>
           </div>
 
           <div class="upload-tab-panel" id="inventoryClosingEl01UploadPanel" data-upload-panel="inventory_closing_el01">
             <div class="daily-upload-box">
-              <label class="report-date-field">تاريخ المراجعة<input type="date" class="inventory-closing-upload-date" id="inventoryClosingEl01DateInput"></label>
-              <button class="primary" type="button" id="pickInventoryClosingEl01FileBtn">اختيار ورفع تقرير تقفيل المصنع الرئيسي</button>
+              <label class="report-date-field">
+                تاريخ التقرير
+                <input type="date" class="inventory-closing-upload-date" id="inventoryClosingEl01DateInput" />
+              </label>
+              <button class="primary" id="pickInventoryClosingEl01FileBtn" type="button">اختيار ورفع تقرير تقفيل المصنع الرئيسي</button>
             </div>
             <input type="file" id="inventoryClosingEl01ExcelInput" accept=".xlsx,.xls" hidden />
-            <div class="drop-zone" id="inventoryClosingEl01DropZone">اختر ملف Excel لتقفيل المصنع الرئيسي أو اسحبه هنا</div>
+            <div class="drop-zone" id="inventoryClosingEl01DropZone">
+              اختر ملف Excel لتقفيل المصنع الرئيسي أو اسحبه هنا
+              <br>
+              <small>سيتم حفظ البيانات الخام لتقفيل المصنع الرئيسي وربطها بتاريخ التقرير المختار.</small>
+              <div class="mobile-upload-card-content" style="display:none">
+                <span class="mobile-upload-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>
+                </span>
+                <strong>اسحب ملف Excel هنا</strong>
+                <em>أو اضغط لاختيار الملف</em>
+                <small>الحد الأقصى: 10 MB</small>
+                <div class="mobile-upload-selected" id="inventoryClosingEl01MobileFileMeta" aria-live="polite"></div>
+              </div>
+            </div>
             <div class="upload-status" id="inventoryClosingEl01UploadStatus">لم يتم رفع التقرير بعد.</div>
+
             <div class="history-panel">
-              <h3>آخر رفع للتقفيل</h3>
+              <h3>سجل النسخ المرفوعة</h3>
+              <p class="hint">يمكنك البحث والترتيب من رأس كل عمود، وعرض أو استبدال أو حذف أي نسخة.</p>
               <div class="table-wrap"><table id="inventoryClosingEl01BatchesTable"></table></div>
             </div>
           </div>
 
           <div class="upload-tab-panel" id="inventoryClosingEl02UploadPanel" data-upload-panel="inventory_closing_el02">
             <div class="daily-upload-box">
-              <label class="report-date-field">تاريخ المراجعة<input type="date" class="inventory-closing-upload-date" id="inventoryClosingEl02DateInput"></label>
-              <button class="primary" type="button" id="pickInventoryClosingEl02FileBtn">اختيار ورفع تقرير تقفيل مصنع العامرية</button>
+              <label class="report-date-field">
+                تاريخ التقرير
+                <input type="date" class="inventory-closing-upload-date" id="inventoryClosingEl02DateInput" />
+              </label>
+              <button class="primary" id="pickInventoryClosingEl02FileBtn" type="button">اختيار ورفع تقرير تقفيل مصنع العامرية</button>
             </div>
             <input type="file" id="inventoryClosingEl02ExcelInput" accept=".xlsx,.xls" hidden />
-            <div class="drop-zone" id="inventoryClosingEl02DropZone">اختر ملف Excel لتقفيل مصنع العامرية أو اسحبه هنا</div>
+            <div class="drop-zone" id="inventoryClosingEl02DropZone">
+              اختر ملف Excel لتقفيل مصنع العامرية أو اسحبه هنا
+              <br>
+              <small>سيتم حفظ البيانات الخام لتقفيل مصنع العامرية وربطها بتاريخ التقرير المختار.</small>
+              <div class="mobile-upload-card-content" style="display:none">
+                <span class="mobile-upload-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg>
+                </span>
+                <strong>اسحب ملف Excel هنا</strong>
+                <em>أو اضغط لاختيار الملف</em>
+                <small>الحد الأقصى: 10 MB</small>
+                <div class="mobile-upload-selected" id="inventoryClosingEl02MobileFileMeta" aria-live="polite"></div>
+              </div>
+            </div>
             <div class="upload-status" id="inventoryClosingEl02UploadStatus">لم يتم رفع التقرير بعد.</div>
+
             <div class="history-panel">
-              <h3>آخر رفع للتقفيل</h3>
+              <h3>سجل النسخ المرفوعة</h3>
+              <p class="hint">يمكنك البحث والترتيب من رأس كل عمود، وعرض أو استبدال أو حذف أي نسخة.</p>
               <div class="table-wrap"><table id="inventoryClosingEl02BatchesTable"></table></div>
             </div>
           </div>
