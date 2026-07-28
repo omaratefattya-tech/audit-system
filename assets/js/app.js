@@ -10385,24 +10385,22 @@ async function reloadInventoryCountStorekeepers() {
       
       const filtered = (data || []).filter(st => st.plant_code === plant);
       
-      let html = '<option value="">اختر القائم بالجرد</option>';
-      filtered.forEach(st => {
-        html += \`<option value="\${escapeHtml(st.id)}">\${escapeHtml(st.full_name)} — \${escapeHtml(st.job_title)}</option>\`;
-      });
-      select.innerHTML = html;
-      
-      if (currentVal && select.querySelector(\`option[value="\${currentVal}"]\`)) {
-        select.value = currentVal;
-      }
+     let html = '<option value="">اختر القائم بالجرد</option>';
+
+filtered.forEach((st) => {
+  html += `<option value="${escapeHtml(st.id)}">${escapeHtml(st.full_name)} — ${escapeHtml(st.job_title)}</option>`;
+});
+
+select.innerHTML = html;
+
+if (
+  currentVal &&
+  select.querySelector(`option[value="${CSS.escape(currentVal)}"]`)
+) {
+  select.value = currentVal;
+}
     });
-  } catch (err) {
-    console.error('Error loading storekeepers for dropdown:', err);
+  } catch (error) {
+    console.error('Failed to reload inventory count storekeepers:', error);
   }
 }
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', reloadInventoryCountStorekeepers);
-} else {
-  reloadInventoryCountStorekeepers();
-}
-
