@@ -9624,11 +9624,12 @@ function icMapRow(row, headers, sourceRowNumber) {
 async function icLoadLastUploadBatch(tabKey) {
   const config = INVENTORY_CLOSING_CONFIG[tabKey];
   const prefix = tabKey.replace(/_(.)/g, (_, c) => c.toUpperCase());
-  const table = document.getElementById(prefix + 'BatchesTable');
-  if (!table) return;
+  const tableSelector = '#' + prefix + 'BatchesTable';
+  const tableEl = document.getElementById(prefix + 'BatchesTable');
+  if (!tableEl) return;
 
   if(!window.WarehouseDB?.ready) {
-    table.innerHTML = '<tr><td>قاعدة البيانات غير متصلة</td></tr>';
+    tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">قاعدة البيانات غير متصلة</td></tr>';
     return;
   }
 
@@ -9644,30 +9645,46 @@ async function icLoadLastUploadBatch(tabKey) {
 
     if (error) throw error;
     if (!data || data.length === 0) {
-      table.innerHTML = '<tr><td>لا يوجد عمليات رفع سابقة</td></tr>';
+      tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">لا يوجد عمليات رفع سابقة</td></tr>';
       return;
     }
 
-    let html = '<thead><tr><th>تاريخ التقرير</th><th>وقت الرفع</th><th>المستخدم</th><th>الصفوف</th><th>الحالة</th></tr></thead><tbody>';
-    data.forEach(batch => {
+    const rows = data.map(batch => {
       // Resolve upload timestamp — try known possible column names defensively
       const rawTs = batch.completed_at ?? batch.created_at ?? batch.upload_date ?? batch.uploaded_at ?? batch.inserted_at ?? null;
       const bDate = rawTs ? new Date(rawTs).toLocaleString('ar-EG') : '--';
       // Resolve row count — try known possible column names defensively
       const rowCount = batch.row_count ?? batch.received_rows ?? batch.final_row_count ?? batch.expected_rows ?? '--';
-      html += '<tr>'
-        + '<td>' + (batch.report_date || '--') + '</td>'
-        + '<td>' + bDate + '</td>'
-        + '<td>' + (batch.uploaded_by_name || '--') + '</td>'
-        + '<td>' + rowCount + '</td>'
-        + '<td><span class="badge green">ناجح</span></td>'
-        + '</tr>';
+      
+      const uploader = batch.uploaded_by_name || batch.uploaded_by || '--';
+      const fileSize = typeof formatFileSize === 'function' ? formatFileSize(batch.file_size_bytes) : '-';
+      const rDate = typeof normalizeDateISO === 'function' ? normalizeDateISO(batch.report_date) : batch.report_date;
+      
+      return [
+        rDate || batch.report_date || '--',
+        batch.file_name || '--',
+        Number(rowCount || 0).toLocaleString('en-US'),
+        fileSize,
+        uploader,
+        bDate,
+        `<span style="color:#888;font-size:12px;">غير متاح</span>`
+      ];
     });
-    html += '</tbody>';
-    table.innerHTML = html;
+
+    if (typeof table === 'function') {
+      table(tableSelector, ['تاريخ التقرير','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الإجراءات'], rows);
+    } else {
+      let html = '<thead><tr><th>تاريخ التقرير</th><th>اسم الملف</th><th>عدد السطور</th><th>الحجم</th><th>الرافع</th><th>تاريخ الرفع</th><th>الإجراءات</th></tr></thead><tbody>';
+      rows.forEach(r => {
+        html += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td></tr>`;
+      });
+      html += '</tbody>';
+      tableEl.innerHTML = html;
+    }
+
   } catch (err) {
     console.error('IC: Failed to load upload history:', err);
-    table.innerHTML = '<tr><td>فشل جلب سجل الرفع</td></tr>';
+    tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">فشل جلب سجل الرفع</td></tr>';
   }
 }
 
