@@ -4439,8 +4439,25 @@ function applySettingsSubPermissions(){
   setElementsDisabled('#salesProductsSettingsTable [data-action="sales-product-warehouses"]',!canViewLinks,true);
   setElementsDisabled('#salesProductWarehousesList input,#saveSalesProductWarehousesBtn',!canEditLinks,true);
 
+  applyStorekeepersSettingsPermissions();
+
   setElementsDisabled('#activityLogExportExcelBtn',!hasPermission('settings_activity_log','export_excel'),true);
   setElementsDisabled('#activityLogExportPdfBtn',!hasPermission('settings_activity_log','export_pdf'),true);
+}
+function canAddStorekeepersSettings(){ return hasPermission('settings_storekeepers','add'); }
+function canEditStorekeepersSettings(){ return hasPermission('settings_storekeepers','edit'); }
+function notifyStorekeepersPermissionDenied(){ alert('\u063A\u064A\u0631 \u0645\u062A\u0627\u062D \u0644\u0644\u0635\u0644\u0627\u062D\u064A\u0629 \u0627\u0644\u062D\u0627\u0644\u064A\u0629'); }
+function isStorekeepersSettingsEditing(){ return Boolean($('#storekeeperIdInput')?.value); }
+function applyStorekeepersSettingsPermissions(){
+  const canAdd=canAddStorekeepersSettings();
+  const canEdit=canEditStorekeepersSettings();
+  const isEditing=isStorekeepersSettingsEditing();
+  const canUseForm=isEditing ? canEdit : canAdd;
+  const form=$('#storekeeperSettingsForm');
+  if(form) form.classList.toggle('permission-hidden',!canUseForm);
+  setElementsDisabled('#storekeeperSettingsForm input:not([type="hidden"]),#storekeeperSettingsForm select,#saveStorekeeperBtn',!canUseForm,true);
+  setElementsDisabled('#cancelStorekeeperBtn',isEditing ? !canEdit : false,true);
+  setElementsDisabled('#storekeepersSettingsTable [data-action="edit-storekeeper"],#storekeepersSettingsTable [data-action="toggle-storekeeper"]',!canEdit,true);
 }
 let PLANTS_SETTINGS_LOADED=false;
 let PLANTS_SETTINGS_ROWS=[];
@@ -10270,11 +10287,11 @@ async function loadStorekeepersTable() {
         </td>
         <td>
           <div class="actions-cell">
-            <button class="small-action edit" type="button" 
+            <button class="small-action edit" type="button" data-action="edit-storekeeper"
               onclick="editStorekeeper('${st.id}', '${escapeHtml(st.full_name)}', '${escapeHtml(st.job_title)}', '${st.plant_code}', ${st.is_active})">
               تعديل
             </button>
-            <button class="small-action ${st.is_active ? 'delete' : 'view'}" type="button" 
+            <button class="small-action ${st.is_active ? 'delete' : 'view'}" type="button" data-action="toggle-storekeeper"
               onclick="toggleStorekeeperStatus('${st.id}', ${!st.is_active})">
               ${st.is_active ? 'إيقاف' : 'تفعيل'}
             </button>
@@ -10282,6 +10299,8 @@ async function loadStorekeepersTable() {
         </td>
       </tr>
     `).join('');
+    refreshSettingsTableControls('storekeepersSettingsTable');
+    applySettingsSubPermissions();
     
   } catch (err) {
     console.error('Error loading storekeepers:', err);
@@ -10295,13 +10314,19 @@ document.getElementById('storekeepersStatusFilter')?.addEventListener('change', 
 
 document.getElementById('storekeeperSettingsForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
+  const id = document.getElementById('storekeeperIdInput').value;
+  const requiredAction = id ? 'edit' : 'add';
+  if(!hasPermission('settings_storekeepers', requiredAction)){
+    notifyStorekeepersPermissionDenied();
+    applyStorekeepersSettingsPermissions();
+    return;
+  }
   const btn = document.getElementById('saveStorekeeperBtn');
   const originalText = btn.textContent;
   btn.textContent = 'جاري الحفظ...';
   btn.disabled = true;
   
   try {
-    const id = document.getElementById('storekeeperIdInput').value;
     const full_name = document.getElementById('storekeeperNameInput').value.trim();
     const job_title = document.getElementById('storekeeperTitleInput').value.trim();
     const plant_code = document.getElementById('storekeeperPlantInput').value;
@@ -10331,10 +10356,16 @@ document.getElementById('storekeeperSettingsForm')?.addEventListener('submit', a
   } finally {
     btn.textContent = originalText;
     btn.disabled = false;
+    applyStorekeepersSettingsPermissions();
   }
 });
 
 function editStorekeeper(id, full_name, job_title, plant_code, is_active) {
+  if(!canEditStorekeepersSettings()){
+    notifyStorekeepersPermissionDenied();
+    applyStorekeepersSettingsPermissions();
+    return;
+  }
   document.getElementById('storekeeperIdInput').value = id;
   document.getElementById('storekeeperNameInput').value = full_name;
   document.getElementById('storekeeperTitleInput').value = job_title;
@@ -10343,18 +10374,30 @@ function editStorekeeper(id, full_name, job_title, plant_code, is_active) {
   
   document.getElementById('saveStorekeeperBtn').textContent = 'تحديث أمين المخزن';
   document.getElementById('cancelStorekeeperBtn').style.display = 'inline-block';
+  applyStorekeepersSettingsPermissions();
 }
 
 function resetStorekeeperForm() {
+  if(isStorekeepersSettingsEditing() && !canEditStorekeepersSettings()){
+    notifyStorekeepersPermissionDenied();
+    applyStorekeepersSettingsPermissions();
+    return;
+  }
   document.getElementById('storekeeperIdInput').value = '';
   document.getElementById('storekeeperSettingsForm').reset();
   document.getElementById('saveStorekeeperBtn').textContent = 'حفظ أمين المخزن';
   document.getElementById('cancelStorekeeperBtn').style.display = 'none';
+  applyStorekeepersSettingsPermissions();
 }
 
 document.getElementById('cancelStorekeeperBtn')?.addEventListener('click', resetStorekeeperForm);
 
 async function toggleStorekeeperStatus(id, newStatus) {
+  if(!canEditStorekeepersSettings()){
+    notifyStorekeepersPermissionDenied();
+    applyStorekeepersSettingsPermissions();
+    return;
+  }
   try {
     const { error } = await WarehouseDB.client.from('storekeepers')
       .update({ is_active: newStatus, updated_at: new Date().toISOString() })
