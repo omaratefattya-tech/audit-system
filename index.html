@@ -607,8 +607,8 @@
           </div>        </article>
       </section>
       
-      <section id="inventory_closing" class="section">
-        <article class="panel glass">
+            <section id="inventory_closing" class="section">
+        <article class="panel glass" style="position: relative;">
           <div class="focus-mode-title-row" data-focus-section="inventory_closing">
             <h2>الجرد وتوثيق المخزون</h2>
             <div class="focus-mode-actions">
@@ -616,189 +616,58 @@
               <button class="secondary focus-mode-close-btn" id="inventoryClosingFocusModeCloseBtn" type="button" data-focus-close hidden>إغلاق Focus Mode</button>
             </div>
           </div>
-          <p class="hint">توثيق ومراجعة الجرد الفعلي للمخازن ومقارنته بالرصيد الدفتري.</p>
+          <p class="hint">إنشاء جرد جديد وعرض أصناف الجرد والرصيد الدفتري من النسخة التي تم إنشاؤها.</p>
 
-          <div class="subtabs" role="tablist" style="margin-bottom: 20px;">
-            <button class="active" type="button" role="tab" data-inventory-closing-tab="wf01">تقفيل الواحة</button>
-            <button type="button" role="tab" data-inventory-closing-tab="el01">تقفيل المصنع الرئيسي</button>
-            <button type="button" role="tab" data-inventory-closing-tab="el02">تقفيل مصنع العامرية</button>
+          <div class="glass-soft" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; align-items: end; padding: 14px; border-radius: 12px; margin-bottom: 14px;">
+            <label style="display: flex; flex-direction: column; gap: 6px;">
+              تاريخ الجرد
+              <input id="inventoryCountDateInput" type="date" />
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 6px;">
+              المصنع
+              <select id="inventoryCountPlantSelect">
+                <option value="WF01">WF01</option>
+                <option value="EL01">EL01</option>
+                <option value="EL02">EL02</option>
+              </select>
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 6px;">
+              المخزن
+              <select id="inventoryCountWarehouseSelect">
+                <option value="W401">W401</option>
+              </select>
+            </label>
+            <div id="inventoryCountCurrentVersionMeta" class="hint" style="text-align: right; margin: 0; align-self: center;">لا توجد نسخة جرد محملة.</div>
+            <button class="primary" id="createInventoryCountBtn" type="button">جرد جديد</button>
           </div>
 
-          <div class="inventory-closing-tab-panel active" id="inventoryClosingWf01Panel" data-inventory-closing-panel="wf01">
-            <div class="inventory-closing-meta" style="display: flex; gap: 15px; margin-bottom: 15px; font-weight: bold;">
-              <span>Plant Code: WF01</span>
-              <span>Warehouse Code: W401</span>
-              <span>Plant Name: مصنع الواحة للأعلاف</span>
-            </div>
-            <div class="report-tools-row" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
-              <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
-                <label>تاريخ المراجعة: <input type="date" class="inventory-closing-date"></label>
-                <label>القائم بالجرد: <select class="inventory-closing-storekeeper-select" data-plant="WF01"><option value="">اختر القائم بالجرد</option></select></label>
-              </div>
-              <div class="export-actions compact">
-                <button class="secondary export-btn" id="inventoryClosingWf01ExportExcelBtn" type="button">تصدير Excel</button>
-                <button class="secondary export-btn" id="inventoryClosingWf01ExportPdfBtn" type="button">تصدير PDF</button>
-                <button class="secondary export-btn" id="inventoryClosingWf01ExportPngBtn" type="button">تصدير PNG</button>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table id="inventoryClosingWf01Table">
-                <thead>
-                  <tr>
-                    <th>كود المادة</th>
-                    <th>وصف المادة</th>
-                    <th>وحدة القياس</th>
-                    <th>رصيد أول</th>
-                    <th>الإنتاج</th>
-                    <th>التحويلات الواردة</th>
-                    <th>مرتجع فعلي</th>
-                    <th>تسوية زيادة Z22</th>
-                    <th>تسوية عجز Z21</th>
-                    <th>كمية البيع</th>
-                    <th>التحويلات الصادرة</th>
-                    <th>إعادة التصنيع 311</th>
-                    <th>الرصيد الدفتري</th>
-                    <th>الرصيد الفعلي</th>
-                    <th>فرق الجرد</th>
-                    <th>كمية أقدم تاريخ</th>
-                    <th>أقدم تاريخ</th>
-                    <th>القائم بالجرد</th>
-                  </tr>
-                </thead>
-                <tbody>
-                </tbody>
-                <tfoot>
-                  <tr class="sales-total-row" style="font-weight: bold; background: var(--bg-alt);">
-                    <td colspan="3">الإجمالي</td>
-                    <td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td>
-                    <td colspan="2"></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-            <div class="inventory-closing-footer" style="margin-top: 20px; text-align: right;">
-              <p style="margin-bottom: 5px;">القائم بالمراجعة</p>
-              <p><strong class="inventory-closing-user-placeholder"></strong></p>
-            </div>
+          <div class="upload-status" id="inventoryCountStatus">اختر التاريخ والمصنع ثم اضغط جرد جديد.</div>
+
+          <div class="table-wrap" style="margin-top: 14px;">
+            <table id="inventoryCountLinesTable" data-no-universal-table="1">
+              <thead>
+                <tr>
+                  <th>رقم</th>
+                  <th>كود المادة</th>
+                  <th>اسم المادة</th>
+                  <th>وحدة القياس</th>
+                  <th>الرصيد الدفتري</th>
+                  <th>الكمية الفعلية</th>
+                  <th>الفرق</th>
+                  <th>الحالة</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="8" class="empty-state">لم يتم إنشاء جرد بعد.</td></tr>
+              </tbody>
+            </table>
           </div>
 
-          <div class="inventory-closing-tab-panel" id="inventoryClosingEl01Panel" data-inventory-closing-panel="el01" hidden>
-            <div class="inventory-closing-meta" style="display: flex; gap: 15px; margin-bottom: 15px; font-weight: bold;">
-              <span>Plant Code: EL01</span>
-              <span>Warehouse Code: N401</span>
-              <span>Plant Name: مصنع الإيمان للأعلاف - السواقي</span>
-            </div>
-            <div class="report-tools-row" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
-              <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
-                <label>تاريخ المراجعة: <input type="date" class="inventory-closing-date"></label>
-                <label>القائم بالجرد: <select class="inventory-closing-storekeeper-select" data-plant="EL01"><option value="">اختر القائم بالجرد</option></select></label>
-              </div>
-              <div class="export-actions compact">
-                <button class="secondary export-btn" id="inventoryClosingEl01ExportExcelBtn" type="button">تصدير Excel</button>
-                <button class="secondary export-btn" id="inventoryClosingEl01ExportPdfBtn" type="button">تصدير PDF</button>
-                <button class="secondary export-btn" id="inventoryClosingEl01ExportPngBtn" type="button">تصدير PNG</button>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table id="inventoryClosingEl01Table">
-                <thead>
-                  <tr>
-                    <th>كود المادة</th>
-                    <th>وصف المادة</th>
-                    <th>وحدة القياس</th>
-                    <th>رصيد أول</th>
-                    <th>الإنتاج</th>
-                    <th>التحويلات الواردة</th>
-                    <th>مرتجع فعلي</th>
-                    <th>تسوية زيادة Z22</th>
-                    <th>تسوية عجز Z21</th>
-                    <th>كمية البيع</th>
-                    <th>التحويلات الصادرة</th>
-                    <th>إعادة التصنيع 311</th>
-                    <th>الرصيد الدفتري</th>
-                    <th>الرصيد الفعلي</th>
-                    <th>فرق الجرد</th>
-                    <th>كمية أقدم تاريخ</th>
-                    <th>أقدم تاريخ</th>
-                    <th>القائم بالجرد</th>
-                  </tr>
-                </thead>
-                <tbody>
-                </tbody>
-                <tfoot>
-                  <tr class="sales-total-row" style="font-weight: bold; background: var(--bg-alt);">
-                    <td colspan="3">الإجمالي</td>
-                    <td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td>
-                    <td colspan="2"></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-            <div class="inventory-closing-footer" style="margin-top: 20px; text-align: right;">
-              <p style="margin-bottom: 5px;">القائم بالمراجعة</p>
-              <p><strong class="inventory-closing-user-placeholder"></strong></p>
-            </div>
-          </div>
-
-          <div class="inventory-closing-tab-panel" id="inventoryClosingEl02Panel" data-inventory-closing-panel="el02" hidden>
-            <div class="inventory-closing-meta" style="display: flex; gap: 15px; margin-bottom: 15px; font-weight: bold;">
-              <span>Plant Code: EL02</span>
-              <span>Warehouse Code: E401</span>
-              <span>Plant Name: مصنع الإيمان للأعلاف - العامرية</span>
-            </div>
-            <div class="report-tools-row" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
-              <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
-                <label>تاريخ المراجعة: <input type="date" class="inventory-closing-date"></label>
-                <label>القائم بالجرد: <select class="inventory-closing-storekeeper-select" data-plant="EL02"><option value="">اختر القائم بالجرد</option></select></label>
-              </div>
-              <div class="export-actions compact">
-                <button class="secondary export-btn" id="inventoryClosingEl02ExportExcelBtn" type="button">تصدير Excel</button>
-                <button class="secondary export-btn" id="inventoryClosingEl02ExportPdfBtn" type="button">تصدير PDF</button>
-                <button class="secondary export-btn" id="inventoryClosingEl02ExportPngBtn" type="button">تصدير PNG</button>
-              </div>
-            </div>
-            <div class="table-wrap">
-              <table id="inventoryClosingEl02Table">
-                <thead>
-                  <tr>
-                    <th>كود المادة</th>
-                    <th>وصف المادة</th>
-                    <th>وحدة القياس</th>
-                    <th>رصيد أول</th>
-                    <th>الإنتاج</th>
-                    <th>التحويلات الواردة</th>
-                    <th>مرتجع فعلي</th>
-                    <th>تسوية زيادة Z22</th>
-                    <th>تسوية عجز Z21</th>
-                    <th>كمية البيع</th>
-                    <th>التحويلات الصادرة</th>
-                    <th>إعادة التصنيع 311</th>
-                    <th>الرصيد الدفتري</th>
-                    <th>الرصيد الفعلي</th>
-                    <th>فرق الجرد</th>
-                    <th>كمية أقدم تاريخ</th>
-                    <th>أقدم تاريخ</th>
-                    <th>القائم بالجرد</th>
-                  </tr>
-                </thead>
-                <tbody>
-                </tbody>
-                <tfoot>
-                  <tr class="sales-total-row" style="font-weight: bold; background: var(--bg-alt);">
-                    <td colspan="3">الإجمالي</td>
-                    <td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td>
-                    <td colspan="2"></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-            <div class="inventory-closing-footer" style="margin-top: 20px; text-align: right;">
-              <p style="margin-bottom: 5px;">القائم بالمراجعة</p>
-              <p><strong class="inventory-closing-user-placeholder"></strong></p>
-            </div>
+          <div id="inventoryCountLoadingOverlay" hidden style="position: absolute; inset: 0; z-index: 8; display: grid; place-items: center; background: rgba(0, 18, 14, .72); backdrop-filter: blur(3px); border-radius: 12px;">
+            <div class="glass-soft" style="padding: 18px 24px; border-radius: 12px; font-weight: 900;">جارٍ إنشاء الجرد...</div>
           </div>
         </article>
-      </section>      <section id="reports" class="section">
+      </section><section id="reports" class="section">
         <article class="panel glass reports-center">
           <div class="reports-head">
             <div>
@@ -1664,7 +1533,7 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=incoming-scale-blank-warehouse-v1"></script>
+  <script src="assets/js/app.js?v=inv-04-1"></script>
   <script>
   </script>
   <script src="assets/js/footer.js"></script>
