@@ -9608,7 +9608,7 @@ const INVENTORY_COUNT_WAREHOUSE_BY_PLANT = {
   EL01: 'N401',
   EL02: 'E401'
 };
-let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, lines: [] };
+let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, lines: [], creating: false };
 function inventoryCountTodayIso(){
   const now=new Date();
   const cairo=new Date(now.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));
@@ -9623,7 +9623,11 @@ function inventoryCountSetStatus(message,type=''){
 function inventoryCountSetLoading(active){
   const overlay=$('#inventoryCountLoadingOverlay');
   const btn=$('#createInventoryCountBtn');
-  if(overlay) overlay.hidden=!active;
+  if(overlay){
+    overlay.hidden=!active;
+    overlay.style.display=active ? 'grid' : 'none';
+    overlay.setAttribute('aria-hidden',active?'false':'true');
+  }
   if(btn) btn.disabled=!!active || !hasPermission('inventory_count','add');
 }
 function syncInventoryCountWarehouse(){
@@ -9681,6 +9685,7 @@ async function loadInventoryCountLines(versionId){
   if(meta) meta.textContent=`Version: ${versionId} | ${data?.length || 0} صنف`;
 }
 async function createInventoryCountFromUi(){
+  if(INVENTORY_COUNT_STATE.creating) return;
   if(!hasPermission('inventory_count','add')){
     alert('غير متاح للصلاحية الحالية');
     return;
@@ -9692,6 +9697,10 @@ async function createInventoryCountFromUi(){
   const inventoryDate=$('#inventoryCountDateInput')?.value || null;
   const plantCode=$('#inventoryCountPlantSelect')?.value || '';
   const warehouseCode=$('#inventoryCountWarehouseSelect')?.value || '';
+  if(!inventoryDate){ inventoryCountSetStatus('تاريخ الجرد مطلوب.','err'); return; }
+  if(!plantCode){ inventoryCountSetStatus('المصنع مطلوب.','err'); return; }
+  if(!warehouseCode){ inventoryCountSetStatus('المخزن مطلوب.','err'); return; }
+  INVENTORY_COUNT_STATE.creating=true;
   inventoryCountSetLoading(true);
   inventoryCountSetStatus('جارٍ إنشاء الجرد...');
   try{
@@ -9712,6 +9721,7 @@ async function createInventoryCountFromUi(){
     inventoryCountSetStatus(err?.message || '', 'err');
     alert(err?.message || '');
   }finally{
+    INVENTORY_COUNT_STATE.creating=false;
     inventoryCountSetLoading(false);
     applyPermissionActionGuards('inventory_closing');
   }
@@ -9723,8 +9733,15 @@ function initInventoryCountScreen(){
   if(!dateInput || !plantSelect || !createBtn) return;
   if(!dateInput.value) dateInput.value=inventoryCountTodayIso();
   syncInventoryCountWarehouse();
-  plantSelect.addEventListener('change',syncInventoryCountWarehouse);
-  createBtn.addEventListener('click',createInventoryCountFromUi);
+  inventoryCountSetLoading(false);
+  if(createBtn.dataset.inventoryCountCreateBound!=='1'){
+    createBtn.dataset.inventoryCountCreateBound='1';
+    createBtn.addEventListener('click',createInventoryCountFromUi);
+  }
+  if(plantSelect.dataset.inventoryCountWarehouseBound!=='1'){
+    plantSelect.dataset.inventoryCountWarehouseBound='1';
+    plantSelect.addEventListener('change',syncInventoryCountWarehouse);
+  }
   applyPermissionActionGuards('inventory_closing');
 }
 document.addEventListener('DOMContentLoaded', initInventoryClosing);
