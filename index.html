@@ -637,28 +637,38 @@
                 <option value="W401">W401</option>
               </select>
             </label>
-            <div id="inventoryCountCurrentVersionMeta" class="hint" style="text-align: right; margin: 0; align-self: center;">لا توجد نسخة جرد محملة.</div>
+            <div id="inventoryCountCurrentVersionMeta" class="hint" style="text-align: right; margin: 0; align-self: center;">الإصدار: — | عدد الأصناف: 0</div>
             <button class="primary" id="createInventoryCountBtn" type="button">جرد جديد</button>
           </div>
 
           <div class="upload-status" id="inventoryCountStatus">اختر التاريخ والمصنع ثم اضغط جرد جديد.</div>
 
           <div class="table-wrap" style="margin-top: 14px;">
-            <table id="inventoryCountLinesTable" data-no-universal-table="1">
+            <table id="inventoryCountLinesTable" data-no-universal-table="1" style="min-width: 1800px;">
               <thead>
                 <tr>
-                  <th>رقم</th>
                   <th>كود المادة</th>
-                  <th>اسم المادة</th>
+                  <th>وصف المادة</th>
                   <th>وحدة القياس</th>
+                  <th>رصيد أول</th>
+                  <th>الإنتاج</th>
+                  <th>التحويلات الواردة</th>
+                  <th>مرتجع فعلي</th>
+                  <th>تسوية زيادة Z22</th>
+                  <th>تسوية عجز Z21</th>
+                  <th>كمية البيع</th>
+                  <th>التحويلات الصادرة</th>
+                  <th>إعادة التصنيع 311</th>
                   <th>الرصيد الدفتري</th>
-                  <th>الكمية الفعلية</th>
-                  <th>الفرق</th>
-                  <th>الحالة</th>
+                  <th>الرصيد الفعلي</th>
+                  <th>فرق الجرد</th>
+                  <th>كمية أقدم تاريخ</th>
+                  <th>أقدم تاريخ</th>
+                  <th>القائم بالجرد</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="8" class="empty-state">لم يتم إنشاء جرد بعد.</td></tr>
+                <tr><td colspan="18" class="empty-state">لم يتم إنشاء جرد بعد.</td></tr>
               </tbody>
             </table>
           </div>

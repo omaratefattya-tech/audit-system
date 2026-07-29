@@ -9608,7 +9608,7 @@ const INVENTORY_COUNT_WAREHOUSE_BY_PLANT = {
   EL01: 'N401',
   EL02: 'E401'
 };
-let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, lines: [], creating: false };
+let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, lines: [], creating: false };
 function inventoryCountTodayIso(){
   const now=new Date();
   const cairo=new Date(now.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));
@@ -9639,8 +9639,20 @@ function syncInventoryCountWarehouse(){
   select.value=warehouse;
 }
 function formatInventoryCountQuantity(value){
-  if(value===null || value===undefined || value==='') return '-';
+  if(value===null || value===undefined || value==='') return '—';
   return fmt(value);
+}
+function formatInventoryCountManualQuantity(value){
+  if(value===null || value===undefined || value==='') return '';
+  return fmt(value);
+}
+function formatInventoryCountMovementQuantity(value){
+  if(value===null || value===undefined || value==='') return '0';
+  return fmt(value);
+}
+function formatInventoryCountText(value){
+  if(value===null || value===undefined) return '';
+  return escapeHtml(String(value));
 }
 function inventoryCountStatusLabel(status){
   if(status==='draft') return 'جديد';
@@ -9654,18 +9666,28 @@ function renderInventoryCountLines(rows=[]){
   if(!tbody) return;
   INVENTORY_COUNT_STATE.lines=rows;
   if(!rows.length){
-    tbody.innerHTML='<tr><td colspan="8" class="empty-state">لا توجد بنود جرد للنسخة الحالية.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="18" class="empty-state">لا توجد بنود جرد للنسخة الحالية.</td></tr>';
     return;
   }
-  tbody.innerHTML=rows.map((row,index)=>`<tr>
-    <td>${index+1}</td>
-    <td>${escapeHtml(row.material_code||'')}</td>
-    <td>${escapeHtml(row.material_name||'')}</td>
-    <td>${escapeHtml(row.uom||'')}</td>
+  tbody.innerHTML=rows.map(row=>`<tr>
+    <td>${formatInventoryCountText(row.material_code)}</td>
+    <td>${formatInventoryCountText(row.material_name)}</td>
+    <td>${formatInventoryCountText(row.uom)}</td>
+    <td>${formatInventoryCountManualQuantity(row.opening_balance)}</td>
+    <td>${formatInventoryCountManualQuantity(row.production_quantity)}</td>
+    <td>${formatInventoryCountMovementQuantity(row.incoming_transfers)}</td>
+    <td>${formatInventoryCountMovementQuantity(row.actual_returns)}</td>
+    <td>${formatInventoryCountMovementQuantity(row.adjustment_increase_z22)}</td>
+    <td>${formatInventoryCountMovementQuantity(row.adjustment_shortage_z21)}</td>
+    <td>${formatInventoryCountMovementQuantity(row.sales_quantity)}</td>
+    <td>${formatInventoryCountMovementQuantity(row.outgoing_transfers)}</td>
+    <td>${formatInventoryCountMovementQuantity(row.rework_311)}</td>
     <td>${formatInventoryCountQuantity(row.book_balance)}</td>
-    <td></td>
-    <td>—</td>
-    <td><span class="status-pill ok">${inventoryCountStatusLabel(row.line_status)}</span></td>
+    <td>${formatInventoryCountManualQuantity(row.physical_balance)}</td>
+    <td>${formatInventoryCountQuantity(row.inventory_variance)}</td>
+    <td>${formatInventoryCountManualQuantity(row.oldest_quantity)}</td>
+    <td>${formatInventoryCountText(row.oldest_date)}</td>
+    <td>${formatInventoryCountText(row.inventory_counter_name_snapshot)}</td>
   </tr>`).join('');
 }
 async function loadInventoryCountLines(versionId){
@@ -9676,13 +9698,13 @@ async function loadInventoryCountLines(versionId){
   }
   const {data,error}=await WarehouseDB.client
     .from('inventory_count_lines')
-    .select('id,material_code,material_name,uom,book_balance,physical_balance,inventory_variance,line_status')
+    .select('id,material_code,material_name,uom,opening_balance,production_quantity,physical_balance,oldest_quantity,oldest_date,inventory_counter_name_snapshot,incoming_transfers,actual_returns,adjustment_increase_z22,adjustment_shortage_z21,sales_quantity,outgoing_transfers,rework_311,book_balance,inventory_variance')
     .eq('version_id',versionId)
     .order('material_code',{ascending:true});
   if(error) throw error;
   renderInventoryCountLines(data||[]);
   const meta=$('#inventoryCountCurrentVersionMeta');
-  if(meta) meta.textContent=`Version: ${versionId} | ${data?.length || 0} صنف`;
+  if(meta) meta.textContent=`الإصدار: ${INVENTORY_COUNT_STATE.versionNo || 1} | عدد الأصناف: ${data?.length || 0}`;
 }
 async function createInventoryCountFromUi(){
   if(INVENTORY_COUNT_STATE.creating) return;
@@ -9712,6 +9734,7 @@ async function createInventoryCountFromUi(){
     if(error) throw error;
     INVENTORY_COUNT_STATE.documentId=data?.document_id || null;
     INVENTORY_COUNT_STATE.versionId=data?.version_id || null;
+    INVENTORY_COUNT_STATE.versionNo=Number(data?.version_no || data?.versionNo || 1) || 1;
     await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId);
     inventoryCountSetStatus('تم إنشاء الجرد بنجاح.','ok');
     if(window.showToast) window.showToast('تم إنشاء الجرد بنجاح.','success');
