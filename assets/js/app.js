@@ -9694,14 +9694,22 @@ function inventoryCountStatusLabel(status){
   if(status==='exception') return 'استثناء';
   return 'جديد';
 }
+function formatInventoryOpeningBalance(value){
+  if(value===null || value===undefined || String(value).trim()==='') return '';
+  const n=Number(value);
+  return Number.isFinite(n) ? n.toFixed(3) : '';
+}
 function inventoryCountOpeningBalanceInputValue(value){
-  if(value===null || value===undefined || value==='') return '';
-  return String(value);
+  return formatInventoryOpeningBalance(value);
 }
 function inventoryCountOpeningBalanceKey(value){
-  if(value===null || value===undefined || String(value).trim()==='') return '';
-  const n=Number(String(value).trim());
-  return Number.isFinite(n) ? String(n) : String(value).trim();
+  return formatInventoryOpeningBalance(value);
+}
+function roundInventoryOpeningBalanceValue(value){
+  if(value===null || value===undefined || String(value).trim()==='') return null;
+  const n=Number(value);
+  if(!Number.isFinite(n)) return NaN;
+  return Math.round(n * 1000) / 1000;
 }
 let INVENTORY_COUNT_OPENING_BALANCE_MEASURE_CANVAS=null;
 function inventoryCountCssPixels(value){
@@ -9742,7 +9750,7 @@ function renderInventoryOpeningBalanceCell(row){
     return `<td class="inventory-opening-balance-cell" title="مرحّل من اليوم السابق المعتمد">${formatInventoryCountManualQuantity(row.opening_balance)}</td>`;
   }
   const value=inventoryCountOpeningBalanceInputValue(row.opening_balance);
-  return `<td class="inventory-opening-balance-cell"><input class="inventory-opening-balance-input" type="number" step="any" inputmode="decimal" aria-label="رصيد أول" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" /></td>`;
+  return `<td class="inventory-opening-balance-cell"><input class="inventory-opening-balance-input" type="number" step="0.001" inputmode="decimal" aria-label="رصيد أول" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" /></td>`;
 }
 function renderInventoryCountLines(rows=[]){
   const tbody=$('#inventoryCountLinesTable tbody');
@@ -9774,6 +9782,21 @@ function renderInventoryCountLines(rows=[]){
   </tr>`).join('');
   updateInventoryOpeningBalanceInputsWidth(tbody);
 }
+async function filterInventoryCountLinesByCurrentWarehouse(rows=[]){
+  const warehouseCode=inventoryCountReadInputs().warehouseCode;
+  if(!warehouseCode || !rows.length || !window.WarehouseDB?.ready) return rows;
+  const materialCodes=[...new Set(rows.map(row=>String(row.material_code||'').trim().toUpperCase()).filter(Boolean))];
+  if(!materialCodes.length) return [];
+  const {data,error}=await WarehouseDB.client
+    .from('sales_product_warehouses')
+    .select('material_code')
+    .eq('warehouse_code',warehouseCode)
+    .eq('is_active',true)
+    .in('material_code',materialCodes);
+  if(error) throw error;
+  const allowed=new Set((data||[]).map(row=>String(row.material_code||'').trim().toUpperCase()));
+  return rows.filter(row=>allowed.has(String(row.material_code||'').trim().toUpperCase()));
+}
 function resetInventoryCountView(message='لم يتم إنشاء جرد بعد.'){
   INVENTORY_COUNT_STATE.status='idle';
   INVENTORY_COUNT_STATE.documentId=null;
@@ -9798,9 +9821,11 @@ async function loadInventoryCountLines(versionId,requestSeq=null){
     .order('material_code',{ascending:true});
   if(error) throw error;
   if(requestSeq!==null && requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
-  renderInventoryCountLines(data||[]);
+  const rows=await filterInventoryCountLinesByCurrentWarehouse(data||[]);
+  if(requestSeq!==null && requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
+  renderInventoryCountLines(rows);
   const meta=$('#inventoryCountCurrentVersionMeta');
-  if(meta) meta.textContent=`الإصدار: ${INVENTORY_COUNT_STATE.versionNo || 1} | عدد الأصناف: ${data?.length || 0}`;
+  if(meta) meta.textContent=`الإصدار: ${INVENTORY_COUNT_STATE.versionNo || 1} | عدد الأصناف: ${rows.length}`;
 }
 async function openExistingInventoryCountFromUi(options={}){
   const {showLoading=false}=options;
@@ -9946,9 +9971,14 @@ async function saveInventoryOpeningBalanceInput(input){
   }
   const currentValue=String(input.value || '').trim();
   const lastSaved=input.dataset.lastSaved || '';
-  if(inventoryCountOpeningBalanceKey(currentValue)===inventoryCountOpeningBalanceKey(lastSaved)) return;
+  const normalizedDisplay=formatInventoryOpeningBalance(currentValue);
+  if(inventoryCountOpeningBalanceKey(currentValue)===inventoryCountOpeningBalanceKey(lastSaved)){
+    input.value=normalizedDisplay;
+    updateInventoryOpeningBalanceInputWidth(input);
+    return;
+  }
   if(INVENTORY_COUNT_STATE.openingBalanceSaving.has(lineId)) return;
-  const openingBalance=currentValue==='' ? null : Number(currentValue);
+  const openingBalance=roundInventoryOpeningBalanceValue(currentValue);
   if(currentValue!=='' && !Number.isFinite(openingBalance)){
     input.value=lastSaved;
     updateInventoryOpeningBalanceInputWidth(input);
