@@ -9612,7 +9612,7 @@ const INVENTORY_COUNT_WAREHOUSE_BY_PLANT = {
   EL01: 'N401',
   EL02: 'E401'
 };
-let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, lines: [], creating: false, loading: false, requestSeq: 0, status: 'idle' };
+let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, lines: [], creating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day' };
 function inventoryCountTodayIso(){
   const now=new Date();
   const cairo=new Date(now.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));
@@ -9694,6 +9694,14 @@ function inventoryCountStatusLabel(status){
   if(status==='exception') return 'استثناء';
   return 'جديد';
 }
+function renderInventoryOpeningBalanceCell(row){
+  const mode=INVENTORY_COUNT_STATE.openingBalanceMode || 'manual_first_day';
+  if(mode==='carried_forward'){
+    return `<td title="مرحّل من اليوم السابق المعتمد">${formatInventoryCountManualQuantity(row.opening_balance)}</td>`;
+  }
+  const value=row.opening_balance===null || row.opening_balance===undefined ? '' : String(row.opening_balance);
+  return `<td><input class="inventory-opening-balance-input" type="number" step="any" inputmode="decimal" aria-label="رصيد أول" value="${escapeHtml(value)}" /></td>`;
+}
 function renderInventoryCountLines(rows=[]){
   const tbody=$('#inventoryCountLinesTable tbody');
   if(!tbody) return;
@@ -9706,7 +9714,7 @@ function renderInventoryCountLines(rows=[]){
     <td>${formatInventoryCountText(row.material_code)}</td>
     <td>${formatInventoryCountText(row.material_name)}</td>
     <td>${formatInventoryCountText(row.uom)}</td>
-    <td>${formatInventoryCountManualQuantity(row.opening_balance)}</td>
+    ${renderInventoryOpeningBalanceCell(row)}
     <td>${formatInventoryCountManualQuantity(row.production_quantity)}</td>
     <td>${formatInventoryCountMovementQuantity(row.incoming_transfers)}</td>
     <td>${formatInventoryCountMovementQuantity(row.actual_returns)}</td>
