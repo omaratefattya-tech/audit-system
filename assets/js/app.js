@@ -9612,7 +9612,7 @@ const INVENTORY_COUNT_WAREHOUSE_BY_PLANT = {
   EL01: 'N401',
   EL02: 'E401'
 };
-let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, lines: [], creating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day' };
+let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, lines: [], creating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set() };
 function inventoryCountTodayIso(){
   const now=new Date();
   const cairo=new Date(now.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));
@@ -9694,13 +9694,22 @@ function inventoryCountStatusLabel(status){
   if(status==='exception') return 'استثناء';
   return 'جديد';
 }
+function inventoryCountOpeningBalanceInputValue(value){
+  if(value===null || value===undefined || value==='') return '';
+  return String(value);
+}
+function inventoryCountOpeningBalanceKey(value){
+  if(value===null || value===undefined || String(value).trim()==='') return '';
+  const n=Number(String(value).trim());
+  return Number.isFinite(n) ? String(n) : String(value).trim();
+}
 function renderInventoryOpeningBalanceCell(row){
   const mode=INVENTORY_COUNT_STATE.openingBalanceMode || 'manual_first_day';
   if(mode==='carried_forward'){
-    return `<td title="مرحّل من اليوم السابق المعتمد">${formatInventoryCountManualQuantity(row.opening_balance)}</td>`;
+    return `<td class="inventory-opening-balance-cell" title="مرحّل من اليوم السابق المعتمد">${formatInventoryCountManualQuantity(row.opening_balance)}</td>`;
   }
-  const value=row.opening_balance===null || row.opening_balance===undefined ? '' : String(row.opening_balance);
-  return `<td><input class="inventory-opening-balance-input" type="number" step="any" inputmode="decimal" aria-label="رصيد أول" value="${escapeHtml(value)}" /></td>`;
+  const value=inventoryCountOpeningBalanceInputValue(row.opening_balance);
+  return `<td class="inventory-opening-balance-cell"><input class="inventory-opening-balance-input" type="number" step="any" inputmode="decimal" aria-label="رصيد أول" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" /></td>`;
 }
 function renderInventoryCountLines(rows=[]){
   const tbody=$('#inventoryCountLinesTable tbody');
@@ -9750,7 +9759,7 @@ async function loadInventoryCountLines(versionId,requestSeq=null){
   }
   const {data,error}=await WarehouseDB.client
     .from('inventory_count_lines')
-    .select('id,material_code,material_name,uom,opening_balance,production_quantity,physical_balance,oldest_quantity,oldest_date,inventory_counter_name_snapshot,incoming_transfers,actual_returns,adjustment_increase_z22,adjustment_shortage_z21,sales_quantity,outgoing_transfers,rework_311,book_balance,inventory_variance')
+    .select('id,material_code,material_name,uom,opening_balance,row_version,production_quantity,physical_balance,oldest_quantity,oldest_date,inventory_counter_name_snapshot,incoming_transfers,actual_returns,adjustment_increase_z22,adjustment_shortage_z21,sales_quantity,outgoing_transfers,rework_311,book_balance,inventory_variance')
     .eq('version_id',versionId)
     .order('material_code',{ascending:true});
   if(error) throw error;
@@ -9892,6 +9901,69 @@ async function createInventoryCountFromUi(){
     inventoryCountUpdateCreateButton();
   }
 }
+async function saveInventoryOpeningBalanceInput(input){
+  if(!input || INVENTORY_COUNT_STATE.openingBalanceMode!=='manual_first_day') return;
+  const lineId=input.dataset.lineId || '';
+  if(!lineId) return;
+  if(input.validity && !input.validity.valid){
+    input.value=input.dataset.lastSaved || '';
+    return;
+  }
+  const currentValue=String(input.value || '').trim();
+  const lastSaved=input.dataset.lastSaved || '';
+  if(inventoryCountOpeningBalanceKey(currentValue)===inventoryCountOpeningBalanceKey(lastSaved)) return;
+  if(INVENTORY_COUNT_STATE.openingBalanceSaving.has(lineId)) return;
+  const openingBalance=currentValue==='' ? null : Number(currentValue);
+  if(currentValue!=='' && !Number.isFinite(openingBalance)){
+    input.value=lastSaved;
+    return;
+  }
+  const expectedRowVersion=input.dataset.rowVersion ? Number(input.dataset.rowVersion) : null;
+  INVENTORY_COUNT_STATE.openingBalanceSaving.add(lineId);
+  input.disabled=true;
+  inventoryCountSetStatus('جارٍ حفظ رصيد أول...');
+  try{
+    const {data,error}=await WarehouseDB.client.rpc('save_inventory_count_opening_balance',{
+      p_line_id: lineId,
+      p_opening_balance: openingBalance,
+      p_expected_row_version: expectedRowVersion
+    });
+    if(error) throw error;
+    const row=INVENTORY_COUNT_STATE.lines.find(x=>String(x.id)===String(lineId));
+    if(row){
+      row.opening_balance=data?.opening_balance ?? null;
+      row.row_version=data?.row_version ?? row.row_version;
+    }
+    const savedValue=inventoryCountOpeningBalanceInputValue(data?.opening_balance);
+    input.value=savedValue;
+    input.dataset.lastSaved=savedValue;
+    input.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
+    inventoryCountSetStatus('تم حفظ رصيد أول.','ok');
+    if(window.showToast) window.showToast('تم حفظ رصيد أول.','success');
+  }catch(err){
+    input.value=lastSaved;
+    inventoryCountSetStatus(err?.message || '', 'err');
+    alert(err?.message || '');
+  }finally{
+    INVENTORY_COUNT_STATE.openingBalanceSaving.delete(lineId);
+    input.disabled=false;
+  }
+}
+function bindInventoryOpeningBalanceEvents(){
+  const table=$('#inventoryCountLinesTable');
+  if(!table || table.dataset.openingBalanceBound==='1') return;
+  table.dataset.openingBalanceBound='1';
+  table.addEventListener('focusout',event=>{
+    const input=event.target.closest('.inventory-opening-balance-input');
+    if(input && table.contains(input)) saveInventoryOpeningBalanceInput(input);
+  });
+  table.addEventListener('keydown',event=>{
+    const input=event.target.closest('.inventory-opening-balance-input');
+    if(!input || !table.contains(input) || event.key!=='Enter') return;
+    event.preventDefault();
+    input.blur();
+  });
+}
 function scheduleInventoryCountOpen(){
   openExistingInventoryCountFromUi({showLoading:true});
 }
@@ -9903,6 +9975,7 @@ function initInventoryCountScreen(){
   if(!dateInput.value) dateInput.value=inventoryCountTodayIso();
   syncInventoryCountWarehouse();
   inventoryCountSetLoading(false);
+  bindInventoryOpeningBalanceEvents();
   inventoryCountUpdateCreateButton();
   if(createBtn.dataset.inventoryCountCreateBound!=='1'){
     createBtn.dataset.inventoryCountCreateBound='1';

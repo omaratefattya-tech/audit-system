@@ -3761,3 +3761,15 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
     gap: 4px;
   }
 }
+/* Inventory Count - opening balance cell only */
+#inventoryCountLinesTable .inventory-opening-balance-cell {
+  text-align: center;
+}
+
+#inventoryCountLinesTable .inventory-opening-balance-input {
+  width: 76px;
+  min-width: 70px;
+  max-width: 80px;
+  margin: 0 auto;
+  text-align: center;
+}
