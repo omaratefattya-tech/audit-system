@@ -3764,13 +3764,13 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
 /* Inventory Count - opening balance cell only */
 #inventoryCountLinesTable .inventory-opening-balance-cell {
   position: relative;
+  overflow: visible;
   text-align: center;
 }
 
 #inventoryCountLinesTable .inventory-opening-balance-input {
-  width: 76px;
+  width: max(76px, calc(var(--opening-balance-chars, 7) * 1ch));
   min-width: 70px;
-  max-width: 80px;
   margin: 0 auto;
   text-align: center;
 }
@@ -3778,6 +3778,4 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
 #inventoryCountLinesTable .inventory-opening-balance-input:focus {
   position: relative;
   z-index: 5;
-  width: 170px;
-  max-width: 170px;
 }

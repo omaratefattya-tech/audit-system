@@ -9703,13 +9703,21 @@ function inventoryCountOpeningBalanceKey(value){
   const n=Number(String(value).trim());
   return Number.isFinite(n) ? String(n) : String(value).trim();
 }
+function inventoryCountOpeningBalanceWidthChars(value){
+  return Math.max(7, String(value || '').length + 2);
+}
+function updateInventoryOpeningBalanceInputWidth(input){
+  if(!input) return;
+  input.style.setProperty('--opening-balance-chars', inventoryCountOpeningBalanceWidthChars(input.value));
+}
 function renderInventoryOpeningBalanceCell(row){
   const mode=INVENTORY_COUNT_STATE.openingBalanceMode || 'manual_first_day';
   if(mode==='carried_forward'){
     return `<td class="inventory-opening-balance-cell" title="مرحّل من اليوم السابق المعتمد">${formatInventoryCountManualQuantity(row.opening_balance)}</td>`;
   }
   const value=inventoryCountOpeningBalanceInputValue(row.opening_balance);
-  return `<td class="inventory-opening-balance-cell"><input class="inventory-opening-balance-input" type="number" step="any" inputmode="decimal" aria-label="رصيد أول" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" /></td>`;
+  const widthChars=inventoryCountOpeningBalanceWidthChars(value);
+  return `<td class="inventory-opening-balance-cell"><input class="inventory-opening-balance-input" type="number" step="any" inputmode="decimal" aria-label="رصيد أول" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" style="--opening-balance-chars:${widthChars}" /></td>`;
 }
 function renderInventoryCountLines(rows=[]){
   const tbody=$('#inventoryCountLinesTable tbody');
@@ -9907,6 +9915,7 @@ async function saveInventoryOpeningBalanceInput(input){
   if(!lineId) return;
   if(input.validity && !input.validity.valid){
     input.value=input.dataset.lastSaved || '';
+    updateInventoryOpeningBalanceInputWidth(input);
     return;
   }
   const currentValue=String(input.value || '').trim();
@@ -9916,6 +9925,7 @@ async function saveInventoryOpeningBalanceInput(input){
   const openingBalance=currentValue==='' ? null : Number(currentValue);
   if(currentValue!=='' && !Number.isFinite(openingBalance)){
     input.value=lastSaved;
+    updateInventoryOpeningBalanceInputWidth(input);
     return;
   }
   const expectedRowVersion=input.dataset.rowVersion ? Number(input.dataset.rowVersion) : null;
@@ -9936,12 +9946,14 @@ async function saveInventoryOpeningBalanceInput(input){
     }
     const savedValue=inventoryCountOpeningBalanceInputValue(data?.opening_balance);
     input.value=savedValue;
+    updateInventoryOpeningBalanceInputWidth(input);
     input.dataset.lastSaved=savedValue;
     input.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
     inventoryCountSetStatus('تم حفظ رصيد أول.','ok');
     if(window.showToast) window.showToast('تم حفظ رصيد أول.','success');
   }catch(err){
     input.value=lastSaved;
+    updateInventoryOpeningBalanceInputWidth(input);
     inventoryCountSetStatus(err?.message || '', 'err');
     alert(err?.message || '');
   }finally{
@@ -9956,6 +9968,10 @@ function bindInventoryOpeningBalanceEvents(){
   table.addEventListener('focusout',event=>{
     const input=event.target.closest('.inventory-opening-balance-input');
     if(input && table.contains(input)) saveInventoryOpeningBalanceInput(input);
+  });
+  table.addEventListener('input',event=>{
+    const input=event.target.closest('.inventory-opening-balance-input');
+    if(input && table.contains(input)) updateInventoryOpeningBalanceInputWidth(input);
   });
   table.addEventListener('keydown',event=>{
     const input=event.target.closest('.inventory-opening-balance-input');
