@@ -9703,12 +9703,38 @@ function inventoryCountOpeningBalanceKey(value){
   const n=Number(String(value).trim());
   return Number.isFinite(n) ? String(n) : String(value).trim();
 }
-function inventoryCountOpeningBalanceWidthChars(value){
-  return Math.max(7, String(value || '').length + 2);
+let INVENTORY_COUNT_OPENING_BALANCE_MEASURE_CANVAS=null;
+function inventoryCountCssPixels(value){
+  const n=parseFloat(value || '0');
+  return Number.isFinite(n) ? n : 0;
+}
+function measureInventoryOpeningBalanceInputWidth(input){
+  if(!input) return 76;
+  const styles=window.getComputedStyle ? getComputedStyle(input) : null;
+  if(!INVENTORY_COUNT_OPENING_BALANCE_MEASURE_CANVAS){
+    INVENTORY_COUNT_OPENING_BALANCE_MEASURE_CANVAS=document.createElement('canvas');
+  }
+  const ctx=INVENTORY_COUNT_OPENING_BALANCE_MEASURE_CANVAS.getContext('2d');
+  if(styles && ctx){
+    ctx.font=styles.font || `${styles.fontWeight || '400'} ${styles.fontSize || '14px'} ${styles.fontFamily || 'Arial'}`;
+  }
+  const text=String(input.value || '0');
+  const textWidth=ctx ? Math.ceil(ctx.measureText(text).width) : (text.length * 9);
+  const horizontalPadding=styles ? inventoryCountCssPixels(styles.paddingLeft) + inventoryCountCssPixels(styles.paddingRight) : 24;
+  const horizontalBorder=styles ? inventoryCountCssPixels(styles.borderLeftWidth) + inventoryCountCssPixels(styles.borderRightWidth) : 2;
+  return Math.max(76, Math.ceil(textWidth + horizontalPadding + horizontalBorder + 30));
 }
 function updateInventoryOpeningBalanceInputWidth(input){
   if(!input) return;
-  input.style.setProperty('--opening-balance-chars', inventoryCountOpeningBalanceWidthChars(input.value));
+  const width=measureInventoryOpeningBalanceInputWidth(input);
+  input.style.width=`${width}px`;
+  const cell=input.closest('.inventory-opening-balance-cell');
+  if(cell) cell.style.minWidth=`${width + 16}px`;
+}
+function updateInventoryOpeningBalanceInputsWidth(root=document){
+  requestAnimationFrame(()=>{
+    root.querySelectorAll?.('.inventory-opening-balance-input').forEach(updateInventoryOpeningBalanceInputWidth);
+  });
 }
 function renderInventoryOpeningBalanceCell(row){
   const mode=INVENTORY_COUNT_STATE.openingBalanceMode || 'manual_first_day';
@@ -9716,8 +9742,7 @@ function renderInventoryOpeningBalanceCell(row){
     return `<td class="inventory-opening-balance-cell" title="مرحّل من اليوم السابق المعتمد">${formatInventoryCountManualQuantity(row.opening_balance)}</td>`;
   }
   const value=inventoryCountOpeningBalanceInputValue(row.opening_balance);
-  const widthChars=inventoryCountOpeningBalanceWidthChars(value);
-  return `<td class="inventory-opening-balance-cell"><input class="inventory-opening-balance-input" type="number" step="any" inputmode="decimal" aria-label="رصيد أول" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" style="--opening-balance-chars:${widthChars}" /></td>`;
+  return `<td class="inventory-opening-balance-cell"><input class="inventory-opening-balance-input" type="number" step="any" inputmode="decimal" aria-label="رصيد أول" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" /></td>`;
 }
 function renderInventoryCountLines(rows=[]){
   const tbody=$('#inventoryCountLinesTable tbody');
@@ -9747,6 +9772,7 @@ function renderInventoryCountLines(rows=[]){
     <td>${formatInventoryCountText(row.oldest_date)}</td>
     <td>${formatInventoryCountText(row.inventory_counter_name_snapshot)}</td>
   </tr>`).join('');
+  updateInventoryOpeningBalanceInputsWidth(tbody);
 }
 function resetInventoryCountView(message='لم يتم إنشاء جرد بعد.'){
   INVENTORY_COUNT_STATE.status='idle';
@@ -9965,9 +9991,16 @@ function bindInventoryOpeningBalanceEvents(){
   const table=$('#inventoryCountLinesTable');
   if(!table || table.dataset.openingBalanceBound==='1') return;
   table.dataset.openingBalanceBound='1';
+  table.addEventListener('focusin',event=>{
+    const input=event.target.closest('.inventory-opening-balance-input');
+    if(input && table.contains(input)) updateInventoryOpeningBalanceInputWidth(input);
+  });
   table.addEventListener('focusout',event=>{
     const input=event.target.closest('.inventory-opening-balance-input');
-    if(input && table.contains(input)) saveInventoryOpeningBalanceInput(input);
+    if(input && table.contains(input)){
+      updateInventoryOpeningBalanceInputWidth(input);
+      saveInventoryOpeningBalanceInput(input);
+    }
   });
   table.addEventListener('input',event=>{
     const input=event.target.closest('.inventory-opening-balance-input');

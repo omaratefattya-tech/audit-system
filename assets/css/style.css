@@ -3769,13 +3769,22 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
 }
 
 #inventoryCountLinesTable .inventory-opening-balance-input {
-  width: max(76px, calc(var(--opening-balance-chars, 7) * 1ch));
-  min-width: 70px;
+  box-sizing: border-box;
+  width: 76px;
+  min-width: 76px;
+  max-width: none;
   margin: 0 auto;
   text-align: center;
+  -moz-appearance: textfield;
 }
 
 #inventoryCountLinesTable .inventory-opening-balance-input:focus {
   position: relative;
   z-index: 5;
+}
+
+#inventoryCountLinesTable .inventory-opening-balance-input::-webkit-inner-spin-button,
+#inventoryCountLinesTable .inventory-opening-balance-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
