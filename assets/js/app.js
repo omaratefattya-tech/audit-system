@@ -10281,6 +10281,58 @@ function icMapRow(row, headers, sourceRowNumber) {
   };
 }
 
+function icInventoryClosingPairKey(row) {
+  const quantity = Number(row?.quantity || 0);
+  return [
+    String(row?.plant_code || '').trim().toUpperCase(),
+    String(row?.warehouse_code || '').trim().toUpperCase(),
+    String(row?.material_code || '').trim().toUpperCase(),
+    String(row?.uom || '').trim().toUpperCase(),
+    String(Math.abs(quantity)),
+    String(row?.transaction_date || '').trim(),
+    String(row?.worker_group || '').trim()
+  ].join('|');
+}
+
+function normalizeInventoryClosingUploadRows(rows) {
+  const movement302ByKey = new Map();
+  const excluded = new Set();
+
+  rows.forEach((row, index) => {
+    if (String(row?.movement_type || '').trim() !== '302') return;
+    const key = icInventoryClosingPairKey(row);
+    if (!movement302ByKey.has(key)) movement302ByKey.set(key, []);
+    movement302ByKey.get(key).push(index);
+  });
+
+  rows.forEach((row, index) => {
+    if (String(row?.movement_type || '').trim() !== '301') return;
+    const matches = movement302ByKey.get(icInventoryClosingPairKey(row));
+    const pairIndex = matches && matches.find(i => !excluded.has(i));
+    if (pairIndex === undefined) return;
+    excluded.add(index);
+    excluded.add(pairIndex);
+  });
+
+  return rows.reduce((normalized, row, index) => {
+    if (excluded.has(index)) return normalized;
+    const next = {...row};
+    const movementType = String(next.movement_type || '').trim();
+    const quantity = Number(next.quantity || 0);
+
+    if (movementType === '301' && quantity < 0) {
+      next.movement_type = 'Z51';
+      next.movement_text = 'ن.مخزون إلى م.منقول';
+    } else if (movementType === '301' && quantity > 0) {
+      next.movement_type = '101';
+      next.movement_text = 'ا.بضائع لمخزون منقول';
+    }
+
+    if (Number.isFinite(quantity)) next.quantity = Math.abs(quantity);
+    normalized.push(next);
+    return normalized;
+  }, []);
+}
 async function icLoadLastUploadBatch(tabKey) {
   const config = INVENTORY_CLOSING_CONFIG[tabKey];
   const prefix = tabKey.replace(/_(.)/g, (_, c) => c.toUpperCase());
@@ -10761,6 +10813,7 @@ async function handleInventoryClosingReportFile(tabKey, file) {
     }
 
     if(parsedRows.length === 0) throw new Error('الملف لا يحتوي على بيانات فعلية.');
+    const normalizedRows = normalizeInventoryClosingUploadRows(parsedRows);
 
     setStatus('جاري رفع البيانات...');
 
@@ -10772,7 +10825,7 @@ async function handleInventoryClosingReportFile(tabKey, file) {
       p_report_date: reportDate,
       p_file_name: file.name,
       p_uploaded_by_name: uploaderName,
-      p_expected_rows: parsedRows.length,
+      p_expected_rows: normalizedRows.length,
       p_file_size_bytes: file.size || 0
     });
     
@@ -10784,15 +10837,15 @@ async function handleInventoryClosingReportFile(tabKey, file) {
     if(!batchId) throw new Error('لم يتم إرجاع batch_id من الخادم.');
 
     const CHUNK_SIZE = 250;
-    for (let i = 0; i < parsedRows.length; i += CHUNK_SIZE) {
-      const chunk = parsedRows.slice(i, i + CHUNK_SIZE);
+    for (let i = 0; i < normalizedRows.length; i += CHUNK_SIZE) {
+      const chunk = normalizedRows.slice(i, i + CHUNK_SIZE);
       const { error: chunkErr } = await WarehouseDB.client.rpc('append_inventory_closing_upload_chunk', {
         p_batch_id: batchId,
         p_rows: chunk
       });
       if (chunkErr) throw chunkErr;
       
-      const percent = Math.round((Math.min(i + CHUNK_SIZE, parsedRows.length) / parsedRows.length) * 100);
+      const percent = Math.round((Math.min(i + CHUNK_SIZE, normalizedRows.length) / normalizedRows.length) * 100);
       setStatus('جاري رفع البيانات... (' + percent + '%)');
     }
 
@@ -10810,7 +10863,7 @@ async function handleInventoryClosingReportFile(tabKey, file) {
       throw new Error('فشل اعتماد التقرير: الحالة ليست succeeded (الحالة المُرجَعة: ' + JSON.stringify(_finResult) + ')');
     }
 
-    setStatus('تم رفع التقرير بنجاح. (' + parsedRows.length + ' صف)', 'ok');
+    setStatus('تم رفع التقرير بنجاح. (' + normalizedRows.length + ' صف)', 'ok');
     fileInput.value = '';
     
     await icLoadLastUploadBatch(tabKey);
