@@ -3811,3 +3811,30 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
   font-weight: 900;
   text-align: right;
 }
+/* Inventory Count - production quantity editable cell only */
+#inventoryCountLinesTable .inventory-production-quantity-cell {
+  position: relative;
+  overflow: visible;
+  text-align: center;
+}
+
+#inventoryCountLinesTable .inventory-production-quantity-input {
+  box-sizing: border-box;
+  width: 76px;
+  min-width: 76px;
+  max-width: none;
+  margin: 0 auto;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+#inventoryCountLinesTable .inventory-production-quantity-input:focus {
+  position: relative;
+  z-index: 5;
+}
+
+#inventoryCountLinesTable .inventory-production-quantity-input::-webkit-inner-spin-button,
+#inventoryCountLinesTable .inventory-production-quantity-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
