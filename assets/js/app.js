@@ -1,4 +1,4 @@
-﻿function roundRect(ctx,x,y,w,h,r,fill,stroke){
+function roundRect(ctx,x,y,w,h,r,fill,stroke){
   const rr=Math.min(r||0, Math.abs(w)/2, Math.abs(h)/2);
   ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.lineTo(x+w-rr,y); ctx.quadraticCurveTo(x+w,y,x+w,y+rr); ctx.lineTo(x+w,y+h-rr); ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h); ctx.lineTo(x+rr,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-rr); ctx.lineTo(x,y+rr); ctx.quadraticCurveTo(x,y,x+rr,y); ctx.closePath(); if(fill)ctx.fill(); if(stroke)ctx.stroke();
 }
@@ -26,7 +26,7 @@ function enterpriseFilterApplyQuery(query,column,value,normalizer=v=>String(v||'
   if(!active.length) return query;
   return active.length===1 ? query.eq(column,active[0]) : query.in(column,active);
 }
-function enterpriseFilterText(value,select,allText='ط§ظ„ظƒظ„'){
+function enterpriseFilterText(value,select,allText='الكل'){
   const active=enterpriseFilterActiveValues(value);
   if(!active.length) return allText;
   const labels=active.map(v=>[...(select?.options||[])].find(o=>o.value===v)?.textContent?.trim() || v);
@@ -53,14 +53,14 @@ function enterpriseRenderMultiSelect(select){
   const values=enterpriseMultiSelectValues(select);
   const active=enterpriseFilterActiveValues(values);
   const options=[...select.options].filter(o=>o.value!=='all');
-  const label=active.length ? enterpriseFilterText(active,select) : (select.options[0]?.textContent?.trim() || 'ط§ظ„ظƒظ„');
+  const label=active.length ? enterpriseFilterText(active,select) : (select.options[0]?.textContent?.trim() || 'الكل');
   wrapper.querySelector('.enterprise-ms-label').textContent=label;
-  wrapper.querySelector('.enterprise-ms-count').textContent=active.length ? String(active.length) : 'ط§ظ„ظƒظ„';
+  wrapper.querySelector('.enterprise-ms-count').textContent=active.length ? String(active.length) : 'الكل';
   const list=wrapper.querySelector('.enterprise-ms-list');
   list.innerHTML=options.map(option=>{
     const checked=active.includes(option.value);
     return `<label class="enterprise-ms-option"><input type="checkbox" value="${option.value.replace(/"/g,'&quot;')}" ${checked?'checked':''}><span>${option.textContent}</span></label>`;
-  }).join('') || '<div class="enterprise-ms-empty">ظ„ط§ طھظˆط¬ط¯ ط®ظٹط§ط±ط§طھ</div>';
+  }).join('') || '<div class="enterprise-ms-empty">لا توجد خيارات</div>';
 }
 function initEnterpriseMultiSelect(select){
   if(!select || !ENTERPRISE_MULTI_SELECT_IDS.has(select.id)) return;
@@ -73,7 +73,7 @@ function initEnterpriseMultiSelect(select){
   select.classList.add('enterprise-native-select');
   const wrapper=document.createElement('div');
   wrapper.className='enterprise-multiselect';
-  wrapper.innerHTML='<button type="button" class="enterprise-ms-trigger" aria-expanded="false"><span class="enterprise-ms-label"></span><b class="enterprise-ms-count"></b></button><div class="enterprise-ms-menu" hidden><div class="enterprise-ms-actions"><button type="button" data-ms-action="all">طھط­ط¯ظٹط¯ ط§ظ„ظƒظ„</button><button type="button" data-ms-action="clear">ظ…ط³ط­ ط§ظ„ظƒظ„</button></div><div class="enterprise-ms-list"></div></div>';
+  wrapper.innerHTML='<button type="button" class="enterprise-ms-trigger" aria-expanded="false"><span class="enterprise-ms-label"></span><b class="enterprise-ms-count"></b></button><div class="enterprise-ms-menu" hidden><div class="enterprise-ms-actions"><button type="button" data-ms-action="all">تحديد الكل</button><button type="button" data-ms-action="clear">مسح الكل</button></div><div class="enterprise-ms-list"></div></div>';
   select.insertAdjacentElement('afterend',wrapper);
   const observer=new MutationObserver(()=>enterpriseSetMultiSelectValues(select,enterpriseMultiSelectValues(select),{silent:true}));
   observer.observe(select,{childList:true});
@@ -118,7 +118,7 @@ const colors=['#51b848','#1f9e9a','#7fc34b','#f1bf35','#526d62','#e88f2d'];
 function fmt(n){return Number(n).toLocaleString('en-US',{maximumFractionDigits:3})}
 function setDefaultDates(){const now=new Date();const cairo=new Date(now.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));const first=new Date(cairo.getFullYear(),cairo.getMonth(),1);const last=new Date(cairo.getFullYear(),cairo.getMonth()+1,0);const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;$('#fromDate').value=iso(first);$('#toDate').value=iso(last)}
 function startCairoClock(){const time=$('#cairoTime'),date=$('#cairoDate');function tick(){const now=new Date();time.textContent=new Intl.DateTimeFormat('ar-EG',{timeZone:'Africa/Cairo',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(now);date.textContent=new Intl.DateTimeFormat('ar-EG',{timeZone:'Africa/Cairo',weekday:'long',year:'numeric',month:'long',day:'numeric'}).format(now)}tick();setInterval(tick,1000)}
-function dbBadge(){const box=document.createElement('span');box.className='db-status'+(window.WarehouseDB?.ready?' ready':'');box.textContent=window.WarehouseDB?.ready?'Supabase ظ…طھطµظ„':'Supabase ط¬ط§ظ‡ط² ظ„ظ„ط¥ط¹ط¯ط§ط¯';document.querySelector('.page-title div').appendChild(box)}
+function dbBadge(){const box=document.createElement('span');box.className='db-status'+(window.WarehouseDB?.ready?' ready':'');box.textContent=window.WarehouseDB?.ready?'Supabase متصل':'Supabase جاهز للإعداد';document.querySelector('.page-title div').appendChild(box)}
 let PLANTS_CATALOG_CACHE=null;
 let PLANTS_CATALOG_PENDING=null;
 function fallbackPlantsCatalog(){
@@ -247,7 +247,7 @@ function initFilters(){
   fillInboundPlantFilter(pf);
   function fillWh(){
     const old=wf.value || 'all';
-    wf.innerHTML='<option value="all">ط§ظ„ظƒظ„</option>';
+    wf.innerHTML='<option value="all">الكل</option>';
     APP_DATA.plants
       .filter(p=>pf.value==='all' || String(p.code).toUpperCase()===String(pf.value).toUpperCase())
       .forEach(p=>p.warehouses.forEach(w=>{
@@ -259,7 +259,7 @@ function initFilters(){
   }
   function fillIncomingMovements(){
     if(!movementFilter) return;
-    movementFilter.innerHTML='<option value="all">ط§ظ„ظƒظ„</option><option value="101">101 - ط§ط³طھظ„ط§ظ…</option><option value="102">102 - ط¥ظ„ط؛ط§ط، ط§ط³طھظ„ط§ظ…</option><option value="Z13">Z13 - ط§ط³طھظ„ط§ظ… ط¨ط¯ظˆظ† ط§ظ„ظ…ظٹط²ط§ظ†</option><option value="Z14">Z14 - ط¥ظ„ط؛ط§ط، ط¨ط¯ظˆظ† ظ…ظٹط²ط§ظ†</option>';
+    movementFilter.innerHTML='<option value="all">الكل</option><option value="101">101 - استلام</option><option value="102">102 - إلغاء استلام</option><option value="Z13">Z13 - استلام بدون الميزان</option><option value="Z14">Z14 - إلغاء بدون ميزان</option>';
   }
   function restoreInboundFilters(){
     const saved=readSavedInboundFilters();
@@ -344,12 +344,12 @@ function clearSavedInboundFilters(){
 }
 function updateInboundResultsCount(count){
   const node=$('#inboundResultsCount');
-  if(node) node.textContent=`ط¹ط¯ط¯ ط§ظ„ط­ط±ظƒط§طھ ط§ظ„ظ…ط¹ط±ظˆط¶ط©: ${Number(count||0).toLocaleString('en-US')}`;
+  if(node) node.textContent=`عدد الحركات المعروضة: ${Number(count||0).toLocaleString('en-US')}`;
 }
 function getInboundMovementStatus(row){
   const movementStatus=String(row.movement_cell_status || row.raw_result?.movement_cell_status || '').toLowerCase();
   const movement=String(row.incoming_movement_type || row.raw_result?.movement_type || '').trim().toUpperCase();
-  const notCleared= row.scale_net_weight_to==null || row.scale_match_status==='not_cleared' || row.purchase_order_match_status==='not_cleared' || String(row.warning_message||'').includes('ظ„ظ… ظٹطھظ… ط§ظ„طھطµظپظٹط©');
+  const notCleared= row.scale_net_weight_to==null || row.scale_match_status==='not_cleared' || row.purchase_order_match_status==='not_cleared' || String(row.warning_message||'').includes('لم يتم التصفية');
   const weightDiff= !!row.weight_diff_status && !['ok','not_applicable'].includes(row.weight_diff_status);
   const cancelled= movementStatus==='red' || (['101','102'].includes(movement) && row.raw_result?.movement_group==='cancelled');
   const settledAfter= movementStatus==='gold' || (['Z13','101'].includes(movement) && movementStatus==='gold');
@@ -446,18 +446,18 @@ function table(el,heads,rows){
     });
   }
   const headHtml=heads.map((h,i)=>{
-    const arrow=state.sortIndex===i?(state.sortDir==='asc'?'â–²':'â–¼'):'â†•';
+    const arrow=state.sortIndex===i?(state.sortDir==='asc'?'▲':'▼'):'↕';
     const colAttrs=key==='inboundTable' ? ` data-column-key="${escapeHtml(columnKeys[i])}" data-column-label="${escapeHtml(h)}"` : '';
     return `<th class="sortable-th"${colAttrs}><button type="button" class="sort-btn" data-col="${i}">${escapeHtml(h)} <span>${arrow}</span></button></th>`;
   }).join('');
   const filterHtml=heads.map((h,i)=>{
     const colAttrs=key==='inboundTable' ? ` data-column-key="${escapeHtml(columnKeys[i])}" data-column-label="${escapeHtml(h)}"` : '';
     const inputAttrs=key==='inboundTable' ? ` data-column-key="${escapeHtml(columnKeys[i])}"` : '';
-    return `<th${colAttrs}><input class="col-filter" data-col="${i}"${inputAttrs} value="${escapeHtml(state.filters[i]||'')}" placeholder="ط¨ط­ط« ${escapeHtml(h)}" /></th>`;
+    return `<th${colAttrs}><input class="col-filter" data-col="${i}"${inputAttrs} value="${escapeHtml(state.filters[i]||'')}" placeholder="بحث ${escapeHtml(h)}" /></th>`;
   }).join('');
   const bodyHtml=visible.length
     ? visible.map(r=>`<tr>${heads.map((_,i)=>{ const colAttrs=key==='inboundTable' ? ` data-column-key="${escapeHtml(columnKeys[i])}"` : ''; return `<td${colAttrs}>${r[i]??''}</td>`; }).join('')}</tr>`).join('')
-    : `<tr><td colspan="${heads.length}" class="empty-row">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ…ط·ط§ط¨ظ‚ط©</td></tr>`;
+    : `<tr><td colspan="${heads.length}" class="empty-row">لا توجد بيانات مطابقة</td></tr>`;
   
 function numericCellValue(v){
   if(v===null||v===undefined) return 0;
@@ -468,7 +468,7 @@ let footerHtml='';
   if(key==='salesTable' && heads.length>3){
     const totalIndexes=Array.from({length:heads.length-3},(_,i)=>i+3);
     const totals=totalIndexes.map(idx=>visible.reduce((sum,row)=>sum+numericCellValue(row[idx]),0));
-    footerHtml=`<tfoot><tr class="sales-total-row"><td colspan="3">ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ</td>${totals.map(v=>`<td>${fmt(v)}</td>`).join('')}</tr></tfoot>`;
+    footerHtml=`<tfoot><tr class="sales-total-row"><td colspan="3">الإجمالي</td>${totals.map(v=>`<td>${fmt(v)}</td>`).join('')}</tr></tfoot>`;
   }
   node.innerHTML=`<thead><tr>${headHtml}</tr><tr class="column-filter-row">${filterHtml}</tr></thead><tbody>${bodyHtml}</tbody>${footerHtml}`;
   node.querySelectorAll('.sort-btn').forEach(btn=>{
@@ -497,7 +497,7 @@ const INBOUND_REQUIRED_COLUMN_KEYS=new Set(['material_code','material_name','qua
 function inboundColumnKeyForHeading(head,index){
   const text=cleanHeaderText(stripHtml(head)).replace(/\s+/g,' ').trim();
   const map={
-    'طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±':'report_date','ط§ظ„ظ…ط§ط¯ط©':'material_code','ظƒظˆط¯ ط§ظ„ظ…ط§ط¯ط©':'material_code','ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©':'material_name','ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³':'uom','ط§ظ„ظƒظ…ظٹط©':'quantity','طµط§ظپظٹ ط§ظ„ظ…ظٹط²ط§ظ†':'scale_net_weight','ظپط±ظ‚ ط§ظ„ظˆط²ظ† %':'weight_diff_percent','ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©':'movement_type','ظ…ط®ط²ظ† MB51':'mb51_warehouse','ظ…ط®ط²ظ† ط§ظ„ظ…ظٹط²ط§ظ†':'scale_warehouse','ط£ظ…ط± ط§ظ„ط´ط±ط§ط، MB51':'mb51_purchase_order','ط£ظ…ط± ط§ظ„ط´ط±ط§ط، ط§ظ„ظ…ظٹط²ط§ظ†':'scale_purchase_order','ط±ظ‚ظ… ط§ظ„ط¹ط±ط¨ظٹط©':'vehicle_number','ظ†ظˆط¹ ط§ظ„ظˆط§ط±ط¯':'incoming_type','ظˆطµظپ ط§ظ„ط¹ط±ط¨ظٹط©':'vehicle_description','ظˆطµظپ ط§ظ„ظ†ظˆظ„ظˆظ†':'freight_description','ظ‚ظٹظ…ط© ط§ظ„ظ†ظˆظ„ظˆظ† ظ„ظ„ط·ظ†':'freight_rate','ط³ط¨ط¨ ظ…ط·ط§ط¨ظ‚ط© ط§ظ„ظ†ظˆظ„ظˆظ†':'freight_match_reason','ط§ظ„ظ…طµظ†ط¹':'plant','ط§ظ„ظ…ط®ط²ظ†':'warehouse','ط§ظ„ظˆط§ط±ط¯':'incoming_quantity','ط§ظ„ط¥ظ„ط؛ط§ط،':'cancelled_quantity','ط§ظ„طµط§ظپظٹ':'net_quantity'
+    'تاريخ التقرير':'report_date','المادة':'material_code','كود المادة':'material_code','وصف المادة':'material_name','وحدة القياس':'uom','الكمية':'quantity','صافي الميزان':'scale_net_weight','فرق الوزن %':'weight_diff_percent','نوع الحركة':'movement_type','مخزن MB51':'mb51_warehouse','مخزن الميزان':'scale_warehouse','أمر الشراء MB51':'mb51_purchase_order','أمر الشراء الميزان':'scale_purchase_order','رقم العربية':'vehicle_number','نوع الوارد':'incoming_type','وصف العربية':'vehicle_description','وصف النولون':'freight_description','قيمة النولون للطن':'freight_rate','سبب مطابقة النولون':'freight_match_reason','المصنع':'plant','المخزن':'warehouse','الوارد':'incoming_quantity','الإلغاء':'cancelled_quantity','الصافي':'net_quantity'
   };
   if(map[text]) return map[text];
   return 'inbound_col_'+index+'_'+text.toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g,'_').replace(/^_+|_+$/g,'');
@@ -522,8 +522,8 @@ function renderInboundColumnManager(){
   if(!popover) return;
   const columns=inboundTableColumns();
   const hidden=readInboundHiddenColumnKeys();
-  if(!columns.length){ popover.innerHTML='<p class="inbound-columns-empty">ظ„ط§ طھظˆط¬ط¯ ط£ط¹ظ…ط¯ط© ظ…طھط§ط­ط© ط§ظ„ط¢ظ†.</p>'; return; }
-  popover.innerHTML=`<div class="inbound-columns-head"><strong>ط¥ط¯ط§ط±ط© ط£ط¹ظ…ط¯ط© ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظˆط§ط±ط¯</strong><small>ط§ظ„ط£ط¹ظ…ط¯ط© ط§ظ„ط£ط³ط§ط³ظٹط© طھط¨ظ‚ظ‰ ط¸ط§ظ‡ط±ط© ط¯ط§ط¦ظ…ظ‹ط§.</small></div><div class="inbound-columns-list">${columns.map(col=>{ const checked=col.required || !hidden.has(col.key); return `<label class="inbound-column-option ${col.required?'is-required':''}"><input type="checkbox" data-inbound-column-key="${escapeHtml(col.key)}" ${checked?'checked':''} ${col.required?'disabled':''}/><span>${escapeHtml(col.label)}</span></label>`; }).join('')}</div><div class="inbound-columns-actions"><button class="secondary" id="inboundColumnsShowAllBtn" type="button">ط¥ط¸ظ‡ط§ط± ط§ظ„ظƒظ„</button><button class="secondary" id="inboundColumnsResetBtn" type="button">ط§ط³طھط¹ط§ط¯ط© ط§ظ„ط§ظپطھط±ط§ط¶ظٹ</button></div>`;
+  if(!columns.length){ popover.innerHTML='<p class="inbound-columns-empty">لا توجد أعمدة متاحة الآن.</p>'; return; }
+  popover.innerHTML=`<div class="inbound-columns-head"><strong>إدارة أعمدة مراجعة الوارد</strong><small>الأعمدة الأساسية تبقى ظاهرة دائمًا.</small></div><div class="inbound-columns-list">${columns.map(col=>{ const checked=col.required || !hidden.has(col.key); return `<label class="inbound-column-option ${col.required?'is-required':''}"><input type="checkbox" data-inbound-column-key="${escapeHtml(col.key)}" ${checked?'checked':''} ${col.required?'disabled':''}/><span>${escapeHtml(col.label)}</span></label>`; }).join('')}</div><div class="inbound-columns-actions"><button class="secondary" id="inboundColumnsShowAllBtn" type="button">إظهار الكل</button><button class="secondary" id="inboundColumnsResetBtn" type="button">استعادة الافتراضي</button></div>`;
 }
 function applyInboundColumnVisibility(){
   const table=$('#inboundTable');
@@ -568,7 +568,7 @@ function initInboundColumnManager(){
     if(INBOUND_REQUIRED_COLUMN_KEYS.has(key)){ checkbox.checked=true; return; }
     const hidden=readInboundHiddenColumnKeys();
     if(checkbox.checked) hidden.delete(key); else hidden.add(key);
-    if(visibleInboundColumnCount(columns,hidden)<1){ hidden.delete(key); checkbox.checked=true; alert('ظٹط¬ط¨ ط£ظ† ظٹط¨ظ‚ظ‰ ط¹ظ…ظˆط¯ ظˆط§ط­ط¯ ط¸ط§ظ‡ط±ظ‹ط§ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„.'); }
+    if(visibleInboundColumnCount(columns,hidden)<1){ hidden.delete(key); checkbox.checked=true; alert('يجب أن يبقى عمود واحد ظاهرًا على الأقل.'); }
     writeInboundHiddenColumnKeys(hidden);
     applyInboundColumnVisibility();
   });
@@ -642,15 +642,15 @@ function enhanceSystemTable(tbl){
         return String(av.value).localeCompare(String(bv.value),'ar')*dir;
       });
     }
-    body.innerHTML=rows.length?rows.map(r=>`<tr${r.classes?` class="${r.classes}"`:''}>${r.html}</tr>`).join(''):`<tr><td colspan="${headers.length}" class="empty-row">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ…ط·ط§ط¨ظ‚ط©</td></tr>`;
+    body.innerHTML=rows.length?rows.map(r=>`<tr${r.classes?` class="${r.classes}"`:''}>${r.html}</tr>`).join(''):`<tr><td colspan="${headers.length}" class="empty-row">لا توجد بيانات مطابقة</td></tr>`;
   }
   headRow.innerHTML=headers.map((h,i)=>{
-    const arrow=state.sortIndex===i?(state.sortDir==='asc'?'â–²':'â–¼'):'â†•';
+    const arrow=state.sortIndex===i?(state.sortDir==='asc'?'▲':'▼'):'↕';
     return `<th class="sortable-th"><button type="button" class="sort-btn" data-col="${i}">${escapeHtml(h)} <span>${arrow}</span></button></th>`;
   }).join('');
   const filterRow=document.createElement('tr');
   filterRow.className='column-filter-row';
-  filterRow.innerHTML=headers.map((h,i)=>`<th><input class="col-filter" data-col="${i}" value="${escapeHtml(state.filters[i]||'')}" placeholder="ط¨ط­ط« ${escapeHtml(h)}"></th>`).join('');
+  filterRow.innerHTML=headers.map((h,i)=>`<th><input class="col-filter" data-col="${i}" value="${escapeHtml(state.filters[i]||'')}" placeholder="بحث ${escapeHtml(h)}"></th>`).join('');
   headRow.parentNode.appendChild(filterRow);
   tbl.classList.add('universal-filter-table');
   redraw();
@@ -662,7 +662,7 @@ function enhanceSystemTable(tbl){
       headRow.querySelectorAll('.sort-btn').forEach(b=>{
         const c=Number(b.dataset.col);
         const sp=b.querySelector('span');
-        if(sp) sp.textContent=state.sortIndex===c?(state.sortDir==='asc'?'â–²':'â–¼'):'â†•';
+        if(sp) sp.textContent=state.sortIndex===c?(state.sortDir==='asc'?'▲':'▼'):'↕';
       });
       redraw();
     });
@@ -695,7 +695,7 @@ else initUniversalTableEnhancer();
 
 
 function cleanHeaderText(text){
-  return String(text||'').replace(/[â–²â–¼â†•]/g,'').replace(/\s+/g,' ').trim();
+  return String(text||'').replace(/[▲▼↕]/g,'').replace(/\s+/g,' ').trim();
 }
 function tableExportMatrix(tableId){
   const tbl=document.getElementById(tableId);
@@ -746,11 +746,11 @@ async function saveBlobWithPicker(blob, suggestedName, mimeType){
 }
 async function exportTableToExcel(tableId,reportTitle){
   const matrix=tableExportMatrix(tableId);
-  if(!matrix.length || matrix.length===1){ alert('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ„ظ„طھطµط¯ظٹط±.'); return; }
-  if(!window.XLSX){ alert('ظ…ظƒطھط¨ط© Excel ط؛ظٹط± ظ…ط­ظ…ظ„ط©.'); return; }
+  if(!matrix.length || matrix.length===1){ alert('لا توجد بيانات للتصدير.'); return; }
+  if(!window.XLSX){ alert('مكتبة Excel غير محملة.'); return; }
   const meta=[
     [reportTitle],
-    ['طھط§ط±ظٹط® ط§ظ„طھطµط¯ظٹط±', new Date().toLocaleString('ar-EG')],
+    ['تاريخ التصدير', new Date().toLocaleString('ar-EG')],
     []
   ];
   const ws=XLSX.utils.aoa_to_sheet([...meta,...matrix]);
@@ -759,20 +759,20 @@ async function exportTableToExcel(tableId,reportTitle){
   ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:meta.length,c:0},e:{r:meta.length,c:Math.max(0,matrix[0].length-1)}})};
   const wb=XLSX.utils.book_new();
   wb.Workbook={Views:[{RTL:true}]};
-  XLSX.utils.book_append_sheet(wb,ws,'ط§ظ„طھظ‚ط±ظٹط±');
+  XLSX.utils.book_append_sheet(wb,ws,'التقرير');
   const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
   const safeTitle=String(reportTitle||'Report').replace(/[\\/:*?"<>|]/g,'-');
   const out=XLSX.write(wb,{bookType:'xlsx',type:'array',cellStyles:true});
   const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   await saveBlobWithPicker(blob,`${safeTitle}-${stamp}.xlsx`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  await logSystemActivity(activityExportSection(reportTitle),'طھطµط¯ظٹط± Excel',`طھطµط¯ظٹط± ${reportTitle} Excel`);
+  await logSystemActivity(activityExportSection(reportTitle),'تصدير Excel',`تصدير ${reportTitle} Excel`);
 }
 async function exportTableToPdf(tableId,reportTitle){
   const matrix=tableExportMatrix(tableId);
-  if(!matrix.length || matrix.length===1){ alert('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ„ظ„طھطµط¯ظٹط±.'); return; }
+  if(!matrix.length || matrix.length===1){ alert('لا توجد بيانات للتصدير.'); return; }
   const Html2Canvas=window.html2canvas;
   const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-  if(!Html2Canvas || !JsPDF){ alert('ظ…ظƒطھط¨ط© PDF ط؛ظٹط± ظ…ط­ظ…ظ„ط©. طھط£ظƒط¯ ظ…ظ† ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط¥ظ†طھط±ظ†طھ ط«ظ… ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.'); return; }
+  if(!Html2Canvas || !JsPDF){ alert('مكتبة PDF غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
 
   const head=matrix[0];
   const body=matrix.slice(1);
@@ -803,12 +803,12 @@ async function exportTableToPdf(tableId,reportTitle){
   exportLayer.innerHTML=`
     <div style="text-align:center;margin-bottom:12px;color:#111;background:#fff;">
       <h1 style="font-size:24px;margin:0 0 8px;font-weight:800;color:#111;line-height:1.5;">${escapeHtml(reportTitle)}</h1>
-      <div style="font-size:13px;color:#333;line-height:1.6;">طھط§ط±ظٹط® ط§ظ„طھطµط¯ظٹط±: ${escapeHtml(new Date().toLocaleString('ar-EG'))}</div>
+      <div style="font-size:13px;color:#333;line-height:1.6;">تاريخ التصدير: ${escapeHtml(new Date().toLocaleString('ar-EG'))}</div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:10px;direction:rtl;background:#fff;color:#111;">
       <thead><tr>${head.map(h=>`<th style="border:1px solid #555;padding:6px 5px;background:#dff1d8;color:#111;text-align:center;font-weight:800;line-height:1.45;white-space:normal;">${escapeHtml(h)}</th>`).join('')}</tr></thead>
       <tbody>${body.map((r,idx)=>{
-        const isTotal=(idx===body.length-1 && r.some(c=>String(c).includes('ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ')));
+        const isTotal=(idx===body.length-1 && r.some(c=>String(c).includes('الإجمالي')));
         return `<tr>${head.map((_,i)=>`<td style="border:1px solid #777;padding:5px;background:${isTotal?'#e5f6dd':'#fff'};color:#111;text-align:center;vertical-align:middle;line-height:1.45;${isTotal?'font-weight:800;':''}">${escapeHtml(r[i]||'')}</td>`).join('')}</tr>`;
       }).join('')}</tbody>
     </table>`;
@@ -851,10 +851,10 @@ async function exportTableToPdf(tableId,reportTitle){
 
     const blob=pdf.output('blob');
     await saveBlobWithPicker(blob,`${safeTitle}-${stamp}.pdf`,'application/pdf');
-    await logSystemActivity(activityExportSection(reportTitle),'طھطµط¯ظٹط± PDF',`طھطµط¯ظٹط± ${reportTitle} PDF`);
+    await logSystemActivity(activityExportSection(reportTitle),'تصدير PDF',`تصدير ${reportTitle} PDF`);
   }catch(err){
     console.error(err);
-    alert('طھط¹ط°ط± طھطµط¯ظٹط± PDF. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+    alert('تعذر تصدير PDF. حاول مرة أخرى.');
   }finally{
     try{ exportLayer.remove(); }catch(_){}
   }
@@ -899,11 +899,11 @@ function prepareSalesReviewExportTable(sourceTable){
 }
 async function exportSalesReviewPng(){
   const tableEl=$('#salesTable');
-  if(!tableEl){ alert('ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط¬ط¯ظˆظ„ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¨ظٹط¹.'); return; }
+  if(!tableEl){ alert('لم يتم العثور على جدول مراجعة البيع.'); return; }
   const rows=[...tableEl.querySelectorAll('tbody tr')].filter(row=>!row.querySelector('.empty-row'));
-  if(!rows.length){ alert('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ„ظ„طھطµط¯ظٹط±.'); return; }
+  if(!rows.length){ alert('لا توجد بيانات للتصدير.'); return; }
   const Html2Canvas=window.html2canvas;
-  if(!Html2Canvas){ alert('ظ…ظƒطھط¨ط© طھطµط¯ظٹط± ط§ظ„طµظˆط± ط؛ظٹط± ظ…ط­ظ…ظ„ط©. طھط£ظƒط¯ ظ…ظ† ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط¥ظ†طھط±ظ†طھ ط«ظ… ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.'); return; }
+  if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
   const date=currentSalesReviewDate();
   const warehouseLabel=currentSalesReviewWarehouseLabel();
   const warehouseCode=String(activeSalesWarehouse || $('#salesTabs button.active')?.dataset?.warehouse || 'ALL').trim().toUpperCase() || 'ALL';
@@ -919,7 +919,7 @@ async function exportSalesReviewPng(){
   ].join(';');
   const header=document.createElement('header');
   header.style.cssText='display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid rgba(141,220,89,.28);';
-  header.innerHTML=`<div><h2 style="margin:0 0 8px;color:#fff;font-size:34px;line-height:1.25;font-weight:900;">ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¨ظٹط¹ ظˆط§ظ„طھط­ظˆظٹظ„ط§طھ</h2><p style="margin:0;color:#bdf2a0;font-size:17px;line-height:1.5;font-weight:800;">طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±: ${escapeHtml(formatSalesReviewExportDate(date) || '--/--/----')}</p></div><p style="margin:0;color:#dfffd4;font-size:18px;line-height:1.5;font-weight:900;">ط§ظ„ظ…ط®ط²ظ†: ${escapeHtml(warehouseLabel)}</p>`;
+  header.innerHTML=`<div><h2 style="margin:0 0 8px;color:#fff;font-size:34px;line-height:1.25;font-weight:900;">مراجعة البيع والتحويلات</h2><p style="margin:0;color:#bdf2a0;font-size:17px;line-height:1.5;font-weight:800;">تاريخ التقرير: ${escapeHtml(formatSalesReviewExportDate(date) || '--/--/----')}</p></div><p style="margin:0;color:#dfffd4;font-size:18px;line-height:1.5;font-weight:900;">المخزن: ${escapeHtml(warehouseLabel)}</p>`;
   const tableWrap=document.createElement('div');
   tableWrap.style.cssText='width:100%;overflow:visible;border:1px solid rgba(141,220,89,.22);border-radius:18px;background:rgba(0,24,20,.48);padding:12px;box-sizing:border-box;';
   tableWrap.appendChild(prepareSalesReviewExportTable(tableEl));
@@ -934,29 +934,29 @@ async function exportSalesReviewPng(){
     if(!rect.width || !rect.height || !width || !height) throw new Error('Invalid sales review export dimensions');
     const canvas=await Html2Canvas(exportBox,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
     canvas.toBlob(async blob=>{
-      if(!blob){ alert('طھط¹ط°ط± ط¥ظ†ط´ط§ط، طµظˆط±ط© PNG.'); return; }
+      if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
       const fileDate=date || todayISO();
-      await saveBlobWithPicker(blob,`ظ…ط±ط§ط¬ط¹ط©-ط§ظ„ط¨ظٹط¹-${warehouseCode}-${fileDate}.png`,'image/png');
+      await saveBlobWithPicker(blob,`مراجعة-البيع-${warehouseCode}-${fileDate}.png`,'image/png');
     },'image/png',1);
   }catch(err){
     console.error(err);
-    alert('طھط¹ط°ط± طھطµط¯ظٹط± ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¨ظٹط¹ PNG. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+    alert('تعذر تصدير مراجعة البيع PNG. حاول مرة أخرى.');
   }finally{
     try{ exportBox.remove(); }catch(_){}
   }
 }
 function initReportExportButtons(){
-  $('#salesExportExcelBtn')?.addEventListener('click',()=>exportTableToExcel('salesTable','ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¨ظٹط¹ ظˆط§ظ„طھط­ظˆظٹظ„ط§طھ'));
-  $('#salesExportPdfBtn')?.addEventListener('click',()=>exportTableToPdf('salesTable','ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¨ظٹط¹ ظˆط§ظ„طھط­ظˆظٹظ„ط§طھ'));
+  $('#salesExportExcelBtn')?.addEventListener('click',()=>exportTableToExcel('salesTable','مراجعة البيع والتحويلات'));
+  $('#salesExportPdfBtn')?.addEventListener('click',()=>exportTableToPdf('salesTable','مراجعة البيع والتحويلات'));
   $('#salesExportPngBtn')?.addEventListener('click',exportSalesReviewPng);
-  $('#inboundExportExcelBtn')?.addEventListener('click',()=>exportTableToExcel('inboundTable','ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظˆط§ط±ط¯'));
-  $('#inboundExportPdfBtn')?.addEventListener('click',()=>exportTableToPdf('inboundTable','ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظˆط§ط±ط¯'));
+  $('#inboundExportExcelBtn')?.addEventListener('click',()=>exportTableToExcel('inboundTable','مراجعة الوارد'));
+  $('#inboundExportPdfBtn')?.addEventListener('click',()=>exportTableToPdf('inboundTable','مراجعة الوارد'));
   $('#rawMaterialsExportExcelBtn')?.addEventListener('click',exportRawMaterialsExcel);
   $('#rawMaterialsExportPdfBtn')?.addEventListener('click',exportRawMaterialsPdf);
   $('#rawMaterialsExportPngBtn')?.addEventListener('click',exportRawMaterialsPng);
 }
 
-function renderTables(){table('#movementsTable',['ظƒظˆط¯ ط§ظ„ط­ط±ظƒط©','ظˆطµظپ SAP','ط§ظ„طھطµظ†ظٹظپ','طھط¹ط±ظٹظپ ط§ظ„ط­ط±ظƒط©','ط§ظ„ط£ط«ط± ط¹ظ„ظ‰ ط§ظ„ط±طµظٹط¯'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'طھط¶ظٹظپ ط±طµظٹط¯':'طھط®طµظ… ظ…ظ† ط§ظ„ط±طµظٹط¯']));table('#salesTable',['ظƒظˆط¯ ط§ظ„ظ…ط§ط¯ط©','ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©','ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³','ظƒظ…ظٹط© ط§ظ„ط¨ظٹط¹','ظ…ط±طھط¬ط¹ ظپط¹ظ„ظٹ','ط§ظ„ط¥ظ†طھط§ط¬','ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ط©','ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظˆط§ط±ط¯ط©','ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظˆظٹظ„'],APP_DATA.salesReviewSample);table('#inboundTable',['ط§ظ„ظ…طµظ†ط¹','ط§ظ„ظ…ط®ط²ظ†','ظƒظˆط¯ ط§ظ„ظ…ط§ط¯ط©','ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©','ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³','ط§ظ„ظˆط§ط±ط¯','ط§ظ„ط¥ظ„ط؛ط§ط،','ط§ظ„طµط§ظپظٹ'],APP_DATA.inboundReviewSample)}
+function renderTables(){table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']));table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحويل'],APP_DATA.salesReviewSample);table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample)}
 function renderTabs(){const salesWh=APP_DATA.plants.flatMap(p=>p.warehouses.filter(w=>['W401','W402','N401','N402','N411','N412','E401','E402'].includes(w[0])).map(w=>w[0]));$('#salesTabs').innerHTML=salesWh.map((w,i)=>`<button class="${i===0?'active':''}">${w}</button>`).join('');$('#inboundTabs').innerHTML=getPlantsCatalog().map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('')}
 
 
@@ -969,15 +969,15 @@ function movementSign(movement){
   const m=String(movement||'').trim().toUpperCase();
   return ['102','Z14','602','653','Z52','352','302'].includes(m) ? -1 : 1;
 }
-function dashboardDateKey(v){return normalizeDateISO(v)||'ط؛ظٹط± ظ…ط­ط¯ط¯';}
+function dashboardDateKey(v){return normalizeDateISO(v)||'غير محدد';}
 function dashboardMovementLabel(m){
-  const code=String(m||'').trim().toUpperCase()||'ط؛ظٹط± ظ…ط­ط¯ط¯';
+  const code=String(m||'').trim().toUpperCase()||'غير محدد';
   const names={
-    '601':'601 ط¨ظٹط¹/طھط³ظ„ظٹظ…','602':'602 ط¥ظ„ط؛ط§ط، طھط³ظ„ظٹظ…','653':'653 ظ…ط±طھط¬ط¹ط§طھ','654':'654 ط¥ظ„ط؛ط§ط، ظ…ط±طھط¬ط¹','101':'101 ط§ط³طھظ„ط§ظ…','102':'102 ط¥ظ„ط؛ط§ط، ط§ط³طھظ„ط§ظ…','Z13':'Z13 ط§ط³طھظ„ط§ظ… ط¨ط¹ط¯ ط§ظ„طھطµظپظٹط©','Z14':'Z14 ط¥ظ„ط؛ط§ط، ط¨ط¯ظˆظ† ظ…ظٹط²ط§ظ†','Z51':'Z51 طھط­ظˆظٹظ„ طµط§ط¯ط±','Z52':'Z52 ط¥ظ„ط؛ط§ط، طھط­ظˆظٹظ„','351':'351 طھط­ظˆظٹظ„ طµط§ط¯ط±','352':'352 ط¥ظ„ط؛ط§ط، طھط­ظˆظٹظ„','301':'301 ظ†ظ‚ظ„','302':'302 ط¥ظ„ط؛ط§ط، ظ†ظ‚ظ„'
+    '601':'601 بيع/تسليم','602':'602 إلغاء تسليم','653':'653 مرتجعات','654':'654 إلغاء مرتجع','101':'101 استلام','102':'102 إلغاء استلام','Z13':'Z13 استلام بعد التصفية','Z14':'Z14 إلغاء بدون ميزان','Z51':'Z51 تحويل صادر','Z52':'Z52 إلغاء تحويل','351':'351 تحويل صادر','352':'352 إلغاء تحويل','301':'301 نقل','302':'302 إلغاء نقل'
   };
-  return names[code]||`${code} ط­ط±ظƒط© ط£ط®ط±ظ‰`;
+  return names[code]||`${code} حركة أخرى`;
 }
-function dashboardPlantFromWarehouse(code){return warehouseMetaByCode(code).plant_code || 'ط؛ظٹط± ظ…ط­ط¯ط¯';}
+function dashboardPlantFromWarehouse(code){return warehouseMetaByCode(code).plant_code || 'غير محدد';}
 function drawDashboardDonut(items){
   const canvas=$('#donutChart'); if(!canvas) return;
   const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,340,240);
@@ -986,9 +986,9 @@ function drawDashboardDonut(items){
   const legend=$('#movementLegend');
   const statsBox=$('#donutStats') || (()=>{const d=document.createElement('div');d.id='donutStats';d.className='chart-stats-row';legend?.after(d);return d;})();
   if(!sum){
-    ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ…ط¨ظٹط¹ط§طھ',170,120);ctx.textAlign='start';
+    ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات مبيعات',170,120);ctx.textAlign='start';
     if(legend) legend.innerHTML='';
-    if(statsBox) statsBox.innerHTML='<div><b>0</b><span>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¨ظٹط¹ط§طھ</span></div><div><b>0</b><span>ط¹ط¯ط¯ ط§ظ„ظ…ط®ط§ط²ظ†</span></div>';
+    if(statsBox) statsBox.innerHTML='<div><b>0</b><span>إجمالي المبيعات</span></div><div><b>0</b><span>عدد المخازن</span></div>';
     return;
   }
   let a=-Math.PI/2;
@@ -1000,7 +1000,7 @@ function drawDashboardDonut(items){
   ctx.globalAlpha=1;
   ctx.beginPath();ctx.arc(130,120,48,0,Math.PI*2);ctx.fillStyle='#00251f';ctx.fill();
   ctx.fillStyle='#fff';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText(fmt(sum),130,118);
-  ctx.font='bold 12px Cairo';ctx.fillStyle='#d8ffd1';ctx.fillText('ط·ظ†',130,139);ctx.textAlign='start';
+  ctx.font='bold 12px Cairo';ctx.fillStyle='#d8ffd1';ctx.fillText('طن',130,139);ctx.textAlign='start';
   if(legend){
     legend.classList.add('dashboard-donut-legend');
     legend.innerHTML=entries.map((it,i)=>{
@@ -1012,7 +1012,7 @@ function drawDashboardDonut(items){
   }
   if(statsBox){
     const top=entries[0];
-    statsBox.innerHTML=`<div><b>${fmt(sum)}</b><span>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…ط¨ظٹط¹ط§طھ</span></div><div><b>${entries.length}</b><span>ط¹ط¯ط¯ ط§ظ„ظ…ط®ط§ط²ظ†</span></div><div><b>${escapeHtml(String(top.label||'-').split(' - ')[0])}</b><span>ط£ط¹ظ„ظ‰ ظ…ط®ط²ظ†</span></div>`;
+    statsBox.innerHTML=`<div><b>${fmt(sum)}</b><span>إجمالي المبيعات</span></div><div><b>${entries.length}</b><span>عدد المخازن</span></div><div><b>${escapeHtml(String(top.label||'-').split(' - ')[0])}</b><span>أعلى مخزن</span></div>`;
   }
 }
 function drawDashboardLine(dailyMap){
@@ -1022,10 +1022,10 @@ function drawDashboardLine(dailyMap){
   ctx.clearRect(0,0,w,h);
   const legend=$('#lineChartLegend');
   const series=[
-    {key:'sales',label:'ط§ظ„ط¨ظٹط¹',color:'#83d84b'},
-    {key:'production',label:'ط§ظ„ط¥ظ†طھط§ط¬',color:'#32aee9'},
-    {key:'outgoing',label:'ط§ظ„طµط§ط¯ط±ط©',color:'#ff9f2f'},
-    {key:'incoming',label:'ط§ظ„ظˆط§ط±ط¯ط©',color:'#b965ff'}
+    {key:'sales',label:'البيع',color:'#83d84b'},
+    {key:'production',label:'الإنتاج',color:'#32aee9'},
+    {key:'outgoing',label:'الصادرة',color:'#ff9f2f'},
+    {key:'incoming',label:'الواردة',color:'#b965ff'}
   ];
   if(legend){
     legend.innerHTML=series.map(s=>`<span><i style="background:${s.color};color:${s.color}"></i>${s.label}</span>`).join('');
@@ -1033,8 +1033,8 @@ function drawDashboardLine(dailyMap){
   const realDays=Object.keys(dailyMap||{}).sort().slice(-31);
   const summary=$('#lineSummary') || (()=>{const d=document.createElement('div');d.id='lineSummary';d.className='chart-stats-row';canvas.after(d);return d;})();
   if(!realDays.length){
-    ctx.fillStyle='#d6ead1';ctx.font='bold 20px Cairo';ctx.textAlign='center';ctx.fillText('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ',w/2,h/2);ctx.textAlign='start';
-    if(summary) summary.innerHTML='<div><b>0</b><span>ط§ظ„ط¨ظٹط¹</span></div><div><b>0</b><span>ط§ظ„ط¥ظ†طھط§ط¬</span></div><div><b>0</b><span>ط§ظ„طµط§ط¯ط±ط©</span></div><div><b>0</b><span>ط§ظ„ظˆط§ط±ط¯ط©</span></div>';
+    ctx.fillStyle='#d6ead1';ctx.font='bold 20px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2);ctx.textAlign='start';
+    if(summary) summary.innerHTML='<div><b>0</b><span>البيع</span></div><div><b>0</b><span>الإنتاج</span></div><div><b>0</b><span>الصادرة</span></div><div><b>0</b><span>الواردة</span></div>';
     return;
   }
   const totals=series.map(s=>({ ...s, total:realDays.reduce((a,d)=>a+(dailyMap[d][s.key]||0),0) }));
@@ -1086,11 +1086,11 @@ function drawDashboardPlantBar(plantStats){
   ctx.clearRect(0,0,w,h);
   const plants=getPlantsCatalog().map(p=>p.code);
   const series=[
-    {key:'sales',label:'ط§ظ„ط¨ظٹط¹',color:'#74c54a'},
-    {key:'production',label:'ط§ظ„ط¥ظ†طھط§ط¬',color:'#2aa6e8'},
-    {key:'outgoing',label:'ط§ظ„طµط§ط¯ط±ط©',color:'#ff9f2f'},
-    {key:'incoming',label:'ط§ظ„ظˆط§ط±ط¯ط©',color:'#b45cff'},
-    {key:'loading',label:'ط§ظ„طھط­ظ…ظٹظ„',color:'#28c7bd'}
+    {key:'sales',label:'البيع',color:'#74c54a'},
+    {key:'production',label:'الإنتاج',color:'#2aa6e8'},
+    {key:'outgoing',label:'الصادرة',color:'#ff9f2f'},
+    {key:'incoming',label:'الواردة',color:'#b45cff'},
+    {key:'loading',label:'التحميل',color:'#28c7bd'}
   ];
   const legend=$('#plantBarLegend');
   if(legend){legend.innerHTML=series.map(s=>`<span><i style="background:${s.color}"></i>${s.label}</span>`).join('');}
@@ -1131,7 +1131,7 @@ function renderPlantPerformanceTable(plantStats){
     return `<tr><td>${p.code}</td><td>${fmt(st.sales||0)}</td><td>${fmt(st.production||0)}</td><td>${fmt(st.outgoing||0)}</td><td>${fmt(st.incoming||0)}</td><td>${fmt(st.loading||0)}</td></tr>`;
   }).join('');
   const total=getPlantsCatalog().reduce((a,p)=>{const st=plantStats[p.code]||{};a.sales+=(st.sales||0);a.production+=(st.production||0);a.outgoing+=(st.outgoing||0);a.incoming+=(st.incoming||0);a.loading+=(st.loading||0);return a;},{sales:0,production:0,outgoing:0,incoming:0,loading:0});
-  node.innerHTML=`<div class="plant-performance-table"><table><thead><tr><th>ط§ظ„ظ…طµظ†ط¹</th><th>ط§ظ„ط¨ظٹط¹</th><th>ط§ظ„ط¥ظ†طھط§ط¬</th><th>ط§ظ„طµط§ط¯ط±ط©</th><th>ط§ظ„ظˆط§ط±ط¯ط©</th><th>ط§ظ„طھط­ظ…ظٹظ„</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ</td><td>${fmt(total.sales)}</td><td>${fmt(total.production)}</td><td>${fmt(total.outgoing)}</td><td>${fmt(total.incoming)}</td><td>${fmt(total.loading)}</td></tr></tfoot></table></div>`;
+  node.innerHTML=`<div class="plant-performance-table"><table><thead><tr><th>المصنع</th><th>البيع</th><th>الإنتاج</th><th>الصادرة</th><th>الواردة</th><th>التحميل</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>الإجمالي</td><td>${fmt(total.sales)}</td><td>${fmt(total.production)}</td><td>${fmt(total.outgoing)}</td><td>${fmt(total.incoming)}</td><td>${fmt(total.loading)}</td></tr></tfoot></table></div>`;
 }
 
 function modernIcon(name){
@@ -1216,11 +1216,11 @@ function renderStandardKpiCard(config={}){
 
 function renderDashboardKPIs(stats){
   const cards=[
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹',value:fmt(stats.salesQty),unit:'ط·ظ†',icon:'sales',className:'kpi-sales'},
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ظ†طھط§ط¬',value:fmt(stats.productionQty),unit:'ط·ظ†',icon:'production',className:'kpi-production'},
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ظ‡',value:fmt(stats.outgoingTransferQty),unit:'ط·ظ†',icon:'outgoing',className:'kpi-outgoing'},
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظˆط§ط±ط¯ظ‡',value:fmt(stats.incomingTransferQty),unit:'ط·ظ†',icon:'incoming',className:'kpi-incoming'},
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„',value:fmt(stats.totalLoadingQty),unit:'ط·ظ†',icon:'loading',className:'kpi-loading'}
+    {title:'إجمالي البيع',value:fmt(stats.salesQty),unit:'طن',icon:'sales',className:'kpi-sales'},
+    {title:'إجمالي الإنتاج',value:fmt(stats.productionQty),unit:'طن',icon:'production',className:'kpi-production'},
+    {title:'إجمالي التحويلات الصادره',value:fmt(stats.outgoingTransferQty),unit:'طن',icon:'outgoing',className:'kpi-outgoing'},
+    {title:'إجمالي التحويلات الوارده',value:fmt(stats.incomingTransferQty),unit:'طن',icon:'incoming',className:'kpi-incoming'},
+    {title:'إجمالي التحميل',value:fmt(stats.totalLoadingQty),unit:'طن',icon:'loading',className:'kpi-loading'}
   ];
   const box=$('#kpiCards');
   if(box) box.innerHTML=cards.map(renderStandardKpiCard).join('');
@@ -1266,11 +1266,11 @@ function updateMobileDashboardPeriodLabel(){
   const from=normalizeDateISO($('#dashboardFromDate')?.value || '');
   const to=normalizeDateISO($('#dashboardToDate')?.value || '');
   if(from && to && from===to){
-    node.textContent=`طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±: ${formatMobileDashboardDateLabel(from)}`;
+    node.textContent=`تاريخ التقرير: ${formatMobileDashboardDateLabel(from)}`;
   }else if(from || to){
-    node.textContent=`ط§ظ„ظپطھط±ط©: ${formatMobileDashboardDateLabel(from) || 'ط§ظ„ط¨ط¯ط§ظٹط©'} â†’ ${formatMobileDashboardDateLabel(to) || 'ط§ظ„ظ†ظ‡ط§ظٹط©'}`;
+    node.textContent=`الفترة: ${formatMobileDashboardDateLabel(from) || 'البداية'} → ${formatMobileDashboardDateLabel(to) || 'النهاية'}`;
   }else{
-    node.textContent='طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±: --/--/----';
+    node.textContent='تاريخ التقرير: --/--/----';
   }
 }
 function initDashboardFilters(){
@@ -1282,7 +1282,7 @@ function initDashboardFilters(){
   function fillWh(){
     const old=enterpriseMultiSelectValues(wf);
     const salesWarehouseCodes = ['W401','W402','N401','N402','N411','N412','E401','E402'];
-    wf.innerHTML='<option value="all">ظƒظ„ ظ…ط®ط§ط²ظ† ط§ظ„ط¨ظٹط¹</option>';
+    wf.innerHTML='<option value="all">كل مخازن البيع</option>';
     APP_DATA.plants
       .filter(p=>enterpriseFilterMatches(enterpriseMultiSelectValues(pf),p.code))
       .forEach(p=>p.warehouses
@@ -1347,11 +1347,11 @@ function renderDashboardSummary(stats){
   const node=$('#stockSummary');
   if(!node) return;
   node.innerHTML=[
-    ['ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹',`${fmt(stats.salesQty)} ط·ظ†`],
-    ['ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ظ†طھط§ط¬',`${fmt(stats.productionQty)} ط·ظ†`],
-    ['ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ط©',`${fmt(stats.outgoingTransferQty)} ط·ظ†`],
-    ['ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظˆط§ط±ط¯ط©',`${fmt(stats.incomingTransferQty)} ط·ظ†`],
-    ['ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„',`${fmt(stats.totalLoadingQty)} ط·ظ†`]
+    ['إجمالي البيع',`${fmt(stats.salesQty)} طن`],
+    ['إجمالي الإنتاج',`${fmt(stats.productionQty)} طن`],
+    ['إجمالي التحويلات الصادرة',`${fmt(stats.outgoingTransferQty)} طن`],
+    ['إجمالي التحويلات الواردة',`${fmt(stats.incomingTransferQty)} طن`],
+    ['إجمالي التحميل',`${fmt(stats.totalLoadingQty)} طن`]
   ].map(r=>`<div class="stock-row"><span>${r[0]}</span><b>${r[1]}</b></div>`).join('');
 }
 function renderDashboardPlants(plantStats, totalSales=0){
@@ -1364,9 +1364,9 @@ function renderDashboardPlants(plantStats, totalSales=0){
   }).sort((a,b)=>b.st.sales-a.st.sales);
   node.innerHTML=rows.map((r,i)=>`<div class="plant-progress-card rank-${i+1}">
     <div class="plant-progress-head"><b>${escapeHtml(r.name)}</b><span>${escapeHtml(r.code)}</span></div>
-    <div class="plant-progress-value"><strong>${fmt(r.st.sales)}</strong><small>ط·ظ† ط¨ظٹط¹</small><em>${r.pct.toFixed(1)}%</em></div>
+    <div class="plant-progress-value"><strong>${fmt(r.st.sales)}</strong><small>طن بيع</small><em>${r.pct.toFixed(1)}%</em></div>
     <div class="progress-track"><i style="width:${Math.min(100,r.pct).toFixed(1)}%"></i></div>
-    <div class="plant-progress-metrics"><span>ط¥ظ†طھط§ط¬ ${fmt(r.st.production)}</span><span>طھط­ظ…ظٹظ„ ${fmt(r.st.loading)}</span></div>
+    <div class="plant-progress-metrics"><span>إنتاج ${fmt(r.st.production)}</span><span>تحميل ${fmt(r.st.loading)}</span></div>
   </div>`).join('');
 }
 function monthDaysCount(year,monthIndex){
@@ -1421,7 +1421,7 @@ function renderDashboardSalesHeatmap(allRows,filters={}){
   const max=Math.max(...values,0);
   const min=values.length?Math.min(...values):0;
   const weekDayOrder=[6,0,1,2,3,4,5];
-  const weekDayLabels=['ط§ظ„ط³ط¨طھ','ط§ظ„ط£ط­ط¯','ط§ظ„ط¥ط«ظ†ظٹظ†','ط§ظ„ط«ظ„ط§ط«ط§ط،','ط§ظ„ط£ط±ط¨ط¹ط§ط،','ط§ظ„ط®ظ…ظٹط³','ط§ظ„ط¬ظ…ط¹ط©'];
+  const weekDayLabels=['السبت','الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'];
   const firstDow=new Date(year,month-1,1).getDay();
   const firstOffset=weekDayOrder.indexOf(firstDow);
   const cells=[];
@@ -1436,20 +1436,20 @@ function renderDashboardSalesHeatmap(allRows,filters={}){
     const ratio=max?Math.max(.12,val/max):0;
     const heatmapClass=getHeatmapCellClass(val,min,max);
     const className=heatmapClass ? `heat-cell ${heatmapClass}` : 'heat-cell';
-    cells.push(`<div class="${className}" style="--heat:${ratio.toFixed(3)}" title="${date} - ${fmt(val)} ط·ظ†"><b>${day}</b><span>${fmt(val)}</span></div>`);
+    cells.push(`<div class="${className}" style="--heat:${ratio.toFixed(3)}" title="${date} - ${fmt(val)} طن"><b>${day}</b><span>${fmt(val)}</span></div>`);
   }
   node.innerHTML=`
-    <div class="heatmap-head"><strong>${monthKey}</strong><span>ط§ظ„ط£ظ‚ظ„</span><i></i><span>ط§ظ„ط£ط¹ظ„ظ‰</span></div>
+    <div class="heatmap-head"><strong>${monthKey}</strong><span>الأقل</span><i></i><span>الأعلى</span></div>
     <div class="heatmap-weekdays">${weekDayLabels.map(d=>`<span>${d}</span>`).join('')}</div>
     <div class="heatmap-grid">${cells.join('')}</div>
-    <div class="heatmap-footer"><b>${fmt(Object.values(daily).reduce((a,b)=>a+b,0))}</b><span>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹ ظ„ظ„ط£ظٹط§ظ… ط§ظ„ظ…ط¹ط±ظˆط¶ط© ط­ط³ط¨ ط§ظ„ظپظ„طھط±</span></div>`;
+    <div class="heatmap-footer"><b>${fmt(Object.values(daily).reduce((a,b)=>a+b,0))}</b><span>إجمالي البيع للأيام المعروضة حسب الفلتر</span></div>`;
 }
-function renderRankTable(selector,heads,rows,{totalLabel='ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ'}={}){
+function renderRankTable(selector,heads,rows,{totalLabel='الإجمالي'}={}){
   const node=$(selector); if(!node) return;
   const body=(rows&&rows.length?rows:[]).map((r,ri)=>`<tr>${heads.map((_,i)=>{
     const cls=i===0?'rank-num':(i>=heads.length-3?'num-cell':'');
     return `<td class="${cls}">${r[i]??''}</td>`;
-  }).join('')}</tr>`).join('') || `<tr><td colspan="${heads.length}" class="empty-row">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ…ط·ط§ط¨ظ‚ط©</td></tr>`;
+  }).join('')}</tr>`).join('') || `<tr><td colspan="${heads.length}" class="empty-row">لا توجد بيانات مطابقة</td></tr>`;
   node.innerHTML=`<thead><tr>${heads.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${body}</tbody>`;
 }
 
@@ -1721,13 +1721,13 @@ function salesReviewVerificationReason(row,catalog,direction){
   const code=normalizeMaterialCode(row?.material_code);
   const wh=String(row?.warehouse_code||'').trim().toUpperCase();
   if(direction==='legacy-only'){
-    if(!isSalesReviewMaterialCodeInCatalog(code,catalog)) return 'ط§ظ„طµظ†ظپ ظ…ظˆط¬ظˆط¯ ظپظٹ Legacy ظ„ظƒظ†ظ‡ ط؛ظٹط± ظ†ط´ط· ط£ظˆ ط؛ظٹط± ظ…ط¯ط±ط¬ ظپظٹ sales_products ظ„طھظ‚ط§ط±ظٹط± ط§ظ„ط¨ظٹط¹';
-    if(!salesReviewWarehouseAllowedForMaterial(code,wh,catalog)) return 'ط§ظ„ظ…ط®ط²ظ† ظ…ظˆط¬ظˆط¯ ظپظٹ Legacy ظ„ظƒظ†ظ‡ ط؛ظٹط± ظ…ط±طھط¨ط· ط¨ط§ظ„طµظ†ظپ ظپظٹ sales_product_warehouses';
-    return 'ظپط±ظ‚ ط؛ظٹط± ظ…طھظˆظ‚ط¹ ط¨ط¹ط¯ طھط·ط¨ظٹظ‚ ظ‚ظˆط§ط¹ط¯ Dynamic';
+    if(!isSalesReviewMaterialCodeInCatalog(code,catalog)) return 'الصنف موجود في Legacy لكنه غير نشط أو غير مدرج في sales_products لتقارير البيع';
+    if(!salesReviewWarehouseAllowedForMaterial(code,wh,catalog)) return 'المخزن موجود في Legacy لكنه غير مرتبط بالصنف في sales_product_warehouses';
+    return 'فرق غير متوقع بعد تطبيق قواعد Dynamic';
   }
-  if(!isSalesReviewMaterialCode(code)) return 'ط§ظ„طµظ†ظپ ظ…ظˆط¬ظˆط¯ ظپظٹ Dynamic ظ„ظƒظ†ظ‡ ط؛ظٹط± ظ…ظˆط¬ظˆط¯ ظپظٹ SALES_REVIEW_MATERIAL_CODES';
-  if(!SALES_WAREHOUSES.includes(wh)) return 'ط§ظ„ظ…ط®ط²ظ† ظ…ظˆط¬ظˆط¯ ظپظٹ Dynamic ظ„ظƒظ†ظ‡ ط®ط§ط±ط¬ ظ…ط®ط§ط²ظ† ط§ظ„ط¨ظٹط¹ ط§ظ„ط±ط³ظ…ظٹط© ط§ظ„ظ‚ط¯ظٹظ…ط©';
-  return 'ظپط±ظ‚ ط؛ظٹط± ظ…طھظˆظ‚ط¹ ط¨ط¹ط¯ طھط·ط¨ظٹظ‚ ظ‚ظˆط§ط¹ط¯ Legacy';
+  if(!isSalesReviewMaterialCode(code)) return 'الصنف موجود في Dynamic لكنه غير موجود في SALES_REVIEW_MATERIAL_CODES';
+  if(!SALES_WAREHOUSES.includes(wh)) return 'المخزن موجود في Dynamic لكنه خارج مخازن البيع الرسمية القديمة';
+  return 'فرق غير متوقع بعد تطبيق قواعد Legacy';
 }
 function salesReviewVerificationGroupRows(rows,catalog,direction){
   const map=new Map();
@@ -1963,13 +1963,13 @@ function computeUnifiedSalesMetrics(row){
       if(['9','16'].includes(worker)) metrics.actualReturn+=q;
       else metrics.sales-=q;
     }
-    if(movement==='101' && text==='ط§ط³طھظ„ط§ظ… ط¨ط¶ط§ط¦ط¹ ظ„ظ„ط£ظ…ط±') metrics.production+=q;
-    if(movement==='102' && text==='ط§.ط¨ط¶ط§ط¦ط¹ ظ„ط¥ظ„ط؛ط§ط، ط§ظ„ط£ظ…ط±') metrics.production-=q;
+    if(movement==='101' && text==='استلام بضائع للأمر') metrics.production+=q;
+    if(movement==='102' && text==='ا.بضائع لإلغاء الأمر') metrics.production-=q;
     if(['Z51','351','301'].includes(movement)) metrics.outgoing+=q;
     if(['Z52','352','302'].includes(movement)) metrics.outgoing-=q;
-    if(movement==='101' && text==='ط§.ط¨ط¶ط§ط¦ط¹ ظ„ظ…ط®ط²ظˆظ† ظ…ظ†ظ‚ظˆظ„') metrics.incoming+=q;
+    if(movement==='101' && text==='ا.بضائع لمخزون منقول') metrics.incoming+=q;
     if(movement==='Z13') metrics.incoming+=q;
-    if(movement==='102' && text==='GR:ط¥ظ„ط؛ط§ط، ظ…ط®ط²ظˆظ† ظ…ظ†ظ‚ظˆظ„') metrics.incoming-=q;
+    if(movement==='102' && text==='GR:إلغاء مخزون منقول') metrics.incoming-=q;
     if(movement==='Z14') metrics.incoming-=q;
     metrics.loading=metrics.sales+metrics.outgoing;
     return metrics;
@@ -2027,7 +2027,7 @@ function aggregateSalesRowsWithMetrics(rows,filters={},options={},metricsResolve
     daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0,loading:0};
     const wh=String(r.warehouse_code||'').trim().toUpperCase();
     const meta=dashboardWhMeta(wh);
-    const plant=r.plant_code||meta.plant||'ط؛ظٹط± ظ…ط­ط¯ط¯';
+    const plant=r.plant_code||meta.plant||'غير محدد';
     if(!plantStats[plant]) plantStats[plant]={sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0};
     addUnifiedSalesStats(stats,metrics);
     daily[d].sales+=Math.abs(metrics.sales);
@@ -2042,7 +2042,7 @@ function aggregateSalesRowsWithMetrics(rows,filters={},options={},metricsResolve
     plantStats[plant].incoming+=metrics.incoming;
     plantStats[plant].loading+=metrics.loading;
     if(metrics.sales) warehouseSalesMap[wh]=(warehouseSalesMap[wh]||0)+Math.abs(metrics.sales);
-    const pkey=String(r.material_code||r.material_name||'ط؛ظٹط± ظ…ط­ط¯ط¯');
+    const pkey=String(r.material_code||r.material_name||'غير محدد');
     if(!productMap[pkey]) productMap[pkey]={code:r.material_code||'-',name:r.material_name||'-',sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0};
     productMap[pkey].sales+=metrics.sales;
     productMap[pkey].actualReturn+=metrics.actualReturn;
@@ -2360,7 +2360,7 @@ async function loadDashboardRealData(options={}){
   renderDashboardSummary(stats);
   drawDashboardLine(daily);
   drawDashboardPlantBar(plantStats);
-  drawDashboardDonut(Object.entries(warehouseSalesMap).sort((a,b)=>b[1]-a[1]).map(([code,value])=>({label:code+' - '+(dashboardWhMeta(code).name||'ظ…ط®ط²ظ† ط¨ظٹط¹'),value})));
+  drawDashboardDonut(Object.entries(warehouseSalesMap).sort((a,b)=>b[1]-a[1]).map(([code,value])=>({label:code+' - '+(dashboardWhMeta(code).name||'مخزن بيع'),value})));
   const products=Object.values(model.productMap);
   renderDashboardPlants(plantStats, stats.salesQty);
   renderDashboardSalesHeatmap(sales, filters);
@@ -2372,7 +2372,7 @@ async function loadDashboardRealData(options={}){
     fmt(p.production),
     fmt(p.loading)
   ]);
-  renderRankTable('#latestTable',['#','ظƒظˆط¯ ط§ظ„طµظ†ظپ','ط§ط³ظ… ط§ظ„طµظ†ظپ','ط§ظ„ط¨ظٹط¹','ط§ظ„ط¥ظ†طھط§ط¬','ط§ظ„طھط­ظ…ظٹظ„'],topProducts);
+  renderRankTable('#latestTable',['#','كود الصنف','اسم الصنف','البيع','الإنتاج','التحميل'],topProducts);
   const topWarehouses=Object.values(warehouseActivityMap).sort((a,b)=>b.totalActivity-a.totalActivity).slice(0,10).map((w,i)=>[
     i+1,
     escapeHtml(w.code||'-'),
@@ -2381,7 +2381,7 @@ async function loadDashboardRealData(options={}){
     fmt(w.sales),
     fmt(w.loading)
   ]);
-  renderRankTable('#topWarehousesTable',['#','ظƒظˆط¯ ط§ظ„ظ…ط®ط²ظ†','ط§ط³ظ… ط§ظ„ظ…ط®ط²ظ†','ط§ظ„ظ…طµظ†ط¹','ط§ظ„ط¨ظٹط¹','ط§ظ„طھط­ظ…ظٹظ„'],topWarehouses);
+  renderRankTable('#topWarehousesTable',['#','كود المخزن','اسم المخزن','المصنع','البيع','التحميل'],topWarehouses);
   ensureDashboardPngButtons();
   console.timeEnd(renderPerfLabel);
   salesPerfLog('renderDashboard',renderPerfStart,{rows:sales.length,topProducts:topProducts.length,topWarehouses:topWarehouses.length});
@@ -2511,20 +2511,20 @@ function openMobileDashboardDrawer(){
 }
 function exportMobileDashboardPng(){
   const dashboard=$('#dashboard');
-  if(dashboard) exportDashboardElementAsPng(dashboard,'ط§ظ„ط´ط§ط´ط© ط§ظ„ط±ط¦ظٹط³ظٹط©');
+  if(dashboard) exportDashboardElementAsPng(dashboard,'الشاشة الرئيسية');
 }
 async function exportMobileKpiGroupPng(){
   const source=$('#kpiCards');
   if(!source) return;
   const Html2Canvas=window.html2canvas;
-  if(!Html2Canvas){ alert('ظ…ظƒطھط¨ط© طھطµط¯ظٹط± ط§ظ„طµظˆط± ط؛ظٹط± ظ…ط­ظ…ظ„ط©. طھط£ظƒط¯ ظ…ظ† ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط¥ظ†طھط±ظ†طھ ط«ظ… ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.'); return; }
+  if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
   const cards=[...source.querySelectorAll('.kpi')].slice(0,5);
   if(!cards.length) return;
   const from=normalizeDateISO($('#dashboardFromDate')?.value || '');
   const to=normalizeDateISO($('#dashboardToDate')?.value || '');
   const periodText=(from && to && from===to)
-    ? `طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±: ${formatMobileDashboardDateLabel(from)}`
-    : `ط§ظ„ظپطھط±ط©: ${formatMobileDashboardDateLabel(from) || 'ط§ظ„ط¨ط¯ط§ظٹط©'} â†’ ${formatMobileDashboardDateLabel(to) || 'ط§ظ„ظ†ظ‡ط§ظٹط©'}`;
+    ? `تاريخ التقرير: ${formatMobileDashboardDateLabel(from)}`
+    : `الفترة: ${formatMobileDashboardDateLabel(from) || 'البداية'} → ${formatMobileDashboardDateLabel(to) || 'النهاية'}`;
   const exportBox=document.createElement('section');
   exportBox.className='mobile-kpi-export-box png-capturing-now';
   exportBox.setAttribute('aria-hidden','true');
@@ -2577,11 +2577,11 @@ async function exportMobileKpiGroupPng(){
     if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     const rect=exportBox.getBoundingClientRect();
-    if(rect.width<=0 || rect.height<=0){ alert('طھط¹ط°ط± طھط­ط¯ظٹط¯ ط£ط¨ط¹ط§ط¯ طµظˆط±ط© ط§ظ„ظ…ط¤ط´ط±ط§طھ.'); return; }
+    if(rect.width<=0 || rect.height<=0){ alert('تعذر تحديد أبعاد صورة المؤشرات.'); return; }
     const width=Math.ceil(exportBox.scrollWidth);
     const height=Math.ceil(exportBox.scrollHeight);
     window.__lastKpiExportBoxSize={width,height,rectWidth:rect.width,rectHeight:rect.height,layout:'2-2-1'};
-    if(width<=1 || height<=1){ alert('طھط¹ط°ط± طھط­ط¯ظٹط¯ ط£ط¨ط¹ط§ط¯ طµظˆط±ط© ط§ظ„ظ…ط¤ط´ط±ط§طھ.'); return; }
+    if(width<=1 || height<=1){ alert('تعذر تحديد أبعاد صورة المؤشرات.'); return; }
     const canvas=await Html2Canvas(exportBox,{
       scale:2,
       useCORS:true,
@@ -2596,12 +2596,12 @@ async function exportMobileKpiGroupPng(){
       height
     });
     canvas.toBlob(async blob=>{
-      if(!blob){ alert('طھط¹ط°ط± ط¥ظ†ط´ط§ط، طµظˆط±ط© PNG.'); return; }
+      if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
       await saveBlobWithPicker(blob,`${safeFileName('Total Key Stats')}.png`,'image/png');
     },'image/png',1);
   }catch(err){
     console.error(err);
-    alert('طھط¹ط°ط± طھطµط¯ظٹط± طµظˆط±ط© ط§ظ„ظ…ط¤ط´ط±ط§طھ. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+    alert('تعذر تصدير صورة المؤشرات. حاول مرة أخرى.');
   }finally{
     document.body.classList.remove('dashboard-png-exporting');
     exportBox.remove();
@@ -2758,7 +2758,7 @@ function initSidebarToggle(){
     shell.classList.toggle('sidebar-collapsed', collapsed);
     btn.innerHTML = collapsed ? modernIcon('arrowLeft') : modernIcon('menu');
     btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    btn.title = collapsed ? 'ظپطھط­ ط§ظ„ظ‚ط§ط¦ظ…ط©' : 'ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظ‚ط§ط¦ظ…ط©';
+    btn.title = collapsed ? 'فتح القائمة' : 'إغلاق القائمة';
   };
   apply(saved);
   btn.onclick = ()=>{
@@ -2776,7 +2776,7 @@ let activeSalesWarehouse = SALES_WAREHOUSES[0];
 let activeSalesReportDate = '';
 function todayISO(){const d=new Date();const c=new Date(d.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));return `${c.getFullYear()}-${String(c.getMonth()+1).padStart(2,'0')}-${String(c.getDate()).padStart(2,'0')}`;}
 function normalizeDateISO(v){return v ? String(v).slice(0,10) : '';}
-function currentUploaderName(userData){return CURRENT_APP_PROFILE?.full_name || userData?.user?.email || 'ظ…ط³طھط®ط¯ظ…';}
+function currentUploaderName(userData){return CURRENT_APP_PROFILE?.full_name || userData?.user?.email || 'مستخدم';}
 
 function normalizeHeader(v){return String(v||'').replace(/\s+/g,' ').trim();}
 function parseArabicNumber(v){
@@ -2814,18 +2814,18 @@ function getRawRowValue(rawRow,names){
 }
 function getIncomingMovementType(row){
   return String(row?.movement_type || getRawRowValue(row?.raw_row,[
-    'ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©','ظ†ظˆط¹ ط§ظ„ط­ط±ظƒظ‡','ظƒظˆط¯ ط§ظ„ط­ط±ظƒط©','ظƒظˆط¯ ط§ظ„ط­ط±ظƒظ‡','ط§ظ„ط­ط±ظƒط©','ط­ط±ظƒط©','MvT','Mvt','Movement Type','Movement type','Movement Type Code'
+    'نوع الحركة','نوع الحركه','كود الحركة','كود الحركه','الحركة','حركة','MvT','Mvt','Movement Type','Movement type','Movement Type Code'
   ]) || '').trim();
 }
 function getIncomingMovementText(row){
   return String(row?.movement_text || getRawRowValue(row?.raw_row,[
-    'ظˆطµظپ ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©','ظˆطµظپ ظ†ظˆط¹ ط§ظ„ط­ط±ظƒظ‡','ظˆطµظپ ط§ظ„ط­ط±ظƒط©','ظˆطµظپ ط§ظ„ط­ط±ظƒظ‡','ظ†طµ ط§ظ„ط­ط±ظƒط©','ظ†طµ ط§ظ„ط­ط±ظƒظ‡','Movement Text','Movement Type Text','Movement Description'
+    'وصف نوع الحركة','وصف نوع الحركه','وصف الحركة','وصف الحركه','نص الحركة','نص الحركه','Movement Text','Movement Type Text','Movement Description'
   ]) || '').trim();
 }
 async function updateAuthStatus(){
   const el=$('#authStatus'); if(!el || !window.WarehouseDB?.ready) return;
   const {data}=await WarehouseDB.getUser();
-  el.textContent = data?.user ? `طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„: ${data.user.email}` : 'ظ„ظ… ظٹطھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ط¹ط¯.';
+  el.textContent = data?.user ? `تم تسجيل الدخول: ${data.user.email}` : 'لم يتم تسجيل الدخول بعد.';
 }
 function initAuthPanel(){
   const loginBtn=$('#loginBtn'), logoutBtn=$('#logoutBtn');
@@ -2834,13 +2834,13 @@ function initAuthPanel(){
     const email=$('#loginEmail').value.trim();
     const password=$('#loginPassword').value;
     const status=$('#authStatus');
-    status.textContent='ط¬ط§ط±ظٹ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„...';
+    status.textContent='جاري تسجيل الدخول...';
     const {error}=await WarehouseDB.signIn(email,password);
-    status.textContent=error ? `ط®ط·ط£: ${error.message}` : 'طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ظ†ط¬ط§ط­.';
+    status.textContent=error ? `خطأ: ${error.message}` : 'تم تسجيل الدخول بنجاح.';
     updateAuthStatus();
-    if(!error) await logSystemActivity('ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†','طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„',`طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„: ${email}`);
+    if(!error) await logSystemActivity('المستخدمين','تسجيل دخول',`تسجيل دخول: ${email}`);
   };
-  logoutBtn.onclick=async()=>{ await logSystemActivity('ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†','طھط³ط¬ظٹظ„ ط®ط±ظˆط¬',`طھط³ط¬ظٹظ„ ط®ط±ظˆط¬: ${CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'ط§ظ„ظ…ط³طھط®ط¯ظ… ط§ظ„ط­ط§ظ„ظٹ'}`); await WarehouseDB.signOut(); updateAuthStatus(); };
+  logoutBtn.onclick=async()=>{ await logSystemActivity('المستخدمين','تسجيل خروج',`تسجيل خروج: ${CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'المستخدم الحالي'}`); await WarehouseDB.signOut(); updateAuthStatus(); };
   updateAuthStatus();
 }
 function rowsFromWorkbook(workbook){
@@ -2853,25 +2853,25 @@ function mapSalesRows(rows,batchId){
     Object.entries(row).forEach(([k,v])=>normalized[normalizeHeader(k)]=v);
     return {
       batch_id: batchId,
-      material_code: String(getRowValue(normalized,['ظƒظˆط¯ ط§ظ„ظ…ط§ط¯ط©','ط§ظ„ظ…ط§ط¯ط©','Material','Material Code'])).trim(),
-      material_name: String(getRowValue(normalized,['ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©','ظˆطµظپ ط§ظ„طµظ†ظپ','Material Description'])).trim(),
-      quantity: parseArabicNumber(getRowValue(normalized,['ط§ظ„ظƒظ…ظٹط©','ظƒظ…ظٹط©','Quantity'])),
-      uom: String(getRowValue(normalized,['ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³','ط§ظ„ظˆط­ط¯ط©','UOM'])).trim().toUpperCase() || 'TO',
-      movement_type: String(getRowValue(normalized,['ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©','ظƒظˆط¯ ط§ظ„ط­ط±ظƒط©','Movement Type'])).trim(),
-      movement_text: String(getRowValue(normalized,['ظˆطµظپ ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©','ظˆطµظپ ط§ظ„ط­ط±ظƒط©','Movement Text'])).trim(),
-      worker_group: String(getRowValue(normalized,['ظ…ط¬ظ…ظˆط¹ط© ط§ظ„طھط¹ط¨ط¦ط© ظˆ ط§ظ„طھط­ظ…ظٹظ„','ظ…ط¬ظ…ظˆط¹ط© ط§ظ„طھط¹ط¨ط¦ط© ظˆط§ظ„طھط­ظ…ظٹظ„','ظ…ط¬ظ…ظˆط¹ط© ط§ظ„طھط¹ط¨ط¦ظ‡ ظˆ ط§ظ„طھط­ظ…ظٹظ„','ظ…ط¬ظ…ظˆط¹ط© ط§ظ„طھط¹ط¨ط¦ظ‡ ظˆط§ظ„طھط­ظ…ظٹظ„','ظ…ط¬ظ…ظˆط¹ظ‡ ط§ظ„طھط¹ط¨ط¦ط© ظˆ ط§ظ„طھط­ظ…ظٹظ„','ظ…ط¬ظ…ظˆط¹ظ‡ ط§ظ„طھط¹ط¨ط¦ط© ظˆط§ظ„طھط­ظ…ظٹظ„','ظ…ط¬ظ…ظˆط¹ظ‡ ط§ظ„طھط¹ط¨ط¦ظ‡ ظˆ ط§ظ„طھط­ظ…ظٹظ„','ظ…ط¬ظ…ظˆط¹ظ‡ ط§ظ„طھط¹ط¨ط¦ظ‡ ظˆط§ظ„طھط­ظ…ظٹظ„','ظ…ط¬ظ…ظˆط¹ط© ط§ظ„طھط­ظ‚ظ‚ ظˆ ط§ظ„طھط­ظ…ظٹظ„','ظ…ط¬ظ…ظˆط¹ط© ط§ظ„طھط­ظ‚ظ‚ ظˆط§ظ„طھط­ظ…ط¨ظ„','ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ط¹ظ…ط§ظ„','ظ…ط¬ظ…ظˆط¹ظ‡ ط§ظ„ط¹ظ…ط§ظ„','Worker Group','Workers Group','Labor Group'])).trim(),
-      warehouse_code: String(getRowValue(normalized,['ط§ظ„ظ…ط®ط²ظ†','ظƒظˆط¯ ط§ظ„ظ…ط®ط²ظ†','Storage Location'])).trim(),
-      plant_code: String(getRowValue(normalized,['ط§ظ„ظ…طµظ†ط¹','طھظ„ظ…طµظ†ط¹','Plant'])).trim(),
-      plant_name: String(getRowValue(normalized,['ط¥ط³ظ… ط§ظ„ظ…طµظ†ط¹','ط§ط³ظ… ط§ظ„ظ…طµظ†ط¹','Plant Name'])).trim(),
-      transaction_date: parseArabicNumber(getRowValue(normalized,['ط§ظ„طھط§ط±ظٹط®'])) ? null : parseArabicNumber('')
+      material_code: String(getRowValue(normalized,['كود المادة','المادة','Material','Material Code'])).trim(),
+      material_name: String(getRowValue(normalized,['وصف المادة','وصف الصنف','Material Description'])).trim(),
+      quantity: parseArabicNumber(getRowValue(normalized,['الكمية','كمية','Quantity'])),
+      uom: String(getRowValue(normalized,['وحدة القياس','الوحدة','UOM'])).trim().toUpperCase() || 'TO',
+      movement_type: String(getRowValue(normalized,['نوع الحركة','كود الحركة','Movement Type'])).trim(),
+      movement_text: String(getRowValue(normalized,['وصف نوع الحركة','وصف الحركة','Movement Text'])).trim(),
+      worker_group: String(getRowValue(normalized,['مجموعة التعبئة و التحميل','مجموعة التعبئة والتحميل','مجموعة التعبئه و التحميل','مجموعة التعبئه والتحميل','مجموعه التعبئة و التحميل','مجموعه التعبئة والتحميل','مجموعه التعبئه و التحميل','مجموعه التعبئه والتحميل','مجموعة التحقق و التحميل','مجموعة التحقق والتحمبل','مجموعة العمال','مجموعه العمال','Worker Group','Workers Group','Labor Group'])).trim(),
+      warehouse_code: String(getRowValue(normalized,['المخزن','كود المخزن','Storage Location'])).trim(),
+      plant_code: String(getRowValue(normalized,['المصنع','تلمصنع','Plant'])).trim(),
+      plant_name: String(getRowValue(normalized,['إسم المصنع','اسم المصنع','Plant Name'])).trim(),
+      transaction_date: parseArabicNumber(getRowValue(normalized,['التاريخ'])) ? null : parseArabicNumber('')
     };
   }).map((r,i)=>{
     const original=rows[i];
     const normalized={};
     Object.entries(original).forEach(([k,v])=>normalized[normalizeHeader(k)]=v);
-    r.transaction_date = parseArabicNumber(getRowValue(normalized,['ط§ظ„طھط§ط±ظٹط®'])) && typeof getRowValue(normalized,['ط§ظ„طھط§ط±ظٹط®']) === 'number'
-      ? excelDateToISO(getRowValue(normalized,['ط§ظ„طھط§ط±ظٹط®']))
-      : excelDateToISO(getRowValue(normalized,['ط§ظ„طھط§ط±ظٹط®','Date','Posting Date']));
+    r.transaction_date = parseArabicNumber(getRowValue(normalized,['التاريخ'])) && typeof getRowValue(normalized,['التاريخ']) === 'number'
+      ? excelDateToISO(getRowValue(normalized,['التاريخ']))
+      : excelDateToISO(getRowValue(normalized,['التاريخ','Date','Posting Date']));
     return r;
   }).filter(r=>r.material_code && r.material_name && r.movement_type && r.movement_text && r.warehouse_code && r.plant_code);
 }
@@ -2880,26 +2880,26 @@ function mapIncomingRows(rows,batchId){
   return rows.map((row,idx)=>{
     const normalized={};
     Object.entries(row).forEach(([k,v])=>normalized[normalizeHeader(k)]=v);
-    const trxDateValue=getRowValue(normalized,['ط§ظ„طھط§ط±ظٹط®','طھط§ط±ظٹط® ط§ظ„طھط±ط­ظٹظ„','Posting Date','Document Date','Date']);
-    const materialName=String(getRowValue(normalized,['ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©','ظˆطµظپ ط§ظ„طµظ†ظپ','Material Description','Short Text'])).trim();
-    const uom=String(getRowValue(normalized,['ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³','ط§ظ„ظˆط­ط¯ط©','UOM','Base Unit of Measure','Unit of Entry'])).trim().toUpperCase() || 'TO';
+    const trxDateValue=getRowValue(normalized,['التاريخ','تاريخ الترحيل','Posting Date','Document Date','Date']);
+    const materialName=String(getRowValue(normalized,['وصف المادة','وصف الصنف','Material Description','Short Text'])).trim();
+    const uom=String(getRowValue(normalized,['وحدة القياس','الوحدة','UOM','Base Unit of Measure','Unit of Entry'])).trim().toUpperCase() || 'TO';
     return {
       batch_id: batchId,
-      material_code: String(getRowValue(normalized,['ظƒظˆط¯ ط§ظ„ظ…ط§ط¯ط©','ط§ظ„ظ…ط§ط¯ط©','Material','Material Code'])).trim(),
+      material_code: String(getRowValue(normalized,['كود المادة','المادة','Material','Material Code'])).trim(),
       material_name: materialName,
-      quantity: parseArabicNumber(getRowValue(normalized,['ط§ظ„ظƒظ…ظٹط©','ظƒظ…ظٹط©','Quantity','Qty in Un. of Entry'])),
+      quantity: parseArabicNumber(getRowValue(normalized,['الكمية','كمية','Quantity','Qty in Un. of Entry'])),
       uom,
-      movement_type: String(getRowValue(normalized,['ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©','ظ†ظˆط¹ ط§ظ„ط­ط±ظƒظ‡','ظƒظˆط¯ ط§ظ„ط­ط±ظƒط©','ظƒظˆط¯ ط§ظ„ط­ط±ظƒظ‡','ط§ظ„ط­ط±ظƒط©','ط­ط±ظƒط©','Movement Type','Movement type','Movement Type Code','MvT','Mvt'])).trim(),
-      movement_text: String(getRowValue(normalized,['ظˆطµظپ ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©','ظˆطµظپ ظ†ظˆط¹ ط§ظ„ط­ط±ظƒظ‡','ظˆطµظپ ط§ظ„ط­ط±ظƒط©','ظˆطµظپ ط§ظ„ط­ط±ظƒظ‡','ظ†طµ ط§ظ„ط­ط±ظƒط©','ظ†طµ ط§ظ„ط­ط±ظƒظ‡','Movement Text','Movement Type Text','Movement Description'])).trim(),
-      warehouse_code: String(getRowValue(normalized,['ط§ظ„ظ…ط®ط²ظ†','ظƒظˆط¯ ط§ظ„ظ…ط®ط²ظ†','Storage Location','SLoc'])).trim(),
-      plant_code: String(getRowValue(normalized,['ط§ظ„ظ…طµظ†ط¹','طھظ„ظ…طµظ†ط¹','Plant'])).trim(),
-      plant_name: String(getRowValue(normalized,['ط¥ط³ظ… ط§ظ„ظ…طµظ†ط¹','ط§ط³ظ… ط§ظ„ظ…طµظ†ط¹','Plant Name'])).trim(),
+      movement_type: String(getRowValue(normalized,['نوع الحركة','نوع الحركه','كود الحركة','كود الحركه','الحركة','حركة','Movement Type','Movement type','Movement Type Code','MvT','Mvt'])).trim(),
+      movement_text: String(getRowValue(normalized,['وصف نوع الحركة','وصف نوع الحركه','وصف الحركة','وصف الحركه','نص الحركة','نص الحركه','Movement Text','Movement Type Text','Movement Description'])).trim(),
+      warehouse_code: String(getRowValue(normalized,['المخزن','كود المخزن','Storage Location','SLoc'])).trim(),
+      plant_code: String(getRowValue(normalized,['المصنع','تلمصنع','Plant'])).trim(),
+      plant_name: String(getRowValue(normalized,['إسم المصنع','اسم المصنع','Plant Name'])).trim(),
       transaction_date: typeof trxDateValue === 'number' ? excelDateToISO(trxDateValue) : excelDateToISO(trxDateValue),
-      purchase_order: String(getRowValue(normalized,['ط£ظ…ط± ط§ظ„ط´ط±ط§ط،','ط±ظ‚ظ… ط£ظ…ط± ط§ظ„ط´ط±ط§ط،','Purchase Order','Purchasing Document','PO'])).trim(),
-      vehicle_number: String(getRowValue(normalized,['ط±ظ‚ظ… ط§ظ„ط¹ط±ط¨ظٹط©','ط±ظ‚ظ… ط§ظ„ط³ظٹط§ط±ظ‡','ط±ظ‚ظ… ط§ظ„ط³ظٹط§ط±ط©','Vehicle Number','Truck No'])).trim(),
-      vehicle_description: String(getRowValue(normalized,['ظˆطµظپ ط§ظ„ط¹ط±ط¨ظٹط©','ظˆطµظپ ط§ظ„ط³ظٹط§ط±ظ‡','ظˆطµظپ ط§ظ„ط³ظٹط§ط±ط©','Vehicle Description','Truck Description'])).trim(),
-      freight_description: String(getRowValue(normalized,['ظˆطµظپ ط§ظ„ظ†ظˆظ„ظˆظ†','ظ†ظˆظ„ظˆظ†','Freight Description'])).trim(),
-      freight_rate_per_ton: parseArabicNumber(getRowValue(normalized,['ظ‚ظٹظ…ط© ط§ظ„ظ†ظˆظ„ظˆظ† ظ„ظ„ط·ظ†','ظ‚ظٹظ…ط© ط§ظ„ظ†ظˆظ„ظˆظ†','ظ†ظˆظ„ظˆظ† ط§ظ„ط·ظ†','Freight Rate','Rate Per Ton'])),
+      purchase_order: String(getRowValue(normalized,['أمر الشراء','رقم أمر الشراء','Purchase Order','Purchasing Document','PO'])).trim(),
+      vehicle_number: String(getRowValue(normalized,['رقم العربية','رقم السياره','رقم السيارة','Vehicle Number','Truck No'])).trim(),
+      vehicle_description: String(getRowValue(normalized,['وصف العربية','وصف السياره','وصف السيارة','Vehicle Description','Truck Description'])).trim(),
+      freight_description: String(getRowValue(normalized,['وصف النولون','نولون','Freight Description'])).trim(),
+      freight_rate_per_ton: parseArabicNumber(getRowValue(normalized,['قيمة النولون للطن','قيمة النولون','نولون الطن','Freight Rate','Rate Per Ton'])),
       goods_type: materialName,
       raw_row: normalized
     };
@@ -2910,19 +2910,19 @@ function mapScaleRows(rows,batchId){
   return rows.map(row=>{
     const normalized={};
     Object.entries(row).forEach(([k,v])=>normalized[normalizeHeader(k)]=v);
-    const trxDateValue=getRowValue(normalized,['ط§ظ„طھط§ط±ظٹط®','طھط§ط±ظٹط®','Date']);
-    const warehouseValue=getRowValue(normalized,['ط§ظ„ظ…ط®ط²ظ†','Storage Location','SLoc']);
+    const trxDateValue=getRowValue(normalized,['التاريخ','تاريخ','Date']);
+    const warehouseValue=getRowValue(normalized,['المخزن','Storage Location','SLoc']);
     return {
       batch_id: batchId,
-      material_code: String(getRowValue(normalized,['ط§ظ„ظ…ط§ط¯ط©','ظƒظˆط¯ ط§ظ„ظ…ط§ط¯ط©','Material','Material Code'])).trim(),
-      material_name: String(getRowValue(normalized,['ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©','ظˆطµظپ ط§ظ„طµظ†ظپ','Material Description'])).trim(),
-      net_weight_kg: parseArabicNumber(getRowValue(normalized,['طµط§ظپظٹ ط§ظ„ظ…ظٹط²ط§ظ†','طµط§ظپظ‰ ط§ظ„ظ…ظٹط²ط§ظ†','طµط§ظپظٹ ط§ظ„ظˆط²ظ†','Net Weight'])),
-      plant_code: String(getRowValue(normalized,['ط§ظ„ظ…طµظ†ط¹','Plant'])).trim(),
+      material_code: String(getRowValue(normalized,['المادة','كود المادة','Material','Material Code'])).trim(),
+      material_name: String(getRowValue(normalized,['وصف المادة','وصف الصنف','Material Description'])).trim(),
+      net_weight_kg: parseArabicNumber(getRowValue(normalized,['صافي الميزان','صافى الميزان','صافي الوزن','Net Weight'])),
+      plant_code: String(getRowValue(normalized,['المصنع','Plant'])).trim(),
       warehouse_code: warehouseValue == null ? null : (String(warehouseValue).trim() || null),
-      purchase_order: String(getRowValue(normalized,['Purchasing Document','Purchase Order','PO','ط£ظ…ط± ط§ظ„ط´ط±ط§ط،','ط±ظ‚ظ… ط£ظ…ط± ط§ظ„ط´ط±ط§ط،'])).trim(),
+      purchase_order: String(getRowValue(normalized,['Purchasing Document','Purchase Order','PO','أمر الشراء','رقم أمر الشراء'])).trim(),
       transaction_date: typeof trxDateValue === 'number' ? excelDateToISO(trxDateValue) : excelDateToISO(trxDateValue),
-      vehicle_number: String(getRowValue(normalized,['ط±ظ‚ظ… ط§ظ„ط¹ط±ط¨ظٹط©','ط±ظ‚ظ… ط§ظ„ط³ظٹط§ط±ظ‡','ط±ظ‚ظ… ط§ظ„ط³ظٹط§ط±ط©','Vehicle Number','Truck No'])).trim(),
-      vehicle_description: String(getRowValue(normalized,['ظˆطµظپ ط§ظ„ط¹ط±ط¨ظٹط©','ظˆطµظپ ط§ظ„ط³ظٹط§ط±ظ‡','ظˆطµظپ ط§ظ„ط³ظٹط§ط±ط©','Vehicle Description'])).trim(),
+      vehicle_number: String(getRowValue(normalized,['رقم العربية','رقم السياره','رقم السيارة','Vehicle Number','Truck No'])).trim(),
+      vehicle_description: String(getRowValue(normalized,['وصف العربية','وصف السياره','وصف السيارة','Vehicle Description'])).trim(),
       raw_row: normalized
     };
   }).filter(r=>r.material_code && r.net_weight_kg && r.plant_code && r.purchase_order && r.vehicle_number);
@@ -2932,14 +2932,14 @@ function mapFreightRows(rows,batchId){
   return rows.map((row,idx)=>{
     const normalized={};
     Object.entries(row).forEach(([k,v])=>normalized[normalizeHeader(k)]=v);
-    const plantRaw=String(getRowValue(normalized,['ط§ظ„ظ…طµظ†ط¹','ظƒظˆط¯ ط§ظ„ظ…طµظ†ط¹','Plant','Plant Code'])).trim();
+    const plantRaw=String(getRowValue(normalized,['المصنع','كود المصنع','Plant','Plant Code'])).trim();
     return {
       batch_id: batchId,
-      freight_description: String(getRowValue(normalized,['ظˆطµظپ ط§ظ„ظ†ظˆظ„ظˆظ†','ظ†ظˆظ„ظˆظ†','Freight Description'])).trim(),
-      goods_type: String(getRowValue(normalized,['ظ†ظˆط¹ ط§ظ„ط¨ط¶ط§ط¹ظ‡','ظ†ظˆط¹ ط§ظ„ط¨ط¶ط§ط¹ط©','ظ†ظˆط¹ ط§ظ„ط¨ط¶ط§ط¹ط© ','ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©','Goods Type','Material Description'])).trim(),
+      freight_description: String(getRowValue(normalized,['وصف النولون','نولون','Freight Description'])).trim(),
+      goods_type: String(getRowValue(normalized,['نوع البضاعه','نوع البضاعة','نوع البضاعة ','وصف المادة','Goods Type','Material Description'])).trim(),
       plant_code: normalizePlantCodeForAudit(plantRaw),
-      vehicle_description: String(getRowValue(normalized,['ظˆطµظپ ط§ظ„ط¹ط±ط¨ظٹط©','ظˆطµظپ ط§ظ„ط³ظٹط§ط±ظ‡','ظˆطµظپ ط§ظ„ط³ظٹط§ط±ط©','Vehicle Description','Truck Description'])).trim(),
-      rate_per_ton: parseArabicNumber(getRowValue(normalized,['ظ‚ظٹظ…ط© ط§ظ„ظ†ظˆظ„ظˆظ† ظ„ظ„ط·ظ†','ظ‚ظٹظ…ط© ط§ظ„ظ†ظˆظ„ظˆظ†','ظ†ظˆظ„ظˆظ† ط§ظ„ط·ظ†','Freight Rate','Rate Per Ton'])),
+      vehicle_description: String(getRowValue(normalized,['وصف العربية','وصف السياره','وصف السيارة','Vehicle Description','Truck Description'])).trim(),
+      rate_per_ton: parseArabicNumber(getRowValue(normalized,['قيمة النولون للطن','قيمة النولون','نولون الطن','Freight Rate','Rate Per Ton'])),
       is_active: true,
       source_row_number: idx+2,
       raw_row: normalized
@@ -2979,7 +2979,7 @@ function isSupplierVehicle(vehicleNumber, vehicleDescription){
   return !desc || no.includes('ط³') || (!no.startsWith('300') && !desc);
 }
 function incomingTypeFromVehicle(vehicleNumber, vehicleDescription){
-  return isSupplierVehicle(vehicleNumber, vehicleDescription) ? 'ظˆطµظ‘ط§ظ„' : 'ط£ط±ط¶ط©';
+  return isSupplierVehicle(vehicleNumber, vehicleDescription) ? 'وصّال' : 'أرضة';
 }
 function isRateEqual(a,b){return Math.abs(Number(a||0)-Number(b||0)) < 0.005;}
 async function fetchAllRows(tableName, select='*', buildQuery){
@@ -3003,9 +3003,9 @@ function auditStatusCell(value,status){
 function normalizePlantCodeForAudit(value, warehouseCode=''){
   const v=normKey(value);
   const wh=normKey(warehouseCode).toUpperCase();
-  if(['wf01','w'].includes(v) || v.includes('ط§ظ„ظˆط§ط­ط©') || v.includes('ظˆط§ط­ظ‡')) return 'WF01';
-  if(['el01','n'].includes(v) || v.includes('ط§ظ„ط³ظˆط§ظ‚ظٹ') || v.includes('ط§ظ„ط§ظٹظ…ط§ظ†') || v.includes('ط§ظ„ط¥ظٹظ…ط§ظ†')) return 'EL01';
-  if(['el02','e'].includes(v) || v.includes('ط§ظ„ط¹ط§ظ…ط±ظٹط©') || v.includes('ط¹ط§ظ…ط±ظٹظ‡')) return 'EL02';
+  if(['wf01','w'].includes(v) || v.includes('الواحة') || v.includes('واحه')) return 'WF01';
+  if(['el01','n'].includes(v) || v.includes('السواقي') || v.includes('الايمان') || v.includes('الإيمان')) return 'EL01';
+  if(['el02','e'].includes(v) || v.includes('العامرية') || v.includes('عامريه')) return 'EL02';
   if(wh.startsWith('W')) return 'WF01';
   if(wh.startsWith('N')) return 'EL01';
   if(wh.startsWith('E')) return 'EL02';
@@ -3013,14 +3013,14 @@ function normalizePlantCodeForAudit(value, warehouseCode=''){
 }
 function normalizeVehicleClass(value){
   const v=normText(value);
-  const checks=['ظ‚ط§ط·ط±ط©','ظ‚ط§ط·ط±ظ‡','طھط±ظٹظ„ط§','ظˆط´','ط¬ط§ظ…ط¨ظˆ','ط¯ط¨ط§ط¨ط©','ط¯ط¨ط§ط¨ظ‡'];
+  const checks=['قاطرة','قاطره','تريلا','وش','جامبو','دبابة','دبابه'];
   return checks.find(x=>v.includes(x)) || v;
 }
 function normalizeGoodsTypeForFreight(value){
   const v=normText(value);
   if(!v) return '';
-  if(v.includes('ط³ظˆظ„ط§ط±')) return 'ط³ظˆظ„ط§ط±';
-  return 'ط¨ط§ظ‚ظٹ ط§ظ„ط£طµظ†ط§ظپ ظ…ط§ ط¹ط¯ط§ ط§ظ„ط³ظˆظ„ط§ط±';
+  if(v.includes('سولار')) return 'سولار';
+  return 'باقي الأصناف ما عدا السولار';
 }
 function goodsTypeMatchesReference(refGoods, materialName){
   const ref=normKey(refGoods);
@@ -3028,7 +3028,7 @@ function goodsTypeMatchesReference(refGoods, materialName){
   const group=normKey(normalizeGoodsTypeForFreight(materialName));
   if(!ref) return false;
   if(ref===mat || ref===group) return true;
-  if(ref.includes('ط¨ط§ظ‚ظٹ ط§ظ„ط£طµظ†ط§ظپ') && group.includes('ط¨ط§ظ‚ظٹ ط§ظ„ط£طµظ†ط§ظپ')) return true;
+  if(ref.includes('باقي الأصناف') && group.includes('باقي الأصناف')) return true;
   return false;
 }
 function freightKey(parts){return parts.map(normKey).join('|');}
@@ -3040,7 +3040,7 @@ function analyzeFreightReference(freightRows,r){
   const active=freightRows||[];
   const byPlant=active.filter(f=>normKey(normalizePlantCodeForAudit(f.plant_code))===normKey(plant));
   if(!byPlant.length){
-    return {ref:null,reason:'ظ„ط§ ظٹظˆط¬ط¯ ظ…طµظ†ط¹ ظ…ط·ط§ط¨ظ‚ ظپظٹ ظ…ط±ط¬ط¹ ط§ظ„ظ†ظˆظ„ظˆظ†'};
+    return {ref:null,reason:'لا يوجد مصنع مطابق في مرجع النولون'};
   }
   const byVehicle=byPlant.filter(f=>{
     const refVehicle=f.vehicle_description;
@@ -3048,17 +3048,17 @@ function analyzeFreightReference(freightRows,r){
       || normKey(normalizeVehicleClass(vehicleDesc))===normKey(normalizeVehicleClass(refVehicle));
   });
   if(!byVehicle.length){
-    return {ref:null,reason:'ظˆطµظپ ط§ظ„ط¹ط±ط¨ظٹط© ط؛ظٹط± ظ…ط·ط§ط¨ظ‚ ظ…ط¹ ظ…ط±ط¬ط¹ ط§ظ„ظ†ظˆظ„ظˆظ†'};
+    return {ref:null,reason:'وصف العربية غير مطابق مع مرجع النولون'};
   }
   const byFreight=byVehicle.filter(f=>freightDescriptionKey(f.freight_description)===freightDesc);
   if(!byFreight.length){
-    return {ref:null,reason:'ظˆطµظپ ط§ظ„ظ†ظˆظ„ظˆظ† ط؛ظٹط± ظ…ط·ط§ط¨ظ‚ ظ…ط¹ ظ…ط±ط¬ط¹ ط§ظ„ظ†ظˆظ„ظˆظ†'};
+    return {ref:null,reason:'وصف النولون غير مطابق مع مرجع النولون'};
   }
   const ref=byFreight.find(f=>goodsTypeMatchesReference(f.goods_type,materialName));
   if(!ref){
-    return {ref:null,reason:'ظ†ظˆط¹ ط§ظ„ط¨ط¶ط§ط¹ط© / ظˆطµظپ ط§ظ„ظ…ط§ط¯ط© ط؛ظٹط± ظ…ط·ط§ط¨ظ‚ ظ…ط¹ ظ…ط±ط¬ط¹ ط§ظ„ظ†ظˆظ„ظˆظ†'};
+    return {ref:null,reason:'نوع البضاعة / وصف المادة غير مطابق مع مرجع النولون'};
   }
-  return {ref,reason:'طھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط³ط·ط± ظ†ظˆظ„ظˆظ† ظ…ط±ط¬ط¹ظٹ ظ…ط·ط§ط¨ظ‚'};
+  return {ref,reason:'تم العثور على سطر نولون مرجعي مطابق'};
 }
 function findFreightReference(freightRows,r){
   return analyzeFreightReference(freightRows,r).ref;
@@ -3098,8 +3098,8 @@ function buildMovementCellStatusIndex(rows){
 }
 async function tryBuildIncomingAudit(reportDate, targetStatus){
   reportDate=normalizeDateISO(reportDate);
-  if(!reportDate || !WarehouseDB?.ready) return {built:false,message:'ظ„ظ… ظٹطھظ… طھط­ط¯ظٹط¯ طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±.'};
-  if(targetStatus) targetStatus.textContent='ط¬ط§ط±ظٹ ظپط­طµ طھظˆظپط± MB51 ظˆط§ظ„ظ…ظٹط²ط§ظ† ظ„ظ†ظپط³ ط§ظ„طھط§ط±ظٹط®...';
+  if(!reportDate || !WarehouseDB?.ready) return {built:false,message:'لم يتم تحديد تاريخ التقرير.'};
+  if(targetStatus) targetStatus.textContent='جاري فحص توفر MB51 والميزان لنفس التاريخ...';
   const {data:incomingBatch,error:incomingErr}=await WarehouseDB.client
     .from('incoming_upload_batches').select('id,report_date').eq('report_type','incoming').eq('status','active').eq('report_date',reportDate).maybeSingle();
   if(incomingErr) throw incomingErr;
@@ -3107,12 +3107,12 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
     .from('scale_upload_batches').select('id,report_date').eq('report_type','scale').eq('status','active').eq('report_date',reportDate).maybeSingle();
   if(scaleErr) throw scaleErr;
   if(!incomingBatch || !scaleBatch){
-    const missing=!incomingBatch?'MB51':'طھظ‚ط±ظٹط± ط§ظ„ظ…ظٹط²ط§ظ†';
-    const msg=`طھظ… ط§ظ„ط­ظپط¸طŒ ظˆظ„ظ… ظٹطھظ… ط¥ظ†ط´ط§ط، ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظˆط§ط±ط¯ ظ„ط£ظ† ${missing} ط؛ظٹط± ظ…طھظˆظپط± ظ„ظ†ظپط³ ط§ظ„طھط§ط±ظٹط® ${reportDate}.`;
+    const missing=!incomingBatch?'MB51':'تقرير الميزان';
+    const msg=`تم الحفظ، ولم يتم إنشاء مراجعة الوارد لأن ${missing} غير متوفر لنفس التاريخ ${reportDate}.`;
     if(targetStatus) targetStatus.textContent=msg;
     return {built:false,message:msg};
   }
-  if(targetStatus) targetStatus.textContent='ط§ظ„طھظ‚ط±ظٹط±ط§ظ† ظ…طھظˆظپط±ط§ظ†. ط¬ط§ط±ظٹ ط¨ظ†ط§ط، ظ†طھط§ط¦ط¬ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظˆط§ط±ط¯...';
+  if(targetStatus) targetStatus.textContent='التقريران متوفران. جاري بناء نتائج مراجعة الوارد...';
   const [incomingRows,scaleRows,freightRows]=await Promise.all([
     fetchAllRows('incoming_raw_transactions','*',q=>q.eq('batch_id',incomingBatch.id)),
     fetchAllRows('scale_raw_transactions','*',q=>q.eq('batch_id',scaleBatch.id)),
@@ -3150,7 +3150,7 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
     let weightDiffTo=null,weightDiffPercent=null,weightDiffStatus='not_applicable';
     let warehouseStatus='not_applicable',poStatus='not_cleared';
     let scaleWarehouseMissing=false;
-    if(matches.length>1){ scaleMatchStatus='multiple_matches'; warning='ظٹظˆط¬ط¯ ط£ظƒط«ط± ظ…ظ† طھطµظپظٹط© ظ…ط·ط§ط¨ظ‚ط© ظ„ظ†ظپط³ ط§ظ„ظ…ط§ط¯ط©/ط£ظ…ط± ط§ظ„ط´ط±ط§ط،/ط±ظ‚ظ… ط§ظ„ط¹ط±ط¨ظٹط©.'; }
+    if(matches.length>1){ scaleMatchStatus='multiple_matches'; warning='يوجد أكثر من تصفية مطابقة لنفس المادة/أمر الشراء/رقم العربية.'; }
     else if(scale){
       scaleMatchStatus='matched'; scaleCellStatus='green';
       weightDiffTo=quantityTo-Number(scale.net_weight_to ?? (Number(scale.net_weight_kg||0)/1000));
@@ -3163,13 +3163,13 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
       rowStatus=(weightDiffStatus==='ok' && warehouseAccepted && poStatus==='matched')?'ok':'error';
       rowColor=rowStatus==='ok'?'green':'red';
     }else{
-      warning='ظ„ظ… ظٹطھظ… ط§ظ„طھطµظپظٹط© ظپظٹ طھط§ط±ظٹط®ظ‡';
+      warning='لم يتم التصفية في تاريخه';
       rowStatus='warning'; rowColor='yellow';
     }
-    let freightStatus='not_applicable',refFreightDesc='',refRate=null,freightDiagnosis='ط؛ظٹط± ظ…ط·ط¨ظ‚';
-    if(incomingType==='ظˆطµظ‘ط§ظ„'){
+    let freightStatus='not_applicable',refFreightDesc='',refRate=null,freightDiagnosis='غير مطبق';
+    if(incomingType==='وصّال'){
       freightStatus=(!normText(r.freight_description) && isRateEqual(r.freight_rate_per_ton,0.01))?'supplier_vehicle_ok':'supplier_vehicle_mismatch';
-      freightDiagnosis=freightStatus==='supplier_vehicle_ok' ? 'ظˆطµظ‘ط§ظ„: ظˆطµظپ ط§ظ„ظ†ظˆظ„ظˆظ† ظپط§ط±ط؛ ظˆط§ظ„ظ‚ظٹظ…ط© 0.01' : 'ظˆطµظ‘ط§ظ„: ظ‚ظٹظ…ط© ط§ظ„ظ†ظˆظ„ظˆظ† ط£ظˆ ظˆطµظپ ط§ظ„ظ†ظˆظ„ظˆظ† ط؛ظٹط± ظ…ط·ط§ط¨ظ‚';
+      freightDiagnosis=freightStatus==='supplier_vehicle_ok' ? 'وصّال: وصف النولون فارغ والقيمة 0.01' : 'وصّال: قيمة النولون أو وصف النولون غير مطابق';
     }else{
       const freightAnalysis=analyzeFreightReference(freightRows,r);
       const ref=freightAnalysis.ref;
@@ -3177,7 +3177,7 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
       if(ref){
         refFreightDesc=ref.freight_description; refRate=Number(ref.rate_per_ton||0);
         freightStatus=isRateEqual(r.freight_rate_per_ton,refRate)?'matched':'mismatch';
-        freightDiagnosis=freightStatus==='matched' ? 'ظ…ط·ط§ط¨ظ‚: ط§ظ„ظ…طµظ†ط¹ + ظˆطµظپ ط§ظ„ظ…ط§ط¯ط© + ظˆطµظپ ط§ظ„ط¹ط±ط¨ظٹط© + ظˆطµظپ ط§ظ„ظ†ظˆظ„ظˆظ† + ط§ظ„ظ‚ظٹظ…ط©' : `ظ‚ظٹظ…ط© ط§ظ„ظ†ظˆظ„ظˆظ† ط؛ظٹط± ظ…ط·ط§ط¨ظ‚ط©: MB51=${r.freight_rate_per_ton ?? '-'} / ط§ظ„ظ…ط±ط¬ط¹=${refRate}`;
+        freightDiagnosis=freightStatus==='matched' ? 'مطابق: المصنع + وصف المادة + وصف العربية + وصف النولون + القيمة' : `قيمة النولون غير مطابقة: MB51=${r.freight_rate_per_ton ?? '-'} / المرجع=${refRate}`;
       }else{
         freightStatus='mismatch';
       }
@@ -3223,7 +3223,7 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
     };
   });
   if(results.length) await insertChunks('incoming_audit_results',results,300);
-  if(targetStatus){ targetStatus.className='upload-status ok'; targetStatus.textContent=`طھظ… ط¥ظ†ط´ط§ط، ظ†طھط§ط¦ط¬ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظˆط§ط±ط¯ طھظ„ظ‚ط§ط¦ظٹط§ظ‹: ${results.length} ط³ط·ط± ظ„طھط§ط±ظٹط® ${reportDate}.`; }
+  if(targetStatus){ targetStatus.className='upload-status ok'; targetStatus.textContent=`تم إنشاء نتائج مراجعة الوارد تلقائياً: ${results.length} سطر لتاريخ ${reportDate}.`; }
   await refreshInboundReportDates();
   await loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});
   return {built:true,count:results.length};
@@ -3248,18 +3248,18 @@ async function handleSalesFile(file){
   const status=$('#salesUploadStatus');
   const reportDate=normalizeDateISO($('#salesReportDateInput')?.value);
   status.className='upload-status';
-  status.textContent='ط¬ط§ط±ظٹ ظ‚ط±ط§ط،ط© ط§ظ„ظ…ظ„ظپ...';
-  if(!reportDate){ status.textContent='ط§ط®طھط§ط± طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط± ط£ظˆظ„ط§ظ‹.'; status.className='upload-status err'; return; }
-  if(!WarehouseDB?.ready){ status.textContent='Supabase ط؛ظٹط± ظ…طھطµظ„. ط±ط§ط¬ط¹ ظ…ظ„ظپ supabase-config.js'; status.className='upload-status err'; return; }
+  status.textContent='جاري قراءة الملف...';
+  if(!reportDate){ status.textContent='اختار تاريخ التقرير أولاً.'; status.className='upload-status err'; return; }
+  if(!WarehouseDB?.ready){ status.textContent='Supabase غير متصل. راجع ملف supabase-config.js'; status.className='upload-status err'; return; }
   const {data:userData}=await WarehouseDB.getUser();
-  if(!userData?.user){ status.textContent='ط³ط¬ظ„ ط§ظ„ط¯ط®ظˆظ„ ط£ظˆظ„ظ‹ط§ ظ‚ط¨ظ„ ط±ظپط¹ ط§ظ„ظ…ظ„ظپ.'; status.className='upload-status err'; return; }
+  if(!userData?.user){ status.textContent='سجل الدخول أولًا قبل رفع الملف.'; status.className='upload-status err'; return; }
   try{
     const arrayBuffer=await file.arrayBuffer();
     const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
     const sourceRows=rowsFromWorkbook(workbook);
-    if(!sourceRows.length) throw new Error('ط§ظ„ظ…ظ„ظپ ظ„ط§ ظٹط­طھظˆظٹ ط¹ظ„ظ‰ ط¨ظٹط§ظ†ط§طھ.');
+    if(!sourceRows.length) throw new Error('الملف لا يحتوي على بيانات.');
     const payloadPreview=mapSalesRows(sourceRows,'00000000-0000-0000-0000-000000000000');
-    if(!payloadPreview.length) throw new Error('ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ طµظپظˆظپ طµط§ظ„ط­ط©. ط±ط§ط¬ط¹ ط±ط¤ظˆط³ ط§ظ„ط£ط¹ظ…ط¯ط©.');
+    if(!payloadPreview.length) throw new Error('لم يتم العثور على صفوف صالحة. راجع رؤوس الأعمدة.');
 
     const {data:existing,error:existingError}=await WarehouseDB.client
       .from('sales_upload_batches')
@@ -3269,22 +3269,22 @@ async function handleSalesFile(file){
       .eq('status','active');
     if(existingError) throw existingError;
     if(existing?.length){
-      const ok=confirm(`ظٹظˆط¬ط¯ طھظ‚ط±ظٹط± ظ…ط¨ظٹط¹ط§طھ ظ…ط±ظپظˆط¹ ط¨ط§ظ„ظپط¹ظ„ ط¨طھط§ط±ظٹط® ${reportDate}.
-ظ‡ظ„ طھط±ظٹط¯ ط§ط³طھط¨ط¯ط§ظ„ظ‡ ط¨ط§ظ„ظ…ظ„ظپ ط§ظ„ط¬ط¯ظٹط¯طں`);
-      if(!ok){ status.textContent='طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ط±ظپط¹ ط¨ط¯ظˆظ† طھط؛ظٹظٹط± ط§ظ„ط¨ظٹط§ظ†ط§طھ.'; return; }
-      status.textContent='ط¬ط§ط±ظٹ ط­ط°ظپ ط§ظ„ظ†ط³ط®ط© ط§ظ„ظ‚ط¯ظٹظ…ط© ظ„ظ†ظپط³ ط§ظ„طھط§ط±ظٹط®...';
+      const ok=confirm(`يوجد تقرير مبيعات مرفوع بالفعل بتاريخ ${reportDate}.
+هل تريد استبداله بالملف الجديد؟`);
+      if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
+      status.textContent='جاري حذف النسخة القديمة لنفس التاريخ...';
       const ids=existing.map(x=>x.id);
       const {error:deleteError}=await WarehouseDB.client.from('sales_upload_batches').delete().in('id',ids);
       if(deleteError) throw deleteError;
       clearUnifiedSalesRowsCache();
     }
 
-    status.textContent=`طھظ… ظ‚ط±ط§ط،ط© ${sourceRows.length} ط³ط·ط±. ط¬ط§ط±ظٹ ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ظٹظˆظ…ظٹط© ط¨طھط§ط±ظٹط® ${reportDate}...`;
+    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء نسخة يومية بتاريخ ${reportDate}...`;
     const {data:batch,error:batchError}=await WarehouseDB.client.from('sales_upload_batches').insert({
       file_name:file.name,
       uploaded_by:userData.user.id,
       uploaded_by_name:currentUploaderName(userData),
-      notes:'ظ…ط±ط§ط¬ط¹ط© ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظ…ظ†طھط¬ ط§ظ„طھط§ظ… ظˆط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظ…ط®ط²ظ†ظٹط©',
+      notes:'مراجعة مبيعات المنتج التام والتحويلات المخزنية',
       report_type:'sales',
       report_date:reportDate,
       row_count:payloadPreview.length,
@@ -3293,18 +3293,18 @@ async function handleSalesFile(file){
     }).select('id').single();
     if(batchError) throw batchError;
     const payload=payloadPreview.map(r=>({...r,batch_id:batch.id}));
-    status.textContent=`ط¬ط§ط±ظٹ ط±ظپط¹ ${payload.length} ط³ط·ط± ط¥ظ„ظ‰ Supabase...`;
+    status.textContent=`جاري رفع ${payload.length} سطر إلى Supabase...`;
     await insertChunks('sales_raw_transactions',payload,400);
     clearUnifiedSalesRowsCache();
     activeSalesReportDate=reportDate;
-    status.textContent=`طھظ… ط±ظپط¹ ${payload.length} ط³ط·ط± ط¨ظ†ط¬ط§ط­ ظ„طھط§ط±ظٹط® ${reportDate}.`;
+    status.textContent=`تم رفع ${payload.length} سطر بنجاح لتاريخ ${reportDate}.`;
     status.className='upload-status ok';
-    await logSystemActivity('ط§ظ„طھظ‚ط§ط±ظٹط±',existing?.length?'ط§ط³طھط¨ط¯ط§ظ„ طھظ‚ط±ظٹط±':'ط±ظپط¹ طھظ‚ط±ظٹط±',`${existing?.length?'ط§ط³طھط¨ط¯ط§ظ„':'ط±ظپط¹'} طھظ‚ط±ظٹط± ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¨ظٹط¹ ط¨طھط§ط±ظٹط® ${reportDate} (${payload.length} ط­ط±ظƒط©)`);
+    await logSystemActivity('التقارير',existing?.length?'استبدال تقرير':'رفع تقرير',`${existing?.length?'استبدال':'رفع'} تقرير مراجعة البيع بتاريخ ${reportDate} (${payload.length} حركة)`);
     await loadSalesBatches();
     await refreshSalesReportDates(reportDate);
     await loadSalesReport(activeSalesWarehouse);
   }catch(err){
-    status.textContent=`ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط±ظپط¹: ${err.message || err}`;
+    status.textContent=`خطأ أثناء الرفع: ${err.message || err}`;
     status.className='upload-status err';
   }
 }
@@ -3321,7 +3321,7 @@ async function refreshSalesReportDates(preferredDate=''){
   if(error){ console.error(error); return; }
   const dates=[...new Set((data||[]).map(x=>normalizeDateISO(x.report_date)).filter(Boolean))];
   const current=preferredDate || activeSalesReportDate || select.value || dates[0] || '';
-  select.innerHTML='<option value="">ظƒظ„ ط§ظ„ظ†ط³ط® ط§ظ„ظ…طھط§ط­ط©</option>'+dates.map(d=>`<option value="${d}">${d}</option>`).join('');
+  select.innerHTML='<option value="">كل النسخ المتاحة</option>'+dates.map(d=>`<option value="${d}">${d}</option>`).join('');
   if(current && dates.includes(current)) select.value=current;
   else select.value='';
   activeSalesReportDate=select.value;
@@ -3344,7 +3344,7 @@ async function loadSalesBatches(){
     .eq('status','active')
     .order('report_date',{ascending:false});
   if(error){
-    tbl.innerHTML=`<tbody><tr><td>ط®ط·ط£ طھط­ظ…ظٹظ„ ط§ظ„ط³ط¬ظ„: ${error.message}</td></tr></tbody>`;
+    tbl.innerHTML=`<tbody><tr><td>خطأ تحميل السجل: ${error.message}</td></tr></tbody>`;
     return;
   }
   const rows=(data||[]).map(b=>[
@@ -3354,11 +3354,11 @@ async function loadSalesBatches(){
     formatFileSize(b.file_size_bytes),
     b.uploaded_by_name || b.uploaded_by || '-',
     b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
-    `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">ط¹ط±ط¶</button>
-     <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">ط§ط³طھط¨ط¯ط§ظ„</button>
+    `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض</button>
+     <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
      <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">ط­ط°ظپ</button>`
   ]);
-  table('#salesBatchesTable',['طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±','ط§ط³ظ… ط§ظ„ظ…ظ„ظپ','ط¹ط¯ط¯ ط§ظ„ط³ط·ظˆط±','ط§ظ„ط­ط¬ظ…','ط§ظ„ط±ط§ظپط¹','طھط§ط±ظٹط® ط§ظ„ط±ظپط¹','ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ'],rows);
+  table('#salesBatchesTable',['تاريخ التقرير','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الإجراءات'],rows);
 }
 async function handleSalesBatchAction(btn){
   const action=btn.dataset.action;
@@ -3374,11 +3374,11 @@ async function handleSalesBatchAction(btn){
     $('#salesExcelInput')?.click();
   }
   if(action==='delete'){
-    if(!confirm(`ط³ظٹطھظ… ط­ط°ظپ طھظ‚ط±ظٹط± ط§ظ„ظ…ط¨ظٹط¹ط§طھ ط¨طھط§ط±ظٹط® ${date} ظˆظƒظ„ ط¨ظٹط§ظ†ط§طھظ‡ ط§ظ„ط®ط§ظ…. ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯طں`)) return;
+    if(!confirm(`سيتم حذف تقرير المبيعات بتاريخ ${date} وكل بياناته الخام. هل أنت متأكد؟`)) return;
     const {error:delError}=await WarehouseDB.client.from('sales_upload_batches').delete().eq('id',btn.dataset.id);
-    if(delError){ alert('ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط­ط°ظپ: '+delError.message); return; }
+    if(delError){ alert('خطأ أثناء الحذف: '+delError.message); return; }
     clearUnifiedSalesRowsCache();
-    await logSystemActivity('ط§ظ„طھظ‚ط§ط±ظٹط±','ط­ط°ظپ طھظ‚ط±ظٹط±',`ط­ط°ظپ طھظ‚ط±ظٹط± ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¨ظٹط¹ ط¨طھط§ط±ظٹط® ${date}`);
+    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير مراجعة البيع بتاريخ ${date}`);
     await loadSalesBatches();
     await refreshSalesReportDates();
     await loadSalesReport(activeSalesWarehouse);
@@ -3396,18 +3396,18 @@ async function handleIncomingFile(file){
   const reportDate=normalizeDateISO($('#incomingReportDateInput')?.value);
   if(!status) return;
   status.className='upload-status';
-  status.textContent='ط¬ط§ط±ظٹ ظ‚ط±ط§ط،ط© ط§ظ„ظ…ظ„ظپ...';
-  if(!reportDate){ status.textContent='ط§ط®طھط§ط± طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط± ط£ظˆظ„ط§ظ‹.'; status.className='upload-status err'; return; }
-  if(!WarehouseDB?.ready){ status.textContent='Supabase ط؛ظٹط± ظ…طھطµظ„. ط±ط§ط¬ط¹ ظ…ظ„ظپ supabase-config.js'; status.className='upload-status err'; return; }
+  status.textContent='جاري قراءة الملف...';
+  if(!reportDate){ status.textContent='اختار تاريخ التقرير أولاً.'; status.className='upload-status err'; return; }
+  if(!WarehouseDB?.ready){ status.textContent='Supabase غير متصل. راجع ملف supabase-config.js'; status.className='upload-status err'; return; }
   const {data:userData}=await WarehouseDB.getUser();
-  if(!userData?.user){ status.textContent='ط³ط¬ظ„ ط§ظ„ط¯ط®ظˆظ„ ط£ظˆظ„ظ‹ط§ ظ‚ط¨ظ„ ط±ظپط¹ ط§ظ„ظ…ظ„ظپ.'; status.className='upload-status err'; return; }
+  if(!userData?.user){ status.textContent='سجل الدخول أولًا قبل رفع الملف.'; status.className='upload-status err'; return; }
   try{
     const arrayBuffer=await file.arrayBuffer();
     const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
     const sourceRows=rowsFromWorkbook(workbook);
-    if(!sourceRows.length) throw new Error('ط§ظ„ظ…ظ„ظپ ظ„ط§ ظٹط­طھظˆظٹ ط¹ظ„ظ‰ ط¨ظٹط§ظ†ط§طھ.');
+    if(!sourceRows.length) throw new Error('الملف لا يحتوي على بيانات.');
     const payloadPreview=mapIncomingRows(sourceRows,'00000000-0000-0000-0000-000000000000');
-    if(!payloadPreview.length) throw new Error('ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ طµظپظˆظپ ظˆط§ط±ط¯ طµط§ظ„ط­ط©. ط±ط§ط¬ط¹ ط±ط¤ظˆط³ ط§ظ„ط£ط¹ظ…ط¯ط©.');
+    if(!payloadPreview.length) throw new Error('لم يتم العثور على صفوف وارد صالحة. راجع رؤوس الأعمدة.');
 
     const {data:existing,error:existingError}=await WarehouseDB.client
       .from('incoming_upload_batches')
@@ -3417,10 +3417,10 @@ async function handleIncomingFile(file){
       .eq('status','active');
     if(existingError) throw existingError;
     if(existing?.length){
-      const ok=confirm(`ظٹظˆط¬ط¯ طھظ‚ط±ظٹط± ظˆط§ط±ط¯ MB51 ظ…ط±ظپظˆط¹ ط¨ط§ظ„ظپط¹ظ„ ط¨طھط§ط±ظٹط® ${reportDate}.
-ظ‡ظ„ طھط±ظٹط¯ ط§ط³طھط¨ط¯ط§ظ„ظ‡ ط¨ط§ظ„ظ…ظ„ظپ ط§ظ„ط¬ط¯ظٹط¯طں`);
-      if(!ok){ status.textContent='طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ط±ظپط¹ ط¨ط¯ظˆظ† طھط؛ظٹظٹط± ط§ظ„ط¨ظٹط§ظ†ط§طھ.'; return; }
-      status.textContent='ط¬ط§ط±ظٹ ط­ط°ظپ ط§ظ„ظ†ط³ط®ط© ط§ظ„ظ‚ط¯ظٹظ…ط© ظ„ظ†ظپط³ ط§ظ„طھط§ط±ظٹط®...';
+      const ok=confirm(`يوجد تقرير وارد MB51 مرفوع بالفعل بتاريخ ${reportDate}.
+هل تريد استبداله بالملف الجديد؟`);
+      if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
+      status.textContent='جاري حذف النسخة القديمة لنفس التاريخ...';
       const ids=existing.map(x=>x.id);
       await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',reportDate);
       const {error:rawDeleteError}=await WarehouseDB.client.from('incoming_raw_transactions').delete().in('batch_id',ids);
@@ -3429,12 +3429,12 @@ async function handleIncomingFile(file){
       if(deleteError) throw deleteError;
     }
 
-    status.textContent=`طھظ… ظ‚ط±ط§ط،ط© ${sourceRows.length} ط³ط·ط±. ط¬ط§ط±ظٹ ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ظˆط§ط±ط¯ ط¨طھط§ط±ظٹط® ${reportDate}...`;
+    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء نسخة وارد بتاريخ ${reportDate}...`;
     const {data:batch,error:batchError}=await WarehouseDB.client.from('incoming_upload_batches').insert({
       file_name:file.name,
       uploaded_by:userData.user.id,
       uploaded_by_name:currentUploaderName(userData),
-      notes:'ط§ظ„ظˆط§ط±ط¯ ظ…ظ† MB51',
+      notes:'الوارد من MB51',
       report_type:'incoming',
       report_date:reportDate,
       row_count:payloadPreview.length,
@@ -3443,15 +3443,15 @@ async function handleIncomingFile(file){
     }).select('id').single();
     if(batchError) throw batchError;
     const payload=payloadPreview.map(r=>({...r,batch_id:batch.id}));
-    status.textContent=`ط¬ط§ط±ظٹ ط±ظپط¹ ${payload.length} ط³ط·ط± ظˆط§ط±ط¯ ط¥ظ„ظ‰ Supabase...`;
+    status.textContent=`جاري رفع ${payload.length} سطر وارد إلى Supabase...`;
     await insertChunks('incoming_raw_transactions',payload,400);
-    status.textContent=`طھظ… ط±ظپط¹ ${payload.length} ط³ط·ط± ظˆط§ط±ط¯ ط¨ظ†ط¬ط§ط­ ظ„طھط§ط±ظٹط® ${reportDate}.`;
+    status.textContent=`تم رفع ${payload.length} سطر وارد بنجاح لتاريخ ${reportDate}.`;
     status.className='upload-status ok';
-    await logSystemActivity('ط§ظ„طھظ‚ط§ط±ظٹط±',existing?.length?'ط§ط³طھط¨ط¯ط§ظ„ طھظ‚ط±ظٹط±':'ط±ظپط¹ طھظ‚ط±ظٹط±',`${existing?.length?'ط§ط³طھط¨ط¯ط§ظ„':'ط±ظپط¹'} طھظ‚ط±ظٹط± MB51 ط¨طھط§ط±ظٹط® ${reportDate} (${payload.length} ط­ط±ظƒط©)`);
+    await logSystemActivity('التقارير',existing?.length?'استبدال تقرير':'رفع تقرير',`${existing?.length?'استبدال':'رفع'} تقرير MB51 بتاريخ ${reportDate} (${payload.length} حركة)`);
     await loadIncomingBatches();
     await tryBuildIncomingAudit(reportDate,status);
   }catch(err){
-    status.textContent=`ط®ط·ط£ ط£ط«ظ†ط§ط، ط±ظپط¹ ط§ظ„ظˆط§ط±ط¯: ${err.message || err}`;
+    status.textContent=`خطأ أثناء رفع الوارد: ${err.message || err}`;
     status.className='upload-status err';
   }
 }
@@ -3465,7 +3465,7 @@ async function loadIncomingBatches(){
     .eq('status','active')
     .order('report_date',{ascending:false});
   if(error){
-    tbl.innerHTML=`<tbody><tr><td>ط®ط·ط£ طھط­ظ…ظٹظ„ ط³ط¬ظ„ ط§ظ„ظˆط§ط±ط¯: ${error.message}</td></tr></tbody>`;
+    tbl.innerHTML=`<tbody><tr><td>خطأ تحميل سجل الوارد: ${error.message}</td></tr></tbody>`;
     return;
   }
   const rows=(data||[]).map(b=>[
@@ -3475,11 +3475,11 @@ async function loadIncomingBatches(){
     formatFileSize(b.file_size_bytes),
     b.uploaded_by_name || b.uploaded_by || '-',
     b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
-    `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">ط¹ط±ط¶</button>
-     <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">ط§ط³طھط¨ط¯ط§ظ„</button>
+    `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض</button>
+     <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
      <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">ط­ط°ظپ</button>`
   ]);
-  table('#incomingBatchesTable',['طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±','ط§ط³ظ… ط§ظ„ظ…ظ„ظپ','ط¹ط¯ط¯ ط§ظ„ط³ط·ظˆط±','ط§ظ„ط­ط¬ظ…','ط§ظ„ط±ط§ظپط¹','طھط§ط±ظٹط® ط§ظ„ط±ظپط¹','ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ'],rows);
+  table('#incomingBatchesTable',['تاريخ التقرير','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الإجراءات'],rows);
 }
 async function handleIncomingBatchAction(btn){
   const action=btn.dataset.action;
@@ -3496,13 +3496,13 @@ async function handleIncomingBatchAction(btn){
     $('#incomingExcelInput')?.click();
   }
   if(action==='delete'){
-    if(!confirm(`ط³ظٹطھظ… ط­ط°ظپ طھظ‚ط±ظٹط± ط§ظ„ظˆط§ط±ط¯ ط¨طھط§ط±ظٹط® ${date} ظˆظƒظ„ ط¨ظٹط§ظ†ط§طھظ‡ ط§ظ„ط®ط§ظ…. ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯طں`)) return;
+    if(!confirm(`سيتم حذف تقرير الوارد بتاريخ ${date} وكل بياناته الخام. هل أنت متأكد؟`)) return;
     await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',date);
     const {error:rawDeleteError}=await WarehouseDB.client.from('incoming_raw_transactions').delete().eq('batch_id',btn.dataset.id);
-    if(rawDeleteError){ alert('ط®ط·ط£ ط£ط«ظ†ط§ط، ط­ط°ظپ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظˆط§ط±ط¯: '+rawDeleteError.message); return; }
+    if(rawDeleteError){ alert('خطأ أثناء حذف بيانات الوارد: '+rawDeleteError.message); return; }
     const {error:delError}=await WarehouseDB.client.from('incoming_upload_batches').delete().eq('id',btn.dataset.id);
-    if(delError){ alert('ط®ط·ط£ ط£ط«ظ†ط§ط، ط­ط°ظپ ظ†ط³ط®ط© ط§ظ„ظˆط§ط±ط¯: '+delError.message); return; }
-    await logSystemActivity('ط§ظ„طھظ‚ط§ط±ظٹط±','ط­ط°ظپ طھظ‚ط±ظٹط±',`ط­ط°ظپ طھظ‚ط±ظٹط± MB51 ط¨طھط§ط±ظٹط® ${date}`);
+    if(delError){ alert('خطأ أثناء حذف نسخة الوارد: '+delError.message); return; }
+    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير MB51 بتاريخ ${date}`);
     await loadIncomingBatches();
   }
 }
@@ -3512,18 +3512,18 @@ async function handleScaleFile(file){
   const reportDate=normalizeDateISO($('#scaleReportDateInput')?.value);
   if(!status) return;
   status.className='upload-status';
-  status.textContent='ط¬ط§ط±ظٹ ظ‚ط±ط§ط،ط© ظ…ظ„ظپ ط§ظ„ظ…ظٹط²ط§ظ†...';
-  if(!reportDate){ status.textContent='ط§ط®طھط§ط± طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط± ط£ظˆظ„ط§ظ‹.'; status.className='upload-status err'; return; }
-  if(!WarehouseDB?.ready){ status.textContent='Supabase ط؛ظٹط± ظ…طھطµظ„. ط±ط§ط¬ط¹ ظ…ظ„ظپ supabase-config.js'; status.className='upload-status err'; return; }
+  status.textContent='جاري قراءة ملف الميزان...';
+  if(!reportDate){ status.textContent='اختار تاريخ التقرير أولاً.'; status.className='upload-status err'; return; }
+  if(!WarehouseDB?.ready){ status.textContent='Supabase غير متصل. راجع ملف supabase-config.js'; status.className='upload-status err'; return; }
   const {data:userData}=await WarehouseDB.getUser();
-  if(!userData?.user){ status.textContent='ط³ط¬ظ„ ط§ظ„ط¯ط®ظˆظ„ ط£ظˆظ„ظ‹ط§ ظ‚ط¨ظ„ ط±ظپط¹ ط§ظ„ظ…ظ„ظپ.'; status.className='upload-status err'; return; }
+  if(!userData?.user){ status.textContent='سجل الدخول أولًا قبل رفع الملف.'; status.className='upload-status err'; return; }
   try{
     const arrayBuffer=await file.arrayBuffer();
     const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
     const sourceRows=rowsFromWorkbook(workbook);
-    if(!sourceRows.length) throw new Error('ط§ظ„ظ…ظ„ظپ ظ„ط§ ظٹط­طھظˆظٹ ط¹ظ„ظ‰ ط¨ظٹط§ظ†ط§طھ.');
+    if(!sourceRows.length) throw new Error('الملف لا يحتوي على بيانات.');
     const payloadPreview=mapScaleRows(sourceRows,'00000000-0000-0000-0000-000000000000');
-    if(!payloadPreview.length) throw new Error('ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ طµظپظˆظپ ظ…ظٹط²ط§ظ† طµط§ظ„ط­ط©. ط±ط§ط¬ط¹ ط±ط¤ظˆط³ ط§ظ„ط£ط¹ظ…ط¯ط©.');
+    if(!payloadPreview.length) throw new Error('لم يتم العثور على صفوف ميزان صالحة. راجع رؤوس الأعمدة.');
     const {data:existing,error:existingError}=await WarehouseDB.client
       .from('scale_upload_batches')
       .select('id,file_name,report_date')
@@ -3532,9 +3532,9 @@ async function handleScaleFile(file){
       .eq('status','active');
     if(existingError) throw existingError;
     if(existing?.length){
-      const ok=confirm(`ظٹظˆط¬ط¯ طھظ‚ط±ظٹط± ظ…ظٹط²ط§ظ† ظ…ط±ظپظˆط¹ ط¨ط§ظ„ظپط¹ظ„ ط¨طھط§ط±ظٹط® ${reportDate}.\nظ‡ظ„ طھط±ظٹط¯ ط§ط³طھط¨ط¯ط§ظ„ظ‡ ط¨ط§ظ„ظ…ظ„ظپ ط§ظ„ط¬ط¯ظٹط¯طں`);
-      if(!ok){ status.textContent='طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ط±ظپط¹ ط¨ط¯ظˆظ† طھط؛ظٹظٹط± ط§ظ„ط¨ظٹط§ظ†ط§طھ.'; return; }
-      status.textContent='ط¬ط§ط±ظٹ ط­ط°ظپ ظ†ط³ط®ط© ط§ظ„ظ…ظٹط²ط§ظ† ط§ظ„ظ‚ط¯ظٹظ…ط© ظ„ظ†ظپط³ ط§ظ„طھط§ط±ظٹط®...';
+      const ok=confirm(`يوجد تقرير ميزان مرفوع بالفعل بتاريخ ${reportDate}.\nهل تريد استبداله بالملف الجديد؟`);
+      if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
+      status.textContent='جاري حذف نسخة الميزان القديمة لنفس التاريخ...';
       const ids=existing.map(x=>x.id);
       await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',reportDate);
       const {error:rawDeleteError}=await WarehouseDB.client.from('scale_raw_transactions').delete().in('batch_id',ids);
@@ -3542,12 +3542,12 @@ async function handleScaleFile(file){
       const {error:deleteError}=await WarehouseDB.client.from('scale_upload_batches').delete().in('id',ids);
       if(deleteError) throw deleteError;
     }
-    status.textContent=`طھظ… ظ‚ط±ط§ط،ط© ${sourceRows.length} ط³ط·ط±. ط¬ط§ط±ظٹ ط¥ظ†ط´ط§ط، ظ†ط³ط®ط© ظ…ظٹط²ط§ظ† ط¨طھط§ط±ظٹط® ${reportDate}...`;
+    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء نسخة ميزان بتاريخ ${reportDate}...`;
     const {data:batch,error:batchError}=await WarehouseDB.client.from('scale_upload_batches').insert({
       file_name:file.name,
       uploaded_by:userData.user.id,
       uploaded_by_name:currentUploaderName(userData),
-      notes:'طھظ‚ط±ظٹط± ط§ظ„ظ…ظٹط²ط§ظ†',
+      notes:'تقرير الميزان',
       report_type:'scale',
       report_date:reportDate,
       row_count:payloadPreview.length,
@@ -3556,15 +3556,15 @@ async function handleScaleFile(file){
     }).select('id').single();
     if(batchError) throw batchError;
     const payload=payloadPreview.map(r=>({...r,batch_id:batch.id}));
-    status.textContent=`ط¬ط§ط±ظٹ ط±ظپط¹ ${payload.length} ط³ط·ط± ظ…ظٹط²ط§ظ† ط¥ظ„ظ‰ Supabase...`;
+    status.textContent=`جاري رفع ${payload.length} سطر ميزان إلى Supabase...`;
     await insertChunks('scale_raw_transactions',payload,400);
-    status.textContent=`طھظ… ط±ظپط¹ ${payload.length} ط³ط·ط± ظ…ظٹط²ط§ظ† ط¨ظ†ط¬ط§ط­ ظ„طھط§ط±ظٹط® ${reportDate}.`;
+    status.textContent=`تم رفع ${payload.length} سطر ميزان بنجاح لتاريخ ${reportDate}.`;
     status.className='upload-status ok';
-    await logSystemActivity('ط§ظ„طھظ‚ط§ط±ظٹط±',existing?.length?'ط§ط³طھط¨ط¯ط§ظ„ طھظ‚ط±ظٹط±':'ط±ظپط¹ طھظ‚ط±ظٹط±',`${existing?.length?'ط§ط³طھط¨ط¯ط§ظ„':'ط±ظپط¹'} طھظ‚ط±ظٹط± ط§ظ„ظ…ظٹط²ط§ظ† ط¨طھط§ط±ظٹط® ${reportDate} (${payload.length} ط­ط±ظƒط©)`);
+    await logSystemActivity('التقارير',existing?.length?'استبدال تقرير':'رفع تقرير',`${existing?.length?'استبدال':'رفع'} تقرير الميزان بتاريخ ${reportDate} (${payload.length} حركة)`);
     await loadScaleBatches();
     await tryBuildIncomingAudit(reportDate,status);
   }catch(err){
-    status.textContent=`ط®ط·ط£ ط£ط«ظ†ط§ط، ط±ظپط¹ طھظ‚ط±ظٹط± ط§ظ„ظ…ظٹط²ط§ظ†: ${err.message || err}`;
+    status.textContent=`خطأ أثناء رفع تقرير الميزان: ${err.message || err}`;
     status.className='upload-status err';
   }
 }
@@ -3578,7 +3578,7 @@ async function loadScaleBatches(){
     .eq('status','active')
     .order('report_date',{ascending:false});
   if(error){
-    tbl.innerHTML=`<tbody><tr><td>ط®ط·ط£ طھط­ظ…ظٹظ„ ط³ط¬ظ„ ط§ظ„ظ…ظٹط²ط§ظ†: ${error.message}</td></tr></tbody>`;
+    tbl.innerHTML=`<tbody><tr><td>خطأ تحميل سجل الميزان: ${error.message}</td></tr></tbody>`;
     return;
   }
   const rows=(data||[]).map(b=>[
@@ -3588,11 +3588,11 @@ async function loadScaleBatches(){
     formatFileSize(b.file_size_bytes),
     b.uploaded_by_name || b.uploaded_by || '-',
     b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
-    `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">ط¹ط±ط¶ ط§ظ„ظ…ط±ط§ط¬ط¹ط©</button>
-     <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">ط§ط³طھط¨ط¯ط§ظ„</button>
+    `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض المراجعة</button>
+     <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
      <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">ط­ط°ظپ</button>`
   ]);
-  table('#scaleBatchesTable',['طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±','ط§ط³ظ… ط§ظ„ظ…ظ„ظپ','ط¹ط¯ط¯ ط§ظ„ط³ط·ظˆط±','ط§ظ„ط­ط¬ظ…','ط§ظ„ط±ط§ظپط¹','طھط§ط±ظٹط® ط§ظ„ط±ظپط¹','ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ'],rows);
+  table('#scaleBatchesTable',['تاريخ التقرير','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الإجراءات'],rows);
 }
 async function handleScaleBatchAction(btn){
   const action=btn.dataset.action;
@@ -3609,13 +3609,13 @@ async function handleScaleBatchAction(btn){
     $('#scaleExcelInput')?.click();
   }
   if(action==='delete'){
-    if(!confirm(`ط³ظٹطھظ… ط­ط°ظپ طھظ‚ط±ظٹط± ط§ظ„ظ…ظٹط²ط§ظ† ط¨طھط§ط±ظٹط® ${date} ظˆظƒظ„ ط¨ظٹط§ظ†ط§طھظ‡ ط§ظ„ط®ط§ظ… ظˆظ†طھط§ط¦ط¬ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظˆط§ط±ط¯ ط§ظ„ظ…ط¨ظ†ظٹط© ط¹ظ„ظٹظ‡. ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯طں`)) return;
+    if(!confirm(`سيتم حذف تقرير الميزان بتاريخ ${date} وكل بياناته الخام ونتائج مراجعة الوارد المبنية عليه. هل أنت متأكد؟`)) return;
     await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',date);
     const {error:rawDeleteError}=await WarehouseDB.client.from('scale_raw_transactions').delete().eq('batch_id',btn.dataset.id);
-    if(rawDeleteError){ alert('ط®ط·ط£ ط£ط«ظ†ط§ط، ط­ط°ظپ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظٹط²ط§ظ†: '+rawDeleteError.message); return; }
+    if(rawDeleteError){ alert('خطأ أثناء حذف بيانات الميزان: '+rawDeleteError.message); return; }
     const {error:delError}=await WarehouseDB.client.from('scale_upload_batches').delete().eq('id',btn.dataset.id);
-    if(delError){ alert('ط®ط·ط£ ط£ط«ظ†ط§ط، ط­ط°ظپ ظ†ط³ط®ط© ط§ظ„ظ…ظٹط²ط§ظ†: '+delError.message); return; }
-    await logSystemActivity('ط§ظ„طھظ‚ط§ط±ظٹط±','ط­ط°ظپ طھظ‚ط±ظٹط±',`ط­ط°ظپ طھظ‚ط±ظٹط± ط§ظ„ظ…ظٹط²ط§ظ† ط¨طھط§ط±ظٹط® ${date}`);
+    if(delError){ alert('خطأ أثناء حذف نسخة الميزان: '+delError.message); return; }
+    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير الميزان بتاريخ ${date}`);
     await loadScaleBatches();
     await refreshInboundReportDates();
     await loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});
@@ -3638,7 +3638,7 @@ function initMobileUploadReportUI(){
     if(!meta) return;
     if(!file){ meta.classList.remove('has-file'); meta.innerHTML=''; return; }
     meta.classList.add('has-file');
-    meta.innerHTML=`<b>${uiIcon('check')} طھظ… ط§ط®طھظٹط§ط± ط§ظ„ظ…ظ„ظپ</b><span>${escapeHtml(file.name)}</span><small>${formatFileSize(file.size)}</small>`;
+    meta.innerHTML=`<b>${uiIcon('check')} تم اختيار الملف</b><span>${escapeHtml(file.name)}</span><small>${formatFileSize(file.size)}</small>`;
   };
   const items=[
     ['salesExcelInput','salesDropZone','salesMobileFileMeta'],
@@ -3689,7 +3689,7 @@ async function loadInboundAuditReport(date='',options={}){
     to: normalizeDateISO(savedFilters.to || '')
   } : getInboundTopFilters();
   const selected=normalizeDateISO(date || '');
-  const heads=['طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±','ط§ظ„ظ…ط§ط¯ط©','ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©','ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³','ط§ظ„ظƒظ…ظٹط©','طµط§ظپظٹ ط§ظ„ظ…ظٹط²ط§ظ†','ظپط±ظ‚ ط§ظ„ظˆط²ظ† %','ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©','ظ…ط®ط²ظ† MB51','ظ…ط®ط²ظ† ط§ظ„ظ…ظٹط²ط§ظ†','ط£ظ…ط± ط§ظ„ط´ط±ط§ط، MB51','ط£ظ…ط± ط§ظ„ط´ط±ط§ط، ط§ظ„ظ…ظٹط²ط§ظ†','ط±ظ‚ظ… ط§ظ„ط¹ط±ط¨ظٹط©','ظ†ظˆط¹ ط§ظ„ظˆط§ط±ط¯','ظˆطµظپ ط§ظ„ط¹ط±ط¨ظٹط©','ظˆطµظپ ط§ظ„ظ†ظˆظ„ظˆظ†','ظ‚ظٹظ…ط© ط§ظ„ظ†ظˆظ„ظˆظ† ظ„ظ„ط·ظ†','ط³ط¨ط¨ ظ…ط·ط§ط¨ظ‚ط© ط§ظ„ظ†ظˆظ„ظˆظ†'];
+  const heads=['تاريخ التقرير','المادة','وصف المادة','وحدة القياس','الكمية','صافي الميزان','فرق الوزن %','نوع الحركة','مخزن MB51','مخزن الميزان','أمر الشراء MB51','أمر الشراء الميزان','رقم العربية','نوع الوارد','وصف العربية','وصف النولون','قيمة النولون للطن','سبب مطابقة النولون'];
   let query=WarehouseDB.client
     .from('incoming_audit_results')
     .select('*');
@@ -3706,7 +3706,7 @@ async function loadInboundAuditReport(date='',options={}){
   const {data,error}=await query
     .order('report_date',{ascending:false})
     .order('material_code',{ascending:true});
-  if(error){ tbl.innerHTML='<tbody><tr><td>ط®ط·ط£ طھط­ظ…ظٹظ„ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظˆط§ط±ط¯: '+error.message+'</td></tr></tbody>'; return; }
+  if(error){ tbl.innerHTML='<tbody><tr><td>خطأ تحميل مراجعة الوارد: '+error.message+'</td></tr></tbody>'; return; }
   const filtered=(data||[]).filter(r=>inboundRowMatchesTopFilters(r,topFilters));
   updateInboundResultsCount(filtered.length);
   if((!useTopFilters || selected) && filtered.some(r=>!r.incoming_movement_type || !r.raw_result?.freight_diagnosis || r.raw_result?.movement_color_logic!=='repost_101_gold_v2') && !window.__incomingMovementRebuildOnce){
@@ -3733,13 +3733,13 @@ async function loadInboundAuditReport(date='',options={}){
       r.material_name || '-',
       r.uom || '-',
       fmt(r.quantity_to || 0),
-      r.scale_net_weight_to==null ? (r.warning_message || 'ظ„ظ… ظٹطھظ… ط§ظ„طھطµظپظٹط© ظپظٹ طھط§ط±ظٹط®ظ‡') : fmt(r.scale_net_weight_to),
+      r.scale_net_weight_to==null ? (r.warning_message || 'لم يتم التصفية في تاريخه') : fmt(r.scale_net_weight_to),
       r.weight_diff_percent==null ? '-' : fmt(r.weight_diff_percent)+'%',
       movementValue,
       r.mb51_warehouse_code || '-',
-      scaleWarehouseMissing ? '\u2014' : (r.scale_warehouse_code || 'ظ„ظ… ظٹطھظ… ط§ظ„طھطµظپظٹط© ظپظٹ طھط§ط±ظٹط®ظ‡'),
+      scaleWarehouseMissing ? '\u2014' : (r.scale_warehouse_code || 'لم يتم التصفية في تاريخه'),
       r.mb51_purchase_order || '-',
-      r.scale_purchase_order || 'ظ„ظ… ظٹطھظ… ط§ظ„طھطµظپظٹط© ظپظٹ طھط§ط±ظٹط®ظ‡',
+      r.scale_purchase_order || 'لم يتم التصفية في تاريخه',
       r.vehicle_number || '-',
       r.incoming_type || '-',
       r.vehicle_description || '-',
@@ -3763,22 +3763,22 @@ async function handleFreightFile(file){
   const referenceDate=normalizeDateISO($('#freightReferenceDateInput')?.value) || todayISO();
   if(!status) return;
   status.className='upload-status';
-  status.textContent='ط¬ط§ط±ظٹ ظ‚ط±ط§ط،ط© ظ…ظ„ظپ ظ†ظˆظ„ظˆظ† ط§ظ„ظˆط§ط±ط¯...';
-  if(!WarehouseDB?.ready){ status.textContent='Supabase ط؛ظٹط± ظ…طھطµظ„. ط±ط§ط¬ط¹ ظ…ظ„ظپ supabase-config.js'; status.className='upload-status err'; return; }
+  status.textContent='جاري قراءة ملف نولون الوارد...';
+  if(!WarehouseDB?.ready){ status.textContent='Supabase غير متصل. راجع ملف supabase-config.js'; status.className='upload-status err'; return; }
   const {data:userData}=await WarehouseDB.getUser();
-  if(!userData?.user){ status.textContent='ط³ط¬ظ„ ط§ظ„ط¯ط®ظˆظ„ ط£ظˆظ„ظ‹ط§ ظ‚ط¨ظ„ ط±ظپط¹ ط§ظ„ظ…ظ„ظپ.'; status.className='upload-status err'; return; }
+  if(!userData?.user){ status.textContent='سجل الدخول أولًا قبل رفع الملف.'; status.className='upload-status err'; return; }
   try{
     const arrayBuffer=await file.arrayBuffer();
     const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
     const sourceRows=rowsFromWorkbook(workbook);
-    if(!sourceRows.length) throw new Error('ط§ظ„ظ…ظ„ظپ ظ„ط§ ظٹط­طھظˆظٹ ط¹ظ„ظ‰ ط¨ظٹط§ظ†ط§طھ.');
+    if(!sourceRows.length) throw new Error('الملف لا يحتوي على بيانات.');
     const payloadPreview=mapFreightRows(sourceRows,'00000000-0000-0000-0000-000000000000');
-    if(!payloadPreview.length) throw new Error('ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ طµظپظˆظپ ظ†ظˆظ„ظˆظ† طµط§ظ„ط­ط©. ط±ط§ط¬ط¹ ط±ط¤ظˆط³ ط§ظ„ط£ط¹ظ…ط¯ط©.');
-    const ok=confirm(`ط³ظٹطھظ… طھط­ط¯ظٹط« ظ…ط±ط¬ط¹ ظ†ظˆظ„ظˆظ† ط§ظ„ظˆط§ط±ط¯ ط¨ط§ظ„ظƒط§ظ…ظ„ ط¨ط¹ط¯ط¯ ${payloadPreview.length} طµظپ.
-ط³ظٹطھظ… طھط¹ط·ظٹظ„ ط§ظ„طµظپظˆظپ ط§ظ„ظ‚ط¯ظٹظ…ط© ط؛ظٹط± ط§ظ„ظ…ظˆط¬ظˆط¯ط© ظپظٹ ط§ظ„ظ…ظ„ظپ ط§ظ„ط¬ط¯ظٹط¯.
-ظ‡ظ„ طھط±ظٹط¯ ط§ظ„ظ…طھط§ط¨ط¹ط©طں`);
-    if(!ok){ status.textContent='طھظ… ط¥ظ„ط؛ط§ط، ط±ظپط¹ ظ…ط±ط¬ط¹ ط§ظ„ظ†ظˆظ„ظˆظ† ط¨ط¯ظˆظ† طھط؛ظٹظٹط± ط§ظ„ط¨ظٹط§ظ†ط§طھ.'; return; }
-    status.textContent=`طھظ… ظ‚ط±ط§ط،ط© ${sourceRows.length} ط³ط·ط±. ط¬ط§ط±ظٹ ط¥ظ†ط´ط§ط، ط³ط¬ظ„ طھط­ط¯ظٹط« ظ…ط±ط¬ط¹ ط§ظ„ظ†ظˆظ„ظˆظ†...`;
+    if(!payloadPreview.length) throw new Error('لم يتم العثور على صفوف نولون صالحة. راجع رؤوس الأعمدة.');
+    const ok=confirm(`سيتم تحديث مرجع نولون الوارد بالكامل بعدد ${payloadPreview.length} صف.
+سيتم تعطيل الصفوف القديمة غير الموجودة في الملف الجديد.
+هل تريد المتابعة؟`);
+    if(!ok){ status.textContent='تم إلغاء رفع مرجع النولون بدون تغيير البيانات.'; return; }
+    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء سجل تحديث مرجع النولون...`;
     const {data:batch,error:batchError}=await WarehouseDB.client.from('freight_upload_batches').insert({
       file_name:file.name,
       reference_date:referenceDate,
@@ -3789,19 +3789,19 @@ async function handleFreightFile(file){
       status:'active'
     }).select('id').single();
     if(batchError) throw batchError;
-    status.textContent='ط¬ط§ط±ظٹ طھط¹ط·ظٹظ„ ظ…ط±ط¬ط¹ ط§ظ„ظ†ظˆظ„ظˆظ† ط§ظ„ظ‚ط¯ظٹظ…...';
+    status.textContent='جاري تعطيل مرجع النولون القديم...';
     const {error:disableError}=await WarehouseDB.client.from('incoming_freight_rates').update({is_active:false}).eq('is_active',true);
     if(disableError) throw disableError;
     const payload=payloadPreview.map(r=>({...r,batch_id:batch.id}));
-    status.textContent=`ط¬ط§ط±ظٹ ط±ظپط¹ ${payload.length} طµظپ ظ†ظˆظ„ظˆظ† ط¥ظ„ظ‰ Supabase...`;
+    status.textContent=`جاري رفع ${payload.length} صف نولون إلى Supabase...`;
     await upsertChunks('incoming_freight_rates',payload,400,'freight_description,goods_type,plant_code,vehicle_description');
-    status.textContent=`طھظ… طھط­ط¯ظٹط« ظ…ط±ط¬ط¹ ظ†ظˆظ„ظˆظ† ط§ظ„ظˆط§ط±ط¯ ط¨ظ†ط¬ط§ط­ ط¨ط¹ط¯ط¯ ${payload.length} طµظپ.`;
+    status.textContent=`تم تحديث مرجع نولون الوارد بنجاح بعدد ${payload.length} صف.`;
     status.className='upload-status ok';
-    await logSystemActivity('ط§ظ„طھظ‚ط§ط±ظٹط±','ط±ظپط¹ طھظ‚ط±ظٹط±',`ط±ظپط¹ طھظ‚ط±ظٹط± ط§ظ„ظ†ظˆظ„ظˆظ† ط¨طھط§ط±ظٹط® ${referenceDate} (${payload.length} طµظپ)`);
+    await logSystemActivity('التقارير','رفع تقرير',`رفع تقرير النولون بتاريخ ${referenceDate} (${payload.length} صف)`);
     await loadFreightBatches();
     await loadFreightRates();
   }catch(err){
-    status.textContent=`ط®ط·ط£ ط£ط«ظ†ط§ط، ط±ظپط¹ ظ†ظˆظ„ظˆظ† ط§ظ„ظˆط§ط±ط¯: ${err.message || err}`;
+    status.textContent=`خطأ أثناء رفع نولون الوارد: ${err.message || err}`;
     status.className='upload-status err';
   }
 }
@@ -3813,7 +3813,7 @@ async function loadFreightBatches(){
     .select('id,file_name,reference_date,upload_date,uploaded_by,uploaded_by_name,row_count,file_size_bytes,status')
     .neq('status','deleted')
     .order('upload_date',{ascending:false});
-  if(error){ tbl.innerHTML=`<tbody><tr><td>ط®ط·ط£ طھط­ظ…ظٹظ„ ط³ط¬ظ„ ظ†ظˆظ„ظˆظ† ط§ظ„ظˆط§ط±ط¯: ${error.message}</td></tr></tbody>`; return; }
+  if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل سجل نولون الوارد: ${error.message}</td></tr></tbody>`; return; }
   const rows=(data||[]).map(b=>[
     normalizeDateISO(b.reference_date) || '-',
     b.file_name || '-',
@@ -3822,10 +3822,10 @@ async function loadFreightBatches(){
     b.uploaded_by_name || b.uploaded_by || '-',
     b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
     b.status || '-',
-    `<button class="small-action view" data-action="view">ط¹ط±ط¶ ط§ظ„ظ…ط±ط¬ط¹ ط§ظ„ط­ط§ظ„ظٹ</button>
+    `<button class="small-action view" data-action="view">عرض المرجع الحالي</button>
      <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.reference_date)}">ط­ط°ظپ</button>`
   ]);
-  table('#freightBatchesTable',['طھط§ط±ظٹط® ط§ظ„ظ…ط±ط¬ط¹','ط§ط³ظ… ط§ظ„ظ…ظ„ظپ','ط¹ط¯ط¯ ط§ظ„ط³ط·ظˆط±','ط§ظ„ط­ط¬ظ…','ط§ظ„ط±ط§ظپط¹','طھط§ط±ظٹط® ط§ظ„ط±ظپط¹','ط§ظ„ط­ط§ظ„ط©','ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ'],rows);
+  table('#freightBatchesTable',['تاريخ المرجع','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الحالة','الإجراءات'],rows);
 }
 async function loadFreightRates(){
   const tbl=$('#freightRatesTable');
@@ -3836,17 +3836,17 @@ async function loadFreightRates(){
     .eq('is_active',true)
     .order('plant_code',{ascending:true})
     .order('freight_description',{ascending:true});
-  if(error){ tbl.innerHTML=`<tbody><tr><td>ط®ط·ط£ طھط­ظ…ظٹظ„ ظ…ط±ط¬ط¹ ط§ظ„ظ†ظˆظ„ظˆظ†: ${error.message}</td></tr></tbody>`; return; }
+  if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل مرجع النولون: ${error.message}</td></tr></tbody>`; return; }
   const rows=(data||[]).map(r=>[
     r.freight_description || '-',
     r.goods_type || '-',
     r.plant_code || '-',
     r.vehicle_description || '-',
     fmt(r.rate_per_ton || 0),
-    r.is_active ? 'ظ†ط´ط·' : 'ط؛ظٹط± ظ†ط´ط·',
+    r.is_active ? 'نشط' : 'غير نشط',
     r.updated_at ? new Date(r.updated_at).toLocaleString('ar-EG') : '-'
   ]);
-  table('#freightRatesTable',['ظˆطµظپ ط§ظ„ظ†ظˆظ„ظˆظ†','ظ†ظˆط¹ ط§ظ„ط¨ط¶ط§ط¹ط©','ط§ظ„ظ…طµظ†ط¹','ظˆطµظپ ط§ظ„ط¹ط±ط¨ظٹط©','ظ‚ظٹظ…ط© ط§ظ„ظ†ظˆظ„ظˆظ† ظ„ظ„ط·ظ†','ط§ظ„ط­ط§ظ„ط©','ط¢ط®ط± طھط­ط¯ظٹط«'],rows);
+  table('#freightRatesTable',['وصف النولون','نوع البضاعة','المصنع','وصف العربية','قيمة النولون للطن','الحالة','آخر تحديث'],rows);
 }
 async function handleFreightBatchAction(btn){
   const action=btn.dataset.action;
@@ -3854,13 +3854,13 @@ async function handleFreightBatchAction(btn){
     await loadFreightRates();
   }
   if(action==='delete'){
-    if(!confirm('ط³ظٹطھظ… ط­ط°ظپ ظ‡ط°ط§ ط§ظ„طھط­ط¯ظٹط« ظˆطھط¹ط·ظٹظ„ ط§ظ„طµظپظˆظپ ط§ظ„ظ…ط±طھط¨ط·ط© ط¨ظ‡. ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯طں')) return;
+    if(!confirm('سيتم حذف هذا التحديث وتعطيل الصفوف المرتبطة به. هل أنت متأكد؟')) return;
     const id=btn.dataset.id;
     const {error:disableError}=await WarehouseDB.client.from('incoming_freight_rates').update({is_active:false}).eq('batch_id',id);
-    if(disableError){ alert('ط®ط·ط£ ط£ط«ظ†ط§ط، طھط¹ط·ظٹظ„ طµظپظˆظپ ط§ظ„ظ†ظˆظ„ظˆظ†: '+disableError.message); return; }
+    if(disableError){ alert('خطأ أثناء تعطيل صفوف النولون: '+disableError.message); return; }
     const {error:batchError}=await WarehouseDB.client.from('freight_upload_batches').update({status:'deleted'}).eq('id',id);
-    if(batchError){ alert('ط®ط·ط£ ط£ط«ظ†ط§ط، ط­ط°ظپ ط³ط¬ظ„ ط§ظ„طھط­ط¯ظٹط«: '+batchError.message); return; }
-    await logSystemActivity('ط§ظ„طھظ‚ط§ط±ظٹط±','ط­ط°ظپ طھظ‚ط±ظٹط±',`ط­ط°ظپ طھظ‚ط±ظٹط± ط§ظ„ظ†ظˆظ„ظˆظ† ط¨طھط§ط±ظٹط® ${btn.dataset.date || '-'}`);
+    if(batchError){ alert('خطأ أثناء حذف سجل التحديث: '+batchError.message); return; }
+    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير النولون بتاريخ ${btn.dataset.date || '-'}`);
     await loadFreightBatches();
     await loadFreightRates();
   }
@@ -3938,7 +3938,7 @@ async function loadSalesReport(warehouseCode){
     fmt(r.incoming_transfer_quantity),
     fmt(r.total_loading_quantity)
   ]);
-  table('#salesTable',['ظƒظˆط¯ ط§ظ„ظ…ط§ط¯ط©','ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©','ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³','ظƒظ…ظٹط© ط§ظ„ط¨ظٹط¹','ظ…ط±طھط¬ط¹ ظپط¹ظ„ظٹ','ط§ظ„ط¥ظ†طھط§ط¬','ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ط©','ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظˆط§ط±ط¯ط©','ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„'],rows);
+  table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحميل'],rows);
 }
 renderTabs = function(){
   $('#salesTabs').innerHTML=SALES_WAREHOUSES.map((w,i)=>`<button class="${i===0?'active':''}" data-warehouse="${w}">${w}</button>`).join('');
@@ -3946,9 +3946,9 @@ renderTabs = function(){
   if($('#inboundTabs')) $('#inboundTabs').innerHTML=getPlantsCatalog().map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('');
 };
 renderTables = function(){
-  table('#movementsTable',['ظƒظˆط¯ ط§ظ„ط­ط±ظƒط©','ظˆطµظپ SAP','ط§ظ„طھطµظ†ظٹظپ','طھط¹ط±ظٹظپ ط§ظ„ط­ط±ظƒط©','ط§ظ„ط£ط«ط± ط¹ظ„ظ‰ ط§ظ„ط±طµظٹط¯'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'طھط¶ظٹظپ ط±طµظٹط¯':'طھط®طµظ… ظ…ظ† ط§ظ„ط±طµظٹط¯']));
-  table('#salesTable',['ظƒظˆط¯ ط§ظ„ظ…ط§ط¯ط©','ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©','ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³','ظƒظ…ظٹط© ط§ظ„ط¨ظٹط¹','ظ…ط±طھط¬ط¹ ظپط¹ظ„ظٹ','ط§ظ„ط¥ظ†طھط§ط¬','ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ط©','ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظˆط§ط±ط¯ط©','ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„'],[]);
-  table('#inboundTable',['ط§ظ„ظ…طµظ†ط¹','ط§ظ„ظ…ط®ط²ظ†','ظƒظˆط¯ ط§ظ„ظ…ط§ط¯ط©','ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©','ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³','ط§ظ„ظˆط§ط±ط¯','ط§ظ„ط¥ظ„ط؛ط§ط،','ط§ظ„طµط§ظپظٹ'],APP_DATA.inboundReviewSample);
+  table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']));
+  table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحميل'],[]);
+  table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample);
 };
 document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initMobileUploadReportUI();initSalesUploader();initIncomingUploader();initScaleUploader();initFreightUploader();refreshInboundReportDates();setTimeout(()=>{loadSalesReport(activeSalesWarehouse);loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});loadDashboardRealData();},300);});
 
@@ -3958,7 +3958,7 @@ let CURRENT_APP_PROFILE=null;
 
 async function fetchCurrentAppProfile(user){
   const fallback={
-    full_name:user?.email || 'ظ…ط³طھط®ط¯ظ…',
+    full_name:user?.email || 'مستخدم',
     role:isSystemOwnerEmail(user?.email) ? 'super_admin' : 'authenticated',
     job_title:'',
     phone:'',
@@ -3992,24 +3992,24 @@ function paintAvatar(el, profile){
   if(profile?.avatar_url){
     const img=document.createElement('img');
     img.src=profile.avatar_url;
-    img.alt='ط§ظ„طµظˆط±ط© ط§ظ„ط´ط®طµظٹط©';
+    img.alt='الصورة الشخصية';
     el.appendChild(img);
     return;
   }
-  const name=profile?.full_name || profile?.email || 'ظ…ط³طھط®ط¯ظ…';
-  el.textContent=(name.trim()[0] || 'ظ…').toUpperCase();
+  const name=profile?.full_name || profile?.email || 'مستخدم';
+  el.textContent=(name.trim()[0] || 'م').toUpperCase();
 }
 function applyProfileToHeader(profile){
-  const name=profile?.full_name || profile?.email || 'ظ…ط³طھط®ط¯ظ…';
-  const job=profile?.job_title || profile?.role || 'ظ…ط³طھط®ط¯ظ…';
+  const name=profile?.full_name || profile?.email || 'مستخدم';
+  const job=profile?.job_title || profile?.role || 'مستخدم';
   if($('#currentUserName')) $('#currentUserName').textContent=name;
   if($('#currentUserRole')) $('#currentUserRole').textContent=job;
   paintAvatar($('#currentUserAvatar'), profile);
   syncMobileDashboardShell(profile);
 }
 function syncMobileDashboardShell(profile){
-  const name=profile?.full_name || profile?.email || 'ظ…ط³طھط®ط¯ظ…';
-  const job=profile?.job_title || profile?.role || 'ظ…ط³طھط®ط¯ظ…';
+  const name=profile?.full_name || profile?.email || 'مستخدم';
+  const job=profile?.job_title || profile?.role || 'مستخدم';
   if($('#mobileDashboardUserName')) $('#mobileDashboardUserName').textContent=name;
   if($('#mobileDashboardUserRole')) $('#mobileDashboardUserRole').textContent=job;
   paintAvatar($('#mobileDashboardAvatar'), profile);
@@ -4036,10 +4036,10 @@ function setPasswordChangeStatus(message,type=''){
   status.textContent=message || '';
 }
 function validatePasswordChangeFields(currentPassword,newPassword,confirmPassword){
-  if(!currentPassword) return 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط­ط§ظ„ظٹط© ط؛ظٹط± طµط­ظٹط­ط©.';
-  if((newPassword||'').length<7) return 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط¬ط¯ظٹط¯ط© ظٹط¬ط¨ ط£ظ„ط§ طھظ‚ظ„ ط¹ظ† 7 ط®ط§ظ†ط§طھ.';
-  if(/\s/.test(newPassword||'') || /\s/.test(confirmPassword||'')) return 'ظ„ط§ ظٹط³ظ…ط­ ط¨ظˆط¬ظˆط¯ ظ…ط³ط§ظپط§طھ ط¯ط§ط®ظ„ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±.';
-  if(newPassword!==confirmPassword) return 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط¬ط¯ظٹط¯ط© ظˆطھط£ظƒظٹط¯ظ‡ط§ ط؛ظٹط± ظ…طھط·ط§ط¨ظ‚طھظٹظ†.';
+  if(!currentPassword) return 'كلمة المرور الحالية غير صحيحة.';
+  if((newPassword||'').length<7) return 'كلمة المرور الجديدة يجب ألا تقل عن 7 خانات.';
+  if(/\s/.test(newPassword||'') || /\s/.test(confirmPassword||'')) return 'لا يسمح بوجود مسافات داخل كلمة المرور.';
+  if(newPassword!==confirmPassword) return 'كلمة المرور الجديدة وتأكيدها غير متطابقتين.';
   return '';
 }
 function clearPasswordChangeFields(){
@@ -4118,32 +4118,32 @@ async function verifyCurrentPasswordWithTemporaryClient(email,password){
 }
 async function handlePasswordChangeSubmit(e){
   e.preventDefault();
-  if(!hasPermission('settings_account','edit')){ alert('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©'); return; }
-  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.email){ setPasswordChangeStatus('ط³ط¬ظ„ ط§ظ„ط¯ط®ظˆظ„ ط£ظˆظ„ط§ظ‹.','err'); return; }
+  if(!hasPermission('settings_account','edit')){ alert('غير متاح للصلاحية الحالية'); return; }
+  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.email){ setPasswordChangeStatus('سجل الدخول أولاً.','err'); return; }
   const currentPassword=$('#currentPasswordInput')?.value || '';
   const newPassword=$('#newPasswordInput')?.value || '';
   const confirmPassword=$('#confirmPasswordInput')?.value || '';
   const validationMessage=validatePasswordChangeFields(currentPassword,newPassword,confirmPassword);
   if(validationMessage){ setPasswordChangeStatus(validationMessage,'err'); return; }
-  setPasswordChangeStatus('ط¬ط§ط±ظٹ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط­ط§ظ„ظٹط©...');
+  setPasswordChangeStatus('جاري التحقق من كلمة المرور الحالية...');
   try{
     const verify=await verifyCurrentPasswordWithTemporaryClient(CURRENT_AUTH_USER.email,currentPassword);
-    if(verify?.error){ setPasswordChangeStatus('ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط­ط§ظ„ظٹط© ط؛ظٹط± طµط­ظٹط­ط©.','err'); return; }
-    setPasswordChangeStatus('ط¬ط§ط±ظٹ طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±...');
+    if(verify?.error){ setPasswordChangeStatus('كلمة المرور الحالية غير صحيحة.','err'); return; }
+    setPasswordChangeStatus('جاري تغيير كلمة المرور...');
     const mainSessionBeforeUpdate=await WarehouseDB.client.auth.getSession();
     console.info('[password-change] WarehouseDB.client.auth.getSession() before updateUser',summarizeAuthSessionResult(mainSessionBeforeUpdate));
     if(mainSessionBeforeUpdate?.error || !mainSessionBeforeUpdate?.data?.session?.access_token){
-      setPasswordChangeStatus('ط¬ظ„ط³ط© ط§ظ„ط¯ط®ظˆظ„ ط؛ظٹط± طµط§ظ„ط­ط©. ط³ط¬ظ„ ط§ظ„ط¯ط®ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.','err');
+      setPasswordChangeStatus('جلسة الدخول غير صالحة. سجل الدخول مرة أخرى.','err');
       return;
     }
     const {data,error}=await WarehouseDB.client.auth.updateUser({password:newPassword});
     if(error) throw error;
     if(data?.user) CURRENT_AUTH_USER=data.user;
     clearPasswordChangeFields();
-    setPasswordChangeStatus('طھظ… طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط¨ظ†ط¬ط§ط­.','ok');
-    await logSystemActivity('ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†','طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±',`طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±: ${CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'ط§ظ„ظ…ط³طھط®ط¯ظ… ط§ظ„ط­ط§ظ„ظٹ'}`);
+    setPasswordChangeStatus('تم تغيير كلمة المرور بنجاح.','ok');
+    await logSystemActivity('المستخدمين','تغيير كلمة المرور',`تغيير كلمة المرور: ${CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'المستخدم الحالي'}`);
   }catch(err){
-    setPasswordChangeStatus('طھط¹ط°ط± طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±: '+(err.message || err),'err');
+    setPasswordChangeStatus('تعذر تغيير كلمة المرور: '+(err.message || err),'err');
   }
 }
 
@@ -4234,7 +4234,7 @@ async function ensureSystemSettingsLoaded(){
 }
 async function saveSystemSettings(e){
   e?.preventDefault();
-  if(!hasPermission('settings_system','edit')){ setSystemSettingsStatus('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©','err'); return; }
+  if(!hasPermission('settings_system','edit')){ setSystemSettingsStatus('غير متاح للصلاحية الحالية','err'); return; }
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setSystemSettingsStatus('\u0633\u062C\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0623\u0648\u0644\u0627\u064B \u0644\u062D\u0641\u0638 \u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A.','err'); return; }
   const settings=readSystemSettingsForm();
   setSystemSettingsStatus('\u062C\u0627\u0631\u064A \u062D\u0641\u0638 \u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u0646\u0638\u0627\u0645...');
@@ -4249,7 +4249,7 @@ async function saveSystemSettings(e){
     fillSystemSettingsForm(data?.settings || settings);
     SYSTEM_SETTINGS_LOADED_USER_ID=CURRENT_AUTH_USER.id;
     setSystemSettingsStatus('\u062A\u0645 \u062D\u0641\u0638 \u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u0646\u0638\u0627\u0645 \u0628\u0646\u062C\u0627\u062D.','ok');
-    await logSystemActivity('ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ','طھط¹ط¯ظٹظ„ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ†ط¸ط§ظ…','طھط¹ط¯ظٹظ„ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ†ط¸ط§ظ…');
+    await logSystemActivity('الإعدادات','تعديل إعدادات النظام','تعديل إعدادات النظام');
   }catch(err){
     setSystemSettingsStatus('\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u0625\u0639\u062F\u0627\u062F\u0627\u062A \u0627\u0644\u0646\u0638\u0627\u0645: '+(err.message||err),'err');
   }
@@ -4273,7 +4273,7 @@ function settingsTableCellText(cell){
   if(!cell) return '';
   const controls=[...cell.querySelectorAll('input,select,textarea')].map(el=>{
     if(el.tagName==='SELECT') return [el.value,el.options[el.selectedIndex]?.textContent||''].join(' ');
-    if(el.type==='checkbox') return el.checked ? 'true ظ†ط¹ظ… ظ†ط´ط·' : 'false ظ„ط§ ط؛ظٹط± ظ†ط´ط·';
+    if(el.type==='checkbox') return el.checked ? 'true نعم نشط' : 'false لا غير نشط';
     return el.value||'';
   }).join(' ');
   return (controls+' '+(cell.textContent||'')).replace(/\s+/g,' ').trim();
@@ -4289,7 +4289,7 @@ function ensureSettingsTableFilterRow(table,state){
   const filterRow=document.createElement('tr');
   filterRow.className='settings-table-filter-row';
   filterRow.innerHTML=headerCells.map((th,idx)=>{
-    const label=(th.textContent||'').replace(/\s+/g,' ').trim() || 'ط¨ط­ط«';
+    const label=(th.textContent||'').replace(/\s+/g,' ').trim() || 'بحث';
     return `<th><input class="settings-table-col-filter" data-settings-col="${idx}" placeholder="${escapeHtml(label)}" /></th>`;
   }).join('');
   thead.appendChild(filterRow);
@@ -4338,7 +4338,7 @@ function initSettingsTableControls(tableId,options={}){
   if(wrap && !document.getElementById(`${tableId}GlobalSearch`)){
     const toolbar=document.createElement('div');
     toolbar.className='settings-table-controls glass-soft';
-    toolbar.innerHTML=`<div class="users-search-box settings-table-search-box"><span class="settings-search-icon" aria-hidden="true">${modernIcon('search')}</span><input id="${tableId}GlobalSearch" type="search" placeholder="ط¨ط­ط« ط¹ط§ظ… ط¯ط§ط®ظ„ ط§ظ„ط¬ط¯ظˆظ„..." /></div>`;
+    toolbar.innerHTML=`<div class="users-search-box settings-table-search-box"><span class="settings-search-icon" aria-hidden="true">${modernIcon('search')}</span><input id="${tableId}GlobalSearch" type="search" placeholder="بحث عام داخل الجدول..." /></div>`;
     wrap.parentElement?.insertBefore(toolbar,wrap);
     toolbar.querySelector('input')?.addEventListener('input',e=>{
       state.globalSearch=e.target.value||'';
@@ -4392,7 +4392,7 @@ function setElementsDisabled(selector,disabled,hide=false){
     el.disabled=!!disabled;
     el.classList.toggle('permission-disabled',!!disabled);
     if(hide) el.classList.toggle('permission-hidden',!!disabled);
-    if(disabled) el.title='ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©';
+    if(disabled) el.title='غير متاح للصلاحية الحالية';
   });
 }
 function applySettingsSubPermissions(){
@@ -4555,7 +4555,7 @@ function clearPlantSettingsForm(){
 }
 async function addPlantSettingsRow(e){
   e?.preventDefault();
-  if(!hasPermission('settings_plants','add')){ setPlantsSettingsStatus('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©','err'); return; }
+  if(!hasPermission('settings_plants','add')){ setPlantsSettingsStatus('غير متاح للصلاحية الحالية','err'); return; }
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setPlantsSettingsStatus('\u0633\u062C\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0623\u0648\u0644\u0627\u064B \u0644\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u0635\u0627\u0646\u0639.','err'); return; }
   const plant_code=normalizePlantSettingsCode($('#plantCodeInput')?.value);
   const plant_name=String($('#plantNameInput')?.value||'').trim();
@@ -4573,13 +4573,13 @@ async function addPlantSettingsRow(e){
     await loadPlantsCatalog({force:true});
     refreshPlantsCatalogConsumers();
     setPlantsSettingsStatus('\u062A\u0645\u062A \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0635\u0646\u0639 \u0628\u0646\u062C\u0627\u062D.','ok');
-    await logSystemActivity('ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ','ط¥ط¶ط§ظپط©',`ط¥ط¶ط§ظپط© ظ…طµظ†ط¹: ${plant_code}`);
+    await logSystemActivity('الإعدادات','إضافة',`إضافة مصنع: ${plant_code}`);
   }catch(err){
     setPlantsSettingsStatus('\u062A\u0639\u0630\u0631 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0635\u0646\u0639: '+(err.message||err),'err');
   }
 }
 async function savePlantSettingsRow(source){
-  if(!hasPermission('settings_plants','edit')){ setPlantsSettingsStatus('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©','err'); return; }
+  if(!hasPermission('settings_plants','edit')){ setPlantsSettingsStatus('غير متاح للصلاحية الحالية','err'); return; }
   const row=source?.closest ? (source.closest('[data-plant-code]') || source.closest('tr')) : source;
   if(!row || !WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   const plantCode=normalizePlantSettingsCode(row.dataset.plantCode || row.querySelector('.plant-code-readonly')?.textContent || '');
@@ -4628,7 +4628,7 @@ async function savePlantSettingsRow(source){
     await loadPlantsCatalog({force:true});
     refreshPlantsCatalogConsumers();
     setPlantsSettingsStatus('\u062A\u0645 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0635\u0646\u0639 \u0628\u0646\u062C\u0627\u062D.','ok');
-    await logSystemActivity('ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ','طھط¹ط¯ظٹظ„',`طھط¹ط¯ظٹظ„ ظ…طµظ†ط¹: ${plantCode}`);
+    await logSystemActivity('الإعدادات','تعديل',`تعديل مصنع: ${plantCode}`);
   }catch(err){
     setPlantsSettingsStatus('\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u0635\u0646\u0639: '+(err.message||err),'err');
   }
@@ -4789,7 +4789,7 @@ function clearWarehouseSettingsForm(){
 }
 async function addWarehouseSettingsRow(e){
   e?.preventDefault();
-  if(!hasPermission('settings_warehouses','add')){ setWarehousesSettingsStatus('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©','err'); return; }
+  if(!hasPermission('settings_warehouses','add')){ setWarehousesSettingsStatus('غير متاح للصلاحية الحالية','err'); return; }
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setWarehousesSettingsStatus('\u0633\u062C\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0623\u0648\u0644\u0627\u064B \u0644\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u062E\u0627\u0632\u0646.','err'); return; }
   const payload=readWarehouseSettingsForm();
   if(!payload.warehouse_code || !payload.warehouse_name || !payload.plant_code){ setWarehousesSettingsStatus('\u0643\u0648\u062F \u0627\u0644\u0645\u062E\u0632\u0646 \u0648\u0627\u0633\u0645\u0647 \u0648\u0627\u0644\u0645\u0635\u0646\u0639 \u0645\u0637\u0644\u0648\u0628\u0629.','err'); return; }
@@ -4804,13 +4804,13 @@ async function addWarehouseSettingsRow(e){
     await loadPlantsScreenWarehouses({force:true});
     if($('#plants')?.classList.contains('active-section')) renderPlants();
     setWarehousesSettingsStatus('\u062A\u0645\u062A \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u062E\u0632\u0646 \u0628\u0646\u062C\u0627\u062D.','ok');
-    await logSystemActivity('ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ','ط¥ط¶ط§ظپط©',`ط¥ط¶ط§ظپط© ظ…ط®ط²ظ†: ${payload.warehouse_code}`);
+    await logSystemActivity('الإعدادات','إضافة',`إضافة مخزن: ${payload.warehouse_code}`);
   }catch(err){
     setWarehousesSettingsStatus('\u062A\u0639\u0630\u0631 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u062E\u0632\u0646: '+(err.message||err),'err');
   }
 }
 async function saveWarehouseSettingsRow(source){
-  if(!hasPermission('settings_warehouses','edit')){ setWarehousesSettingsStatus('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©','err'); return; }
+  if(!hasPermission('settings_warehouses','edit')){ setWarehousesSettingsStatus('غير متاح للصلاحية الحالية','err'); return; }
   const row=source?.closest ? (source.closest('[data-warehouse-code]') || source.closest('tr')) : source;
   if(!row || !WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   const warehouseCode=normalizeWarehouseSettingsCode(row.dataset.warehouseCode || row.querySelector('.warehouse-code-readonly')?.textContent || '');
@@ -4849,7 +4849,7 @@ async function saveWarehouseSettingsRow(source){
     await loadPlantsScreenWarehouses({force:true});
     if($('#plants')?.classList.contains('active-section')) renderPlants();
     setWarehousesSettingsStatus('\u062A\u0645 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u062E\u0632\u0646 \u0628\u0646\u062C\u0627\u062D.','ok');
-    await logSystemActivity('ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ','طھط¹ط¯ظٹظ„',`طھط¹ط¯ظٹظ„ ظ…ط®ط²ظ†: ${warehouseCode}`);
+    await logSystemActivity('الإعدادات','تعديل',`تعديل مخزن: ${warehouseCode}`);
   }catch(err){
     setWarehousesSettingsStatus('\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u062E\u0632\u0646: '+(err.message||err),'err');
   }
@@ -4968,10 +4968,10 @@ async function saveSalesProductWarehouseCodes(materialCode,selectedCodes=[]){
   const toEnable=selected.filter(code=>!existingActiveCodes.includes(code));
   const toDisable=existingActiveCodes.filter(code=>!selectedSet.has(code));
   if(toEnable.length && !hasPermission('settings_sales_product_warehouses','add')){
-    throw new Error('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©');
+    throw new Error('غير متاح للصلاحية الحالية');
   }
   if(toDisable.length && !hasPermission('settings_sales_product_warehouses','delete')){
-    throw new Error('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©');
+    throw new Error('غير متاح للصلاحية الحالية');
   }
   if(selected.length){
     const payload=selected.map(warehouse_code=>({material_code:materialCode,warehouse_code,is_active:true}));
@@ -4989,10 +4989,10 @@ async function saveSalesProductWarehouseCodes(materialCode,selectedCodes=[]){
     if(error) throw error;
   }
   for(const warehouseCode of toEnable){
-    await logSystemActivity('ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ','ط¥ط¶ط§ظپط© ط±ط¨ط·',`ط±ط¨ط· ط§ظ„طµظ†ظپ: ${materialCode} ط¨ط§ظ„ظ…ط®ط²ظ†: ${warehouseCode}`);
+    await logSystemActivity('الإعدادات','إضافة ربط',`ربط الصنف: ${materialCode} بالمخزن: ${warehouseCode}`);
   }
   for(const warehouseCode of toDisable){
-    await logSystemActivity('ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ','ط­ط°ظپ ط±ط¨ط·',`ط­ط°ظپ ط±ط¨ط· ط§ظ„طµظ†ظپ: ${materialCode} ظ…ظ† ط§ظ„ظ…ط®ط²ظ†: ${warehouseCode}`);
+    await logSystemActivity('الإعدادات','حذف ربط',`حذف ربط الصنف: ${materialCode} من المخزن: ${warehouseCode}`);
   }
   clearSalesReviewEngineCache();
   return await fetchSalesProductWarehouseLinks(materialCode);
@@ -5015,11 +5015,11 @@ function renderSalesProductWarehousesPanel(){
   if(!panel || !list) return;
   const materialCode=SALES_PRODUCT_WAREHOUSES_STATE.materialCode;
   const materialName=SALES_PRODUCT_WAREHOUSES_STATE.materialName;
-  if(title) title.textContent='ظ…ط®ط§ط²ظ† ط§ظ„طµظ†ظپ: '+materialCode+' - '+materialName;
+  if(title) title.textContent='مخازن الصنف: '+materialCode+' - '+materialName;
   const activeLinks=new Set((SALES_PRODUCT_WAREHOUSES_STATE.links||[]).filter(l=>parseSalesProductBoolean(l.is_active)).map(l=>String(l.warehouse_code||'').toUpperCase()));
   const warehouses=SALES_PRODUCT_WAREHOUSES_STATE.warehouses||[];
   if(!warehouses.length){
-    list.innerHTML='<div class="empty-row">ظ„ط§ طھظˆط¬ط¯ ظ…ط®ط§ط²ظ† ظ†ط´ط·ط© ظ…طھط§ط­ط©.</div>';
+    list.innerHTML='<div class="empty-row">لا توجد مخازن نشطة متاحة.</div>';
     return;
   }
   list.innerHTML=warehouses.map(w=>{
@@ -5034,7 +5034,7 @@ function renderSalesProductWarehousesPanel(){
   }).join('');
 }
 async function openSalesProductWarehousesPanel(source){
-  if(!hasPermission('settings_sales_product_warehouses','view')){ setSalesProductWarehousesStatus('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©','err'); return; }
+  if(!hasPermission('settings_sales_product_warehouses','view')){ setSalesProductWarehousesStatus('غير متاح للصلاحية الحالية','err'); return; }
   const row=source?.closest ? (source.closest('[data-material-code]') || source.closest('tr')) : source;
   const panel=$('#salesProductWarehousesPanel');
   if(!row || !panel) return;
@@ -5042,7 +5042,7 @@ async function openSalesProductWarehousesPanel(source){
   const materialName=String(row.querySelector('.sales-product-name-edit')?.value || '').trim();
   SALES_PRODUCT_WAREHOUSES_STATE={mode:'existing',materialCode,materialName,warehouses:[],links:[]};
   panel.hidden=false;
-  setSalesProductWarehousesStatus('ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ظ…ط®ط§ط²ظ† ط§ظ„طµظ†ظپ...');
+  setSalesProductWarehousesStatus('جاري تحميل مخازن الصنف...');
   renderSalesProductWarehousesPanel();
   try{
     const [warehouses,links]=await Promise.all([
@@ -5051,35 +5051,35 @@ async function openSalesProductWarehousesPanel(source){
     ]);
     SALES_PRODUCT_WAREHOUSES_STATE={mode:'existing',materialCode,materialName,warehouses,links};
     renderSalesProductWarehousesPanel();
-    setSalesProductWarehousesStatus('طھظ… طھط­ظ…ظٹظ„ ظ…ط®ط§ط²ظ† ط§ظ„طµظ†ظپ.','ok');
+    setSalesProductWarehousesStatus('تم تحميل مخازن الصنف.','ok');
     panel.scrollIntoView({behavior:'smooth',block:'start'});
   }catch(err){
     renderSalesProductWarehousesPanel();
-    setSalesProductWarehousesStatus('طھط¹ط°ط± طھط­ظ…ظٹظ„ ظ…ط®ط§ط²ظ† ط§ظ„طµظ†ظپ: '+(err.message||err),'err');
+    setSalesProductWarehousesStatus('تعذر تحميل مخازن الصنف: '+(err.message||err),'err');
   }
 }
 async function openNewSalesProductWarehousesPanel(){
-  if(!hasPermission('settings_sales_product_warehouses','view') || !hasPermission('settings_sales_products','add')){ setSalesProductWarehousesStatus('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©','err'); return; }
+  if(!hasPermission('settings_sales_product_warehouses','view') || !hasPermission('settings_sales_products','add')){ setSalesProductWarehousesStatus('غير متاح للصلاحية الحالية','err'); return; }
   const panel=$('#salesProductWarehousesPanel');
   if(!panel) return;
   const materialCode=normalizeSalesProductCode($('#salesProductCodeInput')?.value) || 'NEW';
-  const materialName=String($('#salesProductNameInput')?.value||'').trim() || 'طµظ†ظپ ط¬ط¯ظٹط¯';
+  const materialName=String($('#salesProductNameInput')?.value||'').trim() || 'صنف جديد';
   const previous=SALES_PRODUCT_WAREHOUSES_STATE.mode==='create'
     ? (SALES_PRODUCT_WAREHOUSES_STATE.links||[]).filter(l=>parseSalesProductBoolean(l.is_active)).map(l=>l.warehouse_code)
     : [];
   SALES_PRODUCT_WAREHOUSES_STATE={mode:'create',materialCode,materialName,warehouses:[],links:salesProductWarehouseLinksFromCodes(previous)};
   panel.hidden=false;
-  setSalesProductWarehousesStatus('ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ظ…ط®ط§ط²ظ† ط§ظ„طµظ†ظپ ط§ظ„ط¬ط¯ظٹط¯...');
+  setSalesProductWarehousesStatus('جاري تحميل مخازن الصنف الجديد...');
   renderSalesProductWarehousesPanel();
   try{
     const warehouses=await loadSalesProductWarehousesCatalog();
     const selected=previous.length ? previous : officialSalesProductWarehouseCodes(warehouses);
     SALES_PRODUCT_WAREHOUSES_STATE={mode:'create',materialCode,materialName,warehouses,links:salesProductWarehouseLinksFromCodes(selected)};
     renderSalesProductWarehousesPanel();
-    setSalesProductWarehousesStatus('طھظ… طھط­ط¯ظٹط¯ ظ…ط®ط§ط²ظ† ط§ظ„ط¨ظٹط¹ ط§ظ„ط±ط³ظ…ظٹط© ط§ظپطھط±ط§ط¶ظٹظ‹ط§طŒ ظˆظٹظ…ظƒظ† طھط¹ط¯ظٹظ„ظ‡ط§ ظ‚ط¨ظ„ ط¥ط¶ط§ظپط© ط§ظ„طµظ†ظپ.','ok');
+    setSalesProductWarehousesStatus('تم تحديد مخازن البيع الرسمية افتراضيًا، ويمكن تعديلها قبل إضافة الصنف.','ok');
     panel.scrollIntoView({behavior:'smooth',block:'start'});
   }catch(err){
-    setSalesProductWarehousesStatus('طھط¹ط°ط± طھط­ظ…ظٹظ„ ظ…ط®ط§ط²ظ† ط§ظ„طµظ†ظپ ط§ظ„ط¬ط¯ظٹط¯: '+(err.message||err),'err');
+    setSalesProductWarehousesStatus('تعذر تحميل مخازن الصنف الجديد: '+(err.message||err),'err');
   }
 }
 function closeSalesProductWarehousesPanel(){
@@ -5089,25 +5089,25 @@ function closeSalesProductWarehousesPanel(){
   setSalesProductWarehousesStatus('');
 }
 async function saveSalesProductWarehouses(){
-  if(!hasPermission('settings_sales_product_warehouses','add') && !hasPermission('settings_sales_product_warehouses','delete')){ setSalesProductWarehousesStatus('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©','err'); return; }
+  if(!hasPermission('settings_sales_product_warehouses','add') && !hasPermission('settings_sales_product_warehouses','delete')){ setSalesProductWarehousesStatus('غير متاح للصلاحية الحالية','err'); return; }
   const materialCode=normalizeSalesProductCode(SALES_PRODUCT_WAREHOUSES_STATE.materialCode);
-  if(!materialCode){ setSalesProductWarehousesStatus('ط§ط®طھط± طµظ†ظپظ‹ط§ ط£ظˆظ„ط§ظ‹.','err'); return; }
+  if(!materialCode){ setSalesProductWarehousesStatus('اختر صنفًا أولاً.','err'); return; }
   const selected=getSelectedSalesProductWarehouseCodes();
   if(SALES_PRODUCT_WAREHOUSES_STATE.mode==='create'){
     SALES_PRODUCT_WAREHOUSES_STATE.links=salesProductWarehouseLinksFromCodes(selected);
     renderSalesProductWarehousesPanel();
-    setSalesProductWarehousesStatus('طھظ… ط­ظپط¸ ط§ط®طھظٹط§ط± ط§ظ„ظ…ط®ط§ط²ظ† ظ…ط¤ظ‚طھظ‹ط§. ط§ط¶ط؛ط· ط¥ط¶ط§ظپط© طµظ†ظپ ظ„ط¥طھظ…ط§ظ… ط§ظ„ط­ظپط¸.','ok');
+    setSalesProductWarehousesStatus('تم حفظ اختيار المخازن مؤقتًا. اضغط إضافة صنف لإتمام الحفظ.','ok');
     return;
   }
-  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setSalesProductWarehousesStatus('ط³ط¬ظ„ ط§ظ„ط¯ط®ظˆظ„ ط£ظˆظ„ط§ظ‹ ظ„ط­ظپط¸ ظ…ط®ط§ط²ظ† ط§ظ„طµظ†ظپ.','err'); return; }
-  setSalesProductWarehousesStatus('ط¬ط§ط±ظٹ ط­ظپط¸ ظ…ط®ط§ط²ظ† ط§ظ„طµظ†ظپ...');
+  if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setSalesProductWarehousesStatus('سجل الدخول أولاً لحفظ مخازن الصنف.','err'); return; }
+  setSalesProductWarehousesStatus('جاري حفظ مخازن الصنف...');
   try{
     const links=await saveSalesProductWarehouseCodes(materialCode,selected);
     SALES_PRODUCT_WAREHOUSES_STATE.links=links;
     renderSalesProductWarehousesPanel();
-    setSalesProductWarehousesStatus('طھظ… ط­ظپط¸ ظ…ط®ط§ط²ظ† ط§ظ„طµظ†ظپ ط¨ظ†ط¬ط§ط­.','ok');
+    setSalesProductWarehousesStatus('تم حفظ مخازن الصنف بنجاح.','ok');
   }catch(err){
-    setSalesProductWarehousesStatus('طھط¹ط°ط± ط­ظپط¸ ظ…ط®ط§ط²ظ† ط§ظ„طµظ†ظپ: '+(err.message||err),'err');
+    setSalesProductWarehousesStatus('تعذر حفظ مخازن الصنف: '+(err.message||err),'err');
   }
 }
 
@@ -5196,7 +5196,7 @@ function clearSalesProductSettingsForm(){
 }
 async function addSalesProductSettingsRow(e){
   e?.preventDefault();
-  if(!hasPermission('settings_sales_products','add')){ setSalesProductsSettingsStatus('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©','err'); return; }
+  if(!hasPermission('settings_sales_products','add')){ setSalesProductsSettingsStatus('غير متاح للصلاحية الحالية','err'); return; }
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setSalesProductsSettingsStatus('\u0633\u062C\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0623\u0648\u0644\u0627\u064B \u0644\u0625\u062F\u0627\u0631\u0629 \u0623\u0635\u0646\u0627\u0641 \u0627\u0644\u0628\u064A\u0639.','err'); return; }
   const payload=readSalesProductSettingsForm();
   if(!payload.material_code || !payload.material_name){ setSalesProductsSettingsStatus('\u0643\u0648\u062F \u0627\u0644\u0635\u0646\u0641 \u0648\u0627\u0633\u0645\u0647 \u0645\u0637\u0644\u0648\u0628\u0627\u0646.','err'); return; }
@@ -5205,7 +5205,7 @@ async function addSalesProductSettingsRow(e){
   try{
     selectedWarehouseCodes=await getNewSalesProductWarehouseSelection();
     if(selectedWarehouseCodes.length && !hasPermission('settings_sales_product_warehouses','add')){
-      setSalesProductsSettingsStatus('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©','err');
+      setSalesProductsSettingsStatus('غير متاح للصلاحية الحالية','err');
       return;
     }
     const {error}=await WarehouseDB.client.from('sales_products').insert(payload);
@@ -5213,7 +5213,7 @@ async function addSalesProductSettingsRow(e){
     try{
       await saveSalesProductWarehouseCodes(payload.material_code,selectedWarehouseCodes);
     }catch(linkError){
-      setSalesProductsSettingsStatus('طھظ… ط­ظپط¸ ط§ظ„طµظ†ظپطŒ ظ„ظƒظ† طھط¹ط°ط± ط­ظپط¸ ظ…ط®ط§ط²ظ†ظ‡: '+(linkError.message||linkError),'err');
+      setSalesProductsSettingsStatus('تم حفظ الصنف، لكن تعذر حفظ مخازنه: '+(linkError.message||linkError),'err');
       return;
     }
     clearSalesProductSettingsForm();
@@ -5222,13 +5222,13 @@ async function addSalesProductSettingsRow(e){
     SALES_PRODUCTS_SETTINGS_LOADED=false;
     await loadSalesProductsSettings();
     setSalesProductsSettingsStatus('\u062A\u0645\u062A \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0635\u0646\u0641 \u0648\u0645\u062E\u0627\u0632\u0646\u0647 \u0628\u0646\u062C\u0627\u062D.','ok');
-    await logSystemActivity('ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ','ط¥ط¶ط§ظپط©',`ط¥ط¶ط§ظپط© طµظ†ظپ ط¨ظٹط¹: ${payload.material_code}`);
+    await logSystemActivity('الإعدادات','إضافة',`إضافة صنف بيع: ${payload.material_code}`);
   }catch(err){
     setSalesProductsSettingsStatus('\u062A\u0639\u0630\u0631 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0635\u0646\u0641: '+(err.message||err),'err');
   }
 }
 async function saveSalesProductSettingsRow(source){
-  if(!hasPermission('settings_sales_products','edit')){ setSalesProductsSettingsStatus('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©','err'); return; }
+  if(!hasPermission('settings_sales_products','edit')){ setSalesProductsSettingsStatus('غير متاح للصلاحية الحالية','err'); return; }
   const row=source?.closest ? (source.closest('[data-material-code]') || source.closest('tr')) : source;
   if(!row || !WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   const materialCode=normalizeSalesProductCode(row.dataset.materialCode || row.querySelector('.sales-product-code-readonly')?.textContent || '');
@@ -5260,7 +5260,7 @@ async function saveSalesProductSettingsRow(source){
     SALES_PRODUCTS_SETTINGS_LOADED=false;
     await loadSalesProductsSettings();
     setSalesProductsSettingsStatus('\u062A\u0645 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0635\u0646\u0641 \u0628\u0646\u062C\u0627\u062D.','ok');
-    await logSystemActivity('ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ','طھط¹ط¯ظٹظ„',`طھط¹ط¯ظٹظ„ طµظ†ظپ ط¨ظٹط¹: ${materialCode}`);
+    await logSystemActivity('الإعدادات','تعديل',`تعديل صنف بيع: ${materialCode}`);
   }catch(err){
     setSalesProductsSettingsStatus('\u062A\u0639\u0630\u0631 \u062D\u0641\u0638 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0635\u0646\u0641: '+(err.message||err),'err');
   }
@@ -5296,7 +5296,7 @@ function initPasswordVisibilityToggles(){
       if(!input) return;
       const show=input.type==='password';
       input.type=show?'text':'password';
-      btn.textContent=show?'ط¥ط®ظپط§ط،':'ط¥ط¸ظ‡ط§ط±';
+      btn.textContent=show?'إخفاء':'إظهار';
     });
   });
 }
@@ -5322,7 +5322,7 @@ async function showApplication(user){
   if(profile.inactive){
     await WarehouseDB.signOut();
     showLoginScreen();
-    setMainAuthMessage('ظ‡ط°ط§ ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظپط¹ظ„. ط±ط§ط¬ط¹ ظ…ط¯ظٹط± ط§ظ„ظ†ط¸ط§ظ….','err');
+    setMainAuthMessage('هذا المستخدم غير مفعل. راجع مدير النظام.','err');
     return;
   }
   CURRENT_APP_PROFILE=profile;
@@ -5352,7 +5352,7 @@ async function showApplication(user){
 async function checkMainSession(){
   if(!window.WarehouseDB?.ready){
     showLoginScreen();
-    setMainAuthMessage('Supabase ط؛ظٹط± ظ…طھطµظ„. ط±ط§ط¬ط¹ ط¥ط¹ط¯ط§ط¯ط§طھ supabase-config.js','err');
+    setMainAuthMessage('Supabase غير متصل. راجع إعدادات supabase-config.js','err');
     return;
   }
   const {data}=await WarehouseDB.getUser();
@@ -5367,18 +5367,18 @@ function fileToDataUrl(file){
   });
 }
 async function saveCurrentProfile(){
-  if(!hasPermission('settings_profile','edit')){ alert('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©'); return; }
+  if(!hasPermission('settings_profile','edit')){ alert('غير متاح للصلاحية الحالية'); return; }
   const status=$('#profileSaveStatus');
-  if(status){ status.className='upload-status'; status.textContent='ط¬ط§ط±ظٹ ط­ظپط¸ ط§ظ„ط¨ظٹط§ظ†ط§طھ...'; }
+  if(status){ status.className='upload-status'; status.textContent='جاري حفظ البيانات...'; }
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){
-    if(status){ status.className='upload-status err'; status.textContent='ط³ط¬ظ„ ط§ظ„ط¯ط®ظˆظ„ ط£ظˆظ„ط§ظ‹.'; }
+    if(status){ status.className='upload-status err'; status.textContent='سجل الدخول أولاً.'; }
     return;
   }
   try{
     let avatarUrl=CURRENT_APP_PROFILE?.avatar_url || '';
     const file=$('#profileAvatarInput')?.files?.[0];
     if(file){
-      if(file.size > 600 * 1024) throw new Error('ط­ط¬ظ… ط§ظ„طµظˆط±ط© ظƒط¨ظٹط±. ط§ط³طھط®ط¯ظ… طµظˆط±ط© ط£ظ‚ظ„ ظ…ظ† 600KB.');
+      if(file.size > 600 * 1024) throw new Error('حجم الصورة كبير. استخدم صورة أقل من 600KB.');
       avatarUrl=await fileToDataUrl(file);
     }
     const payload={
@@ -5390,7 +5390,7 @@ async function saveCurrentProfile(){
       role: isSystemOwnerEmail(CURRENT_AUTH_USER.email) ? 'super_admin' : (CURRENT_APP_PROFILE?.role && CURRENT_APP_PROFILE.role !== 'authenticated' ? CURRENT_APP_PROFILE.role : 'viewer'),
       is_active: true
     };
-    if(!payload.full_name) throw new Error('ط§ظ„ط¥ط³ظ… ظ…ط·ظ„ظˆط¨.');
+    if(!payload.full_name) throw new Error('الإسم مطلوب.');
     const {data,error}=await WarehouseDB.client
       .from('app_users')
       .upsert(payload,{onConflict:'id'})
@@ -5401,9 +5401,9 @@ async function saveCurrentProfile(){
     applyProfileToHeader(CURRENT_APP_PROFILE);
     fillProfileForm(CURRENT_APP_PROFILE,CURRENT_AUTH_USER);
     fillSettingsAccountPanel(CURRENT_APP_PROFILE,CURRENT_AUTH_USER);
-    if(status){ status.className='upload-status ok'; status.textContent='طھظ… ط­ظپط¸ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط­ط³ط§ط¨ ط¨ظ†ط¬ط§ط­.'; }
+    if(status){ status.className='upload-status ok'; status.textContent='تم حفظ بيانات الحساب بنجاح.'; }
   }catch(err){
-    if(status){ status.className='upload-status err'; status.textContent='ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط­ظپط¸: '+(err.message || err); }
+    if(status){ status.className='upload-status err'; status.textContent='خطأ أثناء الحفظ: '+(err.message || err); }
   }
 }
 function initProfileSettings(){
@@ -5417,7 +5417,7 @@ function initProfileSettings(){
       const file=avatarInput.files?.[0];
       if(!file) return;
       try{
-        if(file.size > 600 * 1024) throw new Error('ط­ط¬ظ… ط§ظ„طµظˆط±ط© ظƒط¨ظٹط±. ط§ط³طھط®ط¯ظ… طµظˆط±ط© ط£ظ‚ظ„ ظ…ظ† 600KB.');
+        if(file.size > 600 * 1024) throw new Error('حجم الصورة كبير. استخدم صورة أقل من 600KB.');
         const dataUrl=await fileToDataUrl(file);
         const preview={...(CURRENT_APP_PROFILE||{}), avatar_url:dataUrl, full_name:$('#profileFullName')?.value || CURRENT_APP_PROFILE?.full_name};
         paintAvatar($('#profilePreviewAvatar'), preview);
@@ -5430,14 +5430,14 @@ function initProfileSettings(){
 }
 
 const ACTIVITY_LOG_COLUMNS=[
-  {key:'index',label:'ظ…'},
-  {key:'user_name',label:'ط§ظ„ظ…ط³طھط®ط¯ظ…'},
-  {key:'user_role',label:'ط§ظ„طµظ„ط§ط­ظٹط©'},
-  {key:'section',label:'ط§ظ„ظ‚ط³ظ…'},
-  {key:'operation_type',label:'ظ†ظˆط¹ ط§ظ„ط¹ظ…ظ„ظٹط©'},
-  {key:'details',label:'ط§ظ„طھظپط§طµظٹظ„'},
-  {key:'created_date',label:'ط§ظ„طھط§ط±ظٹط®'},
-  {key:'created_time',label:'ط§ظ„ظˆظ‚طھ'}
+  {key:'index',label:'م'},
+  {key:'user_name',label:'المستخدم'},
+  {key:'user_role',label:'الصلاحية'},
+  {key:'section',label:'القسم'},
+  {key:'operation_type',label:'نوع العملية'},
+  {key:'details',label:'التفاصيل'},
+  {key:'created_date',label:'التاريخ'},
+  {key:'created_time',label:'الوقت'}
 ];
 const ACTIVITY_LOG_STATE={rows:[],filters:{},globalSearch:'',sortKey:'created_at',sortDir:'desc',page:1,pageSize:25,loaded:false};
 function activityDateTimeParts(date=new Date()){
@@ -5453,8 +5453,8 @@ function currentActivityUserInfo(){
   const user=CURRENT_AUTH_USER||{};
   return {
     user_id:user.id||null,
-    user_name:profile.full_name||profile.name||user.email||'ط؛ظٹط± ظ…ط­ط¯ط¯',
-    user_role:profile.role||'ط؛ظٹط± ظ…ط­ط¯ط¯'
+    user_name:profile.full_name||profile.name||user.email||'غير محدد',
+    user_role:profile.role||'غير محدد'
   };
 }
 async function logSystemActivity(section,operationType,details,options={}){
@@ -5466,8 +5466,8 @@ async function logSystemActivity(section,operationType,details,options={}){
     const parts=activityDateTimeParts();
     const payload={
       user_id:actor.user_id,
-      user_name:actor.user_name||'ط؛ظٹط± ظ…ط­ط¯ط¯',
-      user_role:actor.user_role||'ط؛ظٹط± ظ…ط­ط¯ط¯',
+      user_name:actor.user_name||'غير محدد',
+      user_role:actor.user_role||'غير محدد',
       section,
       operation_type:operationType,
       details:cleanDetails,
@@ -5483,10 +5483,10 @@ async function logSystemActivity(section,operationType,details,options={}){
 }
 function activityExportSection(reportTitle=''){
   const title=String(reportTitle||'');
-  if(title.includes('ظ…ط³طھط®ط¯ظ…')) return 'ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†';
-  if(title.includes('طµظ„ط§ط­ظٹط§طھ')) return 'ط§ظ„طµظ„ط§ط­ظٹط§طھ';
-  if(title.includes('ط³ط¬ظ„ ط§ظ„ط­ط±ظƒط§طھ')) return 'ط§ظ„ظ†ط¸ط§ظ…';
-  return 'ط§ظ„طھظ‚ط§ط±ظٹط±';
+  if(title.includes('مستخدم')) return 'المستخدمين';
+  if(title.includes('صلاحيات')) return 'الصلاحيات';
+  if(title.includes('سجل الحركات')) return 'النظام';
+  return 'التقارير';
 }
 function setActivityLogStatus(message,type=''){
   const el=$('#activityLogStatus');
@@ -5528,7 +5528,7 @@ function renderActivityLogTable(){
   const start=(ACTIVITY_LOG_STATE.page-1)*ACTIVITY_LOG_STATE.pageSize;
   const pageRows=filtered.slice(start,start+ACTIVITY_LOG_STATE.pageSize);
   const head=ACTIVITY_LOG_COLUMNS.map(col=>{
-    const arrow=ACTIVITY_LOG_STATE.sortKey===col.key ? (ACTIVITY_LOG_STATE.sortDir==='asc'?'â–²':'â–¼') : '';
+    const arrow=ACTIVITY_LOG_STATE.sortKey===col.key ? (ACTIVITY_LOG_STATE.sortDir==='asc'?'▲':'▼') : '';
     return `<th data-activity-sort="${escapeHtml(col.key)}">${escapeHtml(col.label)} <span>${arrow}</span></th>`;
   }).join('');
   const filters=ACTIVITY_LOG_COLUMNS.map(col=>{
@@ -5542,18 +5542,18 @@ function renderActivityLogTable(){
       const cls=col.key==='details'?' class="activity-log-details"':'';
       return `<td${cls}>${escapeHtml(value)||'-'}</td>`;
     }).join('')+'</tr>';
-  }).join('') : '<tr><td colspan="8" class="empty-row">ظ„ط§ طھظˆط¬ط¯ ط­ط±ظƒط§طھ ظ…ط·ط§ط¨ظ‚ط©.</td></tr>';
+  }).join('') : '<tr><td colspan="8" class="empty-row">لا توجد حركات مطابقة.</td></tr>';
   tableEl.innerHTML=`<thead><tr>${head}</tr><tr class="activity-log-filter-row">${filters}</tr></thead><tbody>${body}</tbody>`;
   applySettingsSubPermissions();
   const pager=$('#activityLogPagination');
   if(pager){
-    pager.innerHTML=`<button type="button" data-activity-page="prev" ${ACTIVITY_LOG_STATE.page<=1?'disabled':''}>ط§ظ„ط³ط§ط¨ظ‚</button><span>طµظپط­ط© ${ACTIVITY_LOG_STATE.page} ظ…ظ† ${totalPages} - ${filtered.length.toLocaleString('en-US')} ط­ط±ظƒط©</span><button type="button" data-activity-page="next" ${ACTIVITY_LOG_STATE.page>=totalPages?'disabled':''}>ط§ظ„طھط§ظ„ظٹ</button>`;
+    pager.innerHTML=`<button type="button" data-activity-page="prev" ${ACTIVITY_LOG_STATE.page<=1?'disabled':''}>السابق</button><span>صفحة ${ACTIVITY_LOG_STATE.page} من ${totalPages} - ${filtered.length.toLocaleString('en-US')} حركة</span><button type="button" data-activity-page="next" ${ACTIVITY_LOG_STATE.page>=totalPages?'disabled':''}>التالي</button>`;
   }
 }
 async function loadActivityLog(options={}){
   if(!$('#activityLogTable')) return;
-  if(!WarehouseDB?.ready){ setActivityLogStatus('Supabase ط؛ظٹط± ظ…طھطµظ„.','err'); return; }
-  if(!options.silent) setActivityLogStatus('ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط³ط¬ظ„ ط§ظ„ط­ط±ظƒط§طھ...');
+  if(!WarehouseDB?.ready){ setActivityLogStatus('Supabase غير متصل.','err'); return; }
+  if(!options.silent) setActivityLogStatus('جاري تحميل سجل الحركات...');
   try{
     const {data,error}=await WarehouseDB.client
       .from('system_activity_log')
@@ -5564,9 +5564,9 @@ async function loadActivityLog(options={}){
     ACTIVITY_LOG_STATE.rows=data||[];
     ACTIVITY_LOG_STATE.loaded=true;
     renderActivityLogTable();
-    if(!options.silent) setActivityLogStatus('طھظ… طھط­ظ…ظٹظ„ ط³ط¬ظ„ ط§ظ„ط­ط±ظƒط§طھ.','ok');
+    if(!options.silent) setActivityLogStatus('تم تحميل سجل الحركات.','ok');
   }catch(err){
-    setActivityLogStatus('طھط¹ط°ط± طھط­ظ…ظٹظ„ ط³ط¬ظ„ ط§ظ„ط­ط±ظƒط§طھ: '+(err.message||err),'err');
+    setActivityLogStatus('تعذر تحميل سجل الحركات: '+(err.message||err),'err');
   }
 }
 function ensureActivityLogLoaded(){ if(!ACTIVITY_LOG_STATE.loaded) loadActivityLog(); }
@@ -5575,31 +5575,31 @@ function activityLogExportMatrix(){
   return [ACTIVITY_LOG_COLUMNS.map(c=>c.label),...rows.map((row,idx)=>ACTIVITY_LOG_COLUMNS.map(col=>activityLogRowValue(row,col.key,idx)))];
 }
 async function exportActivityLogExcel(){
-  if(!hasPermission('settings_activity_log','export_excel')){ alert('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©'); return; }
-  if(!window.XLSX){ alert('ظ…ظƒطھط¨ط© Excel ط؛ظٹط± ظ…ط­ظ…ظ„ط©.'); return; }
+  if(!hasPermission('settings_activity_log','export_excel')){ alert('غير متاح للصلاحية الحالية'); return; }
+  if(!window.XLSX){ alert('مكتبة Excel غير محملة.'); return; }
   const matrix=activityLogExportMatrix();
-  if(matrix.length<=1){ alert('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ„ظ„طھطµط¯ظٹط±.'); return; }
+  if(matrix.length<=1){ alert('لا توجد بيانات للتصدير.'); return; }
   const ws=XLSX.utils.aoa_to_sheet(matrix);
   ws['!rtl']=true;
   const wb=XLSX.utils.book_new();
   wb.Workbook={Views:[{RTL:true}]};
-  XLSX.utils.book_append_sheet(wb,ws,'ط³ط¬ظ„ ط§ظ„ط­ط±ظƒط§طھ');
+  XLSX.utils.book_append_sheet(wb,ws,'سجل الحركات');
   const out=XLSX.write(wb,{bookType:'xlsx',type:'array',cellStyles:true});
   const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  await saveBlobWithPicker(blob,`${safeFileName('ط³ط¬ظ„ ط§ظ„ط­ط±ظƒط§طھ')}.xlsx`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  await logSystemActivity('ط§ظ„ظ†ط¸ط§ظ…','طھطµط¯ظٹط± Excel','طھطµط¯ظٹط± ط³ط¬ظ„ ط§ظ„ط­ط±ظƒط§طھ Excel');
+  await saveBlobWithPicker(blob,`${safeFileName('سجل الحركات')}.xlsx`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  await logSystemActivity('النظام','تصدير Excel','تصدير سجل الحركات Excel');
 }
 async function exportActivityLogPdf(){
-  if(!hasPermission('settings_activity_log','export_pdf')){ alert('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©'); return; }
+  if(!hasPermission('settings_activity_log','export_pdf')){ alert('غير متاح للصلاحية الحالية'); return; }
   const matrix=activityLogExportMatrix();
-  if(matrix.length<=1){ alert('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ„ظ„طھطµط¯ظٹط±.'); return; }
+  if(matrix.length<=1){ alert('لا توجد بيانات للتصدير.'); return; }
   const previousPage=ACTIVITY_LOG_STATE.page;
   const previousPageSize=ACTIVITY_LOG_STATE.pageSize;
   try{
     ACTIVITY_LOG_STATE.page=1;
     ACTIVITY_LOG_STATE.pageSize=Math.max(1,matrix.length-1);
     renderActivityLogTable();
-    await exportTableToPdf('activityLogTable','ط³ط¬ظ„ ط§ظ„ط­ط±ظƒط§طھ');
+    await exportTableToPdf('activityLogTable','سجل الحركات');
   }finally{
     ACTIVITY_LOG_STATE.page=previousPage;
     ACTIVITY_LOG_STATE.pageSize=previousPageSize;
@@ -5679,7 +5679,7 @@ function initSettingsTabs(){
   tabs.forEach(tab=>tab.addEventListener('click',()=>{
     const key=tab.dataset.settingsTab;
     if(!canViewSettingsTab(key)){
-      alert('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©');
+      alert('غير متاح للصلاحية الحالية');
       applySettingsSubPermissions();
       syncSettingsMobileTabSelect();
       return;
@@ -5704,38 +5704,38 @@ function initSettingsTabs(){
 
 // === Permissions Engine ===
 const PERMISSION_ACTIONS = [
-  {key:'view', label:'ط¹ط±ط¶'},
-  {key:'add', label:'ط¥ط¶ط§ظپط©'},
-  {key:'edit', label:'طھط¹ط¯ظٹظ„'},
+  {key:'view', label:'عرض'},
+  {key:'add', label:'إضافة'},
+  {key:'edit', label:'تعديل'},
   {key:'delete', label:'ط­ط°ظپ'},
-  {key:'upload', label:'ط±ظپط¹'},
+  {key:'upload', label:'رفع'},
   {key:'export_excel', label:'Excel'},
   {key:'export_pdf', label:'PDF'},
   {key:'export_png', label:'PNG'},
-  {key:'approve', label:'ط§ط¹طھظ…ط§ط¯'},
-  {key:'manage', label:'ط¥ط¯ط§ط±ط©'}
+  {key:'approve', label:'اعتماد'},
+  {key:'manage', label:'إدارة'}
 ];
 const PERMISSION_SCREENS = [
-  {key:'dashboard', label:'ط§ظ„ط±ط¦ظٹط³ظٹط©', description:'ط¹ط±ط¶ ظ„ظˆط­ط© ط§ظ„ظ…ط¤ط´ط±ط§طھ ظˆط§ظ„ط´ط§ط´ط© ط§ظ„ط±ط¦ظٹط³ظٹط©'},
-  {key:'upload', label:'ط±ظپط¹ ط§ظ„طھظ‚ط§ط±ظٹط±', description:'ط±ظپط¹ ظ…ظ„ظپط§طھ ط§ظ„ط¨ظٹط¹ ظˆط§ظ„ظˆط§ط±ط¯ ظˆط§ظ„ظ…ظٹط²ط§ظ† ظˆط§ظ„ظ†ظˆظ„ظˆظ†'},
-  {key:'plants', label:'ظ…طµط§ظ†ط¹ ظˆظ…ط®ط§ط²ظ†', description:'ط¹ط±ط¶ ظˆط¥ط¯ط§ط±ط© ط§ظ„ظ…طµط§ظ†ط¹ ظˆط§ظ„ظ…ط®ط§ط²ظ†'},
-  {key:'movements', label:'ط§ظ„ط­ط±ظƒط§طھ ط§ظ„ظ…ط®ط²ظ†ظٹط©', description:'ظ‚ظˆط§ط¹ط¯ ظˆط£ظƒظˆط§ط¯ ط§ظ„ط­ط±ظƒط§طھ ط§ظ„ظ…ط®ط²ظ†ظٹط©'},
-  {key:'sales', label:'ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط¨ظٹط¹', description:'ظ…ط±ط§ط¬ط¹ط© ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظ…ظ†طھط¬ ط§ظ„طھط§ظ… ظˆط§ظ„طھط­ظˆظٹظ„ط§طھ'},
-  {key:'inbound', label:'ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظˆط§ط±ط¯', description:'ظ…ط±ط§ط¬ط¹ط© ظˆط§ط±ط¯ MB51 ظˆط§ظ„ظ…ظٹط²ط§ظ† ظˆط§ظ„ظ†ظˆظ„ظˆظ†'},
-  {key:'raw_materials', label:'ظ…طھط§ط¨ط¹ط© ط§ظ„ط®ط§ظ…ط§طھ', description:'ظ…طھط§ط¨ط¹ط© ط£ط±طµط¯ط© ط§ظ„ط®ط§ظ…ط§طھ ظˆظ…ط¹ط¯ظ„ط§طھ ط§ظ„ط§ط³طھظ‡ظ„ط§ظƒ ظˆط£ظٹط§ظ… ط§ظ„طھط؛ط·ظٹط©'},
-  {key:'inventory_count', label:'ط§ظ„ط¬ط±ط¯ ظˆطھظˆط«ظٹظ‚ ط§ظ„ظ…ط®ط²ظˆظ†', description:'ط¥ظ†ط´ط§ط، ط¬ط±ط¯ ط§ظ„ظ…ط®ط²ظˆظ† ظˆط¹ط±ط¶ ط§ظ„ط¨ظ†ظˆط¯ ظˆط§ظ„ط±طµظٹط¯ ط§ظ„ط¯ظپطھط±ظٹ'},
-  {key:'reports', label:'ط§ظ„طھظ‚ط§ط±ظٹط±', description:'ظ…ط±ظƒط² ط§ظ„طھظ‚ط§ط±ظٹط± ط§ظ„طھظ†ظپظٹط°ظٹط© ظˆط§ظ„طھط­ظ„ظٹظ„ط§طھ'},
-  {key:'users', label:'ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†', description:'ط¥ظ†ط´ط§ط، ظˆطھط¹ط¯ظٹظ„ ظˆطھط¹ط·ظٹظ„ ظˆط­ط°ظپ ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†'},
-  {key:'permissions', label:'ط¥ط¯ط§ط±ط© ط§ظ„طµظ„ط§ط­ظٹط§طھ', description:'طھط¹ط¯ظٹظ„ طµظ„ط§ط­ظٹط§طھ ط§ظ„ط£ط¯ظˆط§ط± ظˆط§ظ„ط´ط§ط´ط§طھ'},
-  {key:'settings_profile', label:'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ / ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ط´ط®طµظٹط©', description:'ط¹ط±ط¶ ظˆطھط¹ط¯ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط­ط³ط§ط¨ ط§ظ„ط´ط®طµظٹط©'},
-  {key:'settings_account', label:'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ / ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ… ظˆظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±', description:'ط¹ط±ط¶ ظˆطھط¹ط¯ظٹظ„ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ… ظˆظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±'},
-  {key:'settings_system', label:'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ / ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ†ط¸ط§ظ…', description:'ط¹ط±ط¶ ظˆطھط¹ط¯ظٹظ„ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ†ط¸ط§ظ…'},
-  {key:'settings_plants', label:'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ / ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…طµط§ظ†ط¹', description:'ط¹ط±ط¶ ظˆط¥ط¶ط§ظپط© ظˆطھط¹ط¯ظٹظ„ ظˆط­ط°ظپ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…طµط§ظ†ط¹'},
-  {key:'settings_warehouses', label:'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ / ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…ط®ط§ط²ظ†', description:'ط¹ط±ط¶ ظˆط¥ط¶ط§ظپط© ظˆطھط¹ط¯ظٹظ„ ظˆط­ط°ظپ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…ط®ط§ط²ظ†'},
-  {key:'settings_sales_products', label:'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ / ط¥ط¹ط¯ط§ط¯ط§طھ ط£طµظ†ط§ظپ ط§ظ„ط¨ظٹط¹', description:'ط¹ط±ط¶ ظˆط¥ط¶ط§ظپط© ظˆطھط¹ط¯ظٹظ„ ظˆط­ط°ظپ ط¥ط¹ط¯ط§ط¯ط§طھ ط£طµظ†ط§ظپ ط§ظ„ط¨ظٹط¹'},
-  {key:'settings_activity_log', label:'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ / ط³ط¬ظ„ ط§ظ„ط­ط±ظƒط§طھ', description:'ط¹ط±ط¶ ظˆطھطµط¯ظٹط± ط³ط¬ظ„ ط§ظ„ط­ط±ظƒط§طھ'},
-  {key:'settings_sales_product_warehouses', label:'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ / ط±ط¨ط· ط£طµظ†ط§ظپ ط§ظ„ط¨ظٹط¹ ط¨ط§ظ„ظ…ط®ط§ط²ظ†', description:'ط¹ط±ط¶ ظˆط¥ط¶ط§ظپط© ظˆط­ط°ظپ ط±ط¨ط· ط£طµظ†ط§ظپ ط§ظ„ط¨ظٹط¹ ط¨ط§ظ„ظ…ط®ط§ط²ظ†'},
-  {key:'settings', label:'ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ', description:'ط¨ظٹط§ظ†ط§طھ ط§ظ„ط­ط³ط§ط¨ ظˆط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ†ط¸ط§ظ…'}
+  {key:'dashboard', label:'الرئيسية', description:'عرض لوحة المؤشرات والشاشة الرئيسية'},
+  {key:'upload', label:'رفع التقارير', description:'رفع ملفات البيع والوارد والميزان والنولون'},
+  {key:'plants', label:'مصانع ومخازن', description:'عرض وإدارة المصانع والمخازن'},
+  {key:'movements', label:'الحركات المخزنية', description:'قواعد وأكواد الحركات المخزنية'},
+  {key:'sales', label:'مراجعة البيع', description:'مراجعة مبيعات المنتج التام والتحويلات'},
+  {key:'inbound', label:'مراجعة الوارد', description:'مراجعة وارد MB51 والميزان والنولون'},
+  {key:'raw_materials', label:'متابعة الخامات', description:'متابعة أرصدة الخامات ومعدلات الاستهلاك وأيام التغطية'},
+  {key:'inventory_count', label:'الجرد وتوثيق المخزون', description:'إنشاء جرد المخزون وعرض البنود والرصيد الدفتري'},
+  {key:'reports', label:'التقارير', description:'مركز التقارير التنفيذية والتحليلات'},
+  {key:'users', label:'إدارة المستخدمين', description:'إنشاء وتعديل وتعطيل وحذف المستخدمين'},
+  {key:'permissions', label:'إدارة الصلاحيات', description:'تعديل صلاحيات الأدوار والشاشات'},
+  {key:'settings_profile', label:'الإعدادات / البيانات الشخصية', description:'عرض وتعديل بيانات الحساب الشخصية'},
+  {key:'settings_account', label:'الإعدادات / بيانات المستخدم وكلمة المرور', description:'عرض وتعديل بيانات المستخدم وكلمة المرور'},
+  {key:'settings_system', label:'الإعدادات / إعدادات النظام', description:'عرض وتعديل إعدادات النظام'},
+  {key:'settings_plants', label:'الإعدادات / إعدادات المصانع', description:'عرض وإضافة وتعديل وحذف إعدادات المصانع'},
+  {key:'settings_warehouses', label:'الإعدادات / إعدادات المخازن', description:'عرض وإضافة وتعديل وحذف إعدادات المخازن'},
+  {key:'settings_sales_products', label:'الإعدادات / إعدادات أصناف البيع', description:'عرض وإضافة وتعديل وحذف إعدادات أصناف البيع'},
+  {key:'settings_activity_log', label:'الإعدادات / سجل الحركات', description:'عرض وتصدير سجل الحركات'},
+  {key:'settings_sales_product_warehouses', label:'الإعدادات / ربط أصناف البيع بالمخازن', description:'عرض وإضافة وحذف ربط أصناف البيع بالمخازن'},
+  {key:'settings', label:'الإعدادات', description:'بيانات الحساب وإعدادات النظام'}
 ];
 const PERMISSION_ROLE_LABELS={admin:'Admin',auditor:'Auditor',viewer:'Viewer'};
 let CURRENT_ROLE_PERMISSIONS = {};
@@ -5798,7 +5798,7 @@ function canViewSection(section){ return hasPermission(section,'view'); }
 function showPermissionDenied(section){
   const permissionKey=permissionKeyForSection(section);
   const label=PERMISSION_SCREENS.find(x=>x.key===permissionKey)?.label || section;
-  alert(`ط؛ظٹط± ظ…ط³ظ…ظˆط­ ط¨ط§ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰: ${label}\nط±ط§ط¬ط¹ ظ…ط¯ظٹط± ط§ظ„ظ†ط¸ط§ظ… ظ„طھط¹ط¯ظٹظ„ ط§ظ„طµظ„ط§ط­ظٹط§طھ.`);
+  alert(`غير مسموح بالوصول إلى: ${label}\nراجع مدير النظام لتعديل الصلاحيات.`);
 }
 async function loadCurrentUserPermissions(){
   if(isSuperAdmin()){ CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions('admin'); applySettingsSubPermissions(); return; }
@@ -5816,7 +5816,7 @@ function applyNavigationPermissions(){
     const allowed=canViewSection(section);
     btn.classList.toggle('permission-hidden',!allowed);
     btn.disabled=!allowed;
-    btn.title=allowed?'':'ط؛ظٹط± ظ…ط³ظ…ظˆط­ ط­ط³ط¨ طµظ„ط§ط­ظٹط§طھ ط§ظ„ط¯ظˆط±';
+    btn.title=allowed?'':'غير مسموح حسب صلاحيات الدور';
   });
   const rawMobileItem=$('.mobile-drawer-item[data-mobile-section="raw_materials"]');
   if(rawMobileItem){
@@ -5836,7 +5836,7 @@ function disableByPermission(selector, section, action, message){
     const allowed=hasPermission(section,action);
     el.disabled=!allowed;
     el.classList.toggle('permission-disabled',!allowed);
-    if(!allowed) el.title=message || 'ط؛ظٹط± ظ…ط³ظ…ظˆط­ ط­ط³ط¨ طµظ„ط§ط­ظٹط§طھ ط§ظ„ط¯ظˆط±';
+    if(!allowed) el.title=message || 'غير مسموح حسب صلاحيات الدور';
   });
 }
 function applyPermissionActionGuards(section){
@@ -5846,14 +5846,14 @@ function applyPermissionActionGuards(section){
     applySettingsSubPermissions();
     return;
   }
-  disableByPermission('button[id*="ExportExcel"],button[id*="Excel"],button[id*="exportExcel"],button[id*="ExcelBtn"]',section,'export_excel','ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© طھطµط¯ظٹط± Excel');
-  disableByPermission('button[id*="ExportPdf"],button[id*="Pdf"],button[id*="exportPdf"],button[id*="PdfBtn"]',section,'export_pdf','ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© طھطµط¯ظٹط± PDF');
-  disableByPermission('button[id*="ExportPng"],button[id*="Png"],.png-export-btn',section,'export_png','ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© طھطµط¯ظٹط± PNG');
-  disableByPermission('.delete-user-btn,.delete-batch-btn,button[id*="Delete"],button.danger',section,'delete','ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط§ظ„ط­ط°ظپ');
-  disableByPermission('button[id*="Upload"],button[id*="pick"],.upload-report-tab',section,'upload','ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط§ظ„ط±ظپط¹');
-  disableByPermission('button[id*="save"],button[id*="Save"],button[id*="edit"],.edit-user-btn',section,'edit','ظ„ط§ طھظ…ظ„ظƒ طµظ„ط§ط­ظٹط© ط§ظ„طھط¹ط¯ظٹظ„');
+  disableByPermission('button[id*="ExportExcel"],button[id*="Excel"],button[id*="exportExcel"],button[id*="ExcelBtn"]',section,'export_excel','لا تملك صلاحية تصدير Excel');
+  disableByPermission('button[id*="ExportPdf"],button[id*="Pdf"],button[id*="exportPdf"],button[id*="PdfBtn"]',section,'export_pdf','لا تملك صلاحية تصدير PDF');
+  disableByPermission('button[id*="ExportPng"],button[id*="Png"],.png-export-btn',section,'export_png','لا تملك صلاحية تصدير PNG');
+  disableByPermission('.delete-user-btn,.delete-batch-btn,button[id*="Delete"],button.danger',section,'delete','لا تملك صلاحية الحذف');
+  disableByPermission('button[id*="Upload"],button[id*="pick"],.upload-report-tab',section,'upload','لا تملك صلاحية الرفع');
+  disableByPermission('button[id*="save"],button[id*="Save"],button[id*="edit"],.edit-user-btn',section,'edit','لا تملك صلاحية التعديل');
   if(section==='inventory_closing'){
-    disableByPermission('#createInventoryCountBtn','inventory_count','add','ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©');
+    disableByPermission('#createInventoryCountBtn','inventory_count','add','غير متاح للصلاحية الحالية');
     if(typeof inventoryCountUpdateCreateButton === 'function') inventoryCountUpdateCreateButton();
   }
 }
@@ -5876,7 +5876,7 @@ function permissionsKpiUpdate(rows){
 function renderPermissionsMatrix(rows){
   const tbody=$('#permissionsMatrixTable tbody');
   if(!tbody) return;
-  if(!rows.length){ tbody.innerHTML='<tr><td colspan="11" class="empty-row">ظ„ط§ طھظˆط¬ط¯ ط´ط§ط´ط§طھ ظ…ط·ط§ط¨ظ‚ط©.</td></tr>'; return; }
+  if(!rows.length){ tbody.innerHTML='<tr><td colspan="11" class="empty-row">لا توجد شاشات مطابقة.</td></tr>'; return; }
   tbody.innerHTML=rows.map(sc=>{
     const row=PERMISSIONS_MANAGEMENT_STATE.rows.find(r=>r.screen_key===sc.key) || buildDefaultPermissions(PERMISSIONS_MANAGEMENT_STATE.role)[sc.key];
     const cells=PERMISSION_ACTIONS.map(a=>{
@@ -5913,17 +5913,17 @@ function resetPermissionsToDefaults(){
   PERMISSIONS_MANAGEMENT_STATE.rows=Object.values(buildDefaultPermissions(role));
   PERMISSIONS_MANAGEMENT_STATE.dirty=true;
   applyPermissionsSearch();
-  setPermissionsStatus('طھظ… ط§ط³طھط¹ط§ط¯ط© ط§ظ„طµظ„ط§ط­ظٹط§طھ ط§ظ„ط§ظپطھط±ط§ط¶ظٹط©. ط§ط¶ط؛ط· ط­ظپط¸ ظ„ط§ط¹طھظ…ط§ط¯ظ‡ط§.','ok');
+  setPermissionsStatus('تم استعادة الصلاحيات الافتراضية. اضغط حفظ لاعتمادها.','ok');
 }
 async function loadPermissionsManagement(){
   if(!$('#permissionsMatrixTable')) return;
   if(!isSuperAdmin() && !hasPermission('permissions','manage')){
-    setPermissionsStatus('ط؛ظٹط± ظ…ط³ظ…ظˆط­ ط¨ط¥ط¯ط§ط±ط© ط§ظ„طµظ„ط§ط­ظٹط§طھ ظ„ظ‡ط°ط§ ط§ظ„ط¯ظˆط±.','err');
+    setPermissionsStatus('غير مسموح بإدارة الصلاحيات لهذا الدور.','err');
     return;
   }
   const role=$('#permissionsRoleSelect')?.value || PERMISSIONS_MANAGEMENT_STATE.role || 'admin';
   PERMISSIONS_MANAGEMENT_STATE.role=role;
-  setPermissionsStatus('ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„طµظ„ط§ط­ظٹط§طھ...');
+  setPermissionsStatus('جاري تحميل الصلاحيات...');
   try{
     let rows=[];
     if(WarehouseDB?.ready){
@@ -5934,22 +5934,22 @@ async function loadPermissionsManagement(){
     PERMISSIONS_MANAGEMENT_STATE.rows=Object.values(permissionsForRoleFromRows(role,rows));
     PERMISSIONS_MANAGEMENT_STATE.dirty=false;
     const info=$('#permissionsRoleInfo');
-    if(info) info.innerHTML=`<b>${PERMISSION_ROLE_LABELS[role]}</b><span>ط¹ط¯ط¯ ط§ظ„طµظ„ط§ط­ظٹط§طھ: ${PERMISSIONS_MANAGEMENT_STATE.rows.length*PERMISSION_ACTIONS.length}</span>`;
+    if(info) info.innerHTML=`<b>${PERMISSION_ROLE_LABELS[role]}</b><span>عدد الصلاحيات: ${PERMISSIONS_MANAGEMENT_STATE.rows.length*PERMISSION_ACTIONS.length}</span>`;
     applyPermissionsSearch();
-    setPermissionsStatus('طھظ… طھط­ظ…ظٹظ„ ط§ظ„طµظ„ط§ط­ظٹط§طھ.','ok');
+    setPermissionsStatus('تم تحميل الصلاحيات.','ok');
   }catch(err){
     PERMISSIONS_MANAGEMENT_STATE.rows=Object.values(buildDefaultPermissions(role));
     applyPermissionsSearch();
-    setPermissionsStatus('طھط¹ط°ط± طھط­ظ…ظٹظ„ ط§ظ„طµظ„ط§ط­ظٹط§طھ ظ…ظ† SupabaseطŒ طھظ… ط¹ط±ط¶ ط§ظ„ط§ظپطھط±ط§ط¶ظٹ: '+(err.message||err),'err');
+    setPermissionsStatus('تعذر تحميل الصلاحيات من Supabase، تم عرض الافتراضي: '+(err.message||err),'err');
   }
 }
 async function savePermissionsManagement(){
-  if(!WarehouseDB?.ready){ setPermissionsStatus('Supabase ط؛ظٹط± ظ…طھطµظ„.','err'); return; }
-  if(!isSuperAdmin() && !hasPermission('permissions','manage')){ setPermissionsStatus('ط؛ظٹط± ظ…ط³ظ…ظˆط­ ط¨ط­ظپط¸ ط§ظ„طµظ„ط§ط­ظٹط§طھ.','err'); return; }
+  if(!WarehouseDB?.ready){ setPermissionsStatus('Supabase غير متصل.','err'); return; }
+  if(!isSuperAdmin() && !hasPermission('permissions','manage')){ setPermissionsStatus('غير مسموح بحفظ الصلاحيات.','err'); return; }
   const role=PERMISSIONS_MANAGEMENT_STATE.role;
-  if(role==='super_admin'){ setPermissionsStatus('ظ„ط§ ظٹظ…ظƒظ† طھط¹ط¯ظٹظ„ طµظ„ط§ط­ظٹط§طھ Super Admin.','err'); return; }
+  if(role==='super_admin'){ setPermissionsStatus('لا يمكن تعديل صلاحيات Super Admin.','err'); return; }
   try{
-    setPermissionsStatus('ط¬ط§ط±ظٹ ط­ظپط¸ ط§ظ„طµظ„ط§ط­ظٹط§طھ...');
+    setPermissionsStatus('جاري حفظ الصلاحيات...');
     const payload=PERMISSIONS_MANAGEMENT_STATE.rows.map(r=>{
       const obj={role,screen_key:r.screen_key,updated_at:new Date().toISOString()};
       PERMISSION_ACTIONS.forEach(a=>obj[permissionColumn(a.key)] = r[permissionColumn(a.key)] === true);
@@ -5958,11 +5958,11 @@ async function savePermissionsManagement(){
     const {error}=await WarehouseDB.client.from('app_role_permissions').upsert(payload,{onConflict:'role,screen_key'});
     if(error) throw error;
     PERMISSIONS_MANAGEMENT_STATE.dirty=false;
-    setPermissionsStatus('طھظ… ط­ظپط¸ ط§ظ„طµظ„ط§ط­ظٹط§طھ ط¨ظ†ط¬ط§ط­.','ok');
-    await logSystemActivity('ط§ظ„طµظ„ط§ط­ظٹط§طھ','طھط¹ط¯ظٹظ„ طµظ„ط§ط­ظٹط§طھ ظ…ط³طھط®ط¯ظ…',`طھط¹ط¯ظٹظ„ طµظ„ط§ط­ظٹط§طھ ط§ظ„ط¯ظˆط±: ${role}`);
+    setPermissionsStatus('تم حفظ الصلاحيات بنجاح.','ok');
+    await logSystemActivity('الصلاحيات','تعديل صلاحيات مستخدم',`تعديل صلاحيات الدور: ${role}`);
     await loadCurrentUserPermissions();
     applyNavigationPermissions();
-  }catch(err){ setPermissionsStatus('طھط¹ط°ط± ط­ظپط¸ ط§ظ„طµظ„ط§ط­ظٹط§طھ: '+(err.message||err),'err'); }
+  }catch(err){ setPermissionsStatus('تعذر حفظ الصلاحيات: '+(err.message||err),'err'); }
 }
 function initPermissionsManagement(){
   $('#permissionsRoleSelect')?.addEventListener('change',loadPermissionsManagement);
@@ -5975,7 +5975,7 @@ function initPermissionsManagement(){
 }
 
 // === Users Management ===
-const USER_ROLE_LABELS={super_admin:'ظ…ظ†ط´ط¦ ط§ظ„ظ†ط¸ط§ظ…',admin:'Admin',auditor:'Auditor',viewer:'Viewer',authenticated:'Authenticated'};
+const USER_ROLE_LABELS={super_admin:'منشئ النظام',admin:'Admin',auditor:'Auditor',viewer:'Viewer',authenticated:'Authenticated'};
 const USER_ROLE_CREATE_VALUES=new Set(['admin','auditor','viewer']);
 const SYSTEM_OWNER_EMAILS=new Set(['ahmed.alaa842001@gmail.com']);
 function isSystemOwnerEmail(email){ return SYSTEM_OWNER_EMAILS.has(String(email||'').trim().toLowerCase()); }
@@ -5988,7 +5988,7 @@ function setUsersStatus(message,type=''){
   el.textContent=message||'';
 }
 function roleLabel(role){ return USER_ROLE_LABELS[role] || role || 'Viewer'; }
-function userInitial(name,email){ return String((name||email||'ظ…').trim()).charAt(0).toUpperCase() || 'ظ…'; }
+function userInitial(name,email){ return String((name||email||'م').trim()).charAt(0).toUpperCase() || 'م'; }
 function userDateText(v){
   if(!v) return '--';
   try{ return new Date(v).toLocaleString('ar-EG',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(_){ return String(v).slice(0,19).replace('T',' '); }
@@ -6086,7 +6086,7 @@ function renderUsersManagementTableBody(rows){
   const tbody=$('#usersManagementTable tbody');
   if(!tbody) return;
   if(!rows.length){
-    tbody.innerHTML='<tr><td colspan="10" class="empty-row">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ…ط³طھط®ط¯ظ…ظٹظ† ظ…ط·ط§ط¨ظ‚ط©.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="10" class="empty-row">لا توجد بيانات مستخدمين مطابقة.</td></tr>';
     return;
   }
   tbody.innerHTML=rows.map((u,i)=>{
@@ -6098,19 +6098,19 @@ function renderUsersManagementTableBody(rows){
     return `<tr data-user-id="${escapeHtml(u.id)}" class="${u.is_current?'current-user-row':''} ${u.is_fallback?'fallback-user-row':''}">
       <td class="users-row-index">${i+1}</td>
       <td><div class="user-avatar-cell ${roleClass}">${avatar}</div></td>
-      <td><strong>${escapeHtml(u.full_name||'--')}</strong>${u.is_current?'<small class="you-badge">ط£ظ†طھ</small>':''}${u.is_fallback?'<small class="sync-badge">Auth</small>':''}</td>
+      <td><strong>${escapeHtml(u.full_name||'--')}</strong>${u.is_current?'<small class="you-badge">أنت</small>':''}${u.is_fallback?'<small class="sync-badge">Auth</small>':''}</td>
       <td>${escapeHtml(u.job_title||'--')}</td>
-      <td class="ltr-cell">${escapeHtml(u.email||'ط؛ظٹط± ظ…ط®ط²ظ†')}</td>
+      <td class="ltr-cell">${escapeHtml(u.email||'غير مخزن')}</td>
       <td class="ltr-cell">${escapeHtml(u.phone||'--')}</td>
       <td><span class="role-badge role-${roleClass}">${escapeHtml(roleLabel(u.role))}</span></td>
-      <td><span class="status-pill ${u.is_active?'ok':'danger'}">${u.is_active?'ظ†ط´ط·':'ظ…ط¹ط·ظ„'}</span></td>
+      <td><span class="status-pill ${u.is_active?'ok':'danger'}">${u.is_active?'نشط':'معطل'}</span></td>
       <td>${escapeHtml(userDateText(u.updated_at))}</td>
       <td>
         <div class="row-actions users-row-actions">
-          <button type="button" class="icon-action view-user-btn" data-user-id="${escapeHtml(u.id)}" title="ط¹ط±ط¶">${modernIcon('eye')}</button>
-          ${canEdit?`<button type="button" class="icon-action edit-user-btn" data-user-id="${escapeHtml(u.id)}" title="طھط¹ط¯ظٹظ„">${modernIcon('edit')}</button>`:`<button type="button" class="icon-action disabled" title="ط­ط³ط§ط¨ ظ…ظ†ط´ط¦ ط§ظ„ظ†ط¸ط§ظ… ظ„ط§ ظٹطھظ… طھط¹ط¯ظٹظ„ظ‡ ظ…ظ† ظ‡ظ†ط§">${modernIcon('lock')}</button>`}
-          ${canToggle?`<button type="button" class="icon-action ${u.is_active?'danger-icon':'ok-icon'} toggle-user-btn" data-user-id="${escapeHtml(u.id)}" data-active="${u.is_active?'1':'0'}" title="${u.is_active?'طھط¹ط·ظٹظ„':'طھظپط¹ظٹظ„'}">${u.is_active?modernIcon('ban'):modernIcon('check')}</button>`:`<button type="button" class="icon-action disabled" title="ظ„ط§ ظٹظ…ظƒظ† طھط¹ط·ظٹظ„ ظ‡ط°ط§ ط§ظ„ط­ط³ط§ط¨">${modernIcon('lock')}</button>`}
-          ${canToggle?`<button type="button" class="icon-action delete-user-btn hard-delete-icon" data-user-id="${escapeHtml(u.id)}" title="ط­ط°ظپ ظ†ظ‡ط§ط¦ظٹ ظ…ظ† Auth">${modernIcon('trash')}</button>`:`<button type="button" class="icon-action disabled" title="ظ„ط§ ظٹظ…ظƒظ† ط­ط°ظپ ظ‡ط°ط§ ط§ظ„ط­ط³ط§ط¨">${modernIcon('lock')}</button>`}
+          <button type="button" class="icon-action view-user-btn" data-user-id="${escapeHtml(u.id)}" title="عرض">${modernIcon('eye')}</button>
+          ${canEdit?`<button type="button" class="icon-action edit-user-btn" data-user-id="${escapeHtml(u.id)}" title="تعديل">${modernIcon('edit')}</button>`:`<button type="button" class="icon-action disabled" title="حساب منشئ النظام لا يتم تعديله من هنا">${modernIcon('lock')}</button>`}
+          ${canToggle?`<button type="button" class="icon-action ${u.is_active?'danger-icon':'ok-icon'} toggle-user-btn" data-user-id="${escapeHtml(u.id)}" data-active="${u.is_active?'1':'0'}" title="${u.is_active?'تعطيل':'تفعيل'}">${u.is_active?modernIcon('ban'):modernIcon('check')}</button>`:`<button type="button" class="icon-action disabled" title="لا يمكن تعطيل هذا الحساب">${modernIcon('lock')}</button>`}
+          ${canToggle?`<button type="button" class="icon-action delete-user-btn hard-delete-icon" data-user-id="${escapeHtml(u.id)}" title="حذف نهائي من Auth">${modernIcon('trash')}</button>`:`<button type="button" class="icon-action disabled" title="لا يمكن حذف هذا الحساب">${modernIcon('lock')}</button>`}
         </div>
       </td>
     </tr>`;
@@ -6122,7 +6122,7 @@ function renderUsersManagementTable(rows){
   applyUsersFilters();
 }
 async function selectAppUsersForManagement(){
-  if(!WarehouseDB?.ready) return {data:[],error:new Error('Supabase ط؛ظٹط± ظ…طھطµظ„')};
+  if(!WarehouseDB?.ready) return {data:[],error:new Error('Supabase غير متصل')};
   const variants=[
     {select:'id, full_name, role, is_active, job_title, phone, avatar_url, created_at, updated_at, email', order:'created_at'},
     {select:'id, full_name, role, is_active, job_title, phone, avatar_url, created_at, updated_at', order:'created_at'},
@@ -6141,18 +6141,18 @@ async function selectAppUsersForManagement(){
 }
 async function loadUsersManagement(){
   if(!$('#usersManagementTable')) return;
-  if(!WarehouseDB?.ready){ setUsersStatus('Supabase ط؛ظٹط± ظ…طھطµظ„.','err'); return; }
-  setUsersStatus('ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†...');
+  if(!WarehouseDB?.ready){ setUsersStatus('Supabase غير متصل.','err'); return; }
+  setUsersStatus('جاري تحميل المستخدمين...');
   const {data,error}=await selectAppUsersForManagement();
   if(error){
     const merged=await ensureCurrentUserProfileFallback([]);
     renderUsersManagementTable(merged);
-    setUsersStatus('طھط¹ط°ط± طھط­ظ…ظٹظ„ ط¬ط¯ظˆظ„ ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ† ظ…ظ† Supabase: '+(error.message||error)+' â€” طھظ… ط¹ط±ط¶ ط§ظ„ظ…ط³طھط®ط¯ظ… ط§ظ„ط­ط§ظ„ظٹ ظ…ط¤ظ‚طھط§ظ‹. ط´ط؛ظ„ ظ…ظ„ظپ SQL ط§ظ„ظ…ط­ط¯ط« ظ„ط¥طµظ„ط§ط­ ط³ظٹط§ط³ط§طھ RLS.','err');
+    setUsersStatus('تعذر تحميل جدول المستخدمين من Supabase: '+(error.message||error)+' — تم عرض المستخدم الحالي مؤقتاً. شغل ملف SQL المحدث لإصلاح سياسات RLS.','err');
     return;
   }
   const merged=await ensureCurrentUserProfileFallback(data||[]);
   renderUsersManagementTable(merged);
-  setUsersStatus(`طھظ… طھط­ظ…ظٹظ„ ${merged.length} ظ…ط³طھط®ط¯ظ….`,'ok');
+  setUsersStatus(`تم تحميل ${merged.length} مستخدم.`,'ok');
 }
 function openUserManagementModal(mode='create'){
   const modal=$('#userManagementModal');
@@ -6173,40 +6173,40 @@ function closeUserManagementModal(){
 function resetUserManagementForm(closeStatus=true){
   if($('#managedUserId')) $('#managedUserId').value='';
   if($('#managedUserEmail')) { $('#managedUserEmail').value=''; $('#managedUserEmail').disabled=false; }
-  if($('#managedUserPassword')) { $('#managedUserPassword').value=''; $('#managedUserPassword').disabled=false; $('#managedUserPassword').placeholder='ظ…ط·ظ„ظˆط¨ط© ط¹ظ†ط¯ ط¥ط¶ط§ظپط© ظ…ط³طھط®ط¯ظ… ط¬ط¯ظٹط¯'; }
+  if($('#managedUserPassword')) { $('#managedUserPassword').value=''; $('#managedUserPassword').disabled=false; $('#managedUserPassword').placeholder='مطلوبة عند إضافة مستخدم جديد'; }
   if($('#managedUserFullName')) $('#managedUserFullName').value='';
   if($('#managedUserJobTitle')) $('#managedUserJobTitle').value='';
   if($('#managedUserPhone')) $('#managedUserPhone').value='';
   if($('#managedUserRole')) { $('#managedUserRole').value='viewer'; $('#managedUserRole').disabled=false; }
   if($('#managedUserActive')) { $('#managedUserActive').checked=true; $('#managedUserActive').disabled=false; }
-  if($('#userFormTitle')) $('#userFormTitle').textContent='ط¥ط¶ط§ظپط© ظ…ط³طھط®ط¯ظ… ط¬ط¯ظٹط¯';
-  if($('#saveManagedUserBtn')) $('#saveManagedUserBtn').textContent='ط¥ظ†ط´ط§ط، ط§ظ„ظ…ط³طھط®ط¯ظ…';
+  if($('#userFormTitle')) $('#userFormTitle').textContent='إضافة مستخدم جديد';
+  if($('#saveManagedUserBtn')) $('#saveManagedUserBtn').textContent='إنشاء المستخدم';
   if(closeStatus) setUsersStatus('');
 }
 function fillUserFormForEdit(userId){
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
   if(!u) return;
-  if(u.role==='super_admin' && !u.is_current){ setUsersStatus('ط­ط³ط§ط¨ ظ…ظ†ط´ط¦ ط§ظ„ظ†ط¸ط§ظ… ظ„ط§ ظٹطھظ… طھط¹ط¯ظٹظ„ظ‡ ظ…ظ† ط´ط§ط´ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†.','err'); return; }
+  if(u.role==='super_admin' && !u.is_current){ setUsersStatus('حساب منشئ النظام لا يتم تعديله من شاشة المستخدمين.','err'); return; }
   if($('#managedUserId')) $('#managedUserId').value=u.id;
   if($('#managedUserEmail')) { $('#managedUserEmail').value=u.email||''; $('#managedUserEmail').disabled=true; }
-  if($('#managedUserPassword')) { $('#managedUserPassword').value=''; $('#managedUserPassword').disabled=true; $('#managedUserPassword').placeholder='ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± طھطھظ… ظ…ظ† Supabase Auth'; }
+  if($('#managedUserPassword')) { $('#managedUserPassword').value=''; $('#managedUserPassword').disabled=true; $('#managedUserPassword').placeholder='إعادة تعيين كلمة المرور تتم من Supabase Auth'; }
   if($('#managedUserFullName')) $('#managedUserFullName').value=u.full_name||'';
   if($('#managedUserJobTitle')) $('#managedUserJobTitle').value=u.job_title||'';
   if($('#managedUserPhone')) $('#managedUserPhone').value=u.phone||'';
   if($('#managedUserRole')) { $('#managedUserRole').value=USER_ROLE_CREATE_VALUES.has(u.role)?u.role:'viewer'; $('#managedUserRole').disabled=u.role==='super_admin'; }
   if($('#managedUserActive')) { $('#managedUserActive').checked=u.is_active; $('#managedUserActive').disabled=u.role==='super_admin'; }
-  if($('#userFormTitle')) $('#userFormTitle').textContent='طھط¹ط¯ظٹظ„ ظ…ط³طھط®ط¯ظ…';
-  if($('#saveManagedUserBtn')) $('#saveManagedUserBtn').textContent='ط­ظپط¸ ط§ظ„طھط¹ط¯ظٹظ„';
+  if($('#userFormTitle')) $('#userFormTitle').textContent='تعديل مستخدم';
+  if($('#saveManagedUserBtn')) $('#saveManagedUserBtn').textContent='حفظ التعديل';
   openUserManagementModal('edit');
 }
 function viewManagedUser(userId){
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
   if(!u) return;
-  alert(`ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ…\n\nط§ظ„ط§ط³ظ…: ${u.full_name||'--'}\nط§ظ„ط¨ط±ظٹط¯: ${u.email||'--'}\nط§ظ„ط¯ظˆط±: ${roleLabel(u.role)}\nط§ظ„ط­ط§ظ„ط©: ${u.is_active?'ظ†ط´ط·':'ظ…ط¹ط·ظ„'}\nط§ظ„ظˆط¸ظٹظپط©: ${u.job_title||'--'}\nط§ظ„ظ‡ط§طھظپ: ${u.phone||'--'}`);
+  alert(`بيانات المستخدم\n\nالاسم: ${u.full_name||'--'}\nالبريد: ${u.email||'--'}\nالدور: ${roleLabel(u.role)}\nالحالة: ${u.is_active?'نشط':'معطل'}\nالوظيفة: ${u.job_title||'--'}\nالهاتف: ${u.phone||'--'}`);
 }
 async function createAuthUserWithIsolatedClient(email,password){
   const cfg=window.WAREHOUSE_SUPABASE_CONFIG || {};
-  if(!window.supabase || !cfg.url || !cfg.anonKey) throw new Error('Supabase ط؛ظٹط± ط¬ط§ظ‡ط² ظ„ط¥ظ†ط´ط§ط، ط§ظ„ط­ط³ط§ط¨.');
+  if(!window.supabase || !cfg.url || !cfg.anonKey) throw new Error('Supabase غير جاهز لإنشاء الحساب.');
   const temp=window.supabase.createClient(cfg.url,cfg.anonKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
   const {data,error}=await temp.auth.signUp({email,password});
   if(error) throw error;
@@ -6225,11 +6225,11 @@ async function upsertManagedUserProfile(payload){
     if(!res.error) return res.data;
     lastError=res.error;
   }
-  throw lastError || new Error('طھط¹ط°ط± ط­ظپط¸ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ….');
+  throw lastError || new Error('تعذر حفظ بيانات المستخدم.');
 }
 async function saveManagedUser(e){
   e?.preventDefault?.();
-  if(!WarehouseDB?.ready){ setUsersStatus('Supabase ط؛ظٹط± ظ…طھطµظ„.','err'); return; }
+  if(!WarehouseDB?.ready){ setUsersStatus('Supabase غير متصل.','err'); return; }
   const existingId=$('#managedUserId')?.value || '';
   const email=($('#managedUserEmail')?.value||'').trim().toLowerCase();
   const password=$('#managedUserPassword')?.value || '';
@@ -6238,17 +6238,17 @@ async function saveManagedUser(e){
   const jobTitle=($('#managedUserJobTitle')?.value||'').trim();
   const phone=($('#managedUserPhone')?.value||'').trim();
   const active=$('#managedUserActive')?.checked !== false;
-  if(!fullName){ setUsersStatus('ط§ط³ظ… ط§ظ„ظ…ط³طھط®ط¯ظ… ظ…ط·ظ„ظˆط¨.','err'); return; }
-  if(!USER_ROLE_CREATE_VALUES.has(role)){ setUsersStatus('ظ„ط§ ظٹظ…ظƒظ† ط§ط®طھظٹط§ط± Super Admin ظ…ظ† ظ‡ط°ظ‡ ط§ظ„ط´ط§ط´ط©.','err'); return; }
+  if(!fullName){ setUsersStatus('اسم المستخدم مطلوب.','err'); return; }
+  if(!USER_ROLE_CREATE_VALUES.has(role)){ setUsersStatus('لا يمكن اختيار Super Admin من هذه الشاشة.','err'); return; }
   try{
-    setUsersStatus(existingId?'ط¬ط§ط±ظٹ ط­ظپط¸ ط§ظ„طھط¹ط¯ظٹظ„...':'ط¬ط§ط±ظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ…ط³طھط®ط¯ظ…...');
+    setUsersStatus(existingId?'جاري حفظ التعديل...':'جاري إنشاء المستخدم...');
     let userId=existingId;
     if(!existingId){
-      if(!email){ setUsersStatus('ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…ط·ظ„ظˆط¨ ط¹ظ†ط¯ ط¥ط¶ط§ظپط© ظ…ط³طھط®ط¯ظ… ط¬ط¯ظٹط¯.','err'); return; }
-      if(!password || password.length<6){ setUsersStatus('ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظ…ط·ظ„ظˆط¨ط© ظˆظ„ط§ طھظ‚ظ„ ط¹ظ† 6 ط£ط­ط±ظپ ط¹ظ†ط¯ ط¥ط¶ط§ظپط© ظ…ط³طھط®ط¯ظ… ط¬ط¯ظٹط¯.','err'); return; }
+      if(!email){ setUsersStatus('البريد الإلكتروني مطلوب عند إضافة مستخدم جديد.','err'); return; }
+      if(!password || password.length<6){ setUsersStatus('كلمة المرور مطلوبة ولا تقل عن 6 أحرف عند إضافة مستخدم جديد.','err'); return; }
       const authUser=await createAuthUserWithIsolatedClient(email,password);
       userId=authUser?.id;
-      if(!userId) throw new Error('طھظ… ط¥ط±ط³ط§ظ„ ط¯ط¹ظˆط©/طھط£ظƒظٹط¯ ظ„ظ„ظ…ط³طھط®ط¯ظ… ظˆظ„ظƒظ† ظ„ظ… ظٹطھظ… ط¥ط±ط¬ط§ط¹ ظ…ط¹ط±ظپ ط§ظ„ط­ط³ط§ط¨. ط±ط§ط¬ط¹ ط¥ط¹ط¯ط§ط¯ط§طھ Supabase Auth.');
+      if(!userId) throw new Error('تم إرسال دعوة/تأكيد للمستخدم ولكن لم يتم إرجاع معرف الحساب. راجع إعدادات Supabase Auth.');
     }
     await upsertManagedUserProfile({
       id:userId,
@@ -6260,8 +6260,8 @@ async function saveManagedUser(e){
       is_active:active,
       updated_at:new Date().toISOString()
     });
-    setUsersStatus(existingId?'طھظ… ط­ظپط¸ طھط¹ط¯ظٹظ„ ط§ظ„ظ…ط³طھط®ط¯ظ….':'طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظ…ط³طھط®ط¯ظ… ظˆط­ظپط¸ ط¨ظٹط§ظ†ط§طھظ‡.','ok');
-    await logSystemActivity('ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†',existingId?'طھط¹ط¯ظٹظ„ ظ…ط³طھط®ط¯ظ…':'ط¥ط¶ط§ظپط© ظ…ط³طھط®ط¯ظ…',`${existingId?'طھط¹ط¯ظٹظ„ ظ…ط³طھط®ط¯ظ…':'ط¥ط¶ط§ظپط© ظ…ط³طھط®ط¯ظ…'}: ${fullName}`);
+    setUsersStatus(existingId?'تم حفظ تعديل المستخدم.':'تم إنشاء المستخدم وحفظ بياناته.','ok');
+    await logSystemActivity('المستخدمين',existingId?'تعديل مستخدم':'إضافة مستخدم',`${existingId?'تعديل مستخدم':'إضافة مستخدم'}: ${fullName}`);
     closeUserManagementModal();
     resetUserManagementForm(false);
     await loadUsersManagement();
@@ -6272,43 +6272,43 @@ async function saveManagedUser(e){
 async function toggleManagedUser(userId,currentActive){
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
   if(!userId || !WarehouseDB?.ready) return;
-  if(u?.role==='super_admin' || u?.is_current){ setUsersStatus('ظ„ط§ ظٹظ…ظƒظ† طھط¹ط·ظٹظ„ ظ‡ط°ط§ ط§ظ„ط­ط³ط§ط¨ ظ…ظ† ط´ط§ط´ط© ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†.','err'); return; }
+  if(u?.role==='super_admin' || u?.is_current){ setUsersStatus('لا يمكن تعطيل هذا الحساب من شاشة إدارة المستخدمين.','err'); return; }
   try{
-    setUsersStatus('ط¬ط§ط±ظٹ طھط­ط¯ظٹط« ط­ط§ظ„ط© ط§ظ„ظ…ط³طھط®ط¯ظ…...');
+    setUsersStatus('جاري تحديث حالة المستخدم...');
     let res=await WarehouseDB.client.from('app_users').update({is_active:!currentActive, updated_at:new Date().toISOString()}).eq('id',userId);
     if(res.error && String(res.error.message||'').includes('updated_at')){
       res=await WarehouseDB.client.from('app_users').update({is_active:!currentActive}).eq('id',userId);
     }
     if(res.error) throw res.error;
-    setUsersStatus(!currentActive?'طھظ… طھظپط¹ظٹظ„ ط§ظ„ظ…ط³طھط®ط¯ظ….':'طھظ… طھط¹ط·ظٹظ„ ط§ظ„ظ…ط³طھط®ط¯ظ….','ok');
-    await logSystemActivity('ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†','طھط¹ط¯ظٹظ„ ظ…ط³طھط®ط¯ظ…',`${!currentActive?'طھظپط¹ظٹظ„':'طھط¹ط·ظٹظ„'} ظ…ط³طھط®ط¯ظ…: ${u?.full_name || u?.email || userId}`);
+    setUsersStatus(!currentActive?'تم تفعيل المستخدم.':'تم تعطيل المستخدم.','ok');
+    await logSystemActivity('المستخدمين','تعديل مستخدم',`${!currentActive?'تفعيل':'تعطيل'} مستخدم: ${u?.full_name || u?.email || userId}`);
     await loadUsersManagement();
-  }catch(err){ setUsersStatus('طھط¹ط°ط± طھط­ط¯ظٹط« ط§ظ„ط­ط§ظ„ط©: '+(err.message||err),'err'); }
+  }catch(err){ setUsersStatus('تعذر تحديث الحالة: '+(err.message||err),'err'); }
 }
 
 async function deleteManagedUserForever(userId){
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
   if(!userId || !WarehouseDB?.ready) return;
-  if(!u){ setUsersStatus('ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯ ظپظٹ ط§ظ„ط¬ط¯ظˆظ„ ط§ظ„ط­ط§ظ„ظٹ.','err'); return; }
-  if(u.role==='super_admin'){ setUsersStatus('ظ„ط§ ظٹظ…ظƒظ† ط­ط°ظپ ط­ط³ط§ط¨ ظ…ظ†ط´ط¦ ط§ظ„ظ†ط¸ط§ظ….','err'); return; }
-  if(u.is_current){ setUsersStatus('ظ„ط§ ظٹظ…ظƒظ† ط­ط°ظپ ط­ط³ط§ط¨ظƒ ط§ظ„ط­ط§ظ„ظٹ.','err'); return; }
+  if(!u){ setUsersStatus('المستخدم غير موجود في الجدول الحالي.','err'); return; }
+  if(u.role==='super_admin'){ setUsersStatus('لا يمكن حذف حساب منشئ النظام.','err'); return; }
+  if(u.is_current){ setUsersStatus('لا يمكن حذف حسابك الحالي.','err'); return; }
   const label=u.full_name || u.email || userId;
-  const ok=confirm(`طھط­ط°ظٹط± ظ†ظ‡ط§ط¦ظٹ
+  const ok=confirm(`تحذير نهائي
 
-ط³ظٹطھظ… ط­ط°ظپ ط§ظ„ظ…ط³طھط®ط¯ظ… ظ…ظ† Supabase Auth ظ†ظ‡ط§ط¦ظٹظ‹ط§طŒ ظˆط­ط°ظپ ظ…ظ„ظپظ‡ ظ…ظ† ط¬ط¯ظˆظ„ ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†.
+سيتم حذف المستخدم من Supabase Auth نهائيًا، وحذف ملفه من جدول المستخدمين.
 
-ط§ظ„ظ…ط³طھط®ط¯ظ…: ${label}
+المستخدم: ${label}
 
-ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯طں`);
+هل أنت متأكد؟`);
   if(!ok) return;
   try{
-    setUsersStatus('ط¬ط§ط±ظٹ ط­ط°ظپ ط§ظ„ظ…ط³طھط®ط¯ظ… ظ†ظ‡ط§ط¦ظٹظ‹ط§ ظ…ظ† Supabase Auth...');
+    setUsersStatus('جاري حذف المستخدم نهائيًا من Supabase Auth...');
     const sessionRes=await WarehouseDB.client.auth.getSession();
     const accessToken=sessionRes?.data?.session?.access_token;
-    if(!accessToken) throw new Error('ط¬ظ„ط³ط© ط§ظ„ط¯ط®ظˆظ„ ط؛ظٹط± طµط§ظ„ط­ط©. ط³ط¬ظ„ ط§ظ„ط¯ط®ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+    if(!accessToken) throw new Error('جلسة الدخول غير صالحة. سجل الدخول مرة أخرى.');
     const cfg=window.WAREHOUSE_SUPABASE_CONFIG || {};
     const fnUrl=`${String(cfg.url||'').replace(/\/$/,'')}/functions/v1/delete-user`;
-    if(!cfg.url) throw new Error('ط±ط§ط¨ط· Supabase ط؛ظٹط± ظ…ط¶ط¨ظˆط·.');
+    if(!cfg.url) throw new Error('رابط Supabase غير مضبوط.');
     const response=await fetch(fnUrl,{
       method:'POST',
       headers:{
@@ -6319,23 +6319,23 @@ async function deleteManagedUserForever(userId){
       body:JSON.stringify({user_id:userId})
     });
     const result=await response.json().catch(()=>({}));
-    if(!response.ok || result.error) throw new Error(result.error || `ظپط´ظ„ ط§ظ„ط­ط°ظپ. HTTP ${response.status}`);
-    setUsersStatus('طھظ… ط­ط°ظپ ط§ظ„ظ…ط³طھط®ط¯ظ… ظ†ظ‡ط§ط¦ظٹظ‹ط§ ظ…ظ† Auth ظˆط¬ط¯ظˆظ„ ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†.','ok');
-    await logSystemActivity('ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†','ط­ط°ظپ ظ…ط³طھط®ط¯ظ…',`ط­ط°ظپ ظ…ط³طھط®ط¯ظ…: ${label}`);
+    if(!response.ok || result.error) throw new Error(result.error || `فشل الحذف. HTTP ${response.status}`);
+    setUsersStatus('تم حذف المستخدم نهائيًا من Auth وجدول المستخدمين.','ok');
+    await logSystemActivity('المستخدمين','حذف مستخدم',`حذف مستخدم: ${label}`);
     await loadUsersManagement();
   }catch(err){
-    setUsersStatus('طھط¹ط°ط± ط§ظ„ط­ط°ظپ ط§ظ„ظ†ظ‡ط§ط¦ظٹ: '+(err.message||err),'err');
+    setUsersStatus('تعذر الحذف النهائي: '+(err.message||err),'err');
   }
 }
 async function exportUsersPanelPng(){
   const source=$('#usersManagementCapture');
   const Html2Canvas=window.html2canvas;
-  if(!source || !Html2Canvas){ alert('ظ…ظƒطھط¨ط© طھطµط¯ظٹط± ط§ظ„طµظˆط± ط؛ظٹط± ظ…ط­ظ…ظ„ط©.'); return; }
+  if(!source || !Html2Canvas){ alert('مكتبة تصدير الصور غير محملة.'); return; }
   try{
     if(document.fonts?.ready) await document.fonts.ready;
     const canvas=await Html2Canvas(source,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001f18',logging:false});
-    canvas.toBlob(async blob=>{ if(blob) await saveBlobWithPicker(blob,`${safeFileName('ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†')}.png`,'image/png'); },'image/png',1);
-  }catch(err){ alert('طھط¹ط°ط± طھطµط¯ظٹط± طµظˆط±ط© ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†.'); }
+    canvas.toBlob(async blob=>{ if(blob) await saveBlobWithPicker(blob,`${safeFileName('إدارة المستخدمين')}.png`,'image/png'); },'image/png',1);
+  }catch(err){ alert('تعذر تصدير صورة إدارة المستخدمين.'); }
 }
 function initUsersManagement(){
   const form=$('#userManagementForm');
@@ -6349,8 +6349,8 @@ function initUsersManagement(){
   $('#usersQuickSearch')?.addEventListener('input',applyUsersFilters);
   $('#usersRoleFilter')?.addEventListener('change',applyUsersFilters);
   $('#usersStatusFilter')?.addEventListener('change',applyUsersFilters);
-  $('#usersExportExcelBtn')?.addEventListener('click',()=>exportTableToExcel('usersManagementTable','ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†'));
-  $('#usersExportPdfBtn')?.addEventListener('click',()=>exportTableToPdf('usersManagementTable','ط¥ط¯ط§ط±ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†'));
+  $('#usersExportExcelBtn')?.addEventListener('click',()=>exportTableToExcel('usersManagementTable','إدارة المستخدمين'));
+  $('#usersExportPdfBtn')?.addEventListener('click',()=>exportTableToPdf('usersManagementTable','إدارة المستخدمين'));
   $('#usersExportPngBtn')?.addEventListener('click',exportUsersPanelPng);
   $('#usersManagementTable')?.addEventListener('click',e=>{
     const view=e.target.closest('.view-user-btn');
@@ -6375,7 +6375,7 @@ function initLoginPasswordToggle(){
     const show=input.type==='password';
     input.type=show?'text':'password';
     btn.setAttribute('aria-pressed',show?'true':'false');
-    btn.setAttribute('aria-label',show?'ط¥ط®ظپط§ط، ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±':'ط¥ط¸ظ‡ط§ط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±');
+    btn.setAttribute('aria-label',show?'إخفاء كلمة المرور':'إظهار كلمة المرور');
     btn.innerHTML=show?eyeOffSvg:eyeSvg;
     input.focus();
   });
@@ -6389,22 +6389,22 @@ function initMainLoginGate(){
     loginBtn.onclick=async()=>{
       const email=(emailInput?.value||'').trim();
       const password=passInput?.value||'';
-      if(!email || !password){ setMainAuthMessage('ط§ظƒطھط¨ ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظˆظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±.','err'); return; }
-      setMainAuthMessage('ط¬ط§ط±ظٹ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„...');
+      if(!email || !password){ setMainAuthMessage('اكتب البريد الإلكتروني وكلمة المرور.','err'); return; }
+      setMainAuthMessage('جاري تسجيل الدخول...');
       const {data,error}=await WarehouseDB.signIn(email,password);
-      if(error){ setMainAuthMessage('ط®ط·ط£ ظپظٹ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„: '+error.message,'err'); return; }
-      setMainAuthMessage('طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ظ†ط¬ط§ط­.','ok');
+      if(error){ setMainAuthMessage('خطأ في تسجيل الدخول: '+error.message,'err'); return; }
+      setMainAuthMessage('تم تسجيل الدخول بنجاح.','ok');
       await showApplication(data.user);
-      await logSystemActivity('ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†','طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„',`طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„: ${CURRENT_APP_PROFILE?.full_name || data.user?.email || email}`);
+      await logSystemActivity('المستخدمين','تسجيل دخول',`تسجيل دخول: ${CURRENT_APP_PROFILE?.full_name || data.user?.email || email}`);
     };
     [emailInput,passInput].forEach(inp=>{ if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter') loginBtn.click(); }); });
   }
   if(logoutBtn){
     logoutBtn.onclick=async()=>{
       await WarehouseDB.signOut();
-      await logSystemActivity('ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†','طھط³ط¬ظٹظ„ ط®ط±ظˆط¬',`طھط³ط¬ظٹظ„ ط®ط±ظˆط¬: ${CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'ط§ظ„ظ…ط³طھط®ط¯ظ… ط§ظ„ط­ط§ظ„ظٹ'}`);
+      await logSystemActivity('المستخدمين','تسجيل خروج',`تسجيل خروج: ${CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'المستخدم الحالي'}`);
       showLoginScreen();
-      setMainAuthMessage('طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬.','ok');
+      setMainAuthMessage('تم تسجيل الخروج.','ok');
     };
   }
   if(WarehouseDB?.client?.auth){
@@ -6420,22 +6420,22 @@ document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfil
 // Raw materials report upload helpers
 const RAW_MATERIALS_UPLOAD_CHUNK_SIZE=250;
 const RAW_MATERIALS_TEMPLATE_HEADERS={
-  current_plant_stock:{fileName:'ط±طµظٹط¯ ط§ظ„ظ…طµظ†ط¹ ط§ظ„ط­ط§ظ„ظٹ.xlsx',sheetName:'Data',headers:['ط§ظ„ظ…ط§ط¯ط©','ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©','ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³','ط±طµظٹط¯ ط؛ظٹط± ظ…ظ‚ظٹط¯','ظ‚ظٹط¯ ظپط­طµ ط§ظ„ط¬ظˆط¯ط©','ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظˆط§ط¯','ظˆطµظپ ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظˆط§ط¯','ط§ظ„ظ…طµظ†ط¹','ط¥ط³ظ… ط§ظ„ظ…طµظ†ط¹','ط§ظ„ظ…ط®ط²ظ†','ط¥ط³ظ… ط§ظ„ظ…ط®ط²ظ†']},
-  consumption_rate:{fileName:'ط­ط³ط§ط¨ ظ…ط¹ط¯ظ„ ط¥ط³طھظ‡ط¯ظ„ط§ظƒ ط§ظ„ط®ط§ظ…ط§طھ.xlsx',sheetName:'Data',headers:['ط§ظ„ظ…ط§ط¯ط©','ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©','ط§ظ„ظƒظ…ظٹط©','ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³','ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©','ظˆطµظپ ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©','ط§ظ„ظ…طµظ†ط¹','ط¥ط³ظ… ط§ظ„ظ…طµظ†ط¹','ظ…ط¬ظ…ظˆط¹ظ‡ ط§ظ„ظ…ظˆط§ط¯','ظˆطµظپ ظ…ط¬ظ…ظˆط¹ظ‡ ط§ظ„ظ…ظˆط§ط¯','ط§ظ„طھط§ط±ظٹط®']}
+  current_plant_stock:{fileName:'رصيد المصنع الحالي.xlsx',sheetName:'Data',headers:['المادة','وصف المادة','وحدة القياس','رصيد غير مقيد','قيد فحص الجودة','مجموعة المواد','وصف مجموعة المواد','المصنع','إسم المصنع','المخزن','إسم المخزن']},
+  consumption_rate:{fileName:'حساب معدل إستهدلاك الخامات.xlsx',sheetName:'Data',headers:['المادة','وصف المادة','الكمية','وحدة القياس','نوع الحركة','وصف نوع الحركة','المصنع','إسم المصنع','مجموعه المواد','وصف مجموعه المواد','التاريخ']}
 };
 const RAW_MATERIALS_UPLOAD_CONFIG={
   current_plant_stock:{
-    statusId:'currentPlantStockUploadStatus',inputId:'currentPlantStockExcelInput',buttonId:'pickCurrentPlantStockFileBtn',dropId:'currentPlantStockDropZone',tableId:'currentPlantStockBatchesTable',chunkRpc:'append_current_plant_stock_upload_chunk',finalizeRpc:'finalize_current_plant_stock_upload',title:'ط±طµظٹط¯ ط§ظ„ظ…طµظ†ط¹ ط§ظ„ط­ط§ظ„ظٹ'
+    statusId:'currentPlantStockUploadStatus',inputId:'currentPlantStockExcelInput',buttonId:'pickCurrentPlantStockFileBtn',dropId:'currentPlantStockDropZone',tableId:'currentPlantStockBatchesTable',chunkRpc:'append_current_plant_stock_upload_chunk',finalizeRpc:'finalize_current_plant_stock_upload',title:'رصيد المصنع الحالي'
   },
   consumption_rate:{
-    statusId:'consumptionRateUploadStatus',inputId:'consumptionRateExcelInput',buttonId:'pickConsumptionRateFileBtn',dropId:'consumptionRateDropZone',tableId:'consumptionRateBatchesTable',chunkRpc:'append_consumption_rate_upload_chunk',finalizeRpc:'finalize_consumption_rate_upload',title:'ظ…ط¹ط¯ظ„ ط§ظ„ط§ط³طھظ‡ظ„ط§ظƒ'
+    statusId:'consumptionRateUploadStatus',inputId:'consumptionRateExcelInput',buttonId:'pickConsumptionRateFileBtn',dropId:'consumptionRateDropZone',tableId:'consumptionRateBatchesTable',chunkRpc:'append_consumption_rate_upload_chunk',finalizeRpc:'finalize_consumption_rate_upload',title:'معدل الاستهلاك'
   }
 };
 const RAW_MATERIALS_UPLOAD_BUSY={current_plant_stock:false,consumption_rate:false};
 async function downloadRawMaterialsTemplate(key){
   const spec=RAW_MATERIALS_TEMPLATE_HEADERS[key];
   if(!spec) return;
-  if(!window.XLSX){ alert('ظ…ظƒطھط¨ط© Excel ط؛ظٹط± ظ…ط­ظ…ظ„ط©.'); return; }
+  if(!window.XLSX){ alert('مكتبة Excel غير محملة.'); return; }
   const ws=XLSX.utils.aoa_to_sheet([spec.headers]);
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,spec.sheetName);
@@ -6475,7 +6475,7 @@ function parseRawMaterialsNumber(value,label,rowNumber,options={}){
   const text=rawMaterialsText(value);
   if(!text){
     if(options.allowBlank) return null;
-    throw new Error(`ط§ظ„طµظپ ${rowNumber}: ${label} ظٹط¬ط¨ ط£ظ† طھظƒظˆظ† ط±ظ‚ظ…ظ‹ط§ طµط§ظ„ط­ظ‹ط§.`);
+    throw new Error(`الصف ${rowNumber}: ${label} يجب أن تكون رقمًا صالحًا.`);
   }
   const normalized=text
     .replace(/[ظ -ظ©]/g,d=>String('ظ ظ،ظ¢ظ£ظ¤ظ¥ظ¦ظ§ظ¨ظ©'.indexOf(d)))
@@ -6484,27 +6484,27 @@ function parseRawMaterialsNumber(value,label,rowNumber,options={}){
     .replace(/,/g,'')
     .replace(/ظ«/g,'.');
   const n=Number(normalized);
-  if(!Number.isFinite(n)) throw new Error(`ط§ظ„طµظپ ${rowNumber}: ${label} ظٹط¬ط¨ ط£ظ† طھظƒظˆظ† ط±ظ‚ظ…ظ‹ط§ طµط§ظ„ط­ظ‹ط§.`);
+  if(!Number.isFinite(n)) throw new Error(`الصف ${rowNumber}: ${label} يجب أن تكون رقمًا صالحًا.`);
   return n;
 }
 function parseRawMaterialsDate(value,label,rowNumber){
   const iso=excelDateToISO(value);
-  if(!iso) throw new Error(`ط§ظ„طµظپ ${rowNumber}: ${label} ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† طھط§ط±ظٹط®ظ‹ط§ طµط§ظ„ط­ظ‹ط§.`);
+  if(!iso) throw new Error(`الصف ${rowNumber}: ${label} يجب أن يكون تاريخًا صالحًا.`);
   return iso;
 }
 function readRawMaterialsWorkbookRows(workbook,key){
   const spec=RAW_MATERIALS_TEMPLATE_HEADERS[key];
-  if(!spec) throw new Error('ظ†ظˆط¹ طھظ‚ط±ظٹط± ط؛ظٹط± ظ…ط¹ط±ظˆظپ.');
+  if(!spec) throw new Error('نوع تقرير غير معروف.');
   const sheet=workbook.Sheets[spec.sheetName];
-  if(!sheet) throw new Error(`ظٹط¬ط¨ ط£ظ† ظٹط­طھظˆظٹ ط§ظ„ظ…ظ„ظپ ط¹ظ„ظ‰ ظˆط±ظ‚ط© ط¨ط§ط³ظ… ${spec.sheetName}.`);
+  if(!sheet) throw new Error(`يجب أن يحتوي الملف على ورقة باسم ${spec.sheetName}.`);
   const {matrix,columnCount,startRow}=rawMaterialsSheetMatrix(sheet);
-  if(!matrix.length) throw new Error('ظˆط±ظ‚ط© Data ظپط§ط±ط؛ط©.');
-  if(columnCount!==spec.headers.length) throw new Error(`ط¹ط¯ط¯ ط§ظ„ط£ط¹ظ…ط¯ط© ط؛ظٹط± طµط­ظٹط­. ط§ظ„ظ…ط·ظ„ظˆط¨ ${spec.headers.length} ط£ط¹ظ…ط¯ط© ظپظ‚ط·.`);
+  if(!matrix.length) throw new Error('ورقة Data فارغة.');
+  if(columnCount!==spec.headers.length) throw new Error(`عدد الأعمدة غير صحيح. المطلوب ${spec.headers.length} أعمدة فقط.`);
   const actualHeaders=matrix[0].map(cleanRawMaterialsHeader);
   const mismatch=spec.headers.find((header,index)=>actualHeaders[index]!==header);
   if(mismatch){
     const index=spec.headers.indexOf(mismatch);
-    throw new Error(`Header ط؛ظٹط± ظ…ط·ط§ط¨ظ‚ ظپظٹ ط§ظ„ط¹ظ…ظˆط¯ ${index+1}. ط§ظ„ظ…ط·ظ„ظˆط¨: ${mismatch}`);
+    throw new Error(`Header غير مطابق في العمود ${index+1}. المطلوب: ${mismatch}`);
   }
   const data=[];
   for(let i=1;i<matrix.length;i++){
@@ -6513,7 +6513,7 @@ function readRawMaterialsWorkbookRows(workbook,key){
     if(isRawMaterialsBlankRow(row)) continue;
     data.push(mapRawMaterialsReportRow(key,row,rowNumber));
   }
-  if(!data.length) throw new Error('ط§ظ„ظ…ظ„ظپ ظ„ط§ ظٹط­طھظˆظٹ ط¹ظ„ظ‰ طµظپظˆظپ ط¨ظٹط§ظ†ط§طھ طµط§ظ„ط­ط©.');
+  if(!data.length) throw new Error('الملف لا يحتوي على صفوف بيانات صالحة.');
   return data;
 }
 function mapRawMaterialsReportRow(key,row,rowNumber){
@@ -6525,20 +6525,20 @@ function mapRawMaterialsReportRow(key,row,rowNumber){
     const plantName=rawMaterialsText(row[8]);
     const warehouseCode=rawMaterialsText(row[9]);
     const warehouseName=rawMaterialsText(row[10]);
-    if(!materialCode) throw new Error(`ط§ظ„طµظپ ${rowNumber}: ط§ظ„ظ…ط§ط¯ط© ظ„ط§ ظٹط¬ط¨ ط£ظ† طھظƒظˆظ† ظپط§ط±ط؛ط©.`);
-    if(!materialName) throw new Error(`ط§ظ„طµظپ ${rowNumber}: ظˆطµظپ ط§ظ„ظ…ط§ط¯ط© ظ„ط§ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ظپط§ط±ط؛ظ‹ط§.`);
-    if(!uom) throw new Error(`ط§ظ„طµظپ ${rowNumber}: ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³ ظ„ط§ ظٹط¬ط¨ ط£ظ† طھظƒظˆظ† ظپط§ط±ط؛ط©.`);
-    if(!plantCode) throw new Error(`ط§ظ„طµظپ ${rowNumber}: ط§ظ„ظ…طµظ†ط¹ ظ„ط§ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ظپط§ط±ط؛ظ‹ط§.`);
-    if(!plantName) throw new Error(`ط§ظ„طµظپ ${rowNumber}: ط¥ط³ظ… ط§ظ„ظ…طµظ†ط¹ ظ„ط§ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ظپط§ط±ط؛ظ‹ط§.`);
-    if(!warehouseCode) throw new Error(`ط§ظ„طµظپ ${rowNumber}: ط§ظ„ظ…ط®ط²ظ† ظ„ط§ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ظپط§ط±ط؛ظ‹ط§.`);
-    if(!warehouseName) throw new Error(`ط§ظ„طµظپ ${rowNumber}: ط¥ط³ظ… ط§ظ„ظ…ط®ط²ظ† ظ„ط§ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ظپط§ط±ط؛ظ‹ط§.`);
+    if(!materialCode) throw new Error(`الصف ${rowNumber}: المادة لا يجب أن تكون فارغة.`);
+    if(!materialName) throw new Error(`الصف ${rowNumber}: وصف المادة لا يجب أن يكون فارغًا.`);
+    if(!uom) throw new Error(`الصف ${rowNumber}: وحدة القياس لا يجب أن تكون فارغة.`);
+    if(!plantCode) throw new Error(`الصف ${rowNumber}: المصنع لا يجب أن يكون فارغًا.`);
+    if(!plantName) throw new Error(`الصف ${rowNumber}: إسم المصنع لا يجب أن يكون فارغًا.`);
+    if(!warehouseCode) throw new Error(`الصف ${rowNumber}: المخزن لا يجب أن يكون فارغًا.`);
+    if(!warehouseName) throw new Error(`الصف ${rowNumber}: إسم المخزن لا يجب أن يكون فارغًا.`);
     return {
       source_row_number:rowNumber,
       material_code:materialCode,
       material_name:materialName,
       uom,
-      unrestricted_stock:parseRawMaterialsNumber(row[3],'ط±طµظٹط¯ ط؛ظٹط± ظ…ظ‚ظٹط¯',rowNumber,{allowBlank:true}),
-      quality_inspection_stock:parseRawMaterialsNumber(row[4],'ظ‚ظٹط¯ ظپط­طµ ط§ظ„ط¬ظˆط¯ط©',rowNumber,{allowBlank:true}),
+      unrestricted_stock:parseRawMaterialsNumber(row[3],'رصيد غير مقيد',rowNumber,{allowBlank:true}),
+      quality_inspection_stock:parseRawMaterialsNumber(row[4],'قيد فحص الجودة',rowNumber,{allowBlank:true}),
       material_group:rawMaterialsText(row[5]),
       material_group_description:rawMaterialsText(row[6]),
       plant_code:plantCode,
@@ -6550,13 +6550,13 @@ function mapRawMaterialsReportRow(key,row,rowNumber){
   if(key==='consumption_rate'){
     const materialCode=rawMaterialsText(row[0]);
     const plantCode=rawMaterialsText(row[6]);
-    if(!materialCode) throw new Error(`ط§ظ„طµظپ ${rowNumber}: ط§ظ„ظ…ط§ط¯ط© ظ„ط§ ظٹط¬ط¨ ط£ظ† طھظƒظˆظ† ظپط§ط±ط؛ط©.`);
-    if(!plantCode) throw new Error(`ط§ظ„طµظپ ${rowNumber}: ط§ظ„ظ…طµظ†ط¹ ظ„ط§ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ظپط§ط±ط؛ظ‹ط§.`);
+    if(!materialCode) throw new Error(`الصف ${rowNumber}: المادة لا يجب أن تكون فارغة.`);
+    if(!plantCode) throw new Error(`الصف ${rowNumber}: المصنع لا يجب أن يكون فارغًا.`);
     return {
       source_row_number:rowNumber,
       material_code:materialCode,
       material_name:rawMaterialsText(row[1]),
-      quantity:parseRawMaterialsNumber(row[2],'ط§ظ„ظƒظ…ظٹط©',rowNumber),
+      quantity:parseRawMaterialsNumber(row[2],'الكمية',rowNumber),
       uom:rawMaterialsText(row[3]),
       movement_type:rawMaterialsText(row[4]),
       movement_text:rawMaterialsText(row[5]),
@@ -6564,10 +6564,10 @@ function mapRawMaterialsReportRow(key,row,rowNumber){
       plant_name:rawMaterialsText(row[7]),
       material_group:rawMaterialsText(row[8]),
       material_group_description:rawMaterialsText(row[9]),
-      transaction_date:parseRawMaterialsDate(row[10],'ط§ظ„طھط§ط±ظٹط®',rowNumber)
+      transaction_date:parseRawMaterialsDate(row[10],'التاريخ',rowNumber)
     };
   }
-  throw new Error('ظ†ظˆط¹ طھظ‚ط±ظٹط± ط؛ظٹط± ظ…ط¹ط±ظˆظپ.');
+  throw new Error('نوع تقرير غير معروف.');
 }
 async function beginRawMaterialsUpload(key,file,rows,userData){
   const {data,error}=await WarehouseDB.client.rpc('begin_raw_material_report_upload',{
@@ -6580,7 +6580,7 @@ async function beginRawMaterialsUpload(key,file,rows,userData){
   if(error) throw error;
   const result=Array.isArray(data) ? data[0] : data;
   const batchId=result?.batch_id || result?.id || result;
-  if(!batchId) throw new Error('ظ„ظ… ظٹطھظ… ط¥ظ†ط´ط§ط، Batch ظ„ظ„ط±ظپط¹.');
+  if(!batchId) throw new Error('لم يتم إنشاء Batch للرفع.');
   return batchId;
 }
 async function uploadRawMaterialsChunk(key,batchId,chunk){
@@ -6641,28 +6641,28 @@ async function handleRawMaterialsReportFile(key,file){
   RAW_MATERIALS_UPLOAD_BUSY[key]=true;
   if(button) button.disabled=true;
   if(input) input.disabled=true;
-  setRawMaterialsUploadStatus(key,'ط¬ط§ط±ظٹ ظ‚ط±ط§ط،ط© ط§ظ„ظ…ظ„ظپ...');
+  setRawMaterialsUploadStatus(key,'جاري قراءة الملف...');
   try{
-    if(!WarehouseDB?.ready) throw new Error('Supabase ط؛ظٹط± ظ…طھطµظ„. ط±ط§ط¬ط¹ ظ…ظ„ظپ supabase-config.js');
-    if(!window.XLSX) throw new Error('ظ…ظƒطھط¨ط© Excel ط؛ظٹط± ظ…ط­ظ…ظ„ط©.');
+    if(!WarehouseDB?.ready) throw new Error('Supabase غير متصل. راجع ملف supabase-config.js');
+    if(!window.XLSX) throw new Error('مكتبة Excel غير محملة.');
     const {data:userData}=await WarehouseDB.getUser();
-    if(!userData?.user) throw new Error('ط³ط¬ظ„ ط§ظ„ط¯ط®ظˆظ„ ط£ظˆظ„ظ‹ط§ ظ‚ط¨ظ„ ط±ظپط¹ ط§ظ„ظ…ظ„ظپ.');
+    if(!userData?.user) throw new Error('سجل الدخول أولًا قبل رفع الملف.');
     const arrayBuffer=await file.arrayBuffer();
     const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
     const rows=readRawMaterialsWorkbookRows(workbook,key);
-    const ok=confirm(`طھظ… ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ${rows.length} طµظپ طµط§ظ„ط­ ظپظٹ طھظ‚ط±ظٹط± ${config.title}. ط³ظٹطھظ… ط±ظپط¹ ط§ظ„طµظپظˆظپ ط¹ظ„ظ‰ ط¯ظپط¹ط§طھ ط«ظ… ط§ط³طھط¨ط¯ط§ظ„ ط§ظ„ظ†ط³ط®ط© ط§ظ„ط­ط§ظ„ظٹط© ظ„ظ‡ط°ط§ ط§ظ„طھظ‚ط±ظٹط± ظپظ‚ط· ط¨ط¹ط¯ ط§ظƒطھظ…ط§ظ„ ظƒظ„ ط§ظ„ط¯ظپط¹ط§طھ. ظ‡ظ„ طھط±ظٹط¯ ط§ظ„ظ…طھط§ط¨ط¹ط©طں`);
-    if(!ok){ setRawMaterialsUploadStatus(key,'طھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ط±ظپط¹ ط¨ط¯ظˆظ† طھط؛ظٹظٹط± ط§ظ„ط¨ظٹط§ظ†ط§طھ.'); return; }
-    setRawMaterialsUploadStatus(key,`ط¬ط§ط±ظٹ ط¨ط¯ط، Batch ط§ظ„ط±ظپط¹ ظ„طھظ‚ط±ظٹط± ${config.title}...`);
+    const ok=confirm(`تم التحقق من ${rows.length} صف صالح في تقرير ${config.title}. سيتم رفع الصفوف على دفعات ثم استبدال النسخة الحالية لهذا التقرير فقط بعد اكتمال كل الدفعات. هل تريد المتابعة؟`);
+    if(!ok){ setRawMaterialsUploadStatus(key,'تم إلغاء الرفع بدون تغيير البيانات.'); return; }
+    setRawMaterialsUploadStatus(key,`جاري بدء Batch الرفع لتقرير ${config.title}...`);
     const result=await replaceRawMaterialsReport(key,file,rows,userData,(uploaded,total)=>{
       const percent=Math.round((uploaded/total)*100);
-      setRawMaterialsUploadStatus(key,`طھظ… ط±ظپط¹ ${uploaded.toLocaleString('en-US')} ظ…ظ† ${total.toLocaleString('en-US')} طµظپ ط¥ظ„ظ‰ Staging (${percent}%).`);
+      setRawMaterialsUploadStatus(key,`تم رفع ${uploaded.toLocaleString('en-US')} من ${total.toLocaleString('en-US')} صف إلى Staging (${percent}%).`);
     });
     const savedRows=Number(result?.row_count || rows.length);
-    setRawMaterialsUploadStatus(key,`طھظ… ط­ظپط¸ طھظ‚ط±ظٹط± ${config.title} ط¨ظ†ط¬ط§ط­ ط¨ط¹ط¯ط¯ ${savedRows.toLocaleString('en-US')} طµظپ.`,'ok');
-    await logSystemActivity('ط§ظ„طھظ‚ط§ط±ظٹط±','ط±ظپط¹ طھظ‚ط±ظٹط±',`ط±ظپط¹ طھظ‚ط±ظٹط± ${config.title} (${savedRows} طµظپ)`);
+    setRawMaterialsUploadStatus(key,`تم حفظ تقرير ${config.title} بنجاح بعدد ${savedRows.toLocaleString('en-US')} صف.`,'ok');
+    await logSystemActivity('التقارير','رفع تقرير',`رفع تقرير ${config.title} (${savedRows} صف)`);
     await loadRawMaterialsUploadBatch(key);
   }catch(err){
-    setRawMaterialsUploadStatus(key,`ط®ط·ط£ ط£ط«ظ†ط§ط، ط±ظپط¹ ${config.title}: ${err.message || err}`,'err');
+    setRawMaterialsUploadStatus(key,`خطأ أثناء رفع ${config.title}: ${err.message || err}`,'err');
   }finally{
     RAW_MATERIALS_UPLOAD_BUSY[key]=false;
     if(button) button.disabled=false;
@@ -6681,7 +6681,7 @@ async function loadRawMaterialsUploadBatch(key){
     .is('deleted_at',null)
     .order('upload_date',{ascending:false})
     .limit(1);
-  if(error){ tbl.innerHTML=`<tbody><tr><td>ط®ط·ط£ طھط­ظ…ظٹظ„ ط¢ط®ط± ط±ظپط¹: ${error.message}</td></tr></tbody>`; return; }
+  if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل آخر رفع: ${error.message}</td></tr></tbody>`; return; }
   const rows=(data||[]).map(b=>[
     b.file_name || '-',
     Number(b.row_count||0).toLocaleString('en-US'),
@@ -6690,7 +6690,7 @@ async function loadRawMaterialsUploadBatch(key){
     b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
     b.status || '-'
   ]);
-  table('#'+config.tableId,['ط§ط³ظ… ط§ظ„ظ…ظ„ظپ','ط¹ط¯ط¯ ط§ظ„طµظپظˆظپ','ط§ظ„ط­ط¬ظ…','ط§ظ„ط±ط§ظپط¹','طھط§ط±ظٹط® ط§ظ„ط±ظپط¹','ط§ظ„ط­ط§ظ„ط©'],rows);
+  table('#'+config.tableId,['اسم الملف','عدد الصفوف','الحجم','الرافع','تاريخ الرفع','الحالة'],rows);
 }
 function bindRawMaterialsUploader(key){
   const config=RAW_MATERIALS_UPLOAD_CONFIG[key];
@@ -6721,9 +6721,9 @@ function initRawMaterialsTemplateDownloads(){
   });
 }
 const RAW_MATERIALS_SCREEN_TABS={
-  main:{tableId:'rawMaterialsMainTable',countId:'rawMaterialsMainCount',label:'ط®ط§ظ…ط§طھ ط±ط¦ظٹط³ظٹط©'},
-  bran:{tableId:'rawMaterialsBranTable',countId:'rawMaterialsBranCount',label:'ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ط±ط¯ط©'},
-  packaging:{tableId:'rawMaterialsPackagingTable',countId:'rawMaterialsPackagingCount',label:'ظ…ظˆط§ط¯ طھط¹ط¨ط¦ط© ظˆطھط؛ظ„ظٹظپ'}
+  main:{tableId:'rawMaterialsMainTable',countId:'rawMaterialsMainCount',label:'خامات رئيسية'},
+  bran:{tableId:'rawMaterialsBranTable',countId:'rawMaterialsBranCount',label:'مجموعة الردة'},
+  packaging:{tableId:'rawMaterialsPackagingTable',countId:'rawMaterialsPackagingCount',label:'مواد تعبئة وتغليف'}
 };
 const RAW_MATERIALS_BRAN_GROUP='Z111-06';
 const RAW_MATERIALS_PACKAGING_GROUPS=new Set(['Z113-01','Z113-02','Z113-03']);
@@ -6740,9 +6740,9 @@ function rawMaterialsKey(materialCode,plantCode){return rawMaterialsCode(materia
 function rawMaterialsUnitInfo(value){
   const text=String(value||'').trim();
   const upper=text.toUpperCase();
-  if(['KG','KILOGRAM'].includes(upper) || ['ظƒظٹظ„ظˆ','ظƒظٹظ„ظˆط¬ط±ط§ظ…'].includes(text)) return {unit:'TON',family:'weight',factor:0.001};
-  if(['TON','TO','T','TONS'].includes(upper) || text==='ط·ظ†') return {unit:'TON',family:'weight',factor:1};
-  if(['PC','PCS','PIECE'].includes(upper) || text==='ظ‚ط·ط¹ط©') return {unit:'PC',family:'count',factor:1};
+  if(['KG','KILOGRAM'].includes(upper) || ['كيلو','كيلوجرام'].includes(text)) return {unit:'TON',family:'weight',factor:0.001};
+  if(['TON','TO','T','TONS'].includes(upper) || text==='طن') return {unit:'TON',family:'weight',factor:1};
+  if(['PC','PCS','PIECE'].includes(upper) || text==='قطعة') return {unit:'PC',family:'count',factor:1};
   return {unit:text || '-',family:'unknown',factor:1};
 }
 function rawMaterialsNumber(value){
@@ -6753,8 +6753,8 @@ function rawMaterialsNormalizeBranDailyConsumption(value,unit,row){
   const amount=rawMaterialsNumber(value);
   const text=String(unit||'').trim();
   const upper=text.toUpperCase();
-  if(['TON','TO','T','TONS'].includes(upper) || text==='ط·ظ†') return {value:amount,unit:'TON',recognized:true};
-  if(['KG','KGS','KILOGRAM','KILOGRAMS'].includes(upper) || ['ظƒظٹظ„ظˆ','ظƒظٹظ„ظˆط¬ط±ط§ظ…','ظƒظٹظ„ظˆ ط¬ط±ط§ظ…'].includes(text)) return {value:amount/1000,unit:'TON',recognized:true};
+  if(['TON','TO','T','TONS'].includes(upper) || text==='طن') return {value:amount,unit:'TON',recognized:true};
+  if(['KG','KGS','KILOGRAM','KILOGRAMS'].includes(upper) || ['كيلو','كيلوجرام','كيلو جرام'].includes(text)) return {value:amount/1000,unit:'TON',recognized:true};
   const warnKey=rawMaterialsKey(row?.material_code,row?.plant_code)+'|'+(text||'-');
   if(!RAW_MATERIALS_BRAN_UNKNOWN_UNITS.has(warnKey)){
     RAW_MATERIALS_BRAN_UNKNOWN_UNITS.add(warnKey);
@@ -6797,20 +6797,20 @@ function rawMaterialsStatusFromCoverage(avg,coverage){
   return 'surplus';
 }
 function rawMaterialsStatusLabel(status){
-  return {no_consumption:'ط¨ط¯ظˆظ† ط§ط³طھظ‡ظ„ط§ظƒ',critical:'ط­ط±ط¬',low:'ظ…ظ†ط®ظپط¶',safe:'ط¢ظ…ظ†',comfortable:'ظ…ط·ظ…ط¦ظ†',surplus:'ط²ط§ط¦ط¯'}[status] || 'â€”';
+  return {no_consumption:'بدون استهلاك',critical:'حرج',low:'منخفض',safe:'آمن',comfortable:'مطمئن',surplus:'زائد'}[status] || '—';
 }
 function rawMaterialsStatusBadge(status){
   return `<span class="raw-materials-status-badge raw-status-${escapeHtml(status)}">${escapeHtml(rawMaterialsStatusLabel(status))}</span>`;
 }
 function rawMaterialsFormatQuantity(value,unit){
   const n=Number(value);
-  if(!Number.isFinite(n)) return 'â€”';
+  if(!Number.isFinite(n)) return '—';
   if(unit==='PC') return n.toLocaleString('en-US',{maximumFractionDigits:Number.isInteger(n)?0:2});
   return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
 function rawMaterialsFormatCoverage(value){
   const n=Number(value);
-  return Number.isFinite(n) ? n.toLocaleString('en-US',{maximumFractionDigits:2,minimumFractionDigits:0}) : 'â€”';
+  return Number.isFinite(n) ? n.toLocaleString('en-US',{maximumFractionDigits:2,minimumFractionDigits:0}) : '—';
 }
 function rawMaterialsNormalizeStockRows(rows){
   const map=new Map();
@@ -6972,7 +6972,7 @@ function rawMaterialsTotalsByUnit(rows){
   return [...map.values()].sort((a,b)=>a.unit.localeCompare(b.unit));
 }
 function rawMaterialsFormatUnitTotals(totals,field){
-  if(!totals.length) return 'â€”';
+  if(!totals.length) return '—';
   return totals.map(item=>`${rawMaterialsFormatQuantity(item[field],item.unit)} ${escapeHtml(item.unit)}`).join(' / ');
 }
 function rawMaterialsTotalRow(rows,tabKey){
@@ -6981,22 +6981,22 @@ function rawMaterialsTotalRow(rows,tabKey){
     const groupAverage=rawMaterialsNumber(rows[0]?.bran_group_average_daily_consumption ?? rawMaterialsBranGroupDailyConsumption(rows));
     totals.forEach((item,index)=>{ item.average=index===0 ? groupAverage : 0; });
   }
-  const unitLabel=totals.length===1 ? totals[0].unit : (totals.length ? 'ظ…طھط¹ط¯ط¯' : 'â€”');
-  let coverage='â€”', status='â€”';
+  const unitLabel=totals.length===1 ? totals[0].unit : (totals.length ? 'متعدد' : '—');
+  let coverage='—', status='—';
   if(tabKey==='bran' && totals.length===1){
     const item=totals[0];
     const coverageValue=item.average>0 ? item.stock/item.average : null;
     coverage=rawMaterialsFormatCoverage(coverageValue);
     status=rawMaterialsStatusBadge(rawMaterialsStatusFromCoverage(item.average,coverageValue));
   }
-  return ['ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ','ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط¨ظˆظٹط¨',escapeHtml(unitLabel),'â€”',rawMaterialsFormatUnitTotals(totals,'stock'),rawMaterialsFormatUnitTotals(totals,'average'),coverage,status];
+  return ['الإجمالي','إجمالي التبويب',escapeHtml(unitLabel),'—',rawMaterialsFormatUnitTotals(totals,'stock'),rawMaterialsFormatUnitTotals(totals,'average'),coverage,status];
 }
 function rawMaterialsRenderTable(tabKey){
   const spec=RAW_MATERIALS_SCREEN_TABS[tabKey];
   const tableNode=$('#'+spec.tableId);
   if(!tableNode) return;
   const rows=rawMaterialsVisibleRows(tabKey);
-  const heads=['ط§ظ„ظ…ط§ط¯ط©','ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©','ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³','ط§ظ„ظ…طµظ†ط¹','ط§ظ„ط±طµظٹط¯ ط§ظ„ط­ط§ظ„ظٹ','ظ…طھظˆط³ط· ط§ظ„ط§ط³طھظ‡ظ„ط§ظƒ ط§ظ„ظٹظˆظ…ظٹ','ط£ظٹط§ظ… ط§ظ„طھط؛ط·ظٹط©','ط§ظ„ط­ط§ظ„ط©'];
+  const heads=['المادة','وصف المادة','وحدة القياس','المصنع','الرصيد الحالي','متوسط الاستهلاك اليومي','أيام التغطية','الحالة'];
   const body=rows.length ? rows.map(row=>[
     escapeHtml(row.material_code),
     escapeHtml(row.material_description || '-'),
@@ -7009,36 +7009,36 @@ function rawMaterialsRenderTable(tabKey){
   ]) : [];
   const total=rawMaterialsTotalRow(rows,tabKey);
   tableNode.innerHTML='<thead><tr>'+heads.map(h=>`<th>${escapeHtml(h)}</th>`).join('')+'</tr></thead>'
-    +'<tbody>'+(body.length?body.map(r=>'<tr>'+r.map(c=>`<td>${c}</td>`).join('')+'</tr>').join(''):`<tr><td colspan="${heads.length}" class="empty-row">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ…ط·ط§ط¨ظ‚ط©</td></tr>`)
+    +'<tbody>'+(body.length?body.map(r=>'<tr>'+r.map(c=>`<td>${c}</td>`).join('')+'</tr>').join(''):`<tr><td colspan="${heads.length}" class="empty-row">لا توجد بيانات مطابقة</td></tr>`)
     +'</tbody><tfoot><tr class="raw-materials-total-row">'+total.map(c=>`<td>${c}</td>`).join('')+'</tr></tfoot>';
   const count=$('#'+spec.countId);
-  if(count) count.textContent=rows.length.toLocaleString('en-US')+' ظ…ط§ط¯ط©';
+  if(count) count.textContent=rows.length.toLocaleString('en-US')+' مادة';
 }
-const RAW_MATERIALS_EXPORT_HEADERS=['ط§ظ„ظ…ط§ط¯ط©','ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©','ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³','ط§ظ„ظ…طµظ†ط¹','ط§ظ„ط±طµظٹط¯ ط§ظ„ط­ط§ظ„ظٹ','ظ…طھظˆط³ط· ط§ظ„ط§ط³طھظ‡ظ„ط§ظƒ ط§ظ„ظٹظˆظ…ظٹ','ط£ظٹط§ظ… ط§ظ„طھط؛ط·ظٹط©','ط§ظ„ط­ط§ظ„ط©'];
+const RAW_MATERIALS_EXPORT_HEADERS=['المادة','وصف المادة','وحدة القياس','المصنع','الرصيد الحالي','متوسط الاستهلاك اليومي','أيام التغطية','الحالة'];
 function rawMaterialsCurrentTabKey(){return RAW_MATERIALS_SCREEN_STATE.activeTab || 'main';}
-function rawMaterialsExportTabLabel(tabKey){return RAW_MATERIALS_SCREEN_TABS[tabKey]?.label || 'ظ…طھط§ط¨ط¹ط© ط§ظ„ط®ط§ظ…ط§طھ';}
+function rawMaterialsExportTabLabel(tabKey){return RAW_MATERIALS_SCREEN_TABS[tabKey]?.label || 'متابعة الخامات';}
 function rawMaterialsExportTabSlug(tabKey){return ({main:'main',bran:'bran',packaging:'packaging'}[tabKey] || 'raw-materials');}
 function rawMaterialsExportNumber(value,decimals=2){
   const n=Number(value);
-  if(!Number.isFinite(n)) return 'â€”';
+  if(!Number.isFinite(n)) return '—';
   return Number(n.toFixed(decimals));
 }
 function rawMaterialsExportQuantity(value,unit){
   const n=Number(value);
-  if(!Number.isFinite(n)) return 'â€”';
+  if(!Number.isFinite(n)) return '—';
   const decimals=unit==='PC' && Number.isInteger(n) ? 0 : 2;
   return Number(n.toFixed(decimals));
 }
 function rawMaterialsExportFilterSummary(tabKey){
   const filters=rawMaterialsFilterValues();
   const lines=[
-    'ط§ظ„طھط¨ظˆظٹط¨: '+rawMaterialsExportTabLabel(tabKey),
-    'ط§ظ„ظ…طµط§ظ†ط¹: '+enterpriseFilterText(filters.plant,$('#rawMaterialsPlantFilter'),'ط§ظ„ظƒظ„')
+    'التبويب: '+rawMaterialsExportTabLabel(tabKey),
+    'المصانع: '+enterpriseFilterText(filters.plant,$('#rawMaterialsPlantFilter'),'الكل')
   ];
-  if(!$('#rawMaterialsWarehouseField')?.hidden) lines.push('ط§ظ„ظ…ط®ط§ط²ظ†: '+enterpriseFilterText(filters.warehouse,$('#rawMaterialsWarehouseFilter'),'ط§ظ„ظƒظ„'));
-  if(!$('#rawMaterialsWarehouseTypeField')?.hidden) lines.push('ظ†ظˆط¹ ط§ظ„ظ…ط®ط²ظ†: '+enterpriseFilterText(filters.warehouseType,$('#rawMaterialsWarehouseTypeFilter'),'ط§ظ„ظƒظ„'));
-  lines.push('ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ظ…ظˆط§ط¯: '+enterpriseFilterText(filters.group,$('#rawMaterialsGroupFilter'),'ط§ظ„ظƒظ„'));
-  lines.push('ط§ظ„ط­ط§ظ„ط©: '+enterpriseFilterText(filters.status,$('#rawMaterialsStatusFilter'),'ط§ظ„ظƒظ„'));
+  if(!$('#rawMaterialsWarehouseField')?.hidden) lines.push('المخازن: '+enterpriseFilterText(filters.warehouse,$('#rawMaterialsWarehouseFilter'),'الكل'));
+  if(!$('#rawMaterialsWarehouseTypeField')?.hidden) lines.push('نوع المخزن: '+enterpriseFilterText(filters.warehouseType,$('#rawMaterialsWarehouseTypeFilter'),'الكل'));
+  lines.push('مجموعة المواد: '+enterpriseFilterText(filters.group,$('#rawMaterialsGroupFilter'),'الكل'));
+  lines.push('الحالة: '+enterpriseFilterText(filters.status,$('#rawMaterialsStatusFilter'),'الكل'));
   return lines;
 }
 function rawMaterialsExportData(tabKey=rawMaterialsCurrentTabKey()){
@@ -7047,29 +7047,29 @@ function rawMaterialsExportData(tabKey=rawMaterialsCurrentTabKey()){
     row.material_code || '',
     row.material_description || '',
     row.unit_of_measure || '',
-    row.plant_name || row.plant_code || 'â€”',
+    row.plant_name || row.plant_code || '—',
     rawMaterialsExportQuantity(row.current_stock,row.unit_of_measure),
     rawMaterialsExportQuantity(row.average_daily_consumption,row.unit_of_measure),
     rawMaterialsExportNumber(row.coverage_days,2),
     rawMaterialsStatusLabel(row.status)
   ]);
-  const total=rawMaterialsTotalRow(rows,tabKey).map(cell=>stripHtml(String(cell)).replace(/\s+/g,' ').trim() || 'â€”');
+  const total=rawMaterialsTotalRow(rows,tabKey).map(cell=>stripHtml(String(cell)).replace(/\s+/g,' ').trim() || '—');
   return {tabKey,rows,matrix:[RAW_MATERIALS_EXPORT_HEADERS,...body,total],summary:rawMaterialsExportFilterSummary(tabKey)};
 }
 function rawMaterialsExportFileName(tabKey,ext){return `raw-materials-${rawMaterialsExportTabSlug(tabKey)}-${todayISO()}.${ext}`;}
-function rawMaterialsExportTitle(tabKey){return 'ظ…طھط§ط¨ط¹ط© ط§ظ„ط®ط§ظ…ط§طھ - '+rawMaterialsExportTabLabel(tabKey);}
+function rawMaterialsExportTitle(tabKey){return 'متابعة الخامات - '+rawMaterialsExportTabLabel(tabKey);}
 async function exportRawMaterialsExcel(){
   const data=rawMaterialsExportData();
-  if(!data.rows.length){ alert('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ„ظ„طھطµط¯ظٹط±.'); return; }
-  if(!window.XLSX){ alert('ظ…ظƒطھط¨ط© Excel ط؛ظٹط± ظ…ط­ظ…ظ„ط©.'); return; }
-  const meta=[[rawMaterialsExportTitle(data.tabKey)],['طھط§ط±ظٹط® ط§ظ„طھطµط¯ظٹط±',new Date().toLocaleString('ar-EG')],...data.summary.map(line=>[line]),[]];
+  if(!data.rows.length){ alert('لا توجد بيانات للتصدير.'); return; }
+  if(!window.XLSX){ alert('مكتبة Excel غير محملة.'); return; }
+  const meta=[[rawMaterialsExportTitle(data.tabKey)],['تاريخ التصدير',new Date().toLocaleString('ar-EG')],...data.summary.map(line=>[line]),[]];
   const ws=XLSX.utils.aoa_to_sheet([...meta,...data.matrix]);
   ws['!cols']=data.matrix[0].map((_,i)=>({wch:Math.max(14,...data.matrix.map(r=>String(r[i]??'').length).slice(0,500).map(n=>Math.min(n,44)))}));
   ws['!rtl']=true;
   ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:meta.length,c:0},e:{r:meta.length,c:data.matrix[0].length-1}})};
   const wb=XLSX.utils.book_new();
   wb.Workbook={Views:[{RTL:true}]};
-  XLSX.utils.book_append_sheet(wb,ws,'ظ…طھط§ط¨ط¹ط© ط§ظ„ط®ط§ظ…ط§طھ');
+  XLSX.utils.book_append_sheet(wb,ws,'متابعة الخامات');
   const out=XLSX.write(wb,{bookType:'xlsx',type:'array',cellStyles:true});
   const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   await saveBlobWithPicker(blob,rawMaterialsExportFileName(data.tabKey,'xlsx'),'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -7085,7 +7085,7 @@ function rawMaterialsExportBox(data){
   box.dir='rtl';
   box.lang='ar';
   box.style.cssText='position:fixed;left:0;top:0;width:1500px;min-height:400px;background:#001611;color:#f4fff5;font-family:Cairo,Arial,Tahoma,sans-serif;padding:22px;box-sizing:border-box;z-index:2147483647;overflow:visible;';
-  box.innerHTML=`<header class="raw-materials-export-header"><h1>${escapeHtml(rawMaterialsExportTitle(data.tabKey))}</h1><p>طھط§ط±ظٹط® ط§ظ„طھطµط¯ظٹط±: ${escapeHtml(new Date().toLocaleString('ar-EG'))}</p><div>${data.summary.map(line=>`<span>${escapeHtml(line)}</span>`).join('')}</div></header>${rawMaterialsExportTableHtml(data.matrix)}`;
+  box.innerHTML=`<header class="raw-materials-export-header"><h1>${escapeHtml(rawMaterialsExportTitle(data.tabKey))}</h1><p>تاريخ التصدير: ${escapeHtml(new Date().toLocaleString('ar-EG'))}</p><div>${data.summary.map(line=>`<span>${escapeHtml(line)}</span>`).join('')}</div></header>${rawMaterialsExportTableHtml(data.matrix)}`;
   return box;
 }
 async function rawMaterialsCaptureExportBox(box,backgroundColor='#001611'){
@@ -7101,9 +7101,9 @@ async function rawMaterialsCaptureExportBox(box,backgroundColor='#001611'){
 }
 async function exportRawMaterialsPdf(){
   const data=rawMaterialsExportData();
-  if(!data.rows.length){ alert('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ„ظ„طھطµط¯ظٹط±.'); return; }
+  if(!data.rows.length){ alert('لا توجد بيانات للتصدير.'); return; }
   const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-  if(!window.html2canvas || !JsPDF){ alert('ظ…ظƒطھط¨ط© PDF ط؛ظٹط± ظ…ط­ظ…ظ„ط©. طھط£ظƒط¯ ظ…ظ† ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط¥ظ†طھط±ظ†طھ ط«ظ… ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.'); return; }
+  if(!window.html2canvas || !JsPDF){ alert('مكتبة PDF غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
   const box=rawMaterialsExportBox(data);
   try{
     const canvas=await rawMaterialsCaptureExportBox(box,'#001611');
@@ -7128,25 +7128,25 @@ async function exportRawMaterialsPdf(){
     await saveBlobWithPicker(blob,rawMaterialsExportFileName(data.tabKey,'pdf'),'application/pdf');
   }catch(err){
     console.error('Raw materials PDF export failed',err);
-    alert('طھط¹ط°ط± طھطµط¯ظٹط± PDF. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+    alert('تعذر تصدير PDF. حاول مرة أخرى.');
   }finally{
     try{ box.remove(); }catch(_){}
   }
 }
 async function exportRawMaterialsPng(){
   const data=rawMaterialsExportData();
-  if(!data.rows.length){ alert('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ„ظ„طھطµط¯ظٹط±.'); return; }
-  if(!window.html2canvas){ alert('ظ…ظƒطھط¨ط© PNG ط؛ظٹط± ظ…ط­ظ…ظ„ط©.'); return; }
+  if(!data.rows.length){ alert('لا توجد بيانات للتصدير.'); return; }
+  if(!window.html2canvas){ alert('مكتبة PNG غير محملة.'); return; }
   const box=rawMaterialsExportBox(data);
   try{
     const canvas=await rawMaterialsCaptureExportBox(box,'#001611');
     canvas.toBlob(async blob=>{
-      if(!blob){ alert('طھط¹ط°ط± ط¥ظ†ط´ط§ط، طµظˆط±ط© PNG.'); return; }
+      if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
       await saveBlobWithPicker(blob,rawMaterialsExportFileName(data.tabKey,'png'),'image/png');
     },'image/png',1);
   }catch(err){
     console.error('Raw materials PNG export failed',err);
-    alert('طھط¹ط°ط± طھطµط¯ظٹط± PNG. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+    alert('تعذر تصدير PNG. حاول مرة أخرى.');
   }finally{
     try{ box.remove(); }catch(_){}
   }
@@ -7174,10 +7174,10 @@ function syncRawMaterialsFilterOptions(){
     warehouseMap.set(wh,{value:wh,label:wh+(row.warehouse_name||meta.warehouse_name?' - '+(row.warehouse_name||meta.warehouse_name):'')});
     if(meta.warehouse_type) typeMap.set(meta.warehouse_type,{value:meta.warehouse_type,label:meta.warehouse_type});
   });
-  rawMaterialsAddOptions($('#rawMaterialsPlantFilter'),plantItems,'ظƒظ„ ط§ظ„ظ…طµط§ظ†ط¹');
-  rawMaterialsAddOptions($('#rawMaterialsWarehouseFilter'),[...warehouseMap.values()].sort((a,b)=>a.value.localeCompare(b.value)),'ظƒظ„ ط§ظ„ظ…ط®ط§ط²ظ†');
-  rawMaterialsAddOptions($('#rawMaterialsWarehouseTypeFilter'),[...typeMap.values()].sort((a,b)=>a.value.localeCompare(b.value)),'ظƒظ„ ط£ظ†ظˆط§ط¹ ط§ظ„ظ…ط®ط§ط²ظ†');
-  rawMaterialsAddOptions($('#rawMaterialsGroupFilter'),groupItems,'ظƒظ„ ط§ظ„ظ…ط¬ظ…ظˆط¹ط§طھ');
+  rawMaterialsAddOptions($('#rawMaterialsPlantFilter'),plantItems,'كل المصانع');
+  rawMaterialsAddOptions($('#rawMaterialsWarehouseFilter'),[...warehouseMap.values()].sort((a,b)=>a.value.localeCompare(b.value)),'كل المخازن');
+  rawMaterialsAddOptions($('#rawMaterialsWarehouseTypeFilter'),[...typeMap.values()].sort((a,b)=>a.value.localeCompare(b.value)),'كل أنواع المخازن');
+  rawMaterialsAddOptions($('#rawMaterialsGroupFilter'),groupItems,'كل المجموعات');
   initEnterpriseMultiSelectFilters($('#raw_materials'));
   const whField=$('#rawMaterialsWarehouseField');
   const typeField=$('#rawMaterialsWarehouseTypeField');
@@ -7187,9 +7187,9 @@ function syncRawMaterialsFilterOptions(){
 async function loadRawMaterialsScreen(force=false){
   if(RAW_MATERIALS_SCREEN_STATE.loading) return;
   if(RAW_MATERIALS_SCREEN_STATE.loaded && !force){ renderRawMaterialsActiveTab(); return; }
-  if(!WarehouseDB?.ready){ rawMaterialsSetStatus('Supabase ط؛ظٹط± ظ…طھطµظ„. ظ„ط§ ظٹظ…ظƒظ† طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ ظ…طھط§ط¨ط¹ط© ط§ظ„ط®ط§ظ…ط§طھ.','err'); return; }
+  if(!WarehouseDB?.ready){ rawMaterialsSetStatus('Supabase غير متصل. لا يمكن تحميل بيانات متابعة الخامات.','err'); return; }
   RAW_MATERIALS_SCREEN_STATE.loading=true;
-  rawMaterialsSetStatus('ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ ظ…طھط§ط¨ط¹ط© ط§ظ„ط®ط§ظ…ط§طھ...');
+  rawMaterialsSetStatus('جاري تحميل بيانات متابعة الخامات...');
   try{
     const [stockRows,metricRows,branConsumption]=await Promise.all([
       fetchAllRows('current_plant_stock_rows','material_code,material_name,uom,unrestricted_stock,quality_inspection_stock,material_group,material_group_description,plant_code,plant_name,warehouse_code,warehouse_name'),
@@ -7204,9 +7204,9 @@ async function loadRawMaterialsScreen(force=false){
     RAW_MATERIALS_SCREEN_STATE.loaded=true;
     syncRawMaterialsFilterOptions();
     renderRawMaterialsActiveTab();
-    rawMaterialsSetStatus(`طھظ… طھط­ظ…ظٹظ„ ${RAW_MATERIALS_SCREEN_STATE.mergedRows.length.toLocaleString('en-US')} ظ…ط§ط¯ط© ظ…ظ† ط±طµظٹط¯ ط§ظ„ظ…طµظ†ط¹ ظˆظ…ط¹ط¯ظ„ ط§ظ„ط§ط³طھظ‡ظ„ط§ظƒ.`,'ok');
+    rawMaterialsSetStatus(`تم تحميل ${RAW_MATERIALS_SCREEN_STATE.mergedRows.length.toLocaleString('en-US')} مادة من رصيد المصنع ومعدل الاستهلاك.`,'ok');
   }catch(err){
-    rawMaterialsSetStatus('طھط¹ط°ط± طھط­ظ…ظٹظ„ ط¨ظٹط§ظ†ط§طھ ظ…طھط§ط¨ط¹ط© ط§ظ„ط®ط§ظ…ط§طھ: '+(err.message||err),'err');
+    rawMaterialsSetStatus('تعذر تحميل بيانات متابعة الخامات: '+(err.message||err),'err');
   }finally{
     RAW_MATERIALS_SCREEN_STATE.loading=false;
   }
@@ -7284,7 +7284,7 @@ function fillReportFilters(){
   const saleWhCodes=['W401','W402','N401','N402','N411','N412','E401','E402'];
   function fillWh(){
     const old=enterpriseMultiSelectValues(wf);
-    wf.innerHTML='<option value="all">ظƒظ„ ظ…ط®ط§ط²ظ† ط§ظ„ط¨ظٹط¹</option>';
+    wf.innerHTML='<option value="all">كل مخازن البيع</option>';
     APP_DATA.plants
       .filter(p=>enterpriseFilterMatches(enterpriseMultiSelectValues(pf),p.code))
       .forEach(p=>p.warehouses.filter(w=>saleWhCodes.includes(w[0])).forEach(w=>wf.add(new Option(`${w[0]} - ${w[1]}`,w[0]))));
@@ -7310,25 +7310,25 @@ function getReportFilters(){
   return {plant:enterpriseSelectValues('reportPlantFilter'),warehouse:enterpriseSelectValues('reportWarehouseFilter'),from:normalizeDateISO($('#reportFromDate')?.value||''),to:normalizeDateISO($('#reportToDate')?.value||'')};
 }
 function reportFilterLabel(filters){
-  const plant=enterpriseFilterText(filters.plant,$('#reportPlantFilter'),'ط¬ظ…ظٹط¹ ط§ظ„ظ…طµط§ظ†ط¹');
-  const wh=enterpriseFilterText(filters.warehouse,$('#reportWarehouseFilter'),'ط¬ظ…ظٹط¹ ظ…ط®ط§ط²ظ† ط§ظ„ط¨ظٹط¹');
-  const period=(filters.from||filters.to)?`${filters.from||'ط§ظ„ط¨ط¯ط§ظٹط©'} â†’ ${filters.to||'ط§ظ„ظ†ظ‡ط§ظٹط©'}`:'ظƒظ„ ط§ظ„ظپطھط±ط§طھ';
-  return `ط§ظ„ظپطھط±ط©: ${period} / ط§ظ„ظ…طµظ†ط¹: ${plant} / ط§ظ„ظ…ط®ط²ظ†: ${wh} / طھط§ط±ظٹط® ط§ظ„ط¥طµط¯ط§ط±: ${new Date().toLocaleString('ar-EG')}`;
+  const plant=enterpriseFilterText(filters.plant,$('#reportPlantFilter'),'جميع المصانع');
+  const wh=enterpriseFilterText(filters.warehouse,$('#reportWarehouseFilter'),'جميع مخازن البيع');
+  const period=(filters.from||filters.to)?`${filters.from||'البداية'} → ${filters.to||'النهاية'}`:'كل الفترات';
+  return `الفترة: ${period} / المصنع: ${plant} / المخزن: ${wh} / تاريخ الإصدار: ${new Date().toLocaleString('ar-EG')}`;
 }
 function renderExecutiveKPIs(stats){
   const cards=[
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹',value:fmt(stats.salesQty),unit:'ط·ظ†',icon:'sales'},
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ظ†طھط§ط¬',value:fmt(stats.productionQty),unit:'ط·ظ†',icon:'production'},
-    {title:'ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ط©',value:fmt(stats.outgoingTransferQty),unit:'ط·ظ†',icon:'outgoing'},
-    {title:'ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظˆط§ط±ط¯ط©',value:fmt(stats.incomingTransferQty),unit:'ط·ظ†',icon:'incoming'},
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„',value:fmt(stats.totalLoadingQty),unit:'ط·ظ†',icon:'loading'}
+    {title:'إجمالي البيع',value:fmt(stats.salesQty),unit:'طن',icon:'sales'},
+    {title:'إجمالي الإنتاج',value:fmt(stats.productionQty),unit:'طن',icon:'production'},
+    {title:'التحويلات الصادرة',value:fmt(stats.outgoingTransferQty),unit:'طن',icon:'outgoing'},
+    {title:'التحويلات الواردة',value:fmt(stats.incomingTransferQty),unit:'طن',icon:'incoming'},
+    {title:'إجمالي التحميل',value:fmt(stats.totalLoadingQty),unit:'طن',icon:'loading'}
   ];
   const node=$('#executiveKpiCards'); if(node) node.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
 function drawReportLine(daily){
   const canvas=$('#reportLineChart'); if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
-  const series=[{key:'sales',label:'ط§ظ„ط¨ظٹط¹',color:'#83d84b'},{key:'production',label:'ط§ظ„ط¥ظ†طھط§ط¬',color:'#32aee9'},{key:'outgoing',label:'ط§ظ„طµط§ط¯ط±ط©',color:'#ff9f2f'},{key:'incoming',label:'ط§ظ„ظˆط§ط±ط¯ط©',color:'#b965ff'}];
-  const days=Object.keys(daily||{}).sort().slice(-31); if(!days.length){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ',w/2,h/2);return;}
+  const series=[{key:'sales',label:'البيع',color:'#83d84b'},{key:'production',label:'الإنتاج',color:'#32aee9'},{key:'outgoing',label:'الصادرة',color:'#ff9f2f'},{key:'incoming',label:'الواردة',color:'#b965ff'}];
+  const days=Object.keys(daily||{}).sort().slice(-31); if(!days.length){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2);return;}
   const plotDays=days.length===1?[days[0],days[0]]:days; const rawMax=Math.max(1,...days.flatMap(d=>series.map(s=>daily[d][s.key]||0))); const max=Math.ceil(rawMax*1.15);
   const pad={l:54,r:20,t:25,b:38}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
   ctx.strokeStyle='rgba(255,255,255,.13)';ctx.lineWidth=1;ctx.font='bold 11px Cairo';ctx.fillStyle='#cfe8d0';ctx.textAlign='right';
@@ -7341,7 +7341,7 @@ function drawReportLine(daily){
 }
 function drawReportPlantBar(plantStats){
   const canvas=$('#reportPlantChart'); if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
-  const plants=getPlantsCatalog().map(p=>p.code); const series=[{key:'sales',label:'ط§ظ„ط¨ظٹط¹',color:'#74c54a'},{key:'production',label:'ط§ظ„ط¥ظ†طھط§ط¬',color:'#2aa6e8'},{key:'outgoing',label:'ط§ظ„طµط§ط¯ط±ط©',color:'#ff9f2f'},{key:'incoming',label:'ط§ظ„ظˆط§ط±ط¯ط©',color:'#b45cff'},{key:'loading',label:'ط§ظ„طھط­ظ…ظٹظ„',color:'#28c7bd'}];
+  const plants=getPlantsCatalog().map(p=>p.code); const series=[{key:'sales',label:'البيع',color:'#74c54a'},{key:'production',label:'الإنتاج',color:'#2aa6e8'},{key:'outgoing',label:'الصادرة',color:'#ff9f2f'},{key:'incoming',label:'الواردة',color:'#b45cff'},{key:'loading',label:'التحميل',color:'#28c7bd'}];
   const max=Math.max(1,...plants.flatMap(c=>series.map(s=>Math.abs((plantStats[c]||{})[s.key]||0)))); const pad={l:50,r:20,t:30,b:42}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
   ctx.strokeStyle='rgba(255,255,255,.12)';ctx.font='bold 11px Cairo';ctx.fillStyle='#cfe8d0';ctx.textAlign='right'; for(let i=0;i<=4;i++){const y=pad.t+ch-(i/4)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmt(max*i/4),pad.l-8,y+4);}
   const groupW=cw/plants.length, barW=Math.min(17,(groupW-30)/series.length); plants.forEach((code,pi)=>{const baseX=pad.l+pi*groupW+groupW/2-((barW+4)*series.length)/2;series.forEach((s,si)=>{const v=Math.abs((plantStats[code]||{})[s.key]||0);const bh=(v/max)*ch;const x=baseX+si*(barW+4),y=pad.t+ch-bh;ctx.fillStyle=s.color;ctx.fillRect(x,y,barW,bh);});ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 13px Cairo';ctx.fillText(code,pad.l+pi*groupW+groupW/2,pad.t+ch+25);});
@@ -7349,9 +7349,9 @@ function drawReportPlantBar(plantStats){
 }
 function drawReportDonut(warehouseSalesMap){
   const canvas=$('#reportDonutChart'), legend=$('#reportDonutLegend'); if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
-  const entries=Object.entries(warehouseSalesMap||{}).sort((a,b)=>b[1]-a[1]).slice(0,8); const sum=entries.reduce((a,b)=>a+b[1],0); if(!sum){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ',w/2,h/2); if(legend)legend.innerHTML=''; return;}
-  const cx=155,cy=130,r=86; let a=-Math.PI/2; entries.forEach(([code,val],i)=>{const e=a+(val/sum)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,e);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();a=e;}); ctx.beginPath();ctx.arc(cx,cy,48,0,Math.PI*2);ctx.fillStyle='#00251f';ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText(fmt(sum),cx,cy-2);ctx.font='bold 12px Cairo';ctx.fillStyle='#d8ffd1';ctx.fillText('ط·ظ†',cx,cy+20);
-  if(legend) legend.innerHTML=entries.map(([code,val],i)=>`<div><span style="background:${colors[i%colors.length]}"></span><b>${escapeHtml(code)}</b> ${fmt(val)} ط·ظ† - ${sum?((val/sum)*100).toFixed(1):0}%</div>`).join('');
+  const entries=Object.entries(warehouseSalesMap||{}).sort((a,b)=>b[1]-a[1]).slice(0,8); const sum=entries.reduce((a,b)=>a+b[1],0); if(!sum){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2); if(legend)legend.innerHTML=''; return;}
+  const cx=155,cy=130,r=86; let a=-Math.PI/2; entries.forEach(([code,val],i)=>{const e=a+(val/sum)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,e);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();a=e;}); ctx.beginPath();ctx.arc(cx,cy,48,0,Math.PI*2);ctx.fillStyle='#00251f';ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText(fmt(sum),cx,cy-2);ctx.font='bold 12px Cairo';ctx.fillStyle='#d8ffd1';ctx.fillText('طن',cx,cy+20);
+  if(legend) legend.innerHTML=entries.map(([code,val],i)=>`<div><span style="background:${colors[i%colors.length]}"></span><b>${escapeHtml(code)}</b> ${fmt(val)} طن - ${sum?((val/sum)*100).toFixed(1):0}%</div>`).join('');
 }
 function renderExecutiveInsights(products, warehouses, plantStats, stats){
   const topProduct=[...products].sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales))[0]||{};
@@ -7359,15 +7359,15 @@ function renderExecutiveInsights(products, warehouses, plantStats, stats){
   const topPlant=Object.entries(plantStats||{}).sort((a,b)=>Math.abs(b[1].sales)-Math.abs(a[1].sales))[0]||['-',{}];
   const noSales=products.filter(p=>Math.abs(p.sales)===0 && (Math.abs(p.production)+Math.abs(p.outgoing)+Math.abs(p.incoming))>0).length;
   const review=products.filter(p=>Math.abs(p.production-p.sales)>Math.max(5,Math.abs(p.sales)*.25)).length;
-  const cards=[['production',topPlant[0],'ط£ط¹ظ„ظ‰ ظ…طµظ†ط¹ ط¨ظٹط¹ط§ظ‹',fmt(topPlant[1].sales||0)+' ط·ظ†'],['warehouses',topWh.code||'-','ط£ط¹ظ„ظ‰ ظ…ط®ط²ظ† ط¨ظٹط¹ط§ظ‹',fmt(topWh.sales||0)+' ط·ظ†'],['star',topProduct.code||'-','ط£ط¹ظ„ظ‰ طµظ†ظپ ط¨ظٹط¹ط§ظ‹',escapeHtml(topProduct.name||'-')],['ban',noSales,'ط£طµظ†ط§ظپ ط¨ط¯ظˆظ† ط¨ظٹط¹','ظ„ظ‡ط§ ط¥ظ†طھط§ط¬ ط£ظˆ طھط­ظˆظٹظ„ط§طھ'],['alert',review,'ط£طµظ†ط§ظپ طھط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©','ظپط±ظ‚ ط¥ظ†طھط§ط¬/ط¨ظٹط¹ ظ…ط±طھظپط¹'],['reports',fmt(stats.salesQty),'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹','ط­ط³ط¨ ط§ظ„ظپظ„طھط± ط§ظ„ط­ط§ظ„ظٹ']];
+  const cards=[['production',topPlant[0],'أعلى مصنع بيعاً',fmt(topPlant[1].sales||0)+' طن'],['warehouses',topWh.code||'-','أعلى مخزن بيعاً',fmt(topWh.sales||0)+' طن'],['star',topProduct.code||'-','أعلى صنف بيعاً',escapeHtml(topProduct.name||'-')],['ban',noSales,'أصناف بدون بيع','لها إنتاج أو تحويلات'],['alert',review,'أصناف تحتاج مراجعة','فرق إنتاج/بيع مرتفع'],['reports',fmt(stats.salesQty),'إجمالي البيع','حسب الفلتر الحالي']];
   const node=$('#executiveInsights'); if(node) node.innerHTML=cards.map(c=>'<div class="executive-insight-card"><span class="insight-ico">'+modernIcon(c[0])+'</span><b>'+c[1]+'</b><span>'+c[2]+'</span><small>'+c[3]+'</small></div>').join('');
 }
 function renderExecutiveExportTable(stats, products, warehouses, plantStats){
   const tbl=$('#executiveExportTable'); if(!tbl) return;
   const plantRows=getPlantsCatalog().map(p=>`<tr><td>\u0623\u062F\u0627\u0621 \u0645\u0635\u0646\u0639</td><td>${p.code}</td><td>${p.name}</td><td>${fmt((plantStats[p.code]||{}).sales||0)}</td><td>${fmt((plantStats[p.code]||{}).production||0)}</td><td>${fmt((plantStats[p.code]||{}).outgoing||0)}</td><td>${fmt((plantStats[p.code]||{}).incoming||0)}</td><td>${fmt((plantStats[p.code]||{}).loading||0)}</td></tr>`).join('');
-  const productRows=products.slice(0,10).map(p=>`<tr><td>ط£ظپط¶ظ„ طµظ†ظپ</td><td>${escapeHtml(p.code)}</td><td>${escapeHtml(p.name)}</td><td>${fmt(p.sales)}</td><td>${fmt(p.production)}</td><td>${fmt(p.outgoing)}</td><td>${fmt(p.incoming)}</td><td>${fmt(p.loading)}</td></tr>`).join('');
-  const whRows=warehouses.slice(0,10).map(w=>`<tr><td>ط£ظپط¶ظ„ ظ…ط®ط²ظ†</td><td>${escapeHtml(w.code)}</td><td>${escapeHtml(w.name)}</td><td>${fmt(w.sales)}</td><td>${fmt(w.production)}</td><td>${fmt(w.outgoing)}</td><td>${fmt(w.incoming)}</td><td>${fmt(w.loading)}</td></tr>`).join('');
-  tbl.innerHTML=`<thead><tr><th>ط§ظ„ظ‚ط³ظ…</th><th>ط§ظ„ظƒظˆط¯</th><th>ط§ظ„ط¨ظٹط§ظ†</th><th>ط§ظ„ط¨ظٹط¹</th><th>ط§ظ„ط¥ظ†طھط§ط¬</th><th>ط§ظ„طµط§ط¯ط±ط©</th><th>ط§ظ„ظˆط§ط±ط¯ط©</th><th>ط§ظ„طھط­ظ…ظٹظ„</th></tr></thead><tbody><tr><td>ط¥ط¬ظ…ط§ظ„ظٹ</td><td>-</td><td>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظپطھط±ط©</td><td>${fmt(stats.salesQty)}</td><td>${fmt(stats.productionQty)}</td><td>${fmt(stats.outgoingTransferQty)}</td><td>${fmt(stats.incomingTransferQty)}</td><td>${fmt(stats.totalLoadingQty)}</td></tr>${plantRows}${productRows}${whRows}</tbody>`;
+  const productRows=products.slice(0,10).map(p=>`<tr><td>أفضل صنف</td><td>${escapeHtml(p.code)}</td><td>${escapeHtml(p.name)}</td><td>${fmt(p.sales)}</td><td>${fmt(p.production)}</td><td>${fmt(p.outgoing)}</td><td>${fmt(p.incoming)}</td><td>${fmt(p.loading)}</td></tr>`).join('');
+  const whRows=warehouses.slice(0,10).map(w=>`<tr><td>أفضل مخزن</td><td>${escapeHtml(w.code)}</td><td>${escapeHtml(w.name)}</td><td>${fmt(w.sales)}</td><td>${fmt(w.production)}</td><td>${fmt(w.outgoing)}</td><td>${fmt(w.incoming)}</td><td>${fmt(w.loading)}</td></tr>`).join('');
+  tbl.innerHTML=`<thead><tr><th>القسم</th><th>الكود</th><th>البيان</th><th>البيع</th><th>الإنتاج</th><th>الصادرة</th><th>الواردة</th><th>التحميل</th></tr></thead><tbody><tr><td>إجمالي</td><td>-</td><td>إجمالي الفترة</td><td>${fmt(stats.salesQty)}</td><td>${fmt(stats.productionQty)}</td><td>${fmt(stats.outgoingTransferQty)}</td><td>${fmt(stats.incomingTransferQty)}</td><td>${fmt(stats.totalLoadingQty)}</td></tr>${plantRows}${productRows}${whRows}</tbody>`;
 }
 
 let ACTIVE_REPORT_TAB='executive';
@@ -7378,11 +7378,11 @@ function getReportStatus(item){
   const gap=production-sales;
   const absGap=Math.abs(gap);
   const threshold=Math.max(5, Math.max(sales,production)*0.25);
-  if(activity>0 && sales===0) return {key:'no_sales', label:'ط¨ط¯ظˆظ† ط¨ظٹط¹', cls:'danger', weight:90};
-  if(absGap>threshold && gap>0) return {key:'production_high', label:'ط¥ظ†طھط§ط¬ ط£ط¹ظ„ظ‰ ظ…ظ† ط§ظ„ط¨ظٹط¹', cls:'warning', weight:70};
-  if(absGap>threshold && gap<0) return {key:'sales_high', label:'ط¨ظٹط¹ ط£ط¹ظ„ظ‰ ظ…ظ† ط§ظ„ط¥ظ†طھط§ط¬', cls:'warning', weight:65};
-  if(outgoing>Math.max(5,sales*0.5)) return {key:'outgoing_high', label:'طھط­ظˆظٹظ„ط§طھ طµط§ط¯ط±ط© ظ…ط±طھظپط¹ط©', cls:'info', weight:55};
-  return {key:'ok', label:'ط·ط¨ظٹط¹ظٹ', cls:'ok', weight:0};
+  if(activity>0 && sales===0) return {key:'no_sales', label:'بدون بيع', cls:'danger', weight:90};
+  if(absGap>threshold && gap>0) return {key:'production_high', label:'إنتاج أعلى من البيع', cls:'warning', weight:70};
+  if(absGap>threshold && gap<0) return {key:'sales_high', label:'بيع أعلى من الإنتاج', cls:'warning', weight:65};
+  if(outgoing>Math.max(5,sales*0.5)) return {key:'outgoing_high', label:'تحويلات صادرة مرتفعة', cls:'info', weight:55};
+  return {key:'ok', label:'طبيعي', cls:'ok', weight:0};
 }
 function getItemReviewScore(item){
   const st=getReportStatus(item);
@@ -7391,23 +7391,23 @@ function getItemReviewScore(item){
 }
 function renderItemsReportKPIs(summary){
   const cards=[
-    {title:'ط¹ط¯ط¯ ط§ظ„ط£طµظ†ط§ظپ',value:fmt(summary.count),unit:'طµظ†ظپ',icon:'box',className:'kpi-items-count'},
-    {title:'ط£طµظ†ط§ظپ ط·ط¨ظٹط¹ظٹط©',value:fmt(summary.ok),unit:'طµظ†ظپ',icon:'shield',className:'kpi-items-ok'},
-    {title:'طھط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©',value:fmt(summary.review),unit:'طµظ†ظپ',icon:'warning',className:'kpi-items-review'},
-    {title:'ط¨ط¯ظˆظ† ط¨ظٹط¹',value:fmt(summary.noSales),unit:'طµظ†ظپ',icon:'doc',className:'kpi-items-no-sales'},
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ظپط±ظ‚ ط§ظ„ط¥ظ†طھط§ط¬/ط§ظ„ط¨ظٹط¹',value:fmt(summary.totalGap),unit:'ط·ظ†',icon:'transfer',className:'kpi-items-gap'}
+    {title:'عدد الأصناف',value:fmt(summary.count),unit:'صنف',icon:'box',className:'kpi-items-count'},
+    {title:'أصناف طبيعية',value:fmt(summary.ok),unit:'صنف',icon:'shield',className:'kpi-items-ok'},
+    {title:'تحتاج مراجعة',value:fmt(summary.review),unit:'صنف',icon:'warning',className:'kpi-items-review'},
+    {title:'بدون بيع',value:fmt(summary.noSales),unit:'صنف',icon:'doc',className:'kpi-items-no-sales'},
+    {title:'إجمالي فرق الإنتاج/البيع',value:fmt(summary.totalGap),unit:'طن',icon:'transfer',className:'kpi-items-gap'}
   ];
   const node=$('#itemsReportKpis'); if(node) node.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
 function renderItemsStatusBoard(summary){
   const node=$('#itemsStatusBoard'); if(!node) return;
   node.innerHTML=`
-    <div class="item-status-card ok"><div><span>ط§ظ„ط£طµظ†ط§ظپ ط§ظ„ط·ط¨ظٹط¹ظٹط©</span><small>ظ„ط§ طھظˆط¬ط¯ ظ…ط¤ط´ط±ط§طھ ط؛ظٹط± ظ…ط¹طھط§ط¯ط©</small></div><b>${fmt(summary.ok)}</b></div>
-    <div class="item-status-card danger"><div><span>ط£طµظ†ط§ظپ ط¨ط¯ظˆظ† ط¨ظٹط¹</span><small>ظ„ظ‡ط§ ط¥ظ†طھط§ط¬ ط£ظˆ طھط­ظˆظٹظ„ط§طھ ط®ظ„ط§ظ„ ط§ظ„ظپطھط±ط©</small></div><b>${fmt(summary.noSales)}</b></div>
-    <div class="item-status-card warning"><div><span>ظپط±ظ‚ ط¥ظ†طھط§ط¬/ط¨ظٹط¹ ظ…ط±طھظپط¹</span><small>طھط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط© ظƒظ…ظٹط© ظˆط­ط±ظƒط©</small></div><b>${fmt(summary.gapItems)}</b></div>
-    <div class="item-status-card warning"><div><span>طھط­ظˆظٹظ„ط§طھ طµط§ط¯ط±ط© ظ…ط±طھظپط¹ط©</span><small>ط£ط¹ظ„ظ‰ ظ…ظ† ظ…طھظˆط³ط· ط§ظ„ظ†ط´ط§ط·</small></div><b>${fmt(summary.outgoingHigh)}</b></div>
-    <div class="item-status-card"><div><span>ظ…طھظˆط³ط· ظ†ط³ط¨ط© ط§ظ„ط¨ظٹط¹ ظ„ظ„ط¥ظ†طھط§ط¬</span><small>ط­ط³ط¨ ط§ظ„ط£طµظ†ط§ظپ ط°ط§طھ ط§ظ„ط¥ظ†طھط§ط¬</small></div><b>${fmt(summary.avgSalesToProduction)}%</b></div>
-    <div class="item-status-card"><div><span>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„</span><small>ظ„ظ„ط£طµظ†ط§ظپ ط§ظ„ظ…ط¹ط±ظˆط¶ط©</small></div><b>${fmt(summary.totalLoading)}</b></div>`;
+    <div class="item-status-card ok"><div><span>الأصناف الطبيعية</span><small>لا توجد مؤشرات غير معتادة</small></div><b>${fmt(summary.ok)}</b></div>
+    <div class="item-status-card danger"><div><span>أصناف بدون بيع</span><small>لها إنتاج أو تحويلات خلال الفترة</small></div><b>${fmt(summary.noSales)}</b></div>
+    <div class="item-status-card warning"><div><span>فرق إنتاج/بيع مرتفع</span><small>تحتاج مراجعة كمية وحركة</small></div><b>${fmt(summary.gapItems)}</b></div>
+    <div class="item-status-card warning"><div><span>تحويلات صادرة مرتفعة</span><small>أعلى من متوسط النشاط</small></div><b>${fmt(summary.outgoingHigh)}</b></div>
+    <div class="item-status-card"><div><span>متوسط نسبة البيع للإنتاج</span><small>حسب الأصناف ذات الإنتاج</small></div><b>${fmt(summary.avgSalesToProduction)}%</b></div>
+    <div class="item-status-card"><div><span>إجمالي التحميل</span><small>للأصناف المعروضة</small></div><b>${fmt(summary.totalLoading)}</b></div>`;
 }
 function itemReportRow(item,i){
   const status=getReportStatus(item);
@@ -7418,21 +7418,21 @@ function itemReportRow(item,i){
 }
 function renderItemsReportTables(items){
   const tbl=$('#itemsReportTable'), top=$('#itemsReviewTopTable');
-  const headers='<thead><tr><th>#</th><th>ظƒظˆط¯ ط§ظ„طµظ†ظپ</th><th>ط§ط³ظ… ط§ظ„طµظ†ظپ</th><th>ط§ظ„ط¨ظٹط¹</th><th>ط§ظ„ط¥ظ†طھط§ط¬</th><th>ط§ظ„طµط§ط¯ط±ط©</th><th>ط§ظ„ظˆط§ط±ط¯ط©</th><th>ط§ظ„طھط­ظ…ظٹظ„</th><th>ظپط±ظ‚ ط§ظ„ط¥ظ†طھط§ط¬/ط§ظ„ط¨ظٹط¹</th><th>ظ†ط³ط¨ط© ط§ظ„ط¨ظٹط¹ ظ„ظ„ط¥ظ†طھط§ط¬</th><th>ط§ظ„ط­ط§ظ„ط©</th></tr></thead>';
-  if(tbl) tbl.innerHTML=headers+`<tbody>${items.map(itemReportRow).join('')||'<tr><td colspan="11">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ</td></tr>'}</tbody>`;
+  const headers='<thead><tr><th>#</th><th>كود الصنف</th><th>اسم الصنف</th><th>البيع</th><th>الإنتاج</th><th>الصادرة</th><th>الواردة</th><th>التحميل</th><th>فرق الإنتاج/البيع</th><th>نسبة البيع للإنتاج</th><th>الحالة</th></tr></thead>';
+  if(tbl) tbl.innerHTML=headers+`<tbody>${items.map(itemReportRow).join('')||'<tr><td colspan="11">لا توجد بيانات</td></tr>'}</tbody>`;
   const reviewItems=[...items].sort((a,b)=>getItemReviewScore(b)-getItemReviewScore(a)).slice(0,10);
-  if(top) top.innerHTML=headers+`<tbody>${reviewItems.map(itemReportRow).join('')||'<tr><td colspan="11">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ</td></tr>'}</tbody>`;
-  const count=$('#itemsReportCount'); if(count) count.textContent=`ط¹ط¯ط¯ ط§ظ„ط£طµظ†ط§ظپ: ${items.length}`;
+  if(top) top.innerHTML=headers+`<tbody>${reviewItems.map(itemReportRow).join('')||'<tr><td colspan="11">لا توجد بيانات</td></tr>'}</tbody>`;
+  const count=$('#itemsReportCount'); if(count) count.textContent=`عدد الأصناف: ${items.length}`;
 }
 function renderItemsExportTable(items,summary){
   const tbl=$('#itemsReportExportTable'); if(!tbl) return;
   const rows=items.map((item,i)=>{const st=getReportStatus(item); const prod=Math.abs(item.production||0), sales=Math.abs(item.sales||0); const gap=(item.production||0)-(item.sales||0); const ratio=prod?((sales/prod)*100):0; return `<tr><td>${i+1}</td><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.name)}</td><td>${fmt(item.sales)}</td><td>${fmt(item.production)}</td><td>${fmt(item.outgoing)}</td><td>${fmt(item.incoming)}</td><td>${fmt(item.loading)}</td><td>${fmt(gap)}</td><td>${prod?fmt(ratio)+'%':'-'}</td><td>${st.label}</td></tr>`;}).join('');
-  tbl.innerHTML=`<thead><tr><th>#</th><th>ظƒظˆط¯ ط§ظ„طµظ†ظپ</th><th>ط§ط³ظ… ط§ظ„طµظ†ظپ</th><th>ط§ظ„ط¨ظٹط¹</th><th>ط§ظ„ط¥ظ†طھط§ط¬</th><th>ط§ظ„طµط§ط¯ط±ط©</th><th>ط§ظ„ظˆط§ط±ط¯ط©</th><th>ط§ظ„طھط­ظ…ظٹظ„</th><th>ظپط±ظ‚ ط§ظ„ط¥ظ†طھط§ط¬/ط§ظ„ط¨ظٹط¹</th><th>ظ†ط³ط¨ط© ط§ظ„ط¨ظٹط¹ ظ„ظ„ط¥ظ†طھط§ط¬</th><th>ط§ظ„ط­ط§ظ„ط©</th></tr></thead><tbody>${rows}</tbody>`;
+  tbl.innerHTML=`<thead><tr><th>#</th><th>كود الصنف</th><th>اسم الصنف</th><th>البيع</th><th>الإنتاج</th><th>الصادرة</th><th>الواردة</th><th>التحميل</th><th>فرق الإنتاج/البيع</th><th>نسبة البيع للإنتاج</th><th>الحالة</th></tr></thead><tbody>${rows}</tbody>`;
 }
 async function loadItemsReport(options={}){
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
   let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:true,orderBy:'material_code'}); }catch(error){console.warn('items report load error',error);return;} const map={};
-  (data||[]).forEach(r=>{const key=String(r.material_code||r.material_name||'ط؛ظٹط± ظ…ط­ط¯ط¯'); if(!map[key]) map[key]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0}; const it=map[key]; it.sales+=toNumber(r.sales_quantity); it.production+=toNumber(r.production_quantity); it.outgoing+=toNumber(r.outgoing_transfer_quantity); it.incoming+=toNumber(r.incoming_transfer_quantity); it.loading+=toNumber(r.total_loading_quantity);});
+  (data||[]).forEach(r=>{const key=String(r.material_code||r.material_name||'غير محدد'); if(!map[key]) map[key]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0}; const it=map[key]; it.sales+=toNumber(r.sales_quantity); it.production+=toNumber(r.production_quantity); it.outgoing+=toNumber(r.outgoing_transfer_quantity); it.incoming+=toNumber(r.incoming_transfer_quantity); it.loading+=toNumber(r.total_loading_quantity);});
   const items=Object.values(map).sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales));
   const summary={count:items.length,ok:0,review:0,noSales:0,gapItems:0,outgoingHigh:0,totalGap:0,totalLoading:0,avgSalesToProduction:0}; let ratioSum=0, ratioCount=0;
   items.forEach(it=>{const st=getReportStatus(it); if(st.key==='ok') summary.ok++; else summary.review++; if(st.key==='no_sales') summary.noSales++; if(st.key==='production_high'||st.key==='sales_high') summary.gapItems++; if(st.key==='outgoing_high') summary.outgoingHigh++; summary.totalGap+=(it.production||0)-(it.sales||0); summary.totalLoading+=it.loading||0; const prod=Math.abs(it.production||0); if(prod){ratioSum+=(Math.abs(it.sales||0)/prod)*100; ratioCount++;}}); summary.avgSalesToProduction=ratioCount?ratioSum/ratioCount:0;
@@ -7448,7 +7448,7 @@ function itemAnalyticsSyncFilterVisibility(tab=ACTIVE_REPORT_TAB){
   const field=$('#itemAnalyticsItemFilterField');
   if(field) field.hidden=tab!==ITEM_ANALYTICS_TAB;
   const trigger=$('#mobileReportsFilterBtn small');
-  if(trigger) trigger.textContent=tab===ITEM_ANALYTICS_TAB?'ط§ظ„ظ…طµظ†ط¹ / ط§ظ„ظ…ط®ط²ظ† / ط§ظ„طµظ†ظپ / ط§ظ„طھط§ط±ظٹط®':'ط§ظ„ظ…طµظ†ط¹ / ط§ظ„ظ…ط®ط²ظ† / ط§ظ„طھط§ط±ظٹط®';
+  if(trigger) trigger.textContent=tab===ITEM_ANALYTICS_TAB?'المصنع / المخزن / الصنف / التاريخ':'المصنع / المخزن / التاريخ';
 }
 function itemAnalyticsCode(value){return String(value||'').trim().toUpperCase();}
 function itemAnalyticsDayMs(){return 24*60*60*1000;}
@@ -7459,7 +7459,7 @@ function itemAnalyticsPreviousFilters(filters){const days=itemAnalyticsPeriodLen
 function itemAnalyticsBaseFilters(){const filters=getReportFilters();return {plant:filters.plant,warehouse:filters.warehouse,from:filters.from,to:filters.to};}
 function itemAnalyticsSelectedCodes(){return enterpriseFilterActiveValues(enterpriseSelectValues('itemAnalyticsItemFilter')).map(itemAnalyticsCode).filter(Boolean);}
 function itemAnalyticsListItem(label,value,detail=''){return `<div class="item-analytics-list-row"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b>${detail?`<small>${escapeHtml(detail)}</small>`:''}</div>`;}
-function itemAnalyticsSetEmpty(message='ط§ط®طھط± طµظ†ظپظ‹ط§ ظˆط§ط­ط¯ظ‹ط§ ط£ظˆ ط£ظƒط«ط± ظ„ط¹ط±ط¶ طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط£طµظ†ط§ظپ'){
+function itemAnalyticsSetEmpty(message='اختر صنفًا واحدًا أو أكثر لعرض تحليلات الأصناف'){
   const empty=$('#itemAnalyticsEmptyState'), results=$('#itemAnalyticsResults'), meta=$('#itemAnalyticsMeta');
   if(empty){empty.hidden=false;empty.querySelector('h3').textContent=message;}
   if(results) results.hidden=true;
@@ -7478,7 +7478,7 @@ async function fillItemAnalyticsItemFilter(options={}){
     const map=new Map();
     (rows||[]).forEach(row=>{const code=itemAnalyticsCode(row.material_code);if(code&&!map.has(code))map.set(code,{code,name:row.material_name||''});});
     const items=[...map.values()].sort((a,b)=>a.code.localeCompare(b.code));
-    select.innerHTML='<option value="all">ط§ط®طھط± طµظ†ظپظ‹ط§</option>'+items.map(item=>`<option value="${escapeHtml(item.code)}">${escapeHtml(item.code)} â€” ${escapeHtml(item.name||'ط¨ط¯ظˆظ† ظˆطµظپ')}</option>`).join('');
+    select.innerHTML='<option value="all">اختر صنفًا</option>'+items.map(item=>`<option value="${escapeHtml(item.code)}">${escapeHtml(item.code)} — ${escapeHtml(item.name||'بدون وصف')}</option>`).join('');
     const valid=new Set(items.map(item=>item.code));
     const next=enterpriseFilterActiveValues(current).map(itemAnalyticsCode).filter(code=>valid.has(code));
     enterpriseSetMultiSelectValues(select,next.length?next:['all'],{silent:true});
@@ -7487,8 +7487,8 @@ async function fillItemAnalyticsItemFilter(options={}){
 }
 function getItemAnalyticsFilters(){return {...itemAnalyticsBaseFilters(),items:itemAnalyticsSelectedCodes()};}
 function itemAnalyticsValidateFilters(filters){
-  if(filters.from && filters.to && filters.from>filters.to) return 'طھط§ط±ظٹط® ط§ظ„ط¨ط¯ط§ظٹط© ظ„ط§ ظٹط¬ط¨ ط£ظ† ظٹطھط¬ط§ظˆط² طھط§ط±ظٹط® ط§ظ„ظ†ظ‡ط§ظٹط©.';
-  if(!filters.items.length) return 'ط§ط®طھط± طµظ†ظپظ‹ط§ ظˆط§ط­ط¯ظ‹ط§ ط£ظˆ ط£ظƒط«ط± ظ„ط¹ط±ط¶ طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط£طµظ†ط§ظپ';
+  if(filters.from && filters.to && filters.from>filters.to) return 'تاريخ البداية لا يجب أن يتجاوز تاريخ النهاية.';
+  if(!filters.items.length) return 'اختر صنفًا واحدًا أو أكثر لعرض تحليلات الأصناف';
   return '';
 }
 function itemAnalyticsStats(rows){
@@ -7499,11 +7499,11 @@ function itemAnalyticsStats(rows){
 function itemAnalyticsDaily(rows){
   const map=new Map();
   (rows||[]).forEach(row=>{const d=dashboardDateKey(row.report_date);if(!map.has(d))map.set(d,{date:d,sales:0,production:0,outgoing:0,incoming:0,loading:0,rows:0});const m=unifiedSalesRowMetrics(row),item=map.get(d);item.sales+=toNumber(m.sales);item.production+=toNumber(m.production);item.outgoing+=toNumber(m.outgoing);item.incoming+=toNumber(m.incoming);item.loading+=toNumber(m.loading);item.rows++;});
-  return [...map.values()].filter(r=>r.date&&r.date!=='ط؛ظٹط± ظ…ط­ط¯ط¯').sort((a,b)=>a.date.localeCompare(b.date));
+  return [...map.values()].filter(r=>r.date&&r.date!=='غير محدد').sort((a,b)=>a.date.localeCompare(b.date));
 }
 function itemAnalyticsProductMap(rows){
   const map=new Map();
-  (rows||[]).forEach(row=>{const code=itemAnalyticsCode(row.material_code)||'ط؛ظٹط± ظ…ط­ط¯ط¯';if(!map.has(code))map.set(code,{code,name:row.material_name||'',sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0,rows:0});const item=map.get(code),m=unifiedSalesRowMetrics(row);item.name=item.name||row.material_name||'';item.sales+=toNumber(m.sales);item.actualReturn+=toNumber(m.actualReturn);item.production+=toNumber(m.production);item.outgoing+=toNumber(m.outgoing);item.incoming+=toNumber(m.incoming);item.loading+=toNumber(m.loading);item.rows++;});
+  (rows||[]).forEach(row=>{const code=itemAnalyticsCode(row.material_code)||'غير محدد';if(!map.has(code))map.set(code,{code,name:row.material_name||'',sales:0,actualReturn:0,production:0,outgoing:0,incoming:0,loading:0,rows:0});const item=map.get(code),m=unifiedSalesRowMetrics(row);item.name=item.name||row.material_name||'';item.sales+=toNumber(m.sales);item.actualReturn+=toNumber(m.actualReturn);item.production+=toNumber(m.production);item.outgoing+=toNumber(m.outgoing);item.incoming+=toNumber(m.incoming);item.loading+=toNumber(m.loading);item.rows++;});
   return [...map.values()].sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales));
 }
 function itemAnalyticsBuildAbc(scopeRows,selectedCodes){
@@ -7519,14 +7519,14 @@ function itemAnalyticsBuildAbc(scopeRows,selectedCodes){
 function itemAnalyticsBuildAuditRows(rows){
   const entries=[];
   const specs=[
-    ['sales','ط¨ظٹط¹','ط¥ط¬ظ…ط§ظ„ظٹ ط¨ظٹط¹ ظٹظˆظ…ظٹ','ط®ط§ط±ط¬'],['actualReturn','ظ…ط±طھط¬ط¹ ظپط¹ظ„ظٹ','ظ…ط±طھط¬ط¹ / ط¥ظ„ط؛ط§ط، ط¨ظٹط¹','ط¥ظ„ط؛ط§ط، / ظ…ط±طھط¬ط¹'],['production','ط¥ظ†طھط§ط¬','ط¥ط¬ظ…ط§ظ„ظٹ ط¥ظ†طھط§ط¬ ظٹظˆظ…ظٹ','ط¯ط§ط®ظ„'],['incoming','طھط­ظˆظٹظ„ ظˆط§ط±ط¯','ط¥ط¬ظ…ط§ظ„ظٹ طھط­ظˆظٹظ„ط§طھ ظˆط§ط±ط¯ط© ظٹظˆظ…ظٹط©','ط¯ط§ط®ظ„'],['outgoing','طھط­ظˆظٹظ„ طµط§ط¯ط±','ط¥ط¬ظ…ط§ظ„ظٹ طھط­ظˆظٹظ„ط§طھ طµط§ط¯ط±ط© ظٹظˆظ…ظٹط©','ط®ط§ط±ط¬'],['loading','طھط­ظ…ظٹظ„','ط¥ط¬ظ…ط§ظ„ظٹ طھط­ظ…ظٹظ„ ظٹظˆظ…ظٹ','ط®ط§ط±ط¬']
+    ['sales','بيع','إجمالي بيع يومي','خارج'],['actualReturn','مرتجع فعلي','مرتجع / إلغاء بيع','إلغاء / مرتجع'],['production','إنتاج','إجمالي إنتاج يومي','داخل'],['incoming','تحويل وارد','إجمالي تحويلات واردة يومية','داخل'],['outgoing','تحويل صادر','إجمالي تحويلات صادرة يومية','خارج'],['loading','تحميل','إجمالي تحميل يومي','خارج']
   ];
-  (rows||[]).forEach(row=>{const m=unifiedSalesRowMetrics(row);specs.forEach(([key,movement,desc,direction])=>{const qty=toNumber(m[key]);if(!qty)return;entries.push({date:dashboardDateKey(row.report_date),code:row.material_code||'',name:row.material_name||'',plant:row.plant_name||row.plant_code||'',warehouse:row.warehouse_name||row.warehouse_code||'',movement,description:desc,quantity:qty,unit:'ط·ظ†',direction});});});
+  (rows||[]).forEach(row=>{const m=unifiedSalesRowMetrics(row);specs.forEach(([key,movement,desc,direction])=>{const qty=toNumber(m[key]);if(!qty)return;entries.push({date:dashboardDateKey(row.report_date),code:row.material_code||'',name:row.material_name||'',plant:row.plant_name||row.plant_code||'',warehouse:row.warehouse_name||row.warehouse_code||'',movement,description:desc,quantity:qty,unit:'طن',direction});});});
   return entries.sort((a,b)=>a.date.localeCompare(b.date)||a.code.localeCompare(b.code));
 }
 function itemAnalyticsTrend(daily){
-  if((daily||[]).length<6) return {label:'ط؛ظٹط± ظƒط§ظپ',rate:null,detail:'ط§ظ„ط¨ظٹط§ظ†ط§طھ ط£ظ‚ظ„ ظ…ظ† 6 ط£ظٹط§ظ…'};
-  const mid=Math.floor(daily.length/2);const first=daily.slice(0,mid).reduce((s,d)=>s+Math.abs(d.sales),0);const second=daily.slice(mid).reduce((s,d)=>s+Math.abs(d.sales),0);const rate=first?((second-first)/Math.abs(first))*100:(second?100:0);return {label:rate>8?'طµط§ط¹ط¯':rate<-8?'ظ‡ط§ط¨ط·':'ظ…ط³طھظ‚ط±',rate,detail:`طھط؛ظٹط± ط§ظ„ظ†طµظپ ط§ظ„ط«ط§ظ†ظٹ ط¹ظ† ط§ظ„ط£ظˆظ„ ${fmt(rate)}%`};
+  if((daily||[]).length<6) return {label:'غير كاف',rate:null,detail:'البيانات أقل من 6 أيام'};
+  const mid=Math.floor(daily.length/2);const first=daily.slice(0,mid).reduce((s,d)=>s+Math.abs(d.sales),0);const second=daily.slice(mid).reduce((s,d)=>s+Math.abs(d.sales),0);const rate=first?((second-first)/Math.abs(first))*100:(second?100:0);return {label:rate>8?'صاعد':rate<-8?'هابط':'مستقر',rate,detail:`تغير النصف الثاني عن الأول ${fmt(rate)}%`};
 }
 function itemAnalyticsVolatility(daily){const values=(daily||[]).map(d=>Math.abs(d.sales)).filter(v=>v>0);if(values.length<3)return 0;const avg=values.reduce((a,b)=>a+b,0)/values.length;const variance=values.reduce((s,v)=>s+Math.pow(v-avg,2),0)/values.length;return avg?Math.sqrt(variance)/avg:0;}
 function itemAnalyticsComparison(current,previous){function pct(c,p){if(!p)return null;return ((c-p)/Math.abs(p))*100;}return {sales:pct(current.sales,previous.sales),production:pct(current.production,previous.production),outgoing:pct(current.outgoing,previous.outgoing),incoming:pct(current.incoming,previous.incoming),loading:pct(current.loading,previous.loading)};}
@@ -7548,113 +7548,113 @@ function itemAnalyticsBuildModel(filters,scopeRows,previousScopeRows){
 function itemAnalyticsHealth(model){
   let score=70;const reasons=[],risks=[],strengths=[];
   const stats=model.stats,comp=model.comparison,contribution=model.abc.combinedContribution,days=itemAnalyticsPeriodLength(model.filters),activeRate=days?model.activeSalesDays/days*100:0;
-  if(Math.abs(stats.sales)>0){score+=8;strengths.push(`ط¨ظٹط¹ ظپط¹ظ„ظٹ ط¨ظ‚ظٹظ…ط© ${fmt(stats.sales)} ط·ظ†`);}else if(Math.abs(stats.production)+Math.abs(stats.outgoing)+Math.abs(stats.incoming)>0){score-=30;risks.push('طھظˆط¬ط¯ ط­ط±ظƒط© ط¨ط¯ظˆظ† ط¨ظٹط¹ ط®ظ„ط§ظ„ ط§ظ„ظپطھط±ط©');}
-  if(contribution>=15){score+=8;strengths.push(`ظ…ط³ط§ظ‡ظ…ط© ظ…ط±طھظپط¹ط© ${fmt(contribution)}% ظ…ظ† ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹`);}else reasons.push(`ظ…ط³ط§ظ‡ظ…ط© ط§ظ„ط¨ظٹط¹ ${fmt(contribution)}%`);
-  if(comp.sales!==null){if(comp.sales<-20){score-=15;risks.push(`طھط±ط§ط¬ط¹ ط§ظ„ط¨ظٹط¹ ${fmt(Math.abs(comp.sales))}% ط¹ظ† ط§ظ„ظپطھط±ط© ط§ظ„ط³ط§ط¨ظ‚ط©`);}else if(comp.sales>15){score+=7;strengths.push(`ظ†ظ…ظˆ ط§ظ„ط¨ظٹط¹ ${fmt(comp.sales)}% ط¹ظ† ط§ظ„ظپطھط±ط© ط§ظ„ط³ط§ط¨ظ‚ط©`);}}
-  else reasons.push('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظƒط§ظپظٹط© ظ„ظ„ظ…ظ‚ط§ط±ظ†ط© ط§ظ„ط³ط§ط¨ظ‚ط©');
-  const prodGap=Math.abs(Math.abs(stats.production)-Math.abs(stats.sales));const gapBase=Math.max(Math.abs(stats.sales),Math.abs(stats.production),1);if(prodGap/gapBase>.3){score-=10;risks.push(`ظپط±ظ‚ ط¥ظ†طھط§ط¬/ط¨ظٹط¹ ظ…ط±طھظپط¹ ${fmt(prodGap)} ط·ظ†`);}else strengths.push('ط§ظ„ط¥ظ†طھط§ط¬ ظˆط§ظ„ط¨ظٹط¹ ط¶ظ…ظ† ظ†ط·ط§ظ‚ ظ…ظ‚ط¨ظˆظ„');
-  if(model.volatility>.75){score-=10;risks.push(`طھط°ط¨ط°ط¨ ط§ظ„ط·ظ„ط¨ ظ…ط±طھظپط¹ (${fmt(model.volatility*100)}%)`);}else if(model.volatility>0){strengths.push(`طھط°ط¨ط°ط¨ ط§ظ„ط·ظ„ط¨ طھط­طھ ط§ظ„ط³ظٹط·ط±ط© (${fmt(model.volatility*100)}%)`);}
-  if(activeRate<15 && days>=14){score-=8;risks.push(`ظ†ط³ط¨ط© ط£ظٹط§ظ… ط§ظ„ط¨ظٹط¹ ط§ظ„ظ†ط´ط·ط© ظ…ظ†ط®ظپط¶ط© ${fmt(activeRate)}%`);}else if(activeRate>=40){score+=5;strengths.push(`ظ†ط´ط§ط· ط¨ظٹط¹ ظ…ظ†طھط¸ظ… ${fmt(activeRate)}% ظ…ظ† ط§ظ„ظپطھط±ط©`);}
+  if(Math.abs(stats.sales)>0){score+=8;strengths.push(`بيع فعلي بقيمة ${fmt(stats.sales)} طن`);}else if(Math.abs(stats.production)+Math.abs(stats.outgoing)+Math.abs(stats.incoming)>0){score-=30;risks.push('توجد حركة بدون بيع خلال الفترة');}
+  if(contribution>=15){score+=8;strengths.push(`مساهمة مرتفعة ${fmt(contribution)}% من إجمالي البيع`);}else reasons.push(`مساهمة البيع ${fmt(contribution)}%`);
+  if(comp.sales!==null){if(comp.sales<-20){score-=15;risks.push(`تراجع البيع ${fmt(Math.abs(comp.sales))}% عن الفترة السابقة`);}else if(comp.sales>15){score+=7;strengths.push(`نمو البيع ${fmt(comp.sales)}% عن الفترة السابقة`);}}
+  else reasons.push('لا توجد بيانات كافية للمقارنة السابقة');
+  const prodGap=Math.abs(Math.abs(stats.production)-Math.abs(stats.sales));const gapBase=Math.max(Math.abs(stats.sales),Math.abs(stats.production),1);if(prodGap/gapBase>.3){score-=10;risks.push(`فرق إنتاج/بيع مرتفع ${fmt(prodGap)} طن`);}else strengths.push('الإنتاج والبيع ضمن نطاق مقبول');
+  if(model.volatility>.75){score-=10;risks.push(`تذبذب الطلب مرتفع (${fmt(model.volatility*100)}%)`);}else if(model.volatility>0){strengths.push(`تذبذب الطلب تحت السيطرة (${fmt(model.volatility*100)}%)`);}
+  if(activeRate<15 && days>=14){score-=8;risks.push(`نسبة أيام البيع النشطة منخفضة ${fmt(activeRate)}%`);}else if(activeRate>=40){score+=5;strengths.push(`نشاط بيع منتظم ${fmt(activeRate)}% من الفترة`);}
   score=Math.max(0,Math.min(100,Math.round(score)));
-  const status=score>=85?'ظ…ظ…طھط§ط²':score>=70?'ط·ط¨ظٹط¹ظٹ':score>=50?'ظٹط­طھط§ط¬ ظ…طھط§ط¨ط¹ط©':'ط­ط±ط¬';
-  const action=status==='ط­ط±ط¬'?'ظ…ط±ط§ط¬ط¹ط© ظپظˆط±ظٹط© ظ„ظ„طµظ†ظپ ظˆط§ظ„ظپطھط±ط©':status==='ظٹط­طھط§ط¬ ظ…طھط§ط¨ط¹ط©'?'ظ…طھط§ط¨ط¹ط© ط£ط³ط¨ط§ط¨ ط§ظ„ظ…ط®ط§ط·ط± ط®ظ„ط§ظ„ ط§ظ„ظپطھط±ط©':'ط§ط³طھظ…ط±ط§ط± ط§ظ„ظ…طھط§ط¨ط¹ط© ط§ظ„ط¯ظˆط±ظٹط©';
+  const status=score>=85?'ممتاز':score>=70?'طبيعي':score>=50?'يحتاج متابعة':'حرج';
+  const action=status==='حرج'?'مراجعة فورية للصنف والفترة':status==='يحتاج متابعة'?'متابعة أسباب المخاطر خلال الفترة':'استمرار المتابعة الدورية';
   return {score,status,reasons:reasons.slice(0,4),risks:risks.slice(0,4),strengths:strengths.slice(0,4),action};
 }
 function renderItemAnalyticsHealth(model){
-  const health=itemAnalyticsHealth(model);const badge=$('#itemAnalyticsHealthBadge'),node=$('#itemAnalyticsHealthSummary');if(badge){badge.textContent=`${health.status} - ${health.score}/100`;badge.className='item-analytics-health-badge '+(health.status==='ط­ط±ط¬'?'danger':health.status==='ظٹط­طھط§ط¬ ظ…طھط§ط¨ط¹ط©'?'warning':health.status==='ظ…ظ…طھط§ط²'?'excellent':'normal');}
-  if(node) node.innerHTML=`<div class="item-analytics-health-score"><b>${health.score}</b><span>ط¯ط±ط¬ط© ظ…ظ† 100</span><strong>${escapeHtml(health.status)}</strong></div><div class="item-analytics-health-details">${itemAnalyticsListItem('ط§ظ„ط¥ط¬ط±ط§ط، ط§ظ„ظ…ظ‚طھط±ط­',health.action)}${itemAnalyticsListItem('ط£ظ‡ظ… ط§ظ„ط£ط³ط¨ط§ط¨',(health.reasons.length?health.reasons.join(' / '):'ظ„ط§ طھظˆط¬ط¯ ط£ط³ط¨ط§ط¨ ط³ظ„ط¨ظٹط© ط­ط§ط³ظ…ط©'))}${itemAnalyticsListItem('ط£ظ‡ظ… ط§ظ„ظ…ط®ط§ط·ط±',(health.risks.length?health.risks.join(' / '):'ظ„ط§ طھظˆط¬ط¯ ظ…ط®ط§ط·ط± ط¹ط§ظ„ظٹط© ط­ط³ط¨ ط§ظ„ظ‚ظˆط§ط¹ط¯ ط§ظ„ط­ط§ظ„ظٹط©'))}${itemAnalyticsListItem('ظ†ظ‚ط§ط· ط§ظ„ظ‚ظˆط©',(health.strengths.length?health.strengths.join(' / '):'ظ„ط§ طھظˆط¬ط¯ ظ†ظ‚ط§ط· ظ‚ظˆط© ظƒط§ظپظٹط©'))}</div>`;
+  const health=itemAnalyticsHealth(model);const badge=$('#itemAnalyticsHealthBadge'),node=$('#itemAnalyticsHealthSummary');if(badge){badge.textContent=`${health.status} - ${health.score}/100`;badge.className='item-analytics-health-badge '+(health.status==='حرج'?'danger':health.status==='يحتاج متابعة'?'warning':health.status==='ممتاز'?'excellent':'normal');}
+  if(node) node.innerHTML=`<div class="item-analytics-health-score"><b>${health.score}</b><span>درجة من 100</span><strong>${escapeHtml(health.status)}</strong></div><div class="item-analytics-health-details">${itemAnalyticsListItem('الإجراء المقترح',health.action)}${itemAnalyticsListItem('أهم الأسباب',(health.reasons.length?health.reasons.join(' / '):'لا توجد أسباب سلبية حاسمة'))}${itemAnalyticsListItem('أهم المخاطر',(health.risks.length?health.risks.join(' / '):'لا توجد مخاطر عالية حسب القواعد الحالية'))}${itemAnalyticsListItem('نقاط القوة',(health.strengths.length?health.strengths.join(' / '):'لا توجد نقاط قوة كافية'))}</div>`;
 }
 function renderItemAnalyticsKpis(stats){
-  const cards=[{title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹',value:fmt(stats.sales),unit:'ط·ظ†',icon:'sales'},{title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ظ†طھط§ط¬',value:fmt(stats.production),unit:'ط·ظ†',icon:'production'},{title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظˆط§ط±ط¯ط©',value:fmt(stats.incoming),unit:'ط·ظ†',icon:'incoming'},{title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ط©',value:fmt(stats.outgoing),unit:'ط·ظ†',icon:'outgoing'},{title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„',value:fmt(stats.loading),unit:'ط·ظ†',icon:'loading'}];
+  const cards=[{title:'إجمالي البيع',value:fmt(stats.sales),unit:'طن',icon:'sales'},{title:'إجمالي الإنتاج',value:fmt(stats.production),unit:'طن',icon:'production'},{title:'إجمالي التحويلات الواردة',value:fmt(stats.incoming),unit:'طن',icon:'incoming'},{title:'إجمالي التحويلات الصادرة',value:fmt(stats.outgoing),unit:'طن',icon:'outgoing'},{title:'إجمالي التحميل',value:fmt(stats.loading),unit:'طن',icon:'loading'}];
   const node=$('#itemAnalyticsKpiCards');if(node)node.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
 function renderItemAnalyticsHeatmap(selector,daily,key){
   const node=$(selector);if(!node)return;const values=(daily||[]).map(d=>Math.abs(d[key]||0));const nonZero=values.filter(v=>v>0);const max=nonZero.length?Math.max(...nonZero):0,min=nonZero.length?Math.min(...nonZero):0;
-  node.innerHTML=(daily||[]).map(d=>{const v=Math.abs(d[key]||0);let cls='empty';if(v>0&&v===max)cls='max';else if(v>0&&v===min)cls='min';else if(v>0)cls='mid';const pct=max?Math.max(12,Math.min(100,(v/max)*100)):0;return `<div class="item-analytics-heat-cell ${cls}" style="--heat:${pct}%" title="${escapeHtml(d.date)} - ${fmt(v)} ط·ظ†"><span>${escapeHtml(d.date.slice(5))}</span><b>${fmt(v)}</b></div>`;}).join('') || '<div class="empty-row">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظٹظˆظ…ظٹط©</div>';
+  node.innerHTML=(daily||[]).map(d=>{const v=Math.abs(d[key]||0);let cls='empty';if(v>0&&v===max)cls='max';else if(v>0&&v===min)cls='min';else if(v>0)cls='mid';const pct=max?Math.max(12,Math.min(100,(v/max)*100)):0;return `<div class="item-analytics-heat-cell ${cls}" style="--heat:${pct}%" title="${escapeHtml(d.date)} - ${fmt(v)} طن"><span>${escapeHtml(d.date.slice(5))}</span><b>${fmt(v)}</b></div>`;}).join('') || '<div class="empty-row">لا توجد بيانات يومية</div>';
 }
-function renderItemAnalyticsList(id,rows){const node=$('#'+id);if(node)node.innerHTML=(rows||[]).join('')||'<div class="empty-row">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظƒط§ظپظٹط©</div>';}
+function renderItemAnalyticsList(id,rows){const node=$('#'+id);if(node)node.innerHTML=(rows||[]).join('')||'<div class="empty-row">لا توجد بيانات كافية</div>';}
 function renderItemAnalyticsPerformance(model){
   const daily=model.daily,stats=model.stats,active=model.activeSalesDays,highest=[...daily].sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales))[0],lowest=daily.filter(d=>Math.abs(d.sales)>0).sort((a,b)=>Math.abs(a.sales)-Math.abs(b.sales))[0];
   const days=itemAnalyticsPeriodLength(model.filters);const avg=days?stats.sales/days:0;const activeAvg=active?stats.sales/active:0;
-  renderItemAnalyticsList('itemAnalyticsSalesPerformance',[itemAnalyticsListItem('ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹',fmt(stats.sales)+' ط·ظ†'),itemAnalyticsListItem('ظ…طھظˆط³ط· ط§ظ„ط¨ظٹط¹ ط§ظ„ظٹظˆظ…ظٹ',fmt(avg)+' ط·ظ†'),itemAnalyticsListItem('ط¹ط¯ط¯ ط£ظٹط§ظ… ط§ظ„ط¨ظٹط¹ ط§ظ„ظپط¹ظ„ظٹط©',fmt(active)+' ظٹظˆظ…'),itemAnalyticsListItem('ط£ط¹ظ„ظ‰ ظٹظˆظ… ط¨ظٹط¹',highest?`${highest.date} - ${fmt(highest.sales)} ط·ظ†`:'ط؛ظٹط± ظ…طھط§ط­'),itemAnalyticsListItem('ط£ظ‚ظ„ ظٹظˆظ… ط¨ظٹط¹ ظپط¹ظ„ظٹ',lowest?`${lowest.date} - ${fmt(lowest.sales)} ط·ظ†`:'ط؛ظٹط± ظ…طھط§ط­'),itemAnalyticsListItem('ظ…طھظˆط³ط· ط§ظ„ظƒظ…ظٹط© ظپظٹ ظٹظˆظ… ط§ظ„ط¨ظٹط¹',fmt(activeAvg)+' ط·ظ†'),itemAnalyticsListItem('ط§طھط¬ط§ظ‡ ط§ظ„ط£ط¯ط§ط،',model.trend.label,model.trend.detail),itemAnalyticsListItem('ظ†ط³ط¨ط© ط§ظ„ط£ظٹط§ظ… ط§ظ„ظ†ط´ط·ط©',days?fmt(active/days*100)+'%':'ط؛ظٹط± ظ…طھط§ط­'),itemAnalyticsListItem('طھط°ط¨ط°ط¨ ط§ظ„ط·ظ„ط¨',fmt(model.volatility*100)+'%')]);
+  renderItemAnalyticsList('itemAnalyticsSalesPerformance',[itemAnalyticsListItem('إجمالي البيع',fmt(stats.sales)+' طن'),itemAnalyticsListItem('متوسط البيع اليومي',fmt(avg)+' طن'),itemAnalyticsListItem('عدد أيام البيع الفعلية',fmt(active)+' يوم'),itemAnalyticsListItem('أعلى يوم بيع',highest?`${highest.date} - ${fmt(highest.sales)} طن`:'غير متاح'),itemAnalyticsListItem('أقل يوم بيع فعلي',lowest?`${lowest.date} - ${fmt(lowest.sales)} طن`:'غير متاح'),itemAnalyticsListItem('متوسط الكمية في يوم البيع',fmt(activeAvg)+' طن'),itemAnalyticsListItem('اتجاه الأداء',model.trend.label,model.trend.detail),itemAnalyticsListItem('نسبة الأيام النشطة',days?fmt(active/days*100)+'%':'غير متاح'),itemAnalyticsListItem('تذبذب الطلب',fmt(model.volatility*100)+'%')]);
 }
 function renderItemAnalyticsComparison(model){
-  const c=model.stats,p=model.previousStats,comp=model.comparison;const row=(label,key)=>itemAnalyticsListItem(label,`${fmt(c[key])} / ط§ظ„ط³ط§ط¨ظ‚: ${fmt(p[key])}`,comp[key]===null?'ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ط³ط§ط¨ظ‚ط©':`ط§ظ„طھط؛ظٹط± ${fmt(comp[key])}%`);
-  renderItemAnalyticsList('itemAnalyticsPeriodComparison',[row('ط§ظ„ط¨ظٹط¹ ط§ظ„ط­ط§ظ„ظٹ ظˆط§ظ„ط³ط§ط¨ظ‚','sales'),row('ط§ظ„ط¥ظ†طھط§ط¬ ط§ظ„ط­ط§ظ„ظٹ ظˆط§ظ„ط³ط§ط¨ظ‚','production'),row('ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظˆط§ط±ط¯ط©','incoming'),row('ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ط©','outgoing'),row('ط§ظ„طھط­ظ…ظٹظ„','loading')]);
+  const c=model.stats,p=model.previousStats,comp=model.comparison;const row=(label,key)=>itemAnalyticsListItem(label,`${fmt(c[key])} / السابق: ${fmt(p[key])}`,comp[key]===null?'لا توجد بيانات سابقة':`التغير ${fmt(comp[key])}%`);
+  renderItemAnalyticsList('itemAnalyticsPeriodComparison',[row('البيع الحالي والسابق','sales'),row('الإنتاج الحالي والسابق','production'),row('التحويلات الواردة','incoming'),row('التحويلات الصادرة','outgoing'),row('التحميل','loading')]);
 }
 function renderItemAnalyticsContribution(model){
-  const rows=[itemAnalyticsListItem('ظ†ط·ط§ظ‚ ط§ظ„ظ…ظ‚ط§ط±ظ†ط©','ظƒظ„ ط§ظ„ط£طµظ†ط§ظپ ط¯ط§ط®ظ„ ظ†ظپط³ ط§ظ„ظ…طµظ†ط¹ ظˆط§ظ„ظ…ط®ط²ظ† ظˆط§ظ„ظپطھط±ط© ط¨ط¯ظˆظ† ظپظ„طھط± ط§ظ„طµظ†ظپ'),itemAnalyticsListItem('ظ…ط³ط§ظ‡ظ…ط© ط§ظ„ط£طµظ†ط§ظپ ط§ظ„ظ…ط®طھط§ط±ط©',fmt(model.abc.combinedContribution)+'%',`ط¥ط¬ظ…ط§ظ„ظٹ ظ†ط·ط§ظ‚ ط§ظ„ظ…ظ‚ط§ظ… ${fmt(model.abc.total)} ط·ظ†`)];
-  model.abc.selectedRows.forEach(item=>rows.push(itemAnalyticsListItem(`${item.code} - ${item.name||''}`,`طھط±طھظٹط¨ ${item.rank} / ظپط¦ط© ${item.abc}`,`ظ…ط³ط§ظ‡ظ…ط© ${fmt(item.contribution)}% / طھط±ط§ظƒظ…ظٹ ${fmt(item.cumulative)}%`)));
+  const rows=[itemAnalyticsListItem('نطاق المقارنة','كل الأصناف داخل نفس المصنع والمخزن والفترة بدون فلتر الصنف'),itemAnalyticsListItem('مساهمة الأصناف المختارة',fmt(model.abc.combinedContribution)+'%',`إجمالي نطاق المقام ${fmt(model.abc.total)} طن`)];
+  model.abc.selectedRows.forEach(item=>rows.push(itemAnalyticsListItem(`${item.code} - ${item.name||''}`,`ترتيب ${item.rank} / فئة ${item.abc}`,`مساهمة ${fmt(item.contribution)}% / تراكمي ${fmt(item.cumulative)}%`)));
   renderItemAnalyticsList('itemAnalyticsContribution',rows);
 }
 function renderItemAnalyticsSeasonality(model){
   const days=itemAnalyticsPeriodLength(model.filters),daily=model.daily,hidden=[];const rows=[];
-  if(days<90){rows.push(itemAnalyticsListItem('ط§ظ„ظ…ظˆط³ظ…ظٹط©','ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„طھط§ط±ظٹط®ظٹط© ط؛ظٹط± ظƒط§ظپظٹط© ظ„طھط­ط¯ظٹط¯ ط§ظ„ظ…ظˆط³ظ…ظٹط© ط¨ط«ظ‚ط©','ط§ظ„ط­ط¯ ط§ظ„ط£ط¯ظ†ظ‰ ط§ظ„ط¹ظ…ظ„ظٹ 90 ظٹظˆظ…ظ‹ط§ ظ„ظ„طھط­ظ„ظٹظ„ ط§ظ„ط´ظ‡ط±ظٹ'));hidden.push('Seasonality');}
-  else{const monthEnd=daily.filter(d=>Number(d.date.slice(8,10))>=24).reduce((s,d)=>s+Math.abs(d.sales),0);const rest=daily.filter(d=>Number(d.date.slice(8,10))<24).reduce((s,d)=>s+Math.abs(d.sales),0);rows.push(itemAnalyticsListItem('ظ†ظ…ط· ط¢ط®ط± ط§ظ„ط´ظ‡ط±',rest?`ط¢ط®ط± ط§ظ„ط´ظ‡ط± ط£ط¹ظ„ظ‰/ط£ظ‚ظ„ ط¨ظ€ ${fmt(((monthEnd-rest)/Math.abs(rest))*100)}%`:'ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظƒط§ظپظٹط© ظ„ظ„ظ…ظ‚ط§ط±ظ†ط©'));}
-  if(daily.length<30){rows.push(itemAnalyticsListItem('ظƒط´ظپ ط§ظ„ط£ظ†ظ…ط§ط·','ط§ظ„ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± ظƒط§ظپظٹط© ظ„ط§ط³طھط®ط±ط§ط¬ ظ†ظ…ط· ظ…ظˆط«ظˆظ‚'));hidden.push('Pattern Detection');}
-  else{const weekdays={};daily.forEach(d=>{const dt=itemAnalyticsDateFromKey(d.date);const k=dt?dt.getUTCDay():0;weekdays[k]=(weekdays[k]||0)+Math.abs(d.sales);});const top=Object.entries(weekdays).sort((a,b)=>b[1]-a[1])[0];rows.push(itemAnalyticsListItem('ط£ط¹ظ„ظ‰ ظٹظˆظ… ط£ط³ط¨ظˆط¹ظٹ',top?`ط§ظ„ظٹظˆظ… ط±ظ‚ظ… ${top[0]} ط¨ظ‚ظٹظ…ط© ${fmt(top[1])} ط·ظ†`:'ط؛ظٹط± ظ…طھط§ط­'));}
+  if(days<90){rows.push(itemAnalyticsListItem('الموسمية','البيانات التاريخية غير كافية لتحديد الموسمية بثقة','الحد الأدنى العملي 90 يومًا للتحليل الشهري'));hidden.push('Seasonality');}
+  else{const monthEnd=daily.filter(d=>Number(d.date.slice(8,10))>=24).reduce((s,d)=>s+Math.abs(d.sales),0);const rest=daily.filter(d=>Number(d.date.slice(8,10))<24).reduce((s,d)=>s+Math.abs(d.sales),0);rows.push(itemAnalyticsListItem('نمط آخر الشهر',rest?`آخر الشهر أعلى/أقل بـ ${fmt(((monthEnd-rest)/Math.abs(rest))*100)}%`:'لا توجد بيانات كافية للمقارنة'));}
+  if(daily.length<30){rows.push(itemAnalyticsListItem('كشف الأنماط','البيانات غير كافية لاستخراج نمط موثوق'));hidden.push('Pattern Detection');}
+  else{const weekdays={};daily.forEach(d=>{const dt=itemAnalyticsDateFromKey(d.date);const k=dt?dt.getUTCDay():0;weekdays[k]=(weekdays[k]||0)+Math.abs(d.sales);});const top=Object.entries(weekdays).sort((a,b)=>b[1]-a[1])[0];rows.push(itemAnalyticsListItem('أعلى يوم أسبوعي',top?`اليوم رقم ${top[0]} بقيمة ${fmt(top[1])} طن`:'غير متاح'));}
   ITEM_ANALYTICS_STATE.hiddenDueToInsufficientData=hidden;
   renderItemAnalyticsList('itemAnalyticsSeasonality',rows);
 }
 function renderItemAnalyticsForecast(model){
-  const daily=model.daily.filter(d=>Math.abs(d.sales)>0);if(daily.length<14){renderItemAnalyticsList('itemAnalyticsForecast',[itemAnalyticsListItem('Forecast','ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظƒط§ظپظٹط© ظ„ط¥ظ†طھط§ط¬ طھظˆظ‚ط¹ ظ…ظˆط«ظˆظ‚','ظٹط­طھط§ط¬ 14 ظٹظˆظ… ط¨ظٹط¹ ظپط¹ظ„ظٹ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„')]);ITEM_ANALYTICS_STATE.hiddenDueToInsufficientData.push('Forecast');return;}
-  const recent=daily.slice(-14);const avg=recent.reduce((s,d)=>s+Math.abs(d.sales),0)/recent.length;const rows=[itemAnalyticsListItem('ط§ظ„ظ†ظ…ظˆط°ط¬','Moving Average ط¨ط³ظٹط·',`ط¹ط¯ط¯ ط£ظٹط§ظ… ط§ظ„ط£ط³ط§ط³ ${recent.length}`),itemAnalyticsListItem('طھظˆظ‚ط¹ 7 ط£ظٹط§ظ…',fmt(avg*7)+' ط·ظ†','طھظ‚ط¯ظٹط±ظٹ'),itemAnalyticsListItem('طھظˆظ‚ط¹ 30 ظٹظˆظ…ظ‹ط§',fmt(avg*30)+' ط·ظ†','طھظ‚ط¯ظٹط±ظٹ')];if(daily.length>=60)rows.push(itemAnalyticsListItem('طھظˆظ‚ط¹ 90 ظٹظˆظ…ظ‹ط§',fmt(avg*90)+' ط·ظ†','طھظ‚ط¯ظٹط±ظٹ ط·ظˆظٹظ„ ط§ظ„ظ…ط¯ظ‰'));else rows.push(itemAnalyticsListItem('طھظˆظ‚ط¹ 90 ظٹظˆظ…ظ‹ط§','ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظƒط§ظپظٹط©','ظٹط­طھط§ط¬ ظپطھط±ط© ط£ط·ظˆظ„'));renderItemAnalyticsList('itemAnalyticsForecast',rows);
+  const daily=model.daily.filter(d=>Math.abs(d.sales)>0);if(daily.length<14){renderItemAnalyticsList('itemAnalyticsForecast',[itemAnalyticsListItem('Forecast','لا توجد بيانات كافية لإنتاج توقع موثوق','يحتاج 14 يوم بيع فعلي على الأقل')]);ITEM_ANALYTICS_STATE.hiddenDueToInsufficientData.push('Forecast');return;}
+  const recent=daily.slice(-14);const avg=recent.reduce((s,d)=>s+Math.abs(d.sales),0)/recent.length;const rows=[itemAnalyticsListItem('النموذج','Moving Average بسيط',`عدد أيام الأساس ${recent.length}`),itemAnalyticsListItem('توقع 7 أيام',fmt(avg*7)+' طن','تقديري'),itemAnalyticsListItem('توقع 30 يومًا',fmt(avg*30)+' طن','تقديري')];if(daily.length>=60)rows.push(itemAnalyticsListItem('توقع 90 يومًا',fmt(avg*90)+' طن','تقديري طويل المدى'));else rows.push(itemAnalyticsListItem('توقع 90 يومًا','لا توجد بيانات كافية','يحتاج فترة أطول'));renderItemAnalyticsList('itemAnalyticsForecast',rows);
 }
 function renderItemAnalyticsInventorySignals(model){
-  const rows=[itemAnalyticsListItem('Inventory Turnover','ط؛ظٹط± ظ…ط¹ط±ظˆط¶ ظƒط­ظ‚ظٹظ‚ط©','ظ„ط§ ظٹظˆط¬ط¯ ظ…طھظˆط³ط· ظ…ط®ط²ظˆظ† طھط§ط±ظٹط®ظٹ ظ…ظˆط«ظˆظ‚'),itemAnalyticsListItem('Stockout طھط§ط±ظٹط®ظٹ','ط؛ظٹط± ظ…ط¹ط±ظˆط¶','ظ„ط§ ظٹظˆط¬ط¯ ط±طµظٹط¯ ظٹظˆظ…ظٹ طھط§ط±ظٹط®ظٹ ظ…ظˆط«ظˆظ‚')];
-  if(Math.abs(model.stats.sales)===0 && Math.abs(model.stats.production+model.stats.incoming)>0) rows.push(itemAnalyticsListItem('ط±ظƒظˆط¯ ظ…ط­طھظ…ظ„','ط­ط±ظƒط© ط£ظˆ ط¥ظ†طھط§ط¬ ط¨ط¯ظˆظ† ط¨ظٹط¹','ط¥ط´ط§ط±ط© ظ…ط¤ظƒط¯ط© ظ…ظ† ط¨ظٹط§ظ†ط§طھ ط§ظ„ظپطھط±ط©'));
+  const rows=[itemAnalyticsListItem('Inventory Turnover','غير معروض كحقيقة','لا يوجد متوسط مخزون تاريخي موثوق'),itemAnalyticsListItem('Stockout تاريخي','غير معروض','لا يوجد رصيد يومي تاريخي موثوق')];
+  if(Math.abs(model.stats.sales)===0 && Math.abs(model.stats.production+model.stats.incoming)>0) rows.push(itemAnalyticsListItem('ركود محتمل','حركة أو إنتاج بدون بيع','إشارة مؤكدة من بيانات الفترة'));
   renderItemAnalyticsList('itemAnalyticsInventorySignals',rows);
 }
 function renderItemAnalyticsAlertsRecommendations(model){
   const alerts=[],rec=[];const h=itemAnalyticsHealth(model);const comp=model.comparison;
-  if(comp.sales!==null && comp.sales<-20) alerts.push(itemAnalyticsListItem('ط§ظ†ط®ظپط§ط¶ ظ…ظپط§ط¬ط¦ ظپظٹ ط§ظ„ط¨ظٹط¹',`ط§ظ„طھط±ط§ط¬ط¹ ${fmt(Math.abs(comp.sales))}%`,'ط£ظˆظ„ظˆظٹط© ظ…ط±طھظپط¹ط©'));
-  if(Math.abs(model.stats.loading)>Math.abs(model.stats.sales+model.stats.outgoing)*1.15 && Math.abs(model.stats.loading)>0) alerts.push(itemAnalyticsListItem('طھط­ظ…ظٹظ„ ط£ط¹ظ„ظ‰ ظ…ظ† ط§ظ„ظ†ط´ط§ط· ط§ظ„ظ…طھظˆظ‚ط¹',fmt(model.stats.loading)+' ط·ظ†','ط£ظˆظ„ظˆظٹط© ظ…طھظˆط³ط·ط©'));
-  if(!model.previousSelectedRows.length) alerts.push(itemAnalyticsListItem('ظ„ط§ طھظˆط¬ط¯ ظپطھط±ط© ظ…ظ‚ط§ط±ظ†ط©','ط§ظ„ظ…ظ‚ط§ط±ظ†ط© ط§ظ„ط³ط§ط¨ظ‚ط© ط؛ظٹط± ظƒط§ظپظٹط©','طھظ†ط¨ظٹظ‡ ط¨ظٹط§ظ†ط§طھ'));
-  rec.push(itemAnalyticsListItem(h.status==='ط­ط±ط¬'?'ظ…ط±ط§ط¬ط¹ط© ظپظˆط±ظٹط©':'ظ…طھط§ط¨ط¹ط© ط¯ظˆط±ظٹط©',h.action,`ط§ظ„ط¯ط±ط¬ط© ${h.score}/100`));
-  if(model.abc.selectedRows.some(i=>i.abc==='A')) rec.push(itemAnalyticsListItem('طµظ†ظپ ظپط¦ط© A','ظ…طھط§ط¨ط¹ط© ظٹظˆظ…ظٹط© ظ„ظ„ط­ط±ظƒط© ظˆط§ظ„ظ…ط®ط²ظˆظ†','ظ…ط±طھط¨ط· ط¨ظ…ط³ط§ظ‡ظ…ط© ط¹ط§ظ„ظٹط©'));
-  if(model.volatility>.75) rec.push(itemAnalyticsListItem('طھط°ط¨ط°ط¨ ظ…ط±طھظپط¹','ظ…ط±ط§ط¬ط¹ط© ط£ط³ط¨ط§ط¨ ظ‚ظ…ظ… ط§ظ„ط·ظ„ط¨','ط£ظˆظ„ظˆظٹط© ظ…طھظˆط³ط·ط©'));
-  renderItemAnalyticsList('itemAnalyticsAlerts',alerts.length?alerts:[itemAnalyticsListItem('ظ„ط§ طھظˆط¬ط¯ طھظ†ط¨ظٹظ‡ط§طھ ط¹ط§ظ„ظٹط©','ط­ط³ط¨ ط§ظ„ظ‚ظˆط§ط¹ط¯ ط§ظ„ط­ط§ظ„ظٹط©')]);
+  if(comp.sales!==null && comp.sales<-20) alerts.push(itemAnalyticsListItem('انخفاض مفاجئ في البيع',`التراجع ${fmt(Math.abs(comp.sales))}%`,'أولوية مرتفعة'));
+  if(Math.abs(model.stats.loading)>Math.abs(model.stats.sales+model.stats.outgoing)*1.15 && Math.abs(model.stats.loading)>0) alerts.push(itemAnalyticsListItem('تحميل أعلى من النشاط المتوقع',fmt(model.stats.loading)+' طن','أولوية متوسطة'));
+  if(!model.previousSelectedRows.length) alerts.push(itemAnalyticsListItem('لا توجد فترة مقارنة','المقارنة السابقة غير كافية','تنبيه بيانات'));
+  rec.push(itemAnalyticsListItem(h.status==='حرج'?'مراجعة فورية':'متابعة دورية',h.action,`الدرجة ${h.score}/100`));
+  if(model.abc.selectedRows.some(i=>i.abc==='A')) rec.push(itemAnalyticsListItem('صنف فئة A','متابعة يومية للحركة والمخزون','مرتبط بمساهمة عالية'));
+  if(model.volatility>.75) rec.push(itemAnalyticsListItem('تذبذب مرتفع','مراجعة أسباب قمم الطلب','أولوية متوسطة'));
+  renderItemAnalyticsList('itemAnalyticsAlerts',alerts.length?alerts:[itemAnalyticsListItem('لا توجد تنبيهات عالية','حسب القواعد الحالية')]);
   renderItemAnalyticsList('itemAnalyticsRecommendations',rec);
 }
 function renderItemAnalyticsAuditTrail(model){
   const search=String(ITEM_ANALYTICS_STATE.auditSearch||'').trim().toLowerCase();let rows=model.auditRows||[];
   if(search) rows=rows.filter(r=>Object.values(r).some(v=>String(v||'').toLowerCase().includes(search)));
   const sort=ITEM_ANALYTICS_STATE.auditSort||{key:'date',dir:'asc'};rows=[...rows].sort((a,b)=>{const av=sort.key==='quantity'?toNumber(a[sort.key]):String(a[sort.key]||'');const bv=sort.key==='quantity'?toNumber(b[sort.key]):String(b[sort.key]||'');const cmp=av>bv?1:av<bv?-1:0;return sort.dir==='desc'?-cmp:cmp;});
-  const heads=[['date','ط§ظ„طھط§ط±ظٹط®'],['code','ط§ظ„طµظ†ظپ'],['name','ظˆطµظپ ط§ظ„طµظ†ظپ'],['plant','ط§ظ„ظ…طµظ†ط¹'],['warehouse','ط§ظ„ظ…ط®ط²ظ†'],['movement','ط§ظ„ط­ط±ظƒط©'],['description','ظˆطµظپ ط§ظ„ط­ط±ظƒط©'],['quantity','ط§ظ„ظƒظ…ظٹط©'],['unit','ط§ظ„ظˆط­ط¯ط©'],['direction','ط§ظ„ط§طھط¬ط§ظ‡']];
-  const html='<thead><tr>'+heads.map(([k,h])=>`<th data-ia-sort="${k}">${escapeHtml(h)}</th>`).join('')+'</tr></thead><tbody>'+rows.map(r=>`<tr class="ia-dir-${r.direction==='ط¯ط§ط®ظ„'?'in':r.direction==='ط®ط§ط±ط¬'?'out':'return'}"><td>${escapeHtml(r.date)}</td><td>${escapeHtml(r.code)}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.plant)}</td><td>${escapeHtml(r.warehouse)}</td><td>${escapeHtml(r.movement)}</td><td>${escapeHtml(r.description)}</td><td>${fmt(r.quantity)}</td><td>${escapeHtml(r.unit)}</td><td>${escapeHtml(r.direction)}</td></tr>`).join('')+(rows.length?'':'<tr><td colspan="10">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ط­ط±ظƒط© ظ…ط·ط§ط¨ظ‚ط©</td></tr>')+'</tbody>';
+  const heads=[['date','التاريخ'],['code','الصنف'],['name','وصف الصنف'],['plant','المصنع'],['warehouse','المخزن'],['movement','الحركة'],['description','وصف الحركة'],['quantity','الكمية'],['unit','الوحدة'],['direction','الاتجاه']];
+  const html='<thead><tr>'+heads.map(([k,h])=>`<th data-ia-sort="${k}">${escapeHtml(h)}</th>`).join('')+'</tr></thead><tbody>'+rows.map(r=>`<tr class="ia-dir-${r.direction==='داخل'?'in':r.direction==='خارج'?'out':'return'}"><td>${escapeHtml(r.date)}</td><td>${escapeHtml(r.code)}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.plant)}</td><td>${escapeHtml(r.warehouse)}</td><td>${escapeHtml(r.movement)}</td><td>${escapeHtml(r.description)}</td><td>${fmt(r.quantity)}</td><td>${escapeHtml(r.unit)}</td><td>${escapeHtml(r.direction)}</td></tr>`).join('')+(rows.length?'':'<tr><td colspan="10">لا توجد بيانات حركة مطابقة</td></tr>')+'</tbody>';
   const tbl=$('#itemAnalyticsAuditTrailTable');if(tbl)tbl.innerHTML=html;
 }
 function renderItemAnalyticsComparisonTable(model){
-  const rows=model.products.map(item=>{const abc=model.abc.selectedRows.find(a=>itemAnalyticsCode(a.code)===itemAnalyticsCode(item.code));return `<tr><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.name||'')}</td><td>${fmt(item.sales)}</td><td>${fmt(item.production)}</td><td>${fmt(item.incoming)}</td><td>${fmt(item.outgoing)}</td><td>${fmt(item.loading)}</td><td>${abc?fmt(abc.contribution)+'%':'â€”'}</td><td>${abc?.abc||'â€”'}</td><td>${model.trend.label}</td><td>${model.daily.length>=14?'Moving Average':'ط؛ظٹط± ظƒط§ظپ'}</td></tr>`;}).join('');
-  const heads='<thead><tr><th>ط§ظ„طµظ†ظپ</th><th>ط§ظ„ظˆطµظپ</th><th>ط§ظ„ط¨ظٹط¹</th><th>ط§ظ„ط¥ظ†طھط§ط¬</th><th>ط§ظ„ظˆط§ط±ط¯</th><th>ط§ظ„طµط§ط¯ط±</th><th>ط§ظ„طھط­ظ…ظٹظ„</th><th>ظ…ط³ط§ظ‡ظ…ط© ط§ظ„ط¨ظٹط¹</th><th>ABC</th><th>ط§ظ„ط§طھط¬ط§ظ‡</th><th>ط§ظ„طھظˆظ‚ط¹</th></tr></thead>';
-  const body=`<tbody>${rows||'<tr><td colspan="11">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ</td></tr>'}</tbody>`;const tbl=$('#itemAnalyticsComparisonTable');if(tbl)tbl.innerHTML=heads+body;const count=$('#itemAnalyticsComparisonCount');if(count)count.textContent=`${model.products.length} طµظ†ظپ`;
+  const rows=model.products.map(item=>{const abc=model.abc.selectedRows.find(a=>itemAnalyticsCode(a.code)===itemAnalyticsCode(item.code));return `<tr><td>${escapeHtml(item.code)}</td><td>${escapeHtml(item.name||'')}</td><td>${fmt(item.sales)}</td><td>${fmt(item.production)}</td><td>${fmt(item.incoming)}</td><td>${fmt(item.outgoing)}</td><td>${fmt(item.loading)}</td><td>${abc?fmt(abc.contribution)+'%':'—'}</td><td>${abc?.abc||'—'}</td><td>${model.trend.label}</td><td>${model.daily.length>=14?'Moving Average':'غير كاف'}</td></tr>`;}).join('');
+  const heads='<thead><tr><th>الصنف</th><th>الوصف</th><th>البيع</th><th>الإنتاج</th><th>الوارد</th><th>الصادر</th><th>التحميل</th><th>مساهمة البيع</th><th>ABC</th><th>الاتجاه</th><th>التوقع</th></tr></thead>';
+  const body=`<tbody>${rows||'<tr><td colspan="11">لا توجد بيانات</td></tr>'}</tbody>`;const tbl=$('#itemAnalyticsComparisonTable');if(tbl)tbl.innerHTML=heads+body;const count=$('#itemAnalyticsComparisonCount');if(count)count.textContent=`${model.products.length} صنف`;
 }
 function renderItemAnalyticsExportTable(model){const tbl=$('#itemAnalyticsExportTable');if(!tbl)return;tbl.innerHTML=$('#itemAnalyticsComparisonTable')?.innerHTML||'';}
 function renderItemAnalyticsReport(model){
-  itemAnalyticsShowResults();const meta=$('#itemAnalyticsMeta');if(meta)meta.textContent=reportFilterLabel(model.filters)+` / ط§ظ„ط£طµظ†ط§ظپ: ${enterpriseFilterText(model.filters.items,$('#itemAnalyticsItemFilter'),'ط§ط®طھط± طµظ†ظپظ‹ط§')}`;
+  itemAnalyticsShowResults();const meta=$('#itemAnalyticsMeta');if(meta)meta.textContent=reportFilterLabel(model.filters)+` / الأصناف: ${enterpriseFilterText(model.filters.items,$('#itemAnalyticsItemFilter'),'اختر صنفًا')}`;
   renderItemAnalyticsHealth(model);renderItemAnalyticsKpis(model.stats);renderItemAnalyticsHeatmap('#itemAnalyticsSalesHeatmap',model.daily,'sales');renderItemAnalyticsHeatmap('#itemAnalyticsProductionHeatmap',model.daily,'production');renderItemAnalyticsPerformance(model);renderItemAnalyticsComparison(model);renderItemAnalyticsContribution(model);renderItemAnalyticsSeasonality(model);renderItemAnalyticsInventorySignals(model);renderItemAnalyticsForecast(model);renderItemAnalyticsAlertsRecommendations(model);renderItemAnalyticsAuditTrail(model);renderItemAnalyticsComparisonTable(model);renderItemAnalyticsExportTable(model);
 }
 async function loadItemAnalyticsReport(options={}){
   if(!WarehouseDB?.ready) return;fillReportFilters();itemAnalyticsSyncFilterVisibility(ITEM_ANALYTICS_TAB);await ensureReportDefaultDates(options);await fillItemAnalyticsItemFilter({keepSelection:true});
   const filters=getItemAnalyticsFilters();const error=itemAnalyticsValidateFilters(filters);if(error){itemAnalyticsSetEmpty(error);return;}
-  itemAnalyticsShowResults();const meta=$('#itemAnalyticsMeta');if(meta)meta.textContent='ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط£طµظ†ط§ظپ...';
+  itemAnalyticsShowResults();const meta=$('#itemAnalyticsMeta');if(meta)meta.textContent='جاري تحميل تحليلات الأصناف...';
   try{
     const previousFilters=itemAnalyticsPreviousFilters(filters);let queryCount=0;
     const scopeRows=await fetchUnifiedSalesRows(filters,{ascending:true});queryCount++;
     const previousScopeRows=previousFilters?await fetchUnifiedSalesRows(previousFilters,{ascending:true}):[];if(previousFilters)queryCount++;
     const model=itemAnalyticsBuildModel(filters,scopeRows,previousScopeRows);ITEM_ANALYTICS_STATE={...ITEM_ANALYTICS_STATE,filters,scopeRows,previousScopeRows,selectedRows:model.selectedRows,model,queryCount};
     renderItemAnalyticsReport(model);
-  }catch(error){console.warn('item analytics load error',error);itemAnalyticsSetEmpty('طھط¹ط°ط± طھط­ظ…ظٹظ„ طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط£طµظ†ط§ظپ. ط±ط§ط¬ط¹ ط§ظ„ط§طھطµط§ظ„ ط£ظˆ ط§ظ„ظپظ„ط§طھط±.');}
+  }catch(error){console.warn('item analytics load error',error);itemAnalyticsSetEmpty('تعذر تحميل تحليلات الأصناف. راجع الاتصال أو الفلاتر.');}
 }
 function itemAnalyticsWorkbookRows(model){
-  const summary=[['ط§ظ„ط¹ظ†ظˆط§ظ†','طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط£طµظ†ط§ظپ'],['ط§ظ„ظپطھط±ط©',`${model.filters.from||'ط§ظ„ط¨ط¯ط§ظٹط©'} -> ${model.filters.to||'ط§ظ„ظ†ظ‡ط§ظٹط©'}`],['ط§ظ„ط£طµظ†ط§ظپ',enterpriseFilterText(model.filters.items,$('#itemAnalyticsItemFilter'),'')],['ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹',model.stats.sales],['ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ظ†طھط§ط¬',model.stats.production],['ط§ظ„ظˆط§ط±ط¯',model.stats.incoming],['ط§ظ„طµط§ط¯ط±',model.stats.outgoing],['ط§ظ„طھط­ظ…ظٹظ„',model.stats.loading],['ط¹ط¯ط¯ Queries',ITEM_ANALYTICS_STATE.queryCount||0]];
-  const timeline=[['ط§ظ„طھط§ط±ظٹط®','ط§ظ„طµظ†ظپ','ظˆطµظپ ط§ظ„طµظ†ظپ','ط§ظ„ظ…طµظ†ط¹','ط§ظ„ظ…ط®ط²ظ†','ط§ظ„ط­ط±ظƒط©','ظˆطµظپ ط§ظ„ط­ط±ظƒط©','ط§ظ„ظƒظ…ظٹط©','ط§ظ„ظˆط­ط¯ط©','ط§ظ„ط§طھط¬ط§ظ‡'],...(model.auditRows||[]).map(r=>[r.date,r.code,r.name,r.plant,r.warehouse,r.movement,r.description,r.quantity,r.unit,r.direction])];
-  const comparison=[['ط§ظ„طµظ†ظپ','ط§ظ„ظˆطµظپ','ط§ظ„ط¨ظٹط¹','ط§ظ„ط¥ظ†طھط§ط¬','ط§ظ„ظˆط§ط±ط¯','ط§ظ„طµط§ط¯ط±','ط§ظ„طھط­ظ…ظٹظ„','ظ…ط³ط§ظ‡ظ…ط© ط§ظ„ط¨ظٹط¹','ABC','ط§ظ„طھط±طھظٹط¨','ط§ظ„طھط±ط§ظƒظ…ظٹ'],...model.abc.selectedRows.map(r=>[r.code,r.name,r.sales,r.production,r.incoming,r.outgoing,r.loading,r.contribution,r.abc,r.rank,r.cumulative])];
-  const forecast=[['ط§ظ„ط¨ظ†ط¯','ط§ظ„ظ‚ظٹظ…ط©'],...($('#itemAnalyticsForecast')?.innerText||'').split('\n').filter(Boolean).map(t=>[t,''])];
+  const summary=[['العنوان','تحليلات الأصناف'],['الفترة',`${model.filters.from||'البداية'} -> ${model.filters.to||'النهاية'}`],['الأصناف',enterpriseFilterText(model.filters.items,$('#itemAnalyticsItemFilter'),'')],['إجمالي البيع',model.stats.sales],['إجمالي الإنتاج',model.stats.production],['الوارد',model.stats.incoming],['الصادر',model.stats.outgoing],['التحميل',model.stats.loading],['عدد Queries',ITEM_ANALYTICS_STATE.queryCount||0]];
+  const timeline=[['التاريخ','الصنف','وصف الصنف','المصنع','المخزن','الحركة','وصف الحركة','الكمية','الوحدة','الاتجاه'],...(model.auditRows||[]).map(r=>[r.date,r.code,r.name,r.plant,r.warehouse,r.movement,r.description,r.quantity,r.unit,r.direction])];
+  const comparison=[['الصنف','الوصف','البيع','الإنتاج','الوارد','الصادر','التحميل','مساهمة البيع','ABC','الترتيب','التراكمي'],...model.abc.selectedRows.map(r=>[r.code,r.name,r.sales,r.production,r.incoming,r.outgoing,r.loading,r.contribution,r.abc,r.rank,r.cumulative])];
+  const forecast=[['البند','القيمة'],...($('#itemAnalyticsForecast')?.innerText||'').split('\n').filter(Boolean).map(t=>[t,''])];
   return {summary,timeline,comparison,forecast};
 }
 async function exportItemAnalyticsExcel(){
-  const model=ITEM_ANALYTICS_STATE.model;if(!model||!model.selectedRows.length){alert('ط§ط®طھط± طµظ†ظپظ‹ط§ ظˆط§ط­ط¯ظ‹ط§ ط£ظˆ ط£ظƒط«ط± ظ‚ط¨ظ„ ط§ظ„طھطµط¯ظٹط±.');return;}if(!window.XLSX){alert('ظ…ظƒطھط¨ط© Excel ط؛ظٹط± ظ…ط­ظ…ظ„ط©.');return;}
+  const model=ITEM_ANALYTICS_STATE.model;if(!model||!model.selectedRows.length){alert('اختر صنفًا واحدًا أو أكثر قبل التصدير.');return;}if(!window.XLSX){alert('مكتبة Excel غير محملة.');return;}
   const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};const sheets=itemAnalyticsWorkbookRows(model);Object.entries(sheets).forEach(([name,rows])=>{if(rows.length>1){const ws=XLSX.utils.aoa_to_sheet(rows);ws['!rtl']=true;XLSX.utils.book_append_sheet(wb,ws,name.slice(0,31));}});
   const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});await saveBlobWithPicker(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`item-analytics-${todayISO()}.xlsx`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
@@ -7669,11 +7669,11 @@ function warehouseReportRow(w,i,totalSales){
 }
 function renderWarehousesReportKPIs(summary){
   const cards=[
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹',value:fmt(summary.sales),unit:'ط·ظ†',icon:'sales',className:'kpi-sales'},
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ظ†طھط§ط¬',value:fmt(summary.production),unit:'ط·ظ†',icon:'production',className:'kpi-production'},
-    {title:'ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ط©',value:fmt(summary.outgoing),unit:'ط·ظ†',icon:'outgoing',className:'kpi-outgoing'},
-    {title:'ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظˆط§ط±ط¯ط©',value:fmt(summary.incoming),unit:'ط·ظ†',icon:'incoming',className:'kpi-incoming'},
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„',value:fmt(summary.loading),unit:'ط·ظ†',icon:'loading',className:'kpi-loading'}
+    {title:'إجمالي البيع',value:fmt(summary.sales),unit:'طن',icon:'sales',className:'kpi-sales'},
+    {title:'إجمالي الإنتاج',value:fmt(summary.production),unit:'طن',icon:'production',className:'kpi-production'},
+    {title:'التحويلات الصادرة',value:fmt(summary.outgoing),unit:'طن',icon:'outgoing',className:'kpi-outgoing'},
+    {title:'التحويلات الواردة',value:fmt(summary.incoming),unit:'طن',icon:'incoming',className:'kpi-incoming'},
+    {title:'إجمالي التحميل',value:fmt(summary.loading),unit:'طن',icon:'loading',className:'kpi-loading'}
   ];
   const node=$('#warehousesReportKpis'); if(node) node.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
@@ -7681,13 +7681,13 @@ function drawWarehousesReportChart(warehouses){
   const canvas=$('#warehousesReportChart'); if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
   const rows=(warehouses||[]).slice().sort((a,b)=>(b.loading||0)-(a.loading||0)).slice(0,8);
   const series=[
-    {key:'sales',label:'ط§ظ„ط¨ظٹط¹',color:'#83d84b'},
-    {key:'production',label:'ط§ظ„ط¥ظ†طھط§ط¬',color:'#32aee9'},
-    {key:'outgoing',label:'ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ط©',color:'#ff9f2d'},
-    {key:'incoming',label:'ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظˆط§ط±ط¯ط©',color:'#29d6cb'},
-    {key:'loading',label:'ط§ظ„طھط­ظ…ظٹظ„',color:'#9b5cf6'}
+    {key:'sales',label:'البيع',color:'#83d84b'},
+    {key:'production',label:'الإنتاج',color:'#32aee9'},
+    {key:'outgoing',label:'التحويلات الصادرة',color:'#ff9f2d'},
+    {key:'incoming',label:'التحويلات الواردة',color:'#29d6cb'},
+    {key:'loading',label:'التحميل',color:'#9b5cf6'}
   ];
-  if(!rows.length){ctx.fillStyle='#d6ead1';ctx.font='bold 24px Cairo';ctx.textAlign='center';ctx.fillText('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ',w/2,h/2);return;}
+  if(!rows.length){ctx.fillStyle='#d6ead1';ctx.font='bold 24px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2);return;}
   const max=Math.max(1,...rows.flatMap(r=>series.map(s=>Math.abs(r[s.key]||0))));
   const pad={l:78,r:32,t:74,b:74}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
   ctx.save();
@@ -7713,41 +7713,41 @@ function renderWarehousesRanking(warehouses,summary){
   const loadingRankRows=[...warehouses].map(w=>({...w,loadingRankTotal:toNumber(w.sales)+toNumber(w.outgoing)}));
   const maxLoadingRank=Math.max(1,...loadingRankRows.map(w=>Math.abs(w.loadingRankTotal||0)));
   const rows=loadingRankRows.sort((a,b)=>Math.abs(b.loadingRankTotal||0)-Math.abs(a.loadingRankTotal||0)).slice(0,10).map((w,i)=>`<div class="warehouse-rank-row"><em>${i+1}</em><div><b>${escapeHtml(w.code)}</b><small>${escapeHtml(w.name)}</small></div><span>${fmt(w.loadingRankTotal)}<small> \u0637\u0646</small></span><i style="width:${Math.min(100,Math.abs(w.loadingRankTotal||0)/maxLoadingRank*100)}%"></i></div>`).join('');
-  node.innerHTML=`<div class="warehouse-rank-bars">${rows||'<p class="hint">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ</p>'}</div>`;
+  node.innerHTML=`<div class="warehouse-rank-bars">${rows||'<p class="hint">لا توجد بيانات</p>'}</div>`;
   const tiles=$('#warehousesQuickTiles');
   if(tiles){
     tiles.innerHTML=`
-      <article><span>ط£ط¹ظ„ظ‰ طھط­ظ…ظٹظ„</span><b>${topLoading?escapeHtml(topLoading.code):'-'}</b><small>${topLoading?fmt(topLoading.loading):'0'} ط·ظ†</small></article>
-      <article><span>ط£ط¹ظ„ظ‰ ط¨ظٹط¹</span><b>${topSales?escapeHtml(topSales.code):'-'}</b><small>${topSales?fmt(topSales.sales):'0'} ط·ظ†</small></article>
-      <article><span>ظ…طھظˆط³ط· ط§ظ„ط¨ظٹط¹/ظ…ط®ط²ظ†</span><b>${fmt(avg)}</b><small>ط·ظ†</small></article>
-      <article><span>ط£ظ‚ظ„ ظ†ط´ط§ط·</span><b>${lowActivity?escapeHtml(lowActivity.code):'-'}</b><small>${lowActivity?fmt(lowActivity.totalActivity):'0'} ط·ظ†</small></article>`;
+      <article><span>أعلى تحميل</span><b>${topLoading?escapeHtml(topLoading.code):'-'}</b><small>${topLoading?fmt(topLoading.loading):'0'} طن</small></article>
+      <article><span>أعلى بيع</span><b>${topSales?escapeHtml(topSales.code):'-'}</b><small>${topSales?fmt(topSales.sales):'0'} طن</small></article>
+      <article><span>متوسط البيع/مخزن</span><b>${fmt(avg)}</b><small>طن</small></article>
+      <article><span>أقل نشاط</span><b>${lowActivity?escapeHtml(lowActivity.code):'-'}</b><small>${lowActivity?fmt(lowActivity.totalActivity):'0'} طن</small></article>`;
   }
 }
 function drawWarehousesLoadingDonut(warehouses,summary){
   const canvas=$('#warehousesLoadingDonut'); if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
   const entries=(warehouses||[]).filter(x=>Math.abs(x.loading||0)>0).sort((a,b)=>Math.abs(b.loading)-Math.abs(a.loading)).slice(0,8);
   const sum=entries.reduce((a,b)=>a+Math.abs(b.loading||0),0);
-  if(!sum){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ',w/2,h/2); return;}
+  if(!sum){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2); return;}
   const colors=['#79d84b','#29a9e6','#29d6cb','#ff9f2d','#ffd54a','#9b5cf6','#97a097','#4bc37b']; let start=-Math.PI/2; const cx=w*.36,cy=h*.5,r=Math.min(w,h)*.32,ir=r*.55;
   entries.forEach((e,i)=>{const val=Math.abs(e.loading||0),ang=val/sum*Math.PI*2; ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+ang);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill(); start+=ang;});
   ctx.globalCompositeOperation='destination-out';ctx.beginPath();ctx.arc(cx,cy,ir,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation='source-over';
-  ctx.fillStyle='#fff';ctx.font='bold 22px Cairo';ctx.textAlign='center';ctx.fillText(fmt(sum),cx,cy-4);ctx.font='bold 13px Cairo';ctx.fillText('ط·ظ†',cx,cy+22);
-  const lg=$('#warehousesLoadingLegend'); if(lg){lg.innerHTML=entries.map((e,i)=>{const pct=sum?Math.abs(e.loading||0)/sum*100:0; return `<div><i style="background:${colors[i%colors.length]}"></i><b>${escapeHtml(e.code)}</b><span>${fmt(pct)}%</span><em>${fmt(e.loading)} ط·ظ†</em></div>`;}).join('');}
+  ctx.fillStyle='#fff';ctx.font='bold 22px Cairo';ctx.textAlign='center';ctx.fillText(fmt(sum),cx,cy-4);ctx.font='bold 13px Cairo';ctx.fillText('طن',cx,cy+22);
+  const lg=$('#warehousesLoadingLegend'); if(lg){lg.innerHTML=entries.map((e,i)=>{const pct=sum?Math.abs(e.loading||0)/sum*100:0; return `<div><i style="background:${colors[i%colors.length]}"></i><b>${escapeHtml(e.code)}</b><span>${fmt(pct)}%</span><em>${fmt(e.loading)} طن</em></div>`;}).join('');}
 }
 function renderWarehouseMiniTables(warehouses,summary){
   function block(sel, key){
     const node=$(sel); if(!node) return; const total=Math.max(1,Math.abs(summary[key]||0));
     const rows=[...warehouses].sort((a,b)=>Math.abs(b[key]||0)-Math.abs(a[key]||0)).slice(0,5);
-    node.innerHTML=`<table><thead><tr><th>#</th><th>ط§ظ„ظ…ط®ط²ظ†</th><th>ط§ظ„ظ‚ظٹظ…ط©</th><th>ظ†ط³ط¨ط© ط§ظ„ظ…ط³ط§ظ‡ظ…ط©</th></tr></thead><tbody>${rows.map((w,i)=>{const pct=Math.abs(w[key]||0)/total*100;return `<tr><td>${i+1}</td><td>${escapeHtml(w.code)}</td><td>${fmt(w[key]||0)}</td><td><div class="mini-progress"><b style="width:${Math.min(100,pct)}%"></b><span>${fmt(pct)}%</span></div></td></tr>`;}).join('')||'<tr><td colspan="4">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ</td></tr>'}</tbody></table>`;
+    node.innerHTML=`<table><thead><tr><th>#</th><th>المخزن</th><th>القيمة</th><th>نسبة المساهمة</th></tr></thead><tbody>${rows.map((w,i)=>{const pct=Math.abs(w[key]||0)/total*100;return `<tr><td>${i+1}</td><td>${escapeHtml(w.code)}</td><td>${fmt(w[key]||0)}</td><td><div class="mini-progress"><b style="width:${Math.min(100,pct)}%"></b><span>${fmt(pct)}%</span></div></td></tr>`;}).join('')||'<tr><td colspan="4">لا توجد بيانات</td></tr>'}</tbody></table>`;
   }
   block('#warehouseTopSalesMini','sales'); block('#warehouseTopProductionMini','production'); block('#warehouseTopLoadingMini','loading');
   drawWarehousesLoadingDonut(warehouses,summary);
 }
 function renderWarehousesReportTables(warehouses,summary){
   const tbl=$('#warehousesReportTable');
-  const headers='<thead><tr><th>ط§ظ„طھط±طھظٹط¨</th><th>ط§ظ„ظ…ط®ط²ظ†</th><th>ط§ط³ظ… ط§ظ„ظ…ط®ط²ظ†</th><th>ط§ظ„ظ…طµظ†ط¹</th><th>ط§ظ„ط¨ظٹط¹</th><th>ط§ظ„ط¥ظ†طھط§ط¬</th><th>طµط§ط¯ط±</th><th>ظˆط§ط±ط¯</th><th>ط§ظ„طھط­ظ…ظٹظ„</th><th>ظ†ط³ط¨ط© ط§ظ„ظ…ط³ط§ظ‡ظ…ط©</th></tr></thead>';
-  if(tbl) tbl.innerHTML=headers+`<tbody>${warehouses.map((w,i)=>warehouseReportRow(w,i,summary.sales)).join('')||'<tr><td colspan="10">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ</td></tr>'}</tbody>`;
-  const count=$('#warehousesReportCount'); if(count) count.textContent=`ط¹ط¯ط¯ ط§ظ„ظ…ط®ط§ط²ظ†: ${warehouses.length}`;
+  const headers='<thead><tr><th>الترتيب</th><th>المخزن</th><th>اسم المخزن</th><th>المصنع</th><th>البيع</th><th>الإنتاج</th><th>صادر</th><th>وارد</th><th>التحميل</th><th>نسبة المساهمة</th></tr></thead>';
+  if(tbl) tbl.innerHTML=headers+`<tbody>${warehouses.map((w,i)=>warehouseReportRow(w,i,summary.sales)).join('')||'<tr><td colspan="10">لا توجد بيانات</td></tr>'}</tbody>`;
+  const count=$('#warehousesReportCount'); if(count) count.textContent=`عدد المخازن: ${warehouses.length}`;
   const exp=$('#warehousesReportExportTable'); if(exp) exp.innerHTML=headers+`<tbody>${warehouses.map((w,i)=>{const pct=summary.sales?Math.abs(w.sales||0)/Math.abs(summary.sales)*100:0;return `<tr><td>${i+1}</td><td>${escapeHtml(w.code)}</td><td>${escapeHtml(w.name)}</td><td>${escapeHtml(w.plant)}</td><td>${fmt(w.sales)}</td><td>${fmt(w.production)}</td><td>${fmt(w.outgoing)}</td><td>${fmt(w.incoming)}</td><td>${fmt(w.loading)}</td><td>${fmt(pct)}%</td></tr>`;}).join('')}</tbody>`;
 }
 async function loadWarehousesReport(options={}){
@@ -7764,7 +7764,7 @@ let EXCEPTIONS_REPORT_STATE={exceptions:[], filters:null, summary:null};
 function buildSalesAuditItemMap(rows){
   const map={};
   filterSalesReviewRows(rows||[],SALES_REVIEW_CATALOG_CACHE).forEach(r=>{
-    const code=String(r.material_code||r.material_name||'ط؛ظٹط± ظ…ط­ط¯ط¯').trim()||'ط؛ظٹط± ظ…ط­ط¯ط¯';
+    const code=String(r.material_code||r.material_name||'غير محدد').trim()||'غير محدد';
     const wh=String(r.warehouse_code||'').toUpperCase();
     const meta=dashboardWhMeta(wh);
     if(!map[code]) map[code]={code:r.material_code||'-',name:r.material_name||'-',warehouses:new Set(),plants:new Set(),sales:0,production:0,outgoing:0,incoming:0,loading:0,rows:0};
@@ -7785,14 +7785,14 @@ function getItemExceptions(item){
   const sales=Math.abs(item.sales||0), production=Math.abs(item.production||0), outgoing=Math.abs(item.outgoing||0), incoming=Math.abs(item.incoming||0), loading=Math.abs(item.loading||0);
   const activity=sales+production+outgoing+incoming+loading;
   const list=[];
-  if(activity>0 && sales===0) list.push({type:'no_sales',label:'ط¨ط¯ظˆظ† ط¨ظٹط¹',severity:'high',score:95,details:'ط§ظ„طµظ†ظپ ظ„ظ‡ ط¥ظ†طھط§ط¬ ط£ظˆ طھط­ظˆظٹظ„ط§طھ ط¨ط¯ظˆظ† ط£ظٹ ط¨ظٹط¹ ط®ظ„ط§ظ„ ط§ظ„ظپطھط±ط©'});
+  if(activity>0 && sales===0) list.push({type:'no_sales',label:'بدون بيع',severity:'high',score:95,details:'الصنف له إنتاج أو تحويلات بدون أي بيع خلال الفترة'});
   const gap=production-sales, absGap=Math.abs(gap), gapThreshold=Math.max(5,Math.max(sales,production)*0.25);
-  if(gap>gapThreshold) list.push({type:'production_high',label:'ط§ظ„ط¥ظ†طھط§ط¬ ط£ط¹ظ„ظ‰ ظ…ظ† ط§ظ„ط¨ظٹط¹',severity:'medium',score:70+Math.min(25,absGap),details:`ظپط±ظ‚ ط¥ظ†طھط§ط¬/ط¨ظٹط¹ = ${fmt(gap)} ط·ظ†`});
-  if(-gap>gapThreshold) list.push({type:'sales_high',label:'ط§ظ„ط¨ظٹط¹ ط£ط¹ظ„ظ‰ ظ…ظ† ط§ظ„ط¥ظ†طھط§ط¬',severity:'medium',score:68+Math.min(25,absGap),details:`ظپط±ظ‚ ط¨ظٹط¹/ط¥ظ†طھط§ط¬ = ${fmt(-gap)} ط·ظ†`});
-  if(outgoing>Math.max(5,(sales+production)*0.35)) list.push({type:'outgoing_high',label:'طھط­ظˆظٹظ„ط§طھ طµط§ط¯ط±ط© ظ…ط±طھظپط¹ط©',severity:'medium',score:62+Math.min(20,outgoing),details:`ط§ظ„طµط§ط¯ط± = ${fmt(outgoing)} ط·ظ†`});
-  if(incoming>Math.max(5,sales*0.45) && incoming>outgoing*1.25) list.push({type:'incoming_high',label:'طھط­ظˆظٹظ„ط§طھ ظˆط§ط±ط¯ط© ظ…ط±طھظپط¹ط©',severity:'low',score:48+Math.min(18,incoming),details:`ط§ظ„ظˆط§ط±ط¯ = ${fmt(incoming)} ط·ظ†`});
+  if(gap>gapThreshold) list.push({type:'production_high',label:'الإنتاج أعلى من البيع',severity:'medium',score:70+Math.min(25,absGap),details:`فرق إنتاج/بيع = ${fmt(gap)} طن`});
+  if(-gap>gapThreshold) list.push({type:'sales_high',label:'البيع أعلى من الإنتاج',severity:'medium',score:68+Math.min(25,absGap),details:`فرق بيع/إنتاج = ${fmt(-gap)} طن`});
+  if(outgoing>Math.max(5,(sales+production)*0.35)) list.push({type:'outgoing_high',label:'تحويلات صادرة مرتفعة',severity:'medium',score:62+Math.min(20,outgoing),details:`الصادر = ${fmt(outgoing)} طن`});
+  if(incoming>Math.max(5,sales*0.45) && incoming>outgoing*1.25) list.push({type:'incoming_high',label:'تحويلات واردة مرتفعة',severity:'low',score:48+Math.min(18,incoming),details:`الوارد = ${fmt(incoming)} طن`});
   const expectedLoading=sales+outgoing;
-  if(expectedLoading>0 && Math.abs(loading-expectedLoading)>Math.max(2,expectedLoading*0.03)) list.push({type:'loading_gap',label:'ظپط±ظ‚ ظپظٹ ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„',severity:'high',score:82+Math.min(20,Math.abs(loading-expectedLoading)),details:`ط§ظ„طھط­ظ…ظٹظ„ ${fmt(loading)} ظ…ظ‚ط§ط¨ظ„ ط§ظ„ظ…طھظˆظ‚ط¹ ${fmt(expectedLoading)}`});
+  if(expectedLoading>0 && Math.abs(loading-expectedLoading)>Math.max(2,expectedLoading*0.03)) list.push({type:'loading_gap',label:'فرق في إجمالي التحميل',severity:'high',score:82+Math.min(20,Math.abs(loading-expectedLoading)),details:`التحميل ${fmt(loading)} مقابل المتوقع ${fmt(expectedLoading)}`});
   return list;
 }
 function flattenExceptions(items){
@@ -7816,11 +7816,11 @@ function flattenExceptions(items){
 }
 function renderExceptionsKPIs(summary){
   const cards=[
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ',value:fmt(summary.total),unit:'ط­ط§ظ„ط©',icon:'warning',className:'kpi-exceptions-total'},
-    {title:'ط£ظˆظ„ظˆظٹط© ط¹ط§ظ„ظٹط©',value:fmt(summary.high),unit:'ط­ط§ظ„ط©',icon:'shield',className:'kpi-exceptions-high'},
-    {title:'ط£ظˆظ„ظˆظٹط© ظ…طھظˆط³ط·ط©',value:fmt(summary.medium),unit:'ط­ط§ظ„ط©',icon:'reports',className:'kpi-exceptions-medium'},
-    {title:'ط£طµظ†ط§ظپ ظ…طھط£ط«ط±ط©',value:fmt(summary.items),unit:'طµظ†ظپ',icon:'box',className:'kpi-exceptions-items'},
-    {title:'ط£ظƒط¨ط± ظپط±ظ‚ ط¥ظ†طھط§ط¬/ط¨ظٹط¹',value:fmt(summary.maxGap),unit:'ط·ظ†',icon:'transfer',className:'kpi-exceptions-gap'}
+    {title:'إجمالي الاستثناءات',value:fmt(summary.total),unit:'حالة',icon:'warning',className:'kpi-exceptions-total'},
+    {title:'أولوية عالية',value:fmt(summary.high),unit:'حالة',icon:'shield',className:'kpi-exceptions-high'},
+    {title:'أولوية متوسطة',value:fmt(summary.medium),unit:'حالة',icon:'reports',className:'kpi-exceptions-medium'},
+    {title:'أصناف متأثرة',value:fmt(summary.items),unit:'صنف',icon:'box',className:'kpi-exceptions-items'},
+    {title:'أكبر فرق إنتاج/بيع',value:fmt(summary.maxGap),unit:'طن',icon:'transfer',className:'kpi-exceptions-gap'}
   ];
   const node=$('#exceptionsReportKpis');
   if(node) node.innerHTML=cards.map(renderStandardKpiCard).join('');
@@ -7853,7 +7853,7 @@ function drawExceptionsChart(summary){
   const canvas=$('#exceptionsReportChart'); if(!canvas) return;
   const size=resizeExceptionsChartCanvas(canvas);
   const ctx=canvas.getContext('2d'), w=size.w, h=size.h; ctx.clearRect(0,0,w,h);
-  const labels=[['no_sales','ط¨ط¯ظˆظ† ط¨ظٹط¹'],['production_high','ط¥ظ†طھط§ط¬ ط£ط¹ظ„ظ‰ ظ…ظ† ط§ظ„ط¨ظٹط¹'],['sales_high','ط¨ظٹط¹ ط£ط¹ظ„ظ‰ ظ…ظ† ط§ظ„ط¥ظ†طھط§ط¬'],['outgoing_high','طµط§ط¯ط± ظ…ط±طھظپط¹'],['incoming_high','ظˆط§ط±ط¯ ظ…ط±طھظپط¹'],['loading_gap','ظپط±ظ‚ طھط­ظ…ظٹظ„']];
+  const labels=[['no_sales','بدون بيع'],['production_high','إنتاج أعلى من البيع'],['sales_high','بيع أعلى من الإنتاج'],['outgoing_high','صادر مرتفع'],['incoming_high','وارد مرتفع'],['loading_gap','فرق تحميل']];
   const vals=labels.map(([k])=>summary.byType[k]||0), max=Math.max(1,...vals);
   const pad={l:46,r:24,t:34,b:w<560?92:76}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
   ctx.strokeStyle='rgba(220,255,215,.13)';ctx.fillStyle='#d7f3d2';ctx.font='bold 12px Cairo';ctx.textAlign='right';
@@ -7871,13 +7871,13 @@ function renderExceptionsPriority(exceptions){
   const node=$('#exceptionsPriorityList'); if(!node) return;
   const top=exceptions.slice(0,10);
   if(!top.length){
-    node.innerHTML='<div class="empty-row exception-priority-empty">ظ„ط§ طھظˆط¬ط¯ ط§ط³طھط«ظ†ط§ط،ط§طھ ط­ط³ط¨ ط§ظ„ظپظ„طھط± ط§ظ„ط­ط§ظ„ظٹ</div>';
+    node.innerHTML='<div class="empty-row exception-priority-empty">لا توجد استثناءات حسب الفلتر الحالي</div>';
     return;
   }
-  const priorityText=e=>e.severity==='high'?'ط¹ط§ظ„ظٹط©':e.severity==='medium'?'ظ…طھظˆط³ط·ط©':'ظ…ظ†ط®ظپط¶ط©';
-  const actionText=e=>e.severity==='high'?'ظ…ط±ط§ط¬ط¹ط© ظپظˆط±ظٹط©':e.severity==='medium'?'ظ…ط±ط§ط¬ط¹ط©':'ظ…طھط§ط¨ط¹ط©';
+  const priorityText=e=>e.severity==='high'?'عالية':e.severity==='medium'?'متوسطة':'منخفضة';
+  const actionText=e=>e.severity==='high'?'مراجعة فورية':e.severity==='medium'?'مراجعة':'متابعة';
   node.innerHTML=`<div class="exception-priority-head">
-      <span>#</span><span>ظƒظˆط¯ ط§ظ„طµظ†ظپ</span><span>ط§ظ„طµظ†ظپ</span><span>ظ†ظˆط¹ ط§ظ„ط§ط³طھط«ظ†ط§ط،</span><span>ط§ظ„ط£ظˆظ„ظˆظٹط©</span><span>ط§ظ„ظپط§ط±ظ‚</span><span>ط§ظ„ط¥ط¬ط±ط§ط،</span>
+      <span>#</span><span>كود الصنف</span><span>الصنف</span><span>نوع الاستثناء</span><span>الأولوية</span><span>الفارق</span><span>الإجراء</span>
     </div>`+top.map((e,i)=>`
       <div class="exception-priority-row ${e.severity}">
         <em>${i+1}</em>
@@ -7885,7 +7885,7 @@ function renderExceptionsPriority(exceptions){
         <span class="priority-item-name">${escapeHtml(e.name)}</span>
         <span class="priority-type">${escapeHtml(e.label)}</span>
         <span class="priority-badge ${e.severity}">${priorityText(e)}</span>
-        <strong>${fmt(e.reviewScore)}<small> ظ†ظ‚ط·ط©</small></strong>
+        <strong>${fmt(e.reviewScore)}<small> نقطة</small></strong>
         <button type="button" class="priority-action ${e.severity}">${actionText(e)}</button>
       </div>`).join('');
 }
@@ -7893,11 +7893,11 @@ function exceptionRow(e,i){
   return `<tr class="exception-row ${e.severity}"><td>${i+1}</td><td><span class="item-status-badge ${e.severity==='high'?'danger':e.severity==='medium'?'warning':'info'}">${escapeHtml(e.label)}</span></td><td>${escapeHtml(e.code)}</td><td>${escapeHtml(e.name)}</td><td>${escapeHtml(e.plants)}</td><td>${escapeHtml(e.warehouses)}</td><td>${fmt(e.sales)}</td><td>${fmt(e.production)}</td><td>${fmt(e.outgoing)}</td><td>${fmt(e.incoming)}</td><td>${fmt(e.loading)}</td><td>${escapeHtml(e.details)}</td></tr>`;
 }
 function renderExceptionsTables(exceptions){
-  const headers='<thead><tr><th>#</th><th>ظ†ظˆط¹ ط§ظ„ط§ط³طھط«ظ†ط§ط،</th><th>ظƒظˆط¯ ط§ظ„طµظ†ظپ</th><th>ط§ط³ظ… ط§ظ„طµظ†ظپ</th><th>ط§ظ„ظ…طµظ†ط¹</th><th>ط§ظ„ظ…ط®ط²ظ†</th><th>ط§ظ„ط¨ظٹط¹</th><th>ط§ظ„ط¥ظ†طھط§ط¬</th><th>طµط§ط¯ط±</th><th>ظˆط§ط±ط¯</th><th>ط§ظ„طھط­ظ…ظٹظ„</th><th>ط§ظ„ظ…ظ„ط§ط­ط¸ط©</th></tr></thead>';
-  const body=`<tbody>${exceptions.map(exceptionRow).join('')||'<tr><td colspan="12">ظ„ط§ طھظˆط¬ط¯ ط§ط³طھط«ظ†ط§ط،ط§طھ ط­ط³ط¨ ط§ظ„ظپظ„طھط± ط§ظ„ط­ط§ظ„ظٹ</td></tr>'}</tbody>`;
+  const headers='<thead><tr><th>#</th><th>نوع الاستثناء</th><th>كود الصنف</th><th>اسم الصنف</th><th>المصنع</th><th>المخزن</th><th>البيع</th><th>الإنتاج</th><th>صادر</th><th>وارد</th><th>التحميل</th><th>الملاحظة</th></tr></thead>';
+  const body=`<tbody>${exceptions.map(exceptionRow).join('')||'<tr><td colspan="12">لا توجد استثناءات حسب الفلتر الحالي</td></tr>'}</tbody>`;
   const tbl=$('#exceptionsReportTable'); if(tbl) tbl.innerHTML=headers+body;
   const exp=$('#exceptionsReportExportTable'); if(exp) exp.innerHTML=headers+body;
-  const count=$('#exceptionsReportCount'); if(count) count.textContent=`ط¹ط¯ط¯ ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ: ${exceptions.length}`;
+  const count=$('#exceptionsReportCount'); if(count) count.textContent=`عدد الاستثناءات: ${exceptions.length}`;
 }
 async function loadExceptionsReport(options={}){
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
@@ -7920,7 +7920,7 @@ function exceptionsReportPngDateRange(){
 }
 function exceptionsReportPngFilterLine(){
   const range=exceptionsReportPngDateRange();
-  return `ط§ظ„ظپطھط±ط©: ظ…ظ† ${range.from || 'ط§ظ„ط¨ط¯ط§ظٹط©'} ط¥ظ„ظ‰ ${range.to || 'ط§ظ„ظ†ظ‡ط§ظٹط©'}`;
+  return `الفترة: من ${range.from || 'البداية'} إلى ${range.to || 'النهاية'}`;
 }
 function exceptionsReportPngFileName(prefix){
   const range=exceptionsReportPngDateRange();
@@ -7930,14 +7930,14 @@ function setExceptionsPngBusy(button,busy){
   if(!button) return;
   if(!button.dataset.defaultText) button.dataset.defaultText=button.textContent.trim();
   button.disabled=!!busy;
-  button.textContent=busy?'ط¬ط§ط±ظٹ PNG...':button.dataset.defaultText;
+  button.textContent=busy?'جاري PNG...':button.dataset.defaultText;
 }
 function exceptionsPngButton(id,title,slug,target,width){
   const btn=document.createElement('button');
   btn.id=id;
   btn.type='button';
   btn.className='exceptions-widget-png-btn png-export-btn';
-  btn.title=`طھطµط¯ظٹط± ${title} ظƒطµظˆط±ط© PNG`;
+  btn.title=`تصدير ${title} كصورة PNG`;
   btn.setAttribute('aria-label',btn.title);
   btn.textContent='PNG';
   btn.addEventListener('click',event=>{
@@ -7952,25 +7952,25 @@ function ensureExceptionsReportPngButtons(){
   const kpis=$('#exceptionsReportKpis');
   if(kpis && !$('#exceptionsKpisPngBtn')){
     kpis.classList.add('exceptions-widget-png-scope','exceptions-kpis-png-scope');
-    kpis.prepend(exceptionsPngButton('exceptionsKpisPngBtn','ظ…ط¤ط´ط±ط§طھ طھظ‚ط±ظٹط± ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ','exceptions-kpis',kpis,1500));
+    kpis.prepend(exceptionsPngButton('exceptionsKpisPngBtn','مؤشرات تقرير الاستثناءات','exceptions-kpis',kpis,1500));
   }
   const chart=root.querySelector('.exceptions-chart-card');
   if(chart && !$('#exceptionsDistributionPngBtn')){
     chart.classList.add('exceptions-widget-png-scope');
     const h=chart.querySelector('h3')||chart;
-    h.appendChild(exceptionsPngButton('exceptionsDistributionPngBtn','طھظˆط²ظٹط¹ ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ ط­ط³ط¨ ط§ظ„ظ†ظˆط¹','exceptions-distribution',chart,1200));
+    h.appendChild(exceptionsPngButton('exceptionsDistributionPngBtn','توزيع الاستثناءات حسب النوع','exceptions-distribution',chart,1200));
   }
   const priority=root.querySelector('.exceptions-priority-card');
   if(priority && !$('#exceptionsPrioritiesPngBtn')){
     priority.classList.add('exceptions-widget-png-scope');
     const h=priority.querySelector('h3')||priority;
-    h.appendChild(exceptionsPngButton('exceptionsPrioritiesPngBtn','ط£ظˆظ„ظˆظٹط§طھ ط§ظ„ظ…ط±ط§ط¬ط¹ط©','review-priorities',priority,1500));
+    h.appendChild(exceptionsPngButton('exceptionsPrioritiesPngBtn','أولويات المراجعة','review-priorities',priority,1500));
   }
   const details=root.querySelector('.exceptions-report-main-card');
   if(details && !$('#exceptionsDetailsPngBtn')){
     details.classList.add('exceptions-widget-png-scope');
     const h=details.querySelector('.report-section-head')||details;
-    h.appendChild(exceptionsPngButton('exceptionsDetailsPngBtn','ط¬ط¯ظˆظ„ ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ ط§ظ„طھظپطµظٹظ„ظٹ','exceptions-details',details,1800));
+    h.appendChild(exceptionsPngButton('exceptionsDetailsPngBtn','جدول الاستثناءات التفصيلي','exceptions-details',details,1800));
   }
 }
 function normalizeExceptionsPngClone(source,clone){
@@ -8070,7 +8070,7 @@ function exceptionsPngExportBox(title,width){
 }
 async function captureExceptionsPngBox(box,fileName){
   const Html2Canvas=window.html2canvas;
-  if(!Html2Canvas){ alert('ظ…ظƒطھط¨ط© طھطµط¯ظٹط± ط§ظ„طµظˆط± ط؛ظٹط± ظ…ط­ظ…ظ„ط©. طھط£ظƒط¯ ظ…ظ† ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط¥ظ†طھط±ظ†طھ ط«ظ… ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.'); return false; }
+  if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return false; }
   document.body.appendChild(box);
   try{
     if(document.fonts && document.fonts.ready) await document.fonts.ready;
@@ -8082,7 +8082,7 @@ async function captureExceptionsPngBox(box,fileName){
     const canvas=await Html2Canvas(box,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
     return await new Promise(resolve=>{
       canvas.toBlob(async blob=>{
-        if(!blob){ alert('طھط¹ط°ط± ط¥ظ†ط´ط§ط، طµظˆط±ط© PNG.'); resolve(false); return; }
+        if(!blob){ alert('تعذر إنشاء صورة PNG.'); resolve(false); return; }
         await saveBlobWithPicker(blob,fileName,'image/png');
         resolve(true);
       },'image/png',1);
@@ -8101,10 +8101,10 @@ async function exportExceptionsWidgetPng(source,title,slug,button,width){
     normalizeExceptionsPngClone(source,clone);
     box.appendChild(clone);
     const ok=await captureExceptionsPngBox(box,exceptionsReportPngFileName(slug));
-    if(ok) await logSystemActivity(activityExportSection('طھظ‚ط±ظٹط± ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ ظˆط§ظ„ظ…ط±ط§ط¬ط¹ط©'),'طھطµط¯ظٹط± PNG',`طھطµط¯ظٹط± ${title} PNG`);
+    if(ok) await logSystemActivity(activityExportSection('تقرير الاستثناءات والمراجعة'),'تصدير PNG',`تصدير ${title} PNG`);
   }catch(err){
     console.error('Exceptions widget PNG export failed',err);
-    alert('طھط¹ط°ط± طھطµط¯ظٹط± ظ‡ط°ط§ ط§ظ„ط¨ظˆظƒط³ PNG. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+    alert('تعذر تصدير هذا البوكس PNG. حاول مرة أخرى.');
     try{ box.remove(); }catch(_){ }
   }finally{
     setExceptionsPngBusy(button,false);
@@ -8114,21 +8114,21 @@ let SMART_ANALYTICS_STATE={rows:[],filters:null,stats:null,items:[],warehouses:[
 function smartSeverityClass(level){ return level==='high'?'danger':level==='medium'?'warning':level==='ok'?'ok':'info'; }
 function smartTrendInfo(values){
   const clean=(values||[]).filter(v=>Number.isFinite(v));
-  if(clean.length<2) return {label:'ط؛ظٹط± ظƒط§ظپظچ',cls:'neutral',delta:0,icon:'stable'};
+  if(clean.length<2) return {label:'غير كافٍ',cls:'neutral',delta:0,icon:'stable'};
   const first=clean[0]||0,last=clean[clean.length-1]||0;
   const base=Math.max(1,Math.abs(first));
   const delta=((last-first)/base)*100;
-  if(delta>8) return {label:'طµط§ط¹ط¯',cls:'up',delta,icon:'trendUp'};
-  if(delta<-8) return {label:'ظ‡ط§ط¨ط·',cls:'down',delta,icon:'trendDown'};
-  return {label:'ظ…ط³طھظ‚ط±',cls:'stable',delta,icon:'stable'};
+  if(delta>8) return {label:'صاعد',cls:'up',delta,icon:'trendUp'};
+  if(delta<-8) return {label:'هابط',cls:'down',delta,icon:'trendDown'};
+  return {label:'مستقر',cls:'stable',delta,icon:'stable'};
 }
 
 function clampScore(v){ return Math.max(0, Math.min(100, Number.isFinite(v)?v:0)); }
 function auditScoreStatus(score){
-  if(score>=90) return {label:'ظ…ظ…طھط§ط²',cls:'excellent',icon:'check'};
-  if(score>=80) return {label:'ط¬ظٹط¯ ط¬ط¯ط§ظ‹',cls:'good',icon:'check'};
-  if(score>=70) return {label:'ظٹط­طھط§ط¬ ظ…طھط§ط¨ط¹ط©',cls:'warning',icon:'alert'};
-  return {label:'ظٹط­طھط§ط¬ طھط¯ط®ظ„',cls:'danger',icon:'ban'};
+  if(score>=90) return {label:'ممتاز',cls:'excellent',icon:'check'};
+  if(score>=80) return {label:'جيد جداً',cls:'good',icon:'check'};
+  if(score>=70) return {label:'يحتاج متابعة',cls:'warning',icon:'alert'};
+  return {label:'يحتاج تدخل',cls:'danger',icon:'ban'};
 }
 function calculateAuditScoreForPlant(plantCode,modelBase){
   const st=(modelBase.plantStats||{})[plantCode]||{sales:0,production:0,outgoing:0,incoming:0,loading:0,activity:0};
@@ -8155,12 +8155,12 @@ function calculateAuditScoreForPlant(plantCode,modelBase){
   const total=clampScore(dataQuality+salesBalance+transferScore+loadingScore+exceptionScore+activityScore);
   const status=auditScoreStatus(total);
   const reasons=[];
-  if(!hasData) reasons.push('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظƒط§ظپظٹط© ظ„ظ„ظ…طµظ†ط¹ ط­ط³ط¨ ط§ظ„ظپظ„طھط± ط§ظ„ط­ط§ظ„ظٹ');
-  if(salesProdGap>Math.max(5,salesProdBase*.25)) reasons.push(`ظپط±ظ‚ ط§ظ„ط¥ظ†طھط§ط¬/ط§ظ„ط¨ظٹط¹ ظ…ط±طھظپط¹ (${fmt(salesProdGap)} ط·ظ†)`);
-  if(loadingGap>Math.max(2,expectedLoading*.03)) reasons.push(`ظپط±ظ‚ ط§ظ„طھط­ظ…ظٹظ„ ط¹ظ† ط§ظ„ظ…طھظˆظ‚ط¹ (${fmt(loadingGap)} ط·ظ†)`);
-  if(high) reasons.push(`${high} ط§ط³طھط«ظ†ط§ط، ط¹ط§ظ„ظٹ ط§ظ„ط£ظˆظ„ظˆظٹط©`);
-  if(medium) reasons.push(`${medium} ط§ط³طھط«ظ†ط§ط، ظ…طھظˆط³ط· ط§ظ„ط£ظˆظ„ظˆظٹط©`);
-  if(!reasons.length) reasons.push('ط§ظ„ظ…ط¤ط´ط±ط§طھ ط§ظ„ط±ط¦ظٹط³ظٹط© ط¶ظ…ظ† ط§ظ„ط­ط¯ظˆط¯ ط§ظ„ظ…ظ‚ط¨ظˆظ„ط©');
+  if(!hasData) reasons.push('لا توجد بيانات كافية للمصنع حسب الفلتر الحالي');
+  if(salesProdGap>Math.max(5,salesProdBase*.25)) reasons.push(`فرق الإنتاج/البيع مرتفع (${fmt(salesProdGap)} طن)`);
+  if(loadingGap>Math.max(2,expectedLoading*.03)) reasons.push(`فرق التحميل عن المتوقع (${fmt(loadingGap)} طن)`);
+  if(high) reasons.push(`${high} استثناء عالي الأولوية`);
+  if(medium) reasons.push(`${medium} استثناء متوسط الأولوية`);
+  if(!reasons.length) reasons.push('المؤشرات الرئيسية ضمن الحدود المقبولة');
   return {plant:plantCode,score:total,status,parts:{dataQuality,salesBalance,transferScore,loadingScore,exceptionScore,activityScore},stats:st,exceptions:{high,medium,low,total:exceptions.length},reasons};
 }
 function calculateAuditScores(modelBase){
@@ -8181,13 +8181,13 @@ function buildSmartAnalyticsModel(rows,filters){
     const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0,loading:0};
     const wh=String(r.warehouse_code||'').toUpperCase();
     const meta=dashboardWhMeta(wh);
-    const plant=r.plant_code||meta.plant||'ط؛ظٹط± ظ…ط­ط¯ط¯';
+    const plant=r.plant_code||meta.plant||'غير محدد';
     if(!plantStats[plant]) plantStats[plant]={sales:0,production:0,outgoing:0,incoming:0,loading:0,activity:0};
     const sales=toNumber(r.sales_quantity), prod=toNumber(r.production_quantity), out=toNumber(r.outgoing_transfer_quantity), inc=toNumber(r.incoming_transfer_quantity), load=toNumber(r.total_loading_quantity);
     stats.salesQty+=sales; stats.productionQty+=prod; stats.outgoingTransferQty+=out; stats.incomingTransferQty+=inc; stats.totalLoadingQty+=load;
     daily[d].sales+=Math.abs(sales); daily[d].production+=Math.abs(prod); daily[d].outgoing+=Math.abs(out); daily[d].incoming+=Math.abs(inc); daily[d].loading+=Math.abs(load);
     plantStats[plant].sales+=sales; plantStats[plant].production+=prod; plantStats[plant].outgoing+=out; plantStats[plant].incoming+=inc; plantStats[plant].loading+=load; plantStats[plant].activity+=Math.abs(sales)+Math.abs(prod)+Math.abs(out)+Math.abs(inc)+Math.abs(load);
-    const pk=String(r.material_code||r.material_name||'ط؛ظٹط± ظ…ط­ط¯ط¯');
+    const pk=String(r.material_code||r.material_name||'غير محدد');
     if(!productMap[pk]) productMap[pk]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0};
     productMap[pk].sales+=sales; productMap[pk].production+=prod; productMap[pk].outgoing+=out; productMap[pk].incoming+=inc; productMap[pk].loading+=load;
     if(!whMap[wh]) whMap[wh]={code:wh||'-',name:meta.name||r.warehouse_name||'-',plant:plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0};
@@ -8209,15 +8209,15 @@ function renderSmartKpiCards(model){
   const exc=(model?.exceptions||[]).length;
   const wh=(model?.warehouses||[]).length;
   const items=(model?.products||[]).length;
-  const audit=model?.auditScores||{overall:100,status:{label:'ظ…ظ…طھط§ط²'},critical:0};
+  const audit=model?.auditScores||{overall:100,status:{label:'ممتاز'},critical:0};
   const cards=[
-    {title:'ط§ظ„طµط­ط© ط§ظ„ط¹ط§ظ…ط© ظ„ظ„ظ…ط±ط§ط¬ط¹ط©',value:Math.round(audit.overall||0)+'%',unit:`${audit.status?.label||''} - ${audit.critical||0} ط­ط±ط¬ط©`,icon:'shield',className:'kpi-smart-health',extraClass:'smart-kpi-card audit-health',attributes:{'data-audit-score-target':'overall'}},
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹',value:fmt(stats.salesQty||0),unit:'ط·ظ†',icon:'sales',className:'kpi-sales',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'sales'}},
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ظ†طھط§ط¬',value:fmt(stats.productionQty||0),unit:'ط·ظ†',icon:'production',className:'kpi-production',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'production'}},
-    {title:'ظپط±ظ‚ ط§ظ„ط¥ظ†طھط§ط¬ / ط§ظ„ط¨ظٹط¹',value:fmt(gap),unit:'ط·ظ†',icon:'transfer',className:'kpi-smart-balance',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'balance'}},
-    {title:'ط¹ط¯ط¯ ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ',value:fmt(exc),unit:'ط­ط§ظ„ط©',icon:'warning',className:'kpi-smart-exceptions',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'exceptions'}},
-    {title:'ط§ظ„ط£طµظ†ط§ظپ ط§ظ„ظ†ط´ط·ط©',value:fmt(items),unit:'طµظ†ظپ',icon:'box',className:'kpi-smart-items',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'items'}},
-    {title:'ط§ظ„ظ…ط®ط§ط²ظ† ط§ظ„ظ†ط´ط·ط©',value:fmt(wh),unit:'ظ…ط®ط²ظ†',icon:'warehouses',className:'kpi-smart-warehouses',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'warehouses'}}
+    {title:'الصحة العامة للمراجعة',value:Math.round(audit.overall||0)+'%',unit:`${audit.status?.label||''} - ${audit.critical||0} حرجة`,icon:'shield',className:'kpi-smart-health',extraClass:'smart-kpi-card audit-health',attributes:{'data-audit-score-target':'overall'}},
+    {title:'إجمالي البيع',value:fmt(stats.salesQty||0),unit:'طن',icon:'sales',className:'kpi-sales',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'sales'}},
+    {title:'إجمالي الإنتاج',value:fmt(stats.productionQty||0),unit:'طن',icon:'production',className:'kpi-production',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'production'}},
+    {title:'فرق الإنتاج / البيع',value:fmt(gap),unit:'طن',icon:'transfer',className:'kpi-smart-balance',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'balance'}},
+    {title:'عدد الاستثناءات',value:fmt(exc),unit:'حالة',icon:'warning',className:'kpi-smart-exceptions',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'exceptions'}},
+    {title:'الأصناف النشطة',value:fmt(items),unit:'صنف',icon:'box',className:'kpi-smart-items',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'items'}},
+    {title:'المخازن النشطة',value:fmt(wh),unit:'مخزن',icon:'warehouses',className:'kpi-smart-warehouses',extraClass:'smart-kpi-card',attributes:{'data-audit-score-target':'warehouses'}}
   ];
   node.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
@@ -8226,11 +8226,11 @@ function drawSmartMixChart(model){
   const ctx=canvas.getContext('2d'), w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h);
   const stats=model?.stats||{};
   const entries=[
-    ['ط§ظ„ط¨ظٹط¹',Math.abs(stats.salesQty||0),'#83d84b'],
-    ['ط§ظ„ط¥ظ†طھط§ط¬',Math.abs(stats.productionQty||0),'#32aee9'],
-    ['ط§ظ„طµط§ط¯ط±',Math.abs(stats.outgoingTransferQty||0),'#ff9f2f'],
-    ['ط§ظ„ظˆط§ط±ط¯',Math.abs(stats.incomingTransferQty||0),'#b965ff'],
-    ['ط§ظ„طھط­ظ…ظٹظ„',Math.abs(stats.totalLoadingQty||0),'#28c7bd']
+    ['البيع',Math.abs(stats.salesQty||0),'#83d84b'],
+    ['الإنتاج',Math.abs(stats.productionQty||0),'#32aee9'],
+    ['الصادر',Math.abs(stats.outgoingTransferQty||0),'#ff9f2f'],
+    ['الوارد',Math.abs(stats.incomingTransferQty||0),'#b965ff'],
+    ['التحميل',Math.abs(stats.totalLoadingQty||0),'#28c7bd']
   ];
   const max=Math.max(1,...entries.map(e=>e[1]));
   const pad={l:70,r:25,t:24,b:44}, ch=h-pad.t-pad.b, cw=w-pad.l-pad.r;
@@ -8259,36 +8259,36 @@ function drawSmartPlantScoreChart(model){
 
 function smartCleanValue(value){
   const text=String(value||'').trim();
-  return text && text!=='-' && text!=='ط؛ظٹط± ظ…ط­ط¯ط¯' ? text : '';
+  return text && text!=='-' && text!=='غير محدد' ? text : '';
 }
 function smartPeriodPhrase(model){
   const filters=model?.filters||{};
   const from=normalizeDateISO(filters.from||'');
   const to=normalizeDateISO(filters.to||'');
-  if(from && to) return 'ط®ظ„ط§ظ„ ط§ظ„ظپطھط±ط© ظ…ظ† '+from+' ط¥ظ„ظ‰ '+to;
-  if(from) return 'ظ…ظ† '+from;
+  if(from && to) return 'خلال الفترة من '+from+' إلى '+to;
+  if(from) return 'من '+from;
   if(to) return 'ط­طھظ‰ '+to;
-  return 'ط®ظ„ط§ظ„ ط§ظ„ظپطھط±ط© ط§ظ„ظ…ط­ط¯ط¯ط©';
+  return 'خلال الفترة المحددة';
 }
 function smartLocationPhrase(entry){
   const parts=[];
   const warehouse=smartCleanValue(entry?.warehouses||entry?.warehouse||entry?.code);
   const plant=smartCleanValue(entry?.plants||entry?.plant);
-  if(warehouse) parts.push('ط§ظ„ظ…ط®ط²ظ† '+warehouse);
-  if(plant) parts.push('ط§ظ„ظ…طµظ†ط¹ '+plant);
-  return parts.join(' â€” ');
+  if(warehouse) parts.push('المخزن '+warehouse);
+  if(plant) parts.push('المصنع '+plant);
+  return parts.join(' — ');
 }
 function smartExceptionText(e,period){
   const location=smartLocationPhrase(e);
-  const bits=['ط§ظ„طµظ†ظپ '+smartCleanValue(e?.code), smartCleanValue(e?.name)].filter(Boolean).join(' â€” ');
+  const bits=['الصنف '+smartCleanValue(e?.code), smartCleanValue(e?.name)].filter(Boolean).join(' — ');
   const where=location ? ' ظپظٹ '+location : '';
   const details=smartCleanValue(e?.details) ? ': '+e.details : '';
-  const score=Number.isFinite(Number(e?.reviewScore)) ? ' â€” '+fmt(e.reviewScore)+' ظ†ظ‚ط·ط©' : '';
-  return bits+where+' ط¨ط³ط¨ط¨ '+(smartCleanValue(e?.label)||'ظ…ط¤ط´ط± ظ…ط±ط§ط¬ط¹ط©')+details+' '+period+score+'.';
+  const score=Number.isFinite(Number(e?.reviewScore)) ? ' — '+fmt(e.reviewScore)+' نقطة' : '';
+  return bits+where+' بسبب '+(smartCleanValue(e?.label)||'مؤشر مراجعة')+details+' '+period+score+'.';
 }
 function smartItemText(item,reason,period){
   const location=smartLocationPhrase({warehouses:(item?.warehouses||[]).join('طŒ '),plants:(item?.plants||[]).join('طŒ ')});
-  const bits=['ط§ظ„طµظ†ظپ '+smartCleanValue(item?.code), smartCleanValue(item?.name)].filter(Boolean).join(' â€” ');
+  const bits=['الصنف '+smartCleanValue(item?.code), smartCleanValue(item?.name)].filter(Boolean).join(' — ');
   const where=location ? ' ظپظٹ '+location : '';
   return bits+where+' '+reason+' '+period+'.';
 }
@@ -8313,13 +8313,13 @@ function renderSmartExecutiveSummary(model){
   const plantShare=stats.salesQty?Math.abs((topPlant[1].sales||0)/stats.salesQty*100):0;
   const scoreIcon=model.auditScores?.status?.icon||'shield';
   const lines=[
-    ['trendUp','ط¨ظ„ط؛ ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹ '+fmt(stats.salesQty)+' ط·ظ† ط®ظ„ط§ظ„ ط§ظ„ظپطھط±ط© ط§ظ„ظ…ط­ط¯ط¯ط©.'],
-    ['production','ط£ط¹ظ„ظ‰ ظ…طµظ†ط¹ ط¨ظٹط¹ط§ظ‹ ظ‡ظˆ '+escapeHtml(topPlant[0])+' ط¨ظ†ط³ط¨ط© ظ…ط³ط§ظ‡ظ…ط© طھظ‚ط±ظٹط¨ظٹط© '+fmt(plantShare)+'%.'],
-    ['warehouses','ط£ط¹ظ„ظ‰ ظ…ط®ط²ظ† ظ†ط´ط§ط·ط§ظ‹ ظ‡ظˆ '+escapeHtml(topWh.code||'-')+' ط¨ط¥ط¬ظ…ط§ظ„ظٹ طھط­ظ…ظٹظ„ '+fmt(topWh.loading||0)+' ط·ظ†.'],
-    ['star','ط£ط¹ظ„ظ‰ طµظ†ظپ ط¨ظٹط¹ط§ظ‹ ظ‡ظˆ '+escapeHtml(topProduct.code||'-')+' - '+escapeHtml(topProduct.name||'-')+'.'],
-    [gap>=0?'check':'alert','ظپط±ظ‚ ط§ظ„ط¥ظ†طھط§ط¬ ط¹ظ† ط§ظ„ط¨ظٹط¹ '+fmt(gap)+' ط·ظ†.'],
-    [scoreIcon,'ط§ظ„طµط­ط© ط§ظ„ط¹ط§ظ…ط© ظ„ظ„ظ…ط±ط§ط¬ط¹ط© '+Math.round(model.auditScores?.overall||0)+'% ('+(model.auditScores?.status?.label||'')+').'],
-    [exceptions.length?'alert':'check','ط¹ط¯ط¯ ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ ط§ظ„طھظٹ طھط­طھط§ط¬ ظ…ط±ط§ط¬ط¹ط©: '+exceptions.length+'.']
+    ['trendUp','بلغ إجمالي البيع '+fmt(stats.salesQty)+' طن خلال الفترة المحددة.'],
+    ['production','أعلى مصنع بيعاً هو '+escapeHtml(topPlant[0])+' بنسبة مساهمة تقريبية '+fmt(plantShare)+'%.'],
+    ['warehouses','أعلى مخزن نشاطاً هو '+escapeHtml(topWh.code||'-')+' بإجمالي تحميل '+fmt(topWh.loading||0)+' طن.'],
+    ['star','أعلى صنف بيعاً هو '+escapeHtml(topProduct.code||'-')+' - '+escapeHtml(topProduct.name||'-')+'.'],
+    [gap>=0?'check':'alert','فرق الإنتاج عن البيع '+fmt(gap)+' طن.'],
+    [scoreIcon,'الصحة العامة للمراجعة '+Math.round(model.auditScores?.overall||0)+'% ('+(model.auditScores?.status?.label||'')+').'],
+    [exceptions.length?'alert':'check','عدد الاستثناءات التي تحتاج مراجعة: '+exceptions.length+'.']
   ];
   node.innerHTML=lines.map(([ico,text])=>'<div class="smart-summary-line"><span>'+modernIcon(ico)+'</span><b>'+text+'</b></div>').join('');
 }
@@ -8333,26 +8333,26 @@ function renderSmartAlerts(model){
   if(Math.abs(gap)>gapLimit){
     const type=gap>0?'production_high':'sales_high';
     const related=exceptions.filter(e=>e.type===type).slice(0,3).map(e=>smartExceptionText(e,period));
-    alerts.push({level:'medium',title:gap>0?'ط§ظ„ط¥ظ†طھط§ط¬ ط£ط¹ظ„ظ‰ ظ…ظ† ط§ظ„ط¨ظٹط¹':'ط§ظ„ط¨ظٹط¹ ط£ط¹ظ„ظ‰ ظ…ظ† ط§ظ„ط¥ظ†طھط§ط¬',text:'ط§ظ„ظپط§ط±ظ‚ '+fmt(Math.abs(gap))+' ط·ظ†.',details:related,extra:related.length?'':'ظٹط­طھط§ط¬ ط§ظ„ظ…ط¤ط´ط± ط§ظ„ط¹ط§ظ… ط¥ظ„ظ‰ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط£طµظ†ط§ظپ ط§ظ„ط£ظƒط«ط± طھط£ط«ظٹط±ط§ظ‹ ط¯ط§ط®ظ„ ظ†ظپط³ ط§ظ„ظپطھط±ط©.'});
+    alerts.push({level:'medium',title:gap>0?'الإنتاج أعلى من البيع':'البيع أعلى من الإنتاج',text:'الفارق '+fmt(Math.abs(gap))+' طن.',details:related,extra:related.length?'':'يحتاج المؤشر العام إلى مراجعة الأصناف الأكثر تأثيراً داخل نفس الفترة.'});
   }
   const noSalesItems=items.filter(i=>Math.abs(i.sales||0)===0 && (Math.abs(i.production||0)+Math.abs(i.outgoing||0)+Math.abs(i.incoming||0))>0);
   if(noSalesItems.length){
     const sorted=[...noSalesItems].sort((a,b)=>(Math.abs(b.production||0)+Math.abs(b.outgoing||0)+Math.abs(b.incoming||0))-(Math.abs(a.production||0)+Math.abs(a.outgoing||0)+Math.abs(a.incoming||0)));
-    alerts.push({level:'high',title:'ط£طµظ†ط§ظپ ط¨ط¯ظˆظ† ط¨ظٹط¹',text:'ظٹظˆط¬ط¯ '+noSalesItems.length+' طµظ†ظپ ظ„ظ‡ ط­ط±ظƒط© ط¨ط¯ظˆظ† ط¨ظٹط¹.',details:sorted.slice(0,3).map(i=>smartItemText(i,'ط¨ط¯ظˆظ† ط¨ظٹط¹ ط±ط؛ظ… ظˆط¬ظˆط¯ ط¥ظ†طھط§ط¬ ط£ظˆ طھط­ظˆظٹظ„ط§طھ',period)),extra:noSalesItems.length>3?'+ '+(noSalesItems.length-3)+' ط¥ط¶ط§ظپظٹ':''});
+    alerts.push({level:'high',title:'أصناف بدون بيع',text:'يوجد '+noSalesItems.length+' صنف له حركة بدون بيع.',details:sorted.slice(0,3).map(i=>smartItemText(i,'بدون بيع رغم وجود إنتاج أو تحويلات',period)),extra:noSalesItems.length>3?'+ '+(noSalesItems.length-3)+' إضافي':''});
   }
   const inactiveWh=warehouses.filter(w=>Math.abs(w.totalActivity||0)===0);
   if(inactiveWh.length){
-    alerts.push({level:'medium',title:'ظ…ط®ط§ط²ظ† ط¨ظ„ط§ ظ†ط´ط§ط·',text:'ط¹ط¯ط¯ ط§ظ„ظ…ط®ط§ط²ظ† ط؛ظٹط± ط§ظ„ظ†ط´ط·ط© '+inactiveWh.length+'.',details:inactiveWh.slice(0,3).map(w=>'ط§ظ„ظ…ط®ط²ظ† '+smartCleanValue(w.code)+' â€” '+smartCleanValue(w.name)+' â€” ط§ظ„ظ…طµظ†ط¹ '+smartCleanValue(w.plant)+' ط¨ظ„ط§ ظ†ط´ط§ط· '+period+'.'),extra:inactiveWh.length>3?'+ '+(inactiveWh.length-3)+' ط¥ط¶ط§ظپظٹ':''});
+    alerts.push({level:'medium',title:'مخازن بلا نشاط',text:'عدد المخازن غير النشطة '+inactiveWh.length+'.',details:inactiveWh.slice(0,3).map(w=>'المخزن '+smartCleanValue(w.code)+' — '+smartCleanValue(w.name)+' — المصنع '+smartCleanValue(w.plant)+' بلا نشاط '+period+'.'),extra:inactiveWh.length>3?'+ '+(inactiveWh.length-3)+' إضافي':''});
   }
   if(Math.abs(stats.outgoingTransferQty||0)>Math.max(5,Math.abs(stats.salesQty||0)*0.45)){
     const related=exceptions.filter(e=>e.type==='outgoing_high').slice(0,3).map(e=>smartExceptionText(e,period));
-    alerts.push({level:'medium',title:'طھط­ظˆظٹظ„ط§طھ طµط§ط¯ط±ط© ظ…ط±طھظپط¹ط©',text:'ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طµط§ط¯ط± '+fmt(stats.outgoingTransferQty)+' ط·ظ†.',details:related,extra:related.length?'':'ط±ط§ط¬ط¹ ط£ط¹ظ„ظ‰ ط§ظ„ط£طµظ†ط§ظپ ظˆط§ظ„ظ…ط®ط§ط²ظ† ظپظٹ ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ط© ط¯ط§ط®ظ„ ط§ظ„ظپطھط±ط©.'});
+    alerts.push({level:'medium',title:'تحويلات صادرة مرتفعة',text:'إجمالي الصادر '+fmt(stats.outgoingTransferQty)+' طن.',details:related,extra:related.length?'':'راجع أعلى الأصناف والمخازن في التحويلات الصادرة داخل الفترة.'});
   }
   const highExceptions=exceptions.filter(e=>e.severity==='high');
   if(highExceptions.length){
-    alerts.push({level:'high',title:'ط§ط³طھط«ظ†ط§ط،ط§طھ ط¹ط§ظ„ظٹط© ط§ظ„ط£ظˆظ„ظˆظٹط©',text:highExceptions.length+' ط­ط§ظ„ط© طھط­طھط§ط¬ طھط¯ط®ظ„ ط³ط±ظٹط¹.',details:highExceptions.slice(0,3).map(e=>smartExceptionText(e,period)),extra:highExceptions.length>3?'+ '+(highExceptions.length-3)+' ط¥ط¶ط§ظپظٹ':''});
+    alerts.push({level:'high',title:'استثناءات عالية الأولوية',text:highExceptions.length+' حالة تحتاج تدخل سريع.',details:highExceptions.slice(0,3).map(e=>smartExceptionText(e,period)),extra:highExceptions.length>3?'+ '+(highExceptions.length-3)+' إضافي':''});
   }
-  if(!alerts.length) alerts.push({level:'ok',title:'ط§ظ„ظˆط¶ط¹ ظ…ط³طھظ‚ط±',text:'ظ„ط§ طھظˆط¬ط¯ ظ…ط¤ط´ط±ط§طھ ط®ط·ط±ط© ط­ط³ط¨ ط§ظ„ظپظ„طھط± ط§ظ„ط­ط§ظ„ظٹ',details:[],extra:''});
+  if(!alerts.length) alerts.push({level:'ok',title:'الوضع مستقر',text:'لا توجد مؤشرات خطرة حسب الفلتر الحالي',details:[],extra:''});
   node.innerHTML=alerts.slice(0,8).map(a=>'<div class="smart-alert '+smartSeverityClass(a.level)+'"><strong>'+escapeHtml(a.title)+'</strong><span>'+escapeHtml(a.text)+'</span>'+smartAlertDetailsHtml(a.details,a.extra)+'</div>').join('');
 }
 function renderSmartTopInsights(model){
@@ -8364,11 +8364,11 @@ function renderSmartTopInsights(model){
   const lowWh=[...warehouses].filter(w=>w.totalActivity>0).sort((a,b)=>Math.abs(a.sales)-Math.abs(b.sales))[0]||{};
   const topProduct=[...products].sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales))[0]||{};
   const rows=[
-    ['production','ط£ط¹ظ„ظ‰ ظ…طµظ†ط¹',topPlant[0],fmt(topPlant[1].sales||0)+' ط·ظ†'],
-    ['trendDown','ط£ظ‚ظ„ ظ…طµظ†ط¹ ط¨ظٹط¹ط§ظ‹',lowPlant[0],fmt(lowPlant[1].sales||0)+' ط·ظ†'],
-    ['warehouses','ط£ط¹ظ„ظ‰ ظ…ط®ط²ظ†',topWh.code||'-',fmt(topWh.sales||0)+' ط·ظ†'],
-    ['trendDown','ط£ظ‚ظ„ ظ…ط®ط²ظ† ط¨ظٹط¹ط§ظ‹',lowWh.code||'-',fmt(lowWh.sales||0)+' ط·ظ†'],
-    ['star','ط£ط¹ظ„ظ‰ طµظ†ظپ',topProduct.code||'-',escapeHtml(topProduct.name||'-')]
+    ['production','أعلى مصنع',topPlant[0],fmt(topPlant[1].sales||0)+' طن'],
+    ['trendDown','أقل مصنع بيعاً',lowPlant[0],fmt(lowPlant[1].sales||0)+' طن'],
+    ['warehouses','أعلى مخزن',topWh.code||'-',fmt(topWh.sales||0)+' طن'],
+    ['trendDown','أقل مخزن بيعاً',lowWh.code||'-',fmt(lowWh.sales||0)+' طن'],
+    ['star','أعلى صنف',topProduct.code||'-',escapeHtml(topProduct.name||'-')]
   ];
   node.innerHTML=rows.map(r=>'<div class="smart-top-row"><span>'+modernIcon(r[0])+'</span><b>'+r[1]+'</b><strong>'+escapeHtml(String(r[2]))+'</strong><small>'+r[3]+'</small></div>').join('');
 }
@@ -8379,54 +8379,54 @@ function renderSmartRecommendations(model){
   const rec=[];
   const seen=new Set();
   exceptions.filter(e=>e.severity==='high').slice(0,4).forEach(e=>{
-    smartPushRecommendation(rec,seen,e.type+'-'+e.code,'ط±ط§ط¬ط¹ '+smartExceptionText(e,period));
+    smartPushRecommendation(rec,seen,e.type+'-'+e.code,'راجع '+smartExceptionText(e,period));
   });
   exceptions.filter(e=>e.type==='no_sales').slice(0,3).forEach(e=>{
-    smartPushRecommendation(rec,seen,'no_sales-'+e.code,'ط±ط§ط¬ط¹ ط§ظ„طµظ†ظپ '+smartCleanValue(e.code)+' â€” '+smartCleanValue(e.name)+' '+(smartLocationPhrase(e)?'ظپظٹ '+smartLocationPhrase(e)+' ':'')+'ط¨ط³ط¨ط¨ ط¹ط¯ظ… ظˆط¬ظˆط¯ ط¨ظٹط¹ ط®ظ„ط§ظ„ ط§ظ„ظپطھط±ط©.');
+    smartPushRecommendation(rec,seen,'no_sales-'+e.code,'راجع الصنف '+smartCleanValue(e.code)+' — '+smartCleanValue(e.name)+' '+(smartLocationPhrase(e)?'في '+smartLocationPhrase(e)+' ':'')+'بسبب عدم وجود بيع خلال الفترة.');
   });
   exceptions.filter(e=>e.type==='loading_gap').slice(0,2).forEach(e=>{
-    smartPushRecommendation(rec,seen,'loading_gap-'+e.code,'طھط­ظ‚ظ‚ ظ…ظ† ط¥ط¬ظ…ط§ظ„ظٹ طھط­ظ…ظٹظ„ ط§ظ„طµظ†ظپ '+smartCleanValue(e.code)+' â€” '+smartCleanValue(e.name)+' '+(smartLocationPhrase(e)?'ظپظٹ '+smartLocationPhrase(e)+' ':'')+'ظ„ط£ظ† '+smartCleanValue(e.details)+'.');
+    smartPushRecommendation(rec,seen,'loading_gap-'+e.code,'تحقق من إجمالي تحميل الصنف '+smartCleanValue(e.code)+' — '+smartCleanValue(e.name)+' '+(smartLocationPhrase(e)?'في '+smartLocationPhrase(e)+' ':'')+'لأن '+smartCleanValue(e.details)+'.');
   });
   exceptions.filter(e=>e.type==='outgoing_high').slice(0,2).forEach(e=>{
-    smartPushRecommendation(rec,seen,'outgoing_high-'+e.code,'ط±ط§ط¬ط¹ ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ط© ظ„ظ„طµظ†ظپ '+smartCleanValue(e.code)+' â€” '+smartCleanValue(e.name)+' '+(smartLocationPhrase(e)?'ظپظٹ '+smartLocationPhrase(e)+' ':'')+'ط¨ط³ط¨ط¨ ط§ط±طھظپط§ط¹ ط؛ظٹط± ظ…ط¹طھط§ط¯.');
+    smartPushRecommendation(rec,seen,'outgoing_high-'+e.code,'راجع التحويلات الصادرة للصنف '+smartCleanValue(e.code)+' — '+smartCleanValue(e.name)+' '+(smartLocationPhrase(e)?'في '+smartLocationPhrase(e)+' ':'')+'بسبب ارتفاع غير معتاد.');
   });
   const topWh=[...warehouses].sort((a,b)=>Math.abs(b.outgoing)-Math.abs(a.outgoing))[0];
   if(topWh && Math.abs(topWh.outgoing||0)>Math.max(5,Math.abs(topWh.sales||0)*0.4)){
-    smartPushRecommendation(rec,seen,'warehouse-outgoing-'+topWh.code,'ط±ط§ط¬ط¹ ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ط© ظپظٹ ط§ظ„ظ…ط®ط²ظ† '+smartCleanValue(topWh.code)+' â€” '+smartCleanValue(topWh.name)+' ط¨ط§ظ„ظ…طµظ†ط¹ '+smartCleanValue(topWh.plant)+' ظ„ط£ظ† ط§ظ„طµط§ط¯ط± ط¨ظ„ط؛ '+fmt(topWh.outgoing)+' ط·ظ† ظ…ظ‚ط§ط¨ظ„ ط¨ظٹط¹ '+fmt(topWh.sales)+' ط·ظ†.');
+    smartPushRecommendation(rec,seen,'warehouse-outgoing-'+topWh.code,'راجع التحويلات الصادرة في المخزن '+smartCleanValue(topWh.code)+' — '+smartCleanValue(topWh.name)+' بالمصنع '+smartCleanValue(topWh.plant)+' لأن الصادر بلغ '+fmt(topWh.outgoing)+' طن مقابل بيع '+fmt(topWh.sales)+' طن.');
   }
   const gap=(stats.productionQty||0)-(stats.salesQty||0);
   const gapLimit=Math.max(10,Math.abs(stats.salesQty||0)*0.15);
   if(Math.abs(gap)>gapLimit){
     const type=gap<0?'sales_high':'production_high';
     const e=exceptions.find(x=>x.type===type);
-    if(e) smartPushRecommendation(rec,seen,'gap-focus-'+e.code,'طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„طµظ†ظپ '+smartCleanValue(e.code)+' â€” '+smartCleanValue(e.name)+' '+(smartLocationPhrase(e)?'ظپظٹ '+smartLocationPhrase(e)+' ':'')+'ظ„ط£ظ†ظ‡ ظ…ظ† ط£ط¨ط±ط² ط£ط³ط¨ط§ط¨ ظپط±ظ‚ ط§ظ„ط¥ظ†طھط§ط¬/ط§ظ„ط¨ظٹط¹.');
+    if(e) smartPushRecommendation(rec,seen,'gap-focus-'+e.code,'تحقق من الصنف '+smartCleanValue(e.code)+' — '+smartCleanValue(e.name)+' '+(smartLocationPhrase(e)?'في '+smartLocationPhrase(e)+' ':'')+'لأنه من أبرز أسباب فرق الإنتاج/البيع.');
   }
   if(rec.length<5){
     exceptions.filter(e=>e.severity==='medium').slice(0,5).forEach(e=>{
-      smartPushRecommendation(rec,seen,'medium-'+e.type+'-'+e.code,'طھط§ط¨ط¹ ط§ظ„طµظ†ظپ '+smartCleanValue(e.code)+' â€” '+smartCleanValue(e.name)+' '+(smartLocationPhrase(e)?'ظپظٹ '+smartLocationPhrase(e)+' ':'')+'ط¨ط³ط¨ط¨ '+smartCleanValue(e.label)+' â€” '+smartCleanValue(e.details)+'.');
+      smartPushRecommendation(rec,seen,'medium-'+e.type+'-'+e.code,'تابع الصنف '+smartCleanValue(e.code)+' — '+smartCleanValue(e.name)+' '+(smartLocationPhrase(e)?'في '+smartLocationPhrase(e)+' ':'')+'بسبب '+smartCleanValue(e.label)+' — '+smartCleanValue(e.details)+'.');
     });
   }
-  if(!rec.length) rec.push('ظ„ط§ طھظˆط¬ط¯ طھظˆطµظٹط§طھ ط­ط±ط¬ط© ط­ط§ظ„ظٹط§ظ‹ط› ط§ط³طھظ…ط± ظپظٹ ط§ظ„ظ…طھط§ط¨ط¹ط© ط§ظ„ط¯ظˆط±ظٹط© ط­ط³ط¨ ط§ظ„ظپطھط±ط© ط§ظ„ط­ط§ظ„ظٹط©.');
+  if(!rec.length) rec.push('لا توجد توصيات حرجة حالياً؛ استمر في المتابعة الدورية حسب الفترة الحالية.');
   node.innerHTML=rec.slice(0,8).map((t,i)=>'<div class="smart-rec"><em>'+(i+1)+'</em><span>'+escapeHtml(t)+'</span></div>').join('');
 }
 function renderSmartTrendAnalysis(model){
   const node=$('#smartTrendAnalysis'); if(!node) return;
   const days=Object.keys(model.daily||{}).sort().slice(-30);
-  const metrics=[['sales','ط§ظ„ط¨ظٹط¹'],['production','ط§ظ„ط¥ظ†طھط§ط¬'],['outgoing','ط§ظ„طµط§ط¯ط±'],['incoming','ط§ظ„ظˆط§ط±ط¯'],['loading','ط§ظ„طھط­ظ…ظٹظ„']];
+  const metrics=[['sales','البيع'],['production','الإنتاج'],['outgoing','الصادر'],['incoming','الوارد'],['loading','التحميل']];
   node.innerHTML=metrics.map(([key,label])=>{
     const values=days.map(d=>model.daily[d]?.[key]||0);
     const t=smartTrendInfo(values);
     const total=values.reduce((a,b)=>a+b,0);
-    return '<div class="smart-trend-row '+t.cls+'"><b>'+label+'</b><strong>'+modernIcon(t.icon)+' '+t.label+'</strong><span>'+fmt(t.delta)+'%</span><small>ط¥ط¬ظ…ط§ظ„ظٹ '+fmt(total)+' ط·ظ†</small></div>';
-  }).join('') || '<div class="empty-row">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ط§طھط¬ط§ظ‡ ظƒط§ظپظٹط©</div>';
-  const hint=$('#smartTrendHint'); if(hint) hint.textContent=days.length?'ظ…ظ† '+days[0]+' ط¥ظ„ظ‰ '+days[days.length-1]:'ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ';
+    return '<div class="smart-trend-row '+t.cls+'"><b>'+label+'</b><strong>'+modernIcon(t.icon)+' '+t.label+'</strong><span>'+fmt(t.delta)+'%</span><small>إجمالي '+fmt(total)+' طن</small></div>';
+  }).join('') || '<div class="empty-row">لا توجد بيانات اتجاه كافية</div>';
+  const hint=$('#smartTrendHint'); if(hint) hint.textContent=days.length?'من '+days[0]+' إلى '+days[days.length-1]:'لا توجد بيانات';
 }
 function renderSmartPlantScores(model){
   const node=$('#smartPlantScores'); if(!node) return;
   const rows=model.auditScores?.plantScores||[];
   node.innerHTML=rows.map(r=>{
     const parts=r.parts||{};
-    const details=`ط¬ظˆط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ${fmt(parts.dataQuality||0)}/20 | طھظˆط§ط²ظ† ط§ظ„ط¨ظٹط¹ ظˆط§ظ„ط¥ظ†طھط§ط¬ ${fmt(parts.salesBalance||0)}/20 | ط§ظ„طھط­ظˆظٹظ„ط§طھ ${fmt(parts.transferScore||0)}/15 | ط§ظ„طھط­ظ…ظٹظ„ ${fmt(parts.loadingScore||0)}/15 | ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ ${fmt(parts.exceptionScore||0)}/20 | ط§ظ„ظ†ط´ط§ط· ${fmt(parts.activityScore||0)}/10`;
+    const details=`جودة البيانات ${fmt(parts.dataQuality||0)}/20 | توازن البيع والإنتاج ${fmt(parts.salesBalance||0)}/20 | التحويلات ${fmt(parts.transferScore||0)}/15 | التحميل ${fmt(parts.loadingScore||0)}/15 | الاستثناءات ${fmt(parts.exceptionScore||0)}/20 | النشاط ${fmt(parts.activityScore||0)}/10`;
     return `<div class="smart-score-row smart-score-row-real ${r.status?.cls||''}" title="${escapeHtml(details)}" data-audit-score-target="${escapeHtml(r.plant)}">
       <div><b>${escapeHtml(r.plant)}</b><span>${escapeHtml(r.name||'')}</span><small>${modernIcon(r.status?.icon||'shield')} ${escapeHtml(r.status?.label||'')}</small></div>
       <div class="smart-score-bar"><i style="width:${r.score.toFixed(0)}%"></i></div>
@@ -8438,12 +8438,12 @@ function renderSmartPlantScores(model){
 
 function auditScorePartRows(parts){
   const rows=[
-    ['ط¬ظˆط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ',parts?.dataQuality||0,20,'ط§ظƒطھظ…ط§ظ„ ظˆطھظˆظپط± ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط±ط§ط¬ط¹ط© ط­ط³ط¨ ط§ظ„ظپظ„طھط± ط§ظ„ط­ط§ظ„ظٹ'],
-    ['طھظˆط§ط²ظ† ط§ظ„ط¨ظٹط¹ ظˆط§ظ„ط¥ظ†طھط§ط¬',parts?.salesBalance||0,20,'ظƒظ„ظ…ط§ ط²ط§ط¯ ط§ظ„ظپط±ظ‚ ط؛ظٹط± ط§ظ„ط·ط¨ظٹط¹ظٹ ط¨ظٹظ† ط§ظ„ط¨ظٹط¹ ظˆط§ظ„ط¥ظ†طھط§ط¬ ط§ظ†ط®ظپط¶طھ ط§ظ„ط¯ط±ط¬ط©'],
-    ['ط§ظ„طھط­ظˆظٹظ„ط§طھ',parts?.transferScore||0,15,'ظٹظ‚ظٹط³ ط§طھط²ط§ظ† ط§ظ„طµط§ط¯ط± ظˆط§ظ„ظˆط§ط±ط¯ ظˆط¹ط¯ظ… ظˆط¬ظˆط¯ طھط­ظˆظٹظ„ط§طھ ط؛ظٹط± ظ…ظƒطھظ…ظ„ط©'],
-    ['ط§ظ„طھط­ظ…ظٹظ„',parts?.loadingScore||0,15,'ظٹظ‚ط§ط±ظ† ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„ ط§ظ„ظ…طھظˆظ‚ط¹ ط¨ط§ظ„طھط­ظ…ظٹظ„ ط§ظ„ظپط¹ظ„ظٹ'],
-    ['ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ',parts?.exceptionScore||0,20,'ظƒظ„ ط§ط³طھط«ظ†ط§ط، ط¹ط§ظ„ظٹ ط£ظˆ ظ…طھظˆط³ط· ط£ظˆ ظ…ظ†ط®ظپط¶ ظٹظ‚ظ„ظ„ ط§ظ„ط¯ط±ط¬ط© ط­ط³ط¨ ط´ط¯طھظ‡'],
-    ['ط§ظ„ظ†ط´ط§ط·',parts?.activityScore||0,10,'ظˆط¬ظˆط¯ ط­ط±ظƒط© ظˆط¨ظٹط§ظ†ط§طھ ظپط¹ظ„ظٹط© ظٹط±ظپط¹ ط¯ط±ط¬ط© ط§ظ„ط«ظ‚ط©']
+    ['جودة البيانات',parts?.dataQuality||0,20,'اكتمال وتوفر بيانات المراجعة حسب الفلتر الحالي'],
+    ['توازن البيع والإنتاج',parts?.salesBalance||0,20,'كلما زاد الفرق غير الطبيعي بين البيع والإنتاج انخفضت الدرجة'],
+    ['التحويلات',parts?.transferScore||0,15,'يقيس اتزان الصادر والوارد وعدم وجود تحويلات غير مكتملة'],
+    ['التحميل',parts?.loadingScore||0,15,'يقارن إجمالي التحميل المتوقع بالتحميل الفعلي'],
+    ['الاستثناءات',parts?.exceptionScore||0,20,'كل استثناء عالي أو متوسط أو منخفض يقلل الدرجة حسب شدته'],
+    ['النشاط',parts?.activityScore||0,10,'وجود حركة وبيانات فعلية يرفع درجة الثقة']
   ];
   return rows.map(([label,val,max,desc])=>{
     const pct=max?Math.max(0,Math.min(100,(val/max)*100)):0;
@@ -8451,7 +8451,7 @@ function auditScorePartRows(parts){
   }).join('');
 }
 function auditScoreModalPlantTable(scores){
-  return `<div class="score-mini-table-wrap"><table class="score-mini-table"><thead><tr><th>ط§ظ„ظ…طµظ†ط¹</th><th>ط§ظ„ط­ط§ظ„ط©</th><th>ط§ظ„ط¯ط±ط¬ط©</th><th>ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ</th></tr></thead><tbody>${(scores||[]).map(r=>`<tr><td><b>${escapeHtml(r.plant)}</b><small>${escapeHtml(r.name||'')}</small></td><td>${modernIcon(r.status?.icon||'shield')} ${escapeHtml(r.status?.label||'')}</td><td>${Math.round(r.score)}%</td><td>${r.exceptions?.total||0}</td></tr>`).join('')}</tbody></table></div>`;
+  return `<div class="score-mini-table-wrap"><table class="score-mini-table"><thead><tr><th>المصنع</th><th>الحالة</th><th>الدرجة</th><th>الاستثناءات</th></tr></thead><tbody>${(scores||[]).map(r=>`<tr><td><b>${escapeHtml(r.plant)}</b><small>${escapeHtml(r.name||'')}</small></td><td>${modernIcon(r.status?.icon||'shield')} ${escapeHtml(r.status?.label||'')}</td><td>${Math.round(r.score)}%</td><td>${r.exceptions?.total||0}</td></tr>`).join('')}</tbody></table></div>`;
 }
 function averageAuditParts(scores){
   const keys=['dataQuality','salesBalance','transferScore','loadingScore','exceptionScore','activityScore'];
@@ -8468,13 +8468,13 @@ function scoreModalData(target){
     const r=scores.find(x=>x.plant===target);
     if(!r) return null;
     return {
-      title:`طھظپط§طµظٹظ„ Audit Score - ${r.plant}`,
+      title:`تفاصيل Audit Score - ${r.plant}`,
       subtitle:r.name||'',
       score:r.score,
       status:r.status,
       parts:r.parts,
       reasons:r.reasons||[],
-      extra:`ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ: ${r.exceptions?.total||0} | ط¹ط§ظ„ظٹ: ${r.exceptions?.high||0} | ظ…طھظˆط³ط·: ${r.exceptions?.medium||0} | ظ…ظ†ط®ظپط¶: ${r.exceptions?.low||0}`,
+      extra:`إجمالي الاستثناءات: ${r.exceptions?.total||0} | عالي: ${r.exceptions?.high||0} | متوسط: ${r.exceptions?.medium||0} | منخفض: ${r.exceptions?.low||0}`,
       table:''
     };
   }
@@ -8483,13 +8483,13 @@ function scoreModalData(target){
     const base=Math.max(1,Math.abs(stats.salesQty||0),Math.abs(stats.productionQty||0));
     const balance=clampScore(100-(Math.abs(gap)/base)*100);
     return {
-      title:'طھظپط§طµظٹظ„ ظ…ط¤ط´ط± ط§ظ„طھظˆط§ط²ظ† ط¨ظٹظ† ط§ظ„ط¨ظٹط¹ ظˆط§ظ„ط¥ظ†طھط§ط¬',
-      subtitle:'طھط­ظ„ظٹظ„ ط§ظ„ظپط±ظ‚ ط¨ظٹظ† ط§ظ„ط¨ظٹط¹ ظˆط§ظ„ط¥ظ†طھط§ط¬ ط­ط³ط¨ ط§ظ„ظپظ„ط§طھط± ط§ظ„ط­ط§ظ„ظٹط©',
+      title:'تفاصيل مؤشر التوازن بين البيع والإنتاج',
+      subtitle:'تحليل الفرق بين البيع والإنتاج حسب الفلاتر الحالية',
       score:balance,
       status:auditScoreStatus(balance),
       parts:{dataQuality:20,salesBalance:clampScore(20-(Math.abs(gap)/base)*20),transferScore:15,loadingScore:15,exceptionScore:20,activityScore:10},
-      reasons:[gap>=0?`ط§ظ„ط¥ظ†طھط§ط¬ ط£ط¹ظ„ظ‰ ظ…ظ† ط§ظ„ط¨ظٹط¹ ط¨ظ…ظ‚ط¯ط§ط± ${fmt(gap)} ط·ظ†`:`ط§ظ„ط¨ظٹط¹ ط£ط¹ظ„ظ‰ ظ…ظ† ط§ظ„ط¥ظ†طھط§ط¬ ط¨ظ…ظ‚ط¯ط§ط± ${fmt(Math.abs(gap))} ط·ظ†`,`ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹ ${fmt(stats.salesQty||0)} ط·ظ†`,`ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ظ†طھط§ط¬ ${fmt(stats.productionQty||0)} ط·ظ†`],
-      extra:`ظ†ط³ط¨ط© ط§ظ„طھظˆط§ط²ظ† ط§ظ„طھظ‚ط±ظٹط¨ظٹط©: ${Math.round(balance)}%`,
+      reasons:[gap>=0?`الإنتاج أعلى من البيع بمقدار ${fmt(gap)} طن`:`البيع أعلى من الإنتاج بمقدار ${fmt(Math.abs(gap))} طن`,`إجمالي البيع ${fmt(stats.salesQty||0)} طن`,`إجمالي الإنتاج ${fmt(stats.productionQty||0)} طن`],
+      extra:`نسبة التوازن التقريبية: ${Math.round(balance)}%`,
       table:''
     };
   }
@@ -8497,22 +8497,22 @@ function scoreModalData(target){
     const exc=model.exceptions||[];
     const high=exc.filter(e=>e.severity==='high').length, med=exc.filter(e=>e.severity==='medium').length, low=exc.filter(e=>e.severity==='low').length;
     const sc=clampScore(100-(high*10+med*5+low*2));
-    return {title:'طھظپط§طµظٹظ„ ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ',subtitle:'طھط£ط«ظٹط± ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ ط¹ظ„ظ‰ ط¯ط±ط¬ط© ط§ظ„ظ…ط±ط§ط¬ط¹ط©',score:sc,status:auditScoreStatus(sc),parts:averageAuditParts(scores),reasons:[`ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ ${exc.length}`,`ط¹ط§ظ„ظٹط© ط§ظ„ط£ظˆظ„ظˆظٹط© ${high}`,`ظ…طھظˆط³ط·ط© ط§ظ„ط£ظˆظ„ظˆظٹط© ${med}`,`ظ…ظ†ط®ظپط¶ط© ط§ظ„ط£ظˆظ„ظˆظٹط© ${low}`],extra:'ظƒظ„ظ…ط§ ط²ط§ط¯طھ ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ ط¹ط§ظ„ظٹط© ط§ظ„ط£ظˆظ„ظˆظٹط© ط§ظ†ط®ظپط¶طھ ط¯ط±ط¬ط© ط§ظ„طµط­ط© ط§ظ„ط¹ط§ظ…ط©.',table:''};
+    return {title:'تفاصيل الاستثناءات',subtitle:'تأثير الاستثناءات على درجة المراجعة',score:sc,status:auditScoreStatus(sc),parts:averageAuditParts(scores),reasons:[`إجمالي الاستثناءات ${exc.length}`,`عالية الأولوية ${high}`,`متوسطة الأولوية ${med}`,`منخفضة الأولوية ${low}`],extra:'كلما زادت الاستثناءات عالية الأولوية انخفضت درجة الصحة العامة.',table:''};
   }
   if(target==='sales' || target==='production' || target==='items' || target==='warehouses'){
-    const map={sales:['ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹',stats.salesQty||0,'ط·ظ†'],production:['ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ظ†طھط§ط¬',stats.productionQty||0,'ط·ظ†'],items:['ط§ظ„ط£طµظ†ط§ظپ ط§ظ„ظ†ط´ط·ط©',(model.products||[]).length,'طµظ†ظپ'],warehouses:['ط§ظ„ظ…ط®ط§ط²ظ† ط§ظ„ظ†ط´ط·ط©',(model.warehouses||[]).length,'ظ…ط®ط²ظ†']};
+    const map={sales:['إجمالي البيع',stats.salesQty||0,'طن'],production:['إجمالي الإنتاج',stats.productionQty||0,'طن'],items:['الأصناف النشطة',(model.products||[]).length,'صنف'],warehouses:['المخازن النشطة',(model.warehouses||[]).length,'مخزن']};
     const m=map[target];
-    return {title:`طھظپط§طµظٹظ„ ${m[0]}`,subtitle:'ط­ط³ط¨ ط§ظ„ظپظ„ط§طھط± ط§ظ„ط­ط§ظ„ظٹط©',score:model.auditScores.overall,status:model.auditScores.status,parts:averageAuditParts(scores),reasons:[`${m[0]}: ${fmt(m[1])} ${m[2]}`,`ط§ظ„طµط­ط© ط§ظ„ط¹ط§ظ…ط© ظ„ظ„ظ…ط±ط§ط¬ط¹ط© ${Math.round(model.auditScores.overall)}%`],extra:'ظ‡ط°ط§ ط§ظ„ظ…ط¤ط´ط± ط¬ط²ط، ظ…ظ† ظ†ظ…ظˆط°ط¬ ط§ظ„طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط°ظƒظٹط© ظˆظ„ظٹط³ ط¯ط±ط¬ط© ظ…ط³طھظ‚ظ„ط©.',table:auditScoreModalPlantTable(scores)};
+    return {title:`تفاصيل ${m[0]}`,subtitle:'حسب الفلاتر الحالية',score:model.auditScores.overall,status:model.auditScores.status,parts:averageAuditParts(scores),reasons:[`${m[0]}: ${fmt(m[1])} ${m[2]}`,`الصحة العامة للمراجعة ${Math.round(model.auditScores.overall)}%`],extra:'هذا المؤشر جزء من نموذج التحليلات الذكية وليس درجة مستقلة.',table:auditScoreModalPlantTable(scores)};
   }
   const parts=averageAuditParts(scores);
   return {
-    title:'طھظپط§طµظٹظ„ ط§ظ„طµط­ط© ط§ظ„ط¹ط§ظ…ط© ظ„ظ„ظ…ط±ط§ط¬ط¹ط©',
-    subtitle:'ظ…طھظˆط³ط· ط¯ط±ط¬ط§طھ ط§ظ„ظ…طµط§ظ†ط¹ ط­ط³ط¨ ط§ظ„ظپظ„ط§طھط± ط§ظ„ط­ط§ظ„ظٹط©',
+    title:'تفاصيل الصحة العامة للمراجعة',
+    subtitle:'متوسط درجات المصانع حسب الفلاتر الحالية',
     score:model.auditScores.overall,
     status:model.auditScores.status,
     parts,
-    reasons:[`ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ظ…طµط§ظ†ط¹ ط§ظ„ظ…ط­ط³ظˆط¨ط©: ${scores.length}`,`ط§ظ„ط­ط§ظ„ط§طھ ط§ظ„ط­ط±ط¬ط©: ${model.auditScores.critical||0}`,`ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ ط§ظ„ط­ط§ظ„ظٹط©: ${(model.exceptions||[]).length}`],
-    extra:'ط§ط¶ط؛ط· ط¹ظ„ظ‰ ط£ظٹ ظ…طµظ†ط¹ ط¯ط§ط®ظ„ ط¯ط±ط¬ط© ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…طµط§ظ†ط¹ ظ„ط¹ط±ط¶ طھظپط§طµظٹظ„ظ‡ ظ…ظ†ظپط±ط¯ط§ظ‹.',
+    reasons:[`إجمالي المصانع المحسوبة: ${scores.length}`,`الحالات الحرجة: ${model.auditScores.critical||0}`,`الاستثناءات الحالية: ${(model.exceptions||[]).length}`],
+    extra:'اضغط على أي مصنع داخل درجة مراجعة المصانع لعرض تفاصيله منفرداً.',
     table:auditScoreModalPlantTable(scores)
   };
 }
@@ -8540,7 +8540,7 @@ function openAuditScoreModal(target){
   const body=$('#auditScoreModalBody');
   const score=Math.round(data.score||0);
   const reasons=(data.reasons||[]).map(r=>`<li>${escapeHtml(r)}</li>`).join('');
-  body.innerHTML=`<header class="score-modal-head"><div><h3 id="auditScoreModalTitle">${escapeHtml(data.title)}</h3><p>${escapeHtml(data.subtitle||'')}</p></div><div class="score-modal-gauge ${data.status?.cls||''}"><strong>${score}%</strong><span>${modernIcon(data.status?.icon||'shield')} ${escapeHtml(data.status?.label||'')}</span></div></header><div class="score-breakdown">${auditScorePartRows(data.parts||{})}</div><div class="score-reasons"><h4>ط³ط¨ط¨ ط§ظ„ظ†طھظٹط¬ط©</h4><ul>${reasons}</ul><p>${escapeHtml(data.extra||'')}</p></div>${data.table||''}`;
+  body.innerHTML=`<header class="score-modal-head"><div><h3 id="auditScoreModalTitle">${escapeHtml(data.title)}</h3><p>${escapeHtml(data.subtitle||'')}</p></div><div class="score-modal-gauge ${data.status?.cls||''}"><strong>${score}%</strong><span>${modernIcon(data.status?.icon||'shield')} ${escapeHtml(data.status?.label||'')}</span></div></header><div class="score-breakdown">${auditScorePartRows(data.parts||{})}</div><div class="score-reasons"><h4>سبب النتيجة</h4><ul>${reasons}</ul><p>${escapeHtml(data.extra||'')}</p></div>${data.table||''}`;
   modal.classList.remove('hidden');
   document.body.classList.add('modal-open');
 }
@@ -8559,9 +8559,9 @@ function initAuditScoreDetails(){
 
 function renderSmartExportTable(model){
   const tbl=$('#smartAnalyticsExportTable'); if(!tbl) return;
-  const topRows=model.exceptions.slice(0,10).map((e,i)=>`<tr><td>ط§ط³طھط«ظ†ط§ط،</td><td>${i+1}</td><td>${escapeHtml(e.code)}</td><td>${escapeHtml(e.name)}</td><td>${escapeHtml(e.label)}</td><td>${fmt(e.reviewScore)}</td></tr>`).join('');
+  const topRows=model.exceptions.slice(0,10).map((e,i)=>`<tr><td>استثناء</td><td>${i+1}</td><td>${escapeHtml(e.code)}</td><td>${escapeHtml(e.name)}</td><td>${escapeHtml(e.label)}</td><td>${fmt(e.reviewScore)}</td></tr>`).join('');
   const scoreRows=(model.auditScores?.plantScores||[]).map((r,i)=>`<tr><td>Audit Score</td><td>${i+1}</td><td>${escapeHtml(r.plant)}</td><td>${escapeHtml(r.name||'')}</td><td>${escapeHtml(r.status?.label||'')}</td><td>${Math.round(r.score)}%</td></tr>`).join('');
-  tbl.innerHTML=`<thead><tr><th>ط§ظ„ظ†ظˆط¹</th><th>#</th><th>ط§ظ„ظƒظˆط¯</th><th>ط§ظ„ط¨ظٹط§ظ†</th><th>ط§ظ„ظ…ط¤ط´ط±</th><th>ط§ظ„ظ‚ظٹظ…ط©</th></tr></thead><tbody><tr><td>ظ…ظ„ط®طµ</td><td>-</td><td>ط§ظ„طµط­ط© ط§ظ„ط¹ط§ظ…ط© ظ„ظ„ظ…ط±ط§ط¬ط¹ط©</td><td>-</td><td>${escapeHtml(model.auditScores?.status?.label||'')}</td><td>${Math.round(model.auditScores?.overall||0)}%</td></tr><tr><td>ظ…ظ„ط®طµ</td><td>-</td><td>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹</td><td>-</td><td>ط·ظ†</td><td>${fmt(model.stats.salesQty)}</td></tr><tr><td>ظ…ظ„ط®طµ</td><td>-</td><td>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ظ†طھط§ط¬</td><td>-</td><td>ط·ظ†</td><td>${fmt(model.stats.productionQty)}</td></tr>${scoreRows}${topRows}</tbody>`;
+  tbl.innerHTML=`<thead><tr><th>النوع</th><th>#</th><th>الكود</th><th>البيان</th><th>المؤشر</th><th>القيمة</th></tr></thead><tbody><tr><td>ملخص</td><td>-</td><td>الصحة العامة للمراجعة</td><td>-</td><td>${escapeHtml(model.auditScores?.status?.label||'')}</td><td>${Math.round(model.auditScores?.overall||0)}%</td></tr><tr><td>ملخص</td><td>-</td><td>إجمالي البيع</td><td>-</td><td>طن</td><td>${fmt(model.stats.salesQty)}</td></tr><tr><td>ملخص</td><td>-</td><td>إجمالي الإنتاج</td><td>-</td><td>طن</td><td>${fmt(model.stats.productionQty)}</td></tr>${scoreRows}${topRows}</tbody>`;
 }
 async function loadSmartAnalyticsReport(options={}){
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
@@ -8575,14 +8575,14 @@ async function loadSmartAnalyticsReport(options={}){
 
 // === Production Analytics Report ===
 let PRODUCTION_ANALYTICS_STATE={rows:[],filters:null,summary:null,plants:[],products:[],daily:{},plantDaily:{}};
-function productionDayKey(v){ return normalizeDateISO(v)||'ط؛ظٹط± ظ…ط­ط¯ط¯'; }
+function productionDayKey(v){ return normalizeDateISO(v)||'غير محدد'; }
 function buildProductionAnalyticsModel(rows,filters){
   const summary={total:0,days:0,avgDaily:0,maxDay:{date:'-',value:0},minDay:{date:'-',value:0},topPlant:null,stability:0,changePct:0};
   const plantMap={}, productMap={}, daily={}, plantDaily={};
   (rows||[]).forEach(r=>{
     const prod=toNumber(r.production_quantity);
     const date=productionDayKey(r.report_date);
-    const plant=String(r.plant_code||dashboardPlantFromWarehouse(r.warehouse_code)||'ط؛ظٹط± ظ…ط­ط¯ط¯').toUpperCase();
+    const plant=String(r.plant_code||dashboardPlantFromWarehouse(r.warehouse_code)||'غير محدد').toUpperCase();
     const plantName=r.plant_name || plantNameFromCatalog(plant) || plant;
     const code=String(r.material_code||'-');
     const name=r.material_name||'-';
@@ -8627,18 +8627,18 @@ function buildProductionAnalyticsModel(rows,filters){
 function renderProductionKpis(model){
   const st=model.summary||{};
   const cards=[
-    {title:'ط¥ط¬ظ…ط§ظ„ظٹ ط¥ظ†طھط§ط¬ ط§ظ„ظ…طµط§ظ†ط¹',value:fmt(st.total),unit:'ط·ظ†',icon:'production',extraClass:'production-kpi'},
-    {title:'ظ…طھظˆط³ط· ط§ظ„ط¥ظ†طھط§ط¬ ط§ظ„ظٹظˆظ…ظٹ',value:fmt(st.avgDaily),unit:'ط·ظ†/ظٹظˆظ…',icon:'trendUp',extraClass:'production-kpi'},
-    {title:'ط£ط¹ظ„ظ‰ ظٹظˆظ… ط¥ظ†طھط§ط¬',value:fmt(st.maxDay?.value||0),unit:st.maxDay?.date||'-',icon:'check',extraClass:'production-kpi'},
-    {title:'ط£ظ‚ظ„ ظٹظˆظ… ط¥ظ†طھط§ط¬',value:fmt(st.minDay?.value||0),unit:st.minDay?.date||'-',icon:'ban',extraClass:'production-kpi'},
-    {title:'ط¹ط¯ط¯ ط£ظٹط§ظ… ط§ظ„ط¥ظ†طھط§ط¬',value:fmt(st.days),unit:'ظٹظˆظ…',icon:'calendar',extraClass:'production-kpi'},
-    {title:'ظ†ط³ط¨ط© ط§ظ„طھط؛ظٹط±',value:fmt(st.changePct||0),unit:'%',icon:'trendUp',extraClass:'production-kpi'}
+    {title:'إجمالي إنتاج المصانع',value:fmt(st.total),unit:'طن',icon:'production',extraClass:'production-kpi'},
+    {title:'متوسط الإنتاج اليومي',value:fmt(st.avgDaily),unit:'طن/يوم',icon:'trendUp',extraClass:'production-kpi'},
+    {title:'أعلى يوم إنتاج',value:fmt(st.maxDay?.value||0),unit:st.maxDay?.date||'-',icon:'check',extraClass:'production-kpi'},
+    {title:'أقل يوم إنتاج',value:fmt(st.minDay?.value||0),unit:st.minDay?.date||'-',icon:'ban',extraClass:'production-kpi'},
+    {title:'عدد أيام الإنتاج',value:fmt(st.days),unit:'يوم',icon:'calendar',extraClass:'production-kpi'},
+    {title:'نسبة التغير',value:fmt(st.changePct||0),unit:'%',icon:'trendUp',extraClass:'production-kpi'}
   ];
   const node=$('#productionKpiCards'); if(node) node.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
 function drawProductionPlantBar(plants){
   const canvas=$('#productionPlantBarChart'); if(!canvas) return; const ctx=canvas.getContext('2d'), w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
-  const data=(plants||[]).slice(0,8); if(!data.length){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ط¥ظ†طھط§ط¬',w/2,h/2);return;}
+  const data=(plants||[]).slice(0,8); if(!data.length){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات إنتاج',w/2,h/2);return;}
   const max=Math.max(1,...data.map(p=>Math.abs(p.production||0))); const pad={l:58,r:24,t:34,b:55}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
   ctx.strokeStyle='rgba(255,255,255,.13)'; ctx.fillStyle='#cfe8d0'; ctx.font='bold 11px Cairo'; ctx.textAlign='right';
   for(let i=0;i<=4;i++){const y=pad.t+ch-(i/4)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmt(max*i/4),pad.l-8,y+4);}
@@ -8647,18 +8647,18 @@ function drawProductionPlantBar(plants){
 }
 function drawProductionContributionDonut(plants){
   const canvas=$('#productionContributionDonut'), legend=$('#productionContributionLegend'); if(!canvas) return; const ctx=canvas.getContext('2d'), w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
-  const entries=(plants||[]).filter(p=>Math.abs(p.production)>0).slice(0,8); const sum=entries.reduce((a,p)=>a+Math.abs(p.production),0); if(!sum){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ',w/2,h/2); if(legend) legend.innerHTML=''; return;}
+  const entries=(plants||[]).filter(p=>Math.abs(p.production)>0).slice(0,8); const sum=entries.reduce((a,p)=>a+Math.abs(p.production),0); if(!sum){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2); if(legend) legend.innerHTML=''; return;}
   const cx=w*.34,cy=h*.5,r=Math.min(w,h)*.32,ir=r*.55; let a=-Math.PI/2;
   entries.forEach((p,i)=>{const ang=Math.abs(p.production)/sum*Math.PI*2; ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+ang);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();a+=ang;});
-  ctx.beginPath();ctx.arc(cx,cy,ir,0,Math.PI*2);ctx.fillStyle='#00251f';ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 18px Cairo';ctx.fillText(fmt(sum),cx,cy-2);ctx.font='bold 12px Cairo';ctx.fillStyle='#d8ffd1';ctx.fillText('ط·ظ†',cx,cy+20);
-  if(legend) legend.innerHTML=entries.map((p,i)=>`<div><span style="background:${colors[i%colors.length]}"></span><b>${escapeHtml(p.code)}</b> ${fmt(p.pct)}% - ${fmt(p.production)} ط·ظ†</div>`).join('');
+  ctx.beginPath();ctx.arc(cx,cy,ir,0,Math.PI*2);ctx.fillStyle='#00251f';ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 18px Cairo';ctx.fillText(fmt(sum),cx,cy-2);ctx.font='bold 12px Cairo';ctx.fillStyle='#d8ffd1';ctx.fillText('طن',cx,cy+20);
+  if(legend) legend.innerHTML=entries.map((p,i)=>`<div><span style="background:${colors[i%colors.length]}"></span><b>${escapeHtml(p.code)}</b> ${fmt(p.pct)}% - ${fmt(p.production)} طن</div>`).join('');
 }
 function heatClass(value,min,max){
   return getHeatmapCellClass(value,min,max,{includeBase:true});
 }
 function renderProductionPlantHeatmap(model){
   const node=$('#productionPlantHeatmap'); if(!node) return; const days=Object.keys(model.daily||{}).sort(); const plants=model.plants||[];
-  if(!days.length || !plants.length){ node.innerHTML='<div class="empty-row">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ط¥ظ†طھط§ط¬</div>'; return; }
+  if(!days.length || !plants.length){ node.innerHTML='<div class="empty-row">لا توجد بيانات إنتاج</div>'; return; }
   const cols=`92px repeat(${days.length}, minmax(58px,1fr))`;
   const dayHead=days.map(d=>`<span>${escapeHtml(d.slice(5))}</span>`).join('');
   const rows=plants.map(p=>{
@@ -8666,29 +8666,29 @@ function renderProductionPlantHeatmap(model){
     const positives=rowValues.filter(v=>v>0);
     const rowMax=Math.max(...positives,0);
     const rowMin=positives.length?Math.min(...positives):0;
-    return `<div class="prod-heat-row" style="grid-template-columns:${cols}"><strong>${escapeHtml(p.code)}</strong>${days.map((d,idx)=>{const v=rowValues[idx]||0; return `<i class="${heatClass(v,rowMin,rowMax)}" title="${escapeHtml(p.code)} / ${escapeHtml(d)} / ${fmt(v)} ط·ظ†"><b>${fmt(v)}</b></i>`;}).join('')}</div>`;
+    return `<div class="prod-heat-row" style="grid-template-columns:${cols}"><strong>${escapeHtml(p.code)}</strong>${days.map((d,idx)=>{const v=rowValues[idx]||0; return `<i class="${heatClass(v,rowMin,rowMax)}" title="${escapeHtml(p.code)} / ${escapeHtml(d)} / ${fmt(v)} طن"><b>${fmt(v)}</b></i>`;}).join('')}</div>`;
   }).join('');
-  node.innerHTML=`<div class="prod-heat-head" style="grid-template-columns:${cols}"><strong>ط§ظ„ظ…طµظ†ط¹</strong>${dayHead}</div>${rows}<div class="prod-heat-scale"><span>ط£ظ‚ظ„ ظٹظˆظ… ط¯ط§ط®ظ„ ظƒظ„ ظ…طµظ†ط¹</span><em></em><span>ط£ط¹ظ„ظ‰ ظٹظˆظ… ط¯ط§ط®ظ„ ظƒظ„ ظ…طµظ†ط¹</span></div>`;
+  node.innerHTML=`<div class="prod-heat-head" style="grid-template-columns:${cols}"><strong>المصنع</strong>${dayHead}</div>${rows}<div class="prod-heat-scale"><span>أقل يوم داخل كل مصنع</span><em></em><span>أعلى يوم داخل كل مصنع</span></div>`;
 }
 function renderProductionAllHeatmap(model){
   const node=$('#productionAllHeatmap'); if(!node) return; const entries=Object.entries(model.daily||{}).sort(([a],[b])=>a.localeCompare(b));
-  if(!entries.length){node.innerHTML='<div class="empty-row">ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ط¥ظ†طھط§ط¬</div>';return;}
+  if(!entries.length){node.innerHTML='<div class="empty-row">لا توجد بيانات إنتاج</div>';return;}
   const values=entries.map(([,v])=>Math.abs(toNumber(v))).filter(v=>v>0), max=Math.max(...values,0), min=values.length?Math.min(...values):0;
-  node.innerHTML=`<div class="production-all-grid">${entries.map(([d,v])=>{const val=Math.abs(toNumber(v)); return `<div class="all-heat-cell ${heatClass(val,min,max)}" title="${escapeHtml(d)} - ${fmt(val)} ط·ظ†"><b>${escapeHtml(d.slice(5))}</b><span>${fmt(val)}</span></div>`;}).join('')}</div><div class="prod-heat-scale"><span>ط£ظ‚ظ„ ظٹظˆظ… ط¥ظ†طھط§ط¬</span><em></em><span>ط£ط¹ظ„ظ‰ ظٹظˆظ… ط¥ظ†طھط§ط¬</span></div>`;
+  node.innerHTML=`<div class="production-all-grid">${entries.map(([d,v])=>{const val=Math.abs(toNumber(v)); return `<div class="all-heat-cell ${heatClass(val,min,max)}" title="${escapeHtml(d)} - ${fmt(val)} طن"><b>${escapeHtml(d.slice(5))}</b><span>${fmt(val)}</span></div>`;}).join('')}</div><div class="prod-heat-scale"><span>أقل يوم إنتاج</span><em></em><span>أعلى يوم إنتاج</span></div>`;
 }
 function renderProductionTopProducts(products){
-  renderRankTable('#productionTopProductsTable',['#','ظƒظˆط¯ ط§ظ„طµظ†ظپ','ط§ط³ظ… ط§ظ„طµظ†ظپ','ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ظ†طھط§ط¬','ط§ظ„ظ†ط³ط¨ط©'],(products||[]).slice(0,10).map((p,i)=>[i+1,escapeHtml(p.code),escapeHtml(p.name),fmt(p.production),`${fmt(p.pct)}%`]));
+  renderRankTable('#productionTopProductsTable',['#','كود الصنف','اسم الصنف','إجمالي الإنتاج','النسبة'],(products||[]).slice(0,10).map((p,i)=>[i+1,escapeHtml(p.code),escapeHtml(p.name),fmt(p.production),`${fmt(p.pct)}%`]));
 }
 function renderProductionInsights(model){
   const st=model.summary||{}, top=model.products?.[0]||{}, lowPlant=[...(model.plants||[])].sort((a,b)=>a.production-b.production)[0]||{};
-  const lines=[['trophy','ط£ط¹ظ„ظ‰ ظ…طµظ†ط¹ ط¥ظ†طھط§ط¬ط§ظ‹: '+(st.topPlant?.code||'-')+' ط¨ط¥ط¬ظ…ط§ظ„ظٹ '+fmt(st.topPlant?.production||0)+' ط·ظ†'],['box','ط£ط¹ظ„ظ‰ طµظ†ظپ ط¥ظ†طھط§ط¬ط§ظ‹: '+(top.code||'-')+' - '+escapeHtml(top.name||'-')+' ط¨ط¥ط¬ظ…ط§ظ„ظٹ '+fmt(top.production||0)+' ط·ظ†'],['trendDown','ط£ظ‚ظ„ ظ…طµظ†ط¹ ط¥ظ†طھط§ط¬ط§ظ‹: '+(lowPlant.code||'-')+' ط¨ط¥ط¬ظ…ط§ظ„ظٹ '+fmt(lowPlant.production||0)+' ط·ظ†'],['check','ط£ط¹ظ„ظ‰ ظٹظˆظ… ط¥ظ†طھط§ط¬: '+(st.maxDay?.date||'-')+' ط¨ظ‚ظٹظ…ط© '+fmt(st.maxDay?.value||0)+' ط·ظ†'],['ban','ط£ظ‚ظ„ ظٹظˆظ… ط¥ظ†طھط§ط¬: '+(st.minDay?.date||'-')+' ط¨ظ‚ظٹظ…ط© '+fmt(st.minDay?.value||0)+' ط·ظ†'],['shield','ظ…ط¤ط´ط± ط§ط³طھظ‚ط±ط§ط± ط§ظ„ط¥ظ†طھط§ط¬: '+fmt(st.stability||0)+'%']];
+  const lines=[['trophy','أعلى مصنع إنتاجاً: '+(st.topPlant?.code||'-')+' بإجمالي '+fmt(st.topPlant?.production||0)+' طن'],['box','أعلى صنف إنتاجاً: '+(top.code||'-')+' - '+escapeHtml(top.name||'-')+' بإجمالي '+fmt(top.production||0)+' طن'],['trendDown','أقل مصنع إنتاجاً: '+(lowPlant.code||'-')+' بإجمالي '+fmt(lowPlant.production||0)+' طن'],['check','أعلى يوم إنتاج: '+(st.maxDay?.date||'-')+' بقيمة '+fmt(st.maxDay?.value||0)+' طن'],['ban','أقل يوم إنتاج: '+(st.minDay?.date||'-')+' بقيمة '+fmt(st.minDay?.value||0)+' طن'],['shield','مؤشر استقرار الإنتاج: '+fmt(st.stability||0)+'%']];
   const node=$('#productionInsights'); if(node) node.innerHTML=lines.map(l=>'<div class="production-insight"><span>'+modernIcon(l[0])+'</span><b>'+l[1]+'</b></div>').join('');
 }
 function renderProductionExportTable(model){
   const tbl=$('#productionAnalyticsExportTable'); if(!tbl) return;
-  const plantRows=(model.plants||[]).map((p,i)=>`<tr><td>ظ…طµظ†ط¹</td><td>${i+1}</td><td>${escapeHtml(p.code)}</td><td>${escapeHtml(p.name)}</td><td>${fmt(p.production)}</td><td>${fmt(p.pct)}%</td></tr>`).join('');
-  const productRows=(model.products||[]).slice(0,10).map((p,i)=>`<tr><td>طµظ†ظپ</td><td>${i+1}</td><td>${escapeHtml(p.code)}</td><td>${escapeHtml(p.name)}</td><td>${fmt(p.production)}</td><td>${fmt(p.pct)}%</td></tr>`).join('');
-  tbl.innerHTML=`<thead><tr><th>ط§ظ„ظ†ظˆط¹</th><th>#</th><th>ط§ظ„ظƒظˆط¯</th><th>ط§ظ„ط¨ظٹط§ظ†</th><th>ط§ظ„ط¥ظ†طھط§ط¬</th><th>ط§ظ„ظ†ط³ط¨ط©</th></tr></thead><tbody><tr><td>ط¥ط¬ظ…ط§ظ„ظٹ</td><td>-</td><td>-</td><td>ط¥ط¬ظ…ط§ظ„ظٹ ط¥ظ†طھط§ط¬ ط§ظ„ظ…طµط§ظ†ط¹</td><td>${fmt(model.summary?.total||0)}</td><td>100%</td></tr>${plantRows}${productRows}</tbody>`;
+  const plantRows=(model.plants||[]).map((p,i)=>`<tr><td>مصنع</td><td>${i+1}</td><td>${escapeHtml(p.code)}</td><td>${escapeHtml(p.name)}</td><td>${fmt(p.production)}</td><td>${fmt(p.pct)}%</td></tr>`).join('');
+  const productRows=(model.products||[]).slice(0,10).map((p,i)=>`<tr><td>صنف</td><td>${i+1}</td><td>${escapeHtml(p.code)}</td><td>${escapeHtml(p.name)}</td><td>${fmt(p.production)}</td><td>${fmt(p.pct)}%</td></tr>`).join('');
+  tbl.innerHTML=`<thead><tr><th>النوع</th><th>#</th><th>الكود</th><th>البيان</th><th>الإنتاج</th><th>النسبة</th></tr></thead><tbody><tr><td>إجمالي</td><td>-</td><td>-</td><td>إجمالي إنتاج المصانع</td><td>${fmt(model.summary?.total||0)}</td><td>100%</td></tr>${plantRows}${productRows}</tbody>`;
 }
 async function loadProductionAnalyticsReport(options={}){
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
@@ -8700,20 +8700,20 @@ async function loadProductionAnalyticsReport(options={}){
 
 
 const SALES_TOTALS_GROUPS = [
-  {title:'ط¥ط¬ظ…ط§ظ„ظٹ ظƒظ„ ظ…ط®ط§ط²ظ† ط§ظ„ط¨ظٹط¹', codes:['W401','N401','N411','N412','E401','W402','N402','E402']},
-  {title:'ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظ…ظ†طھط¬ ط§ظ„طھط§ظ…', codes:['W401','N401','N411','N412','E401']},
-  {title:'ظ…ط¨ظٹط¹ط§طھ ط§ظ„ط¯ط´ظٹط´ط© ظˆط§ظ„ط®ط§ظ…ط§طھ', codes:['W402','N402','E402']},
-  {title:'ظ…ط¨ظٹط¹ط§طھ ظ…ط®ط²ظ† W401 ( ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظˆط§ط­ط© ط£ط¹ظ„ط§ظپ )', codes:['W401']},
-  {title:'ظ…ط¨ظٹط¹ط§طھ ظ…ط®ط²ظ† W402 (ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظˆط§ط­ط© ط®ط§ظ…ط§طھ )', codes:['W402']},
-  {title:'ظ…ط¨ظٹط¹ط§طھ ظ…ط®ط²ظ† N401 ( ظ…ط¨ظٹط¹ط§طھ ط§ظ„ط±ط¦ظٹط³ظٹ ط£ط¹ظ„ط§ظپ )', codes:['N401']},
-  {title:'ظ…ط¨ظٹط¹ط§طھ ظ…ط®ط²ظ† N402 ( ظ…ط¨ظٹط¹ط§طھ ط§ظ„ط±ط¦ظٹط³ظٹ ط®ط§ظ…ط§طھ )', codes:['N402']},
-  {title:'ظ…ط¨ظٹط¹ط§طھ ظ…ط®ط²ظ† N411 (ظ…ط¨ظٹط¹ط§طھ ظ…ط®ط²ظ† ط§ظ„ط¨ط­ظٹط±ط© )', codes:['N411']},
-  {title:'ظ…ط¨ظٹط¹ط§طھ ظ…ط®ط²ظ† N412 ( ظ…ط¨ظٹط¹ط§طھ ظ…ط®ط²ظ† ط£ط³ظٹظˆط· )', codes:['N412']},
-  {title:'ظ…ط¨ظٹط¹ط§طھ ظ…ط®ط²ظ† E401 ( ظ…ط¨ظٹط¹ط§طھ ط§ظ„ط¹ط§ظ…ط±ظٹط© ط£ط¹ظ„ط§ظپ )', codes:['E401']},
-  {title:'ظ…ط¨ظٹط¹ط§طھ ظ…ط®ط²ظ† E402 ( ظ…ط¨ظٹط¹ط§طھ ط§ظ„ط¹ط§ظ…ط±ظٹط© ط®ط§ظ…ط§طھ )', codes:['E402']}
+  {title:'إجمالي كل مخازن البيع', codes:['W401','N401','N411','N412','E401','W402','N402','E402']},
+  {title:'مبيعات المنتج التام', codes:['W401','N401','N411','N412','E401']},
+  {title:'مبيعات الدشيشة والخامات', codes:['W402','N402','E402']},
+  {title:'مبيعات مخزن W401 ( مبيعات الواحة أعلاف )', codes:['W401']},
+  {title:'مبيعات مخزن W402 (مبيعات الواحة خامات )', codes:['W402']},
+  {title:'مبيعات مخزن N401 ( مبيعات الرئيسي أعلاف )', codes:['N401']},
+  {title:'مبيعات مخزن N402 ( مبيعات الرئيسي خامات )', codes:['N402']},
+  {title:'مبيعات مخزن N411 (مبيعات مخزن البحيرة )', codes:['N411']},
+  {title:'مبيعات مخزن N412 ( مبيعات مخزن أسيوط )', codes:['N412']},
+  {title:'مبيعات مخزن E401 ( مبيعات العامرية أعلاف )', codes:['E401']},
+  {title:'مبيعات مخزن E402 ( مبيعات العامرية خامات )', codes:['E402']}
 ];
 function salesTotalsCardHtml(title,value,unit,icon){
-  return '<article class="kpi glass sales-total-kpi"><h3>'+escapeHtml(title)+'</h3><div class="num">'+fmt(value)+'</div><small>'+escapeHtml(unit||'ط·ظ†')+'</small><div class="icon modern-kpi-icon">'+modernIcon(icon||'reports')+'</div></article>';
+  return '<article class="kpi glass sales-total-kpi"><h3>'+escapeHtml(title)+'</h3><div class="num">'+fmt(value)+'</div><small>'+escapeHtml(unit||'طن')+'</small><div class="icon modern-kpi-icon">'+modernIcon(icon||'reports')+'</div></article>';
 }
 function renderSalesTotalsReport(groups,filters){
   const node=$('#salesTotalsRows'); if(!node) return;
@@ -8724,18 +8724,18 @@ function renderSalesTotalsReport(groups,filters){
         <span>${escapeHtml(group.codes.join(' / '))}</span>
       </div>
       <div class="cards report-kpis sales-totals-kpis">
-        ${salesTotalsCardHtml('ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹',group.stats.salesQty,'ط·ظ†','sales')}
-        ${salesTotalsCardHtml('ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ظ†طھط§ط¬',group.stats.productionQty,'ط·ظ†','production')}
-        ${salesTotalsCardHtml('ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ط©',group.stats.outgoingTransferQty,'ط·ظ†','outgoing')}
-        ${salesTotalsCardHtml('ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظˆط§ط±ط¯ط©',group.stats.incomingTransferQty,'ط·ظ†','incoming')}
-        ${salesTotalsCardHtml('ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„',group.stats.totalLoadingQty,'ط·ظ†','loading')}
+        ${salesTotalsCardHtml('إجمالي البيع',group.stats.salesQty,'طن','sales')}
+        ${salesTotalsCardHtml('إجمالي الإنتاج',group.stats.productionQty,'طن','production')}
+        ${salesTotalsCardHtml('إجمالي التحويلات الصادرة',group.stats.outgoingTransferQty,'طن','outgoing')}
+        ${salesTotalsCardHtml('إجمالي التحويلات الواردة',group.stats.incomingTransferQty,'طن','incoming')}
+        ${salesTotalsCardHtml('إجمالي التحميل',group.stats.totalLoadingQty,'طن','loading')}
       </div>
     </article>`).join('');
   const tbl=$('#salesTotalsExportTable');
   if(tbl){
-    tbl.innerHTML=`<thead><tr><th>ط§ظ„طµظپ</th><th>ط§ظ„ظ…ط®ط§ط²ظ†</th><th>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¨ظٹط¹</th><th>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„ط¥ظ†طھط§ط¬</th><th>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„طµط§ط¯ط±ط©</th><th>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظˆظٹظ„ط§طھ ط§ظ„ظˆط§ط±ط¯ط©</th><th>ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„</th></tr></thead><tbody>${(groups||[]).map(g=>`<tr><td>${escapeHtml(g.title)}</td><td>${escapeHtml(g.codes.join(' / '))}</td><td>${fmt(g.stats.salesQty)}</td><td>${fmt(g.stats.productionQty)}</td><td>${fmt(g.stats.outgoingTransferQty)}</td><td>${fmt(g.stats.incomingTransferQty)}</td><td>${fmt(g.stats.totalLoadingQty)}</td></tr>`).join('')}</tbody>`;
+    tbl.innerHTML=`<thead><tr><th>الصف</th><th>المخازن</th><th>إجمالي البيع</th><th>إجمالي الإنتاج</th><th>إجمالي التحويلات الصادرة</th><th>إجمالي التحويلات الواردة</th><th>إجمالي التحميل</th></tr></thead><tbody>${(groups||[]).map(g=>`<tr><td>${escapeHtml(g.title)}</td><td>${escapeHtml(g.codes.join(' / '))}</td><td>${fmt(g.stats.salesQty)}</td><td>${fmt(g.stats.productionQty)}</td><td>${fmt(g.stats.outgoingTransferQty)}</td><td>${fmt(g.stats.incomingTransferQty)}</td><td>${fmt(g.stats.totalLoadingQty)}</td></tr>`).join('')}</tbody>`;
   }
-  if($('#salesTotalsReportMeta')) $('#salesTotalsReportMeta').textContent=`ط§ظ„ظپطھط±ط©: ${filters.from||'--'} â†’ ${filters.to||'--'} `;
+  if($('#salesTotalsReportMeta')) $('#salesTotalsReportMeta').textContent=`الفترة: ${filters.from||'--'} → ${filters.to||'--'} `;
 }
 async function loadSalesTotalsReport(options={}){
   if(!WarehouseDB?.ready) return;
@@ -8844,34 +8844,34 @@ function loadActiveReport(options={}){
   return loadExecutiveReport(options);
 }
 function exportActiveReportExcel(){
-  if(ACTIVE_REPORT_TAB==='salesTotals') return exportTableToExcel('salesTotalsExportTable','ظ…ظ„ط®طµ ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظ…ط®ط§ط²ظ†');
-  if(ACTIVE_REPORT_TAB==='items') return exportTableToExcel('itemsReportExportTable','طھظ‚ط±ظٹط± ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط£طµظ†ط§ظپ');
+  if(ACTIVE_REPORT_TAB==='salesTotals') return exportTableToExcel('salesTotalsExportTable','ملخص مبيعات المخازن');
+  if(ACTIVE_REPORT_TAB==='items') return exportTableToExcel('itemsReportExportTable','تقرير مراجعة الأصناف');
   if(ACTIVE_REPORT_TAB===ITEM_ANALYTICS_TAB) return exportItemAnalyticsExcel();
-  if(ACTIVE_REPORT_TAB==='warehouses') return exportTableToExcel('warehousesReportExportTable','طھظ‚ط±ظٹط± ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ†');
-  if(ACTIVE_REPORT_TAB==='exceptions') return exportTableToExcel('exceptionsReportExportTable','طھظ‚ط±ظٹط± ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ ظˆط§ظ„ظ…ط±ط§ط¬ط¹ط©');
-  if(ACTIVE_REPORT_TAB==='smart') return exportTableToExcel('smartAnalyticsExportTable','ط§ظ„طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط°ظƒظٹط©');
-  if(ACTIVE_REPORT_TAB==='production') return exportTableToExcel('productionAnalyticsExportTable','طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط¥ظ†طھط§ط¬');
-  return exportTableToExcel('executiveExportTable','ط§ظ„طھظ‚ط±ظٹط± ط§ظ„طھظ†ظپظٹط°ظٹ ظ„ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ط®ط§ط²ظ†');
+  if(ACTIVE_REPORT_TAB==='warehouses') return exportTableToExcel('warehousesReportExportTable','تقرير أداء المخازن');
+  if(ACTIVE_REPORT_TAB==='exceptions') return exportTableToExcel('exceptionsReportExportTable','تقرير الاستثناءات والمراجعة');
+  if(ACTIVE_REPORT_TAB==='smart') return exportTableToExcel('smartAnalyticsExportTable','التحليلات الذكية');
+  if(ACTIVE_REPORT_TAB==='production') return exportTableToExcel('productionAnalyticsExportTable','تحليلات الإنتاج');
+  return exportTableToExcel('executiveExportTable','التقرير التنفيذي لمراجعة المخازن');
 }
 function exportActiveReportPdf(){
-  if(ACTIVE_REPORT_TAB==='salesTotals') return exportTableToPdf('salesTotalsExportTable','ظ…ظ„ط®طµ ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظ…ط®ط§ط²ظ†');
-  if(ACTIVE_REPORT_TAB==='items') return exportTableToPdf('itemsReportExportTable','طھظ‚ط±ظٹط± ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط£طµظ†ط§ظپ');
-  if(ACTIVE_REPORT_TAB==='warehouses') return exportTableToPdf('warehousesReportExportTable','طھظ‚ط±ظٹط± ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ†');
-  if(ACTIVE_REPORT_TAB==='exceptions') return exportTableToPdf('exceptionsReportExportTable','طھظ‚ط±ظٹط± ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ ظˆط§ظ„ظ…ط±ط§ط¬ط¹ط©');
-  if(ACTIVE_REPORT_TAB==='smart') return exportTableToPdf('smartAnalyticsExportTable','ط§ظ„طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط°ظƒظٹط©');
-  if(ACTIVE_REPORT_TAB==='production') return exportTableToPdf('productionAnalyticsExportTable','طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط¥ظ†طھط§ط¬');
-  return exportTableToPdf('executiveExportTable','ط§ظ„طھظ‚ط±ظٹط± ط§ظ„طھظ†ظپظٹط°ظٹ ظ„ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ط®ط§ط²ظ†');
+  if(ACTIVE_REPORT_TAB==='salesTotals') return exportTableToPdf('salesTotalsExportTable','ملخص مبيعات المخازن');
+  if(ACTIVE_REPORT_TAB==='items') return exportTableToPdf('itemsReportExportTable','تقرير مراجعة الأصناف');
+  if(ACTIVE_REPORT_TAB==='warehouses') return exportTableToPdf('warehousesReportExportTable','تقرير أداء المخازن');
+  if(ACTIVE_REPORT_TAB==='exceptions') return exportTableToPdf('exceptionsReportExportTable','تقرير الاستثناءات والمراجعة');
+  if(ACTIVE_REPORT_TAB==='smart') return exportTableToPdf('smartAnalyticsExportTable','التحليلات الذكية');
+  if(ACTIVE_REPORT_TAB==='production') return exportTableToPdf('productionAnalyticsExportTable','تحليلات الإنتاج');
+  return exportTableToPdf('executiveExportTable','التقرير التنفيذي لمراجعة المخازن');
 }
 function activeReportVisualInfo(){
   const map={
-    executive:{id:'executiveReportContent',title:'ط§ظ„طھظ‚ط±ظٹط± ط§ظ„طھظ†ظپظٹط°ظٹ ظ„ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ط®ط§ط²ظ†'},
-    salesTotals:{id:'salesTotalsReportContent',title:'ظ…ظ„ط®طµ ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظ…ط®ط§ط²ظ†'},
-    items:{id:'itemsReportContent',title:'طھظ‚ط±ظٹط± ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط£طµظ†ط§ظپ'},
-    item_analytics:{id:'itemAnalyticsContent',title:'طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط£طµظ†ط§ظپ'},
-    warehouses:{id:'warehousesReportContent',title:'طھظ‚ط±ظٹط± ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ†'},
-    exceptions:{id:'exceptionsReportContent',title:'طھظ‚ط±ظٹط± ط§ظ„ط§ط³طھط«ظ†ط§ط،ط§طھ ظˆط§ظ„ظ…ط±ط§ط¬ط¹ط©'},
-    smart:{id:'smartAnalyticsContent',title:'ط§ظ„طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط°ظƒظٹط©'},
-    production:{id:'productionAnalyticsContent',title:'طھط­ظ„ظٹظ„ط§طھ ط§ظ„ط¥ظ†طھط§ط¬'}
+    executive:{id:'executiveReportContent',title:'التقرير التنفيذي لمراجعة المخازن'},
+    salesTotals:{id:'salesTotalsReportContent',title:'ملخص مبيعات المخازن'},
+    items:{id:'itemsReportContent',title:'تقرير مراجعة الأصناف'},
+    item_analytics:{id:'itemAnalyticsContent',title:'تحليلات الأصناف'},
+    warehouses:{id:'warehousesReportContent',title:'تقرير أداء المخازن'},
+    exceptions:{id:'exceptionsReportContent',title:'تقرير الاستثناءات والمراجعة'},
+    smart:{id:'smartAnalyticsContent',title:'التحليلات الذكية'},
+    production:{id:'productionAnalyticsContent',title:'تحليلات الإنتاج'}
   };
   return map[ACTIVE_REPORT_TAB] || map.executive;
 }
@@ -8897,9 +8897,9 @@ function copyCanvasPixelsToClone(sourceRoot, cloneRoot){
 async function renderActiveReportCanvas(){
   const info=activeReportVisualInfo();
   const source=document.getElementById(info.id);
-  if(!source){ alert('ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط§ظ„طھظ‚ط±ظٹط± ط§ظ„ط­ط§ظ„ظٹ.'); return null; }
+  if(!source){ alert('لم يتم العثور على التقرير الحالي.'); return null; }
   const Html2Canvas=window.html2canvas;
-  if(!Html2Canvas){ alert('ظ…ظƒطھط¨ط© طھطµط¯ظٹط± ط§ظ„طµظˆط± ط؛ظٹط± ظ…ط­ظ…ظ„ط©. طھط£ظƒط¯ ظ…ظ† ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط¥ظ†طھط±ظ†طھ ط«ظ… ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.'); return null; }
+  if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return null; }
 
   const clone=source.cloneNode(true);
   copyCanvasPixelsToClone(source,clone);
@@ -8935,7 +8935,7 @@ async function renderActiveReportCanvas(){
     return {canvas,info};
   }catch(err){
     console.error(err);
-    alert('طھط¹ط°ط± طھط¬ظ‡ظٹط² ط§ظ„طھظ‚ط±ظٹط± ظ„ظ„طھطµط¯ظٹط±. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+    alert('تعذر تجهيز التقرير للتصدير. حاول مرة أخرى.');
     return null;
   }finally{
     try{ layer.remove(); }catch(_){}
@@ -8954,9 +8954,9 @@ function reportExportDateText(value){
 function currentReportExportPeriodText(){
   const from=normalizeDateISO($('#reportFromDate')?.value || '');
   const to=normalizeDateISO($('#reportToDate')?.value || '');
-  if(from && to && from===to) return `طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±: ${reportExportDateText(from)}`;
-  if(from || to) return `ط§ظ„ظپطھط±ط©: ${reportExportDateText(from) || 'ط§ظ„ط¨ط¯ط§ظٹط©'} â†’ ${reportExportDateText(to) || 'ط§ظ„ظ†ظ‡ط§ظٹط©'}`;
-  return 'طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±: --/--/----';
+  if(from && to && from===to) return `تاريخ التقرير: ${reportExportDateText(from)}`;
+  if(from || to) return `الفترة: ${reportExportDateText(from) || 'البداية'} → ${reportExportDateText(to) || 'النهاية'}`;
+  return 'تاريخ التقرير: --/--/----';
 }
     function whDateToken(){
       const from=normalizeDateISO(document.querySelector('#reportFromDate')?.value || '');
@@ -8965,21 +8965,21 @@ function currentReportExportPeriodText(){
       return from || to || new Date().toISOString().slice(0,10);
     }
     function whPngIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 4h14v16H5z"></path><path d="M8 9h8M8 13h5M8 17h8"></path></svg>';}
-    function whFileSlug(title){const text=String(title||'warehouse-widget');const pairs=[['warehouse-performance','warehouse-performance'],['ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹط§طھ','warehouse-total-kpis'],['طھط±طھظٹط¨','warehouse-ranking'],['ظ…ظ‚ط§ط±ظ†ط©','warehouse-comparison-chart'],['طھظˆط²ظٹط¹','warehouse-loading-distribution'],['ط§ظ„ط¨ظٹط¹','warehouse-top-sales'],['ط§ظ„ط¥ظ†طھط§ط¬','warehouse-top-production'],['ط§ظ„طھط­ظ…ظٹظ„','warehouse-top-loading'],['ط£ظ‚ظ„ ظ†ط´ط§ط·','warehouse-low-activity'],['ظ…طھظˆط³ط·','warehouse-average-sales'],['ط¬ط¯ظˆظ„','warehouse-performance-table']];const hit=pairs.find(function(pair){return text.indexOf(pair[0])>-1;});return hit?hit[1]:'warehouse-widget';}
-    function whTitle(element){if(!element)return 'ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ†';if(element.id==='warehousesReportKpis')return 'ط¥ط¬ظ…ط§ظ„ظٹط§طھ ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ†';return (element.querySelector('h3,span')?.textContent||element.dataset.warehouseWidgetTitle||'ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ†').replace(/\s+/g,' ').trim();}
+    function whFileSlug(title){const text=String(title||'warehouse-widget');const pairs=[['warehouse-performance','warehouse-performance'],['الإجماليات','warehouse-total-kpis'],['ترتيب','warehouse-ranking'],['مقارنة','warehouse-comparison-chart'],['توزيع','warehouse-loading-distribution'],['البيع','warehouse-top-sales'],['الإنتاج','warehouse-top-production'],['التحميل','warehouse-top-loading'],['أقل نشاط','warehouse-low-activity'],['متوسط','warehouse-average-sales'],['جدول','warehouse-performance-table']];const hit=pairs.find(function(pair){return text.indexOf(pair[0])>-1;});return hit?hit[1]:'warehouse-widget';}
+    function whTitle(element){if(!element)return 'أداء المخازن';if(element.id==='warehousesReportKpis')return 'إجماليات أداء المخازن';return (element.querySelector('h3,span')?.textContent||element.dataset.warehouseWidgetTitle||'أداء المخازن').replace(/\s+/g,' ').trim();}
     function whWidth(element){if(!element)return 900;if(element.id==='warehousesReportKpis')return 940;if(element.classList.contains('warehouse-chart-card-wide'))return 1240;if(element.classList.contains('warehouse-donut-card'))return 980;if(element.classList.contains('warehouse-report-main-card'))return 1500;if(element.classList.contains('warehouse-mini-table-card'))return 760;if(element.closest('#warehousesQuickTiles'))return 620;return 920;}
     function whCleanup(node){if(!node)return;node.querySelectorAll('.warehouse-widget-png-btn,.widget-png-btn,.mobile-kpi-group-png-btn,.mobile-period-png-btn,.mobile-only,.export-btn').forEach(function(el){el.remove();});node.querySelectorAll('[id]').forEach(function(el){el.removeAttribute('id');});node.querySelectorAll('.warehouse-rank-bars,.warehouse-mini-table,.warehouse-report-table-wrap,.rank-table-wrap,.table-wrap').forEach(function(el){el.style.overflow='visible';el.style.maxHeight='none';el.style.height='auto';});node.querySelectorAll('.warehouse-rank-bars').forEach(function(el){el.style.display='flex';el.style.flexDirection='column';});node.querySelectorAll('table').forEach(function(table){table.style.width='100%';table.style.minWidth='0';});}
     async function whWaitImages(root){const images=[].slice.call(root.querySelectorAll('img'));await Promise.all(images.map(function(img){if(img.complete&&img.naturalWidth)return Promise.resolve();return new Promise(function(resolve){img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true});});}));}
     function whBox(title,width){const box=document.createElement('section');box.className='warehouse-performance-export-box';box.dir='rtl';box.lang='ar';box.setAttribute('aria-hidden','true');box.style.cssText=['position:fixed','top:0','left:-10000px','z-index:0','width:'+width+'px','min-height:420px','padding:28px','box-sizing:border-box','background:radial-gradient(circle at 50% 0%,rgba(94,180,71,.16),transparent 36%),linear-gradient(180deg,#00291f,#001611)','color:#fff','direction:rtl','font-family:Cairo,Arial,sans-serif','overflow:visible','pointer-events:none'].join(';');const header=document.createElement('header');header.className='warehouse-performance-export-header';header.innerHTML='<h2>'+escapeHtml(title)+'</h2><p>'+escapeHtml(currentReportExportPeriodText())+'</p>';box.appendChild(header);return box;}
-    function whCanvasPlaceholder(sourceCanvas){const ph=document.createElement('div');ph.className='warehouse-export-chart-placeholder';const parent=sourceCanvas?.parentElement;const title=parent?.querySelector('h3')?.textContent||sourceCanvas?.getAttribute('aria-label')||sourceCanvas?.id||'ط§ظ„ط±ط³ظ… ط§ظ„ط¨ظٹط§ظ†ظٹ';ph.textContent=title;ph.style.cssText='min-height:220px;width:100%;display:grid;place-items:center;border:1px dashed rgba(141,220,89,.35);border-radius:16px;color:#d4ebd5;background:rgba(0,35,28,.55);font-weight:800;text-align:center;padding:18px;box-sizing:border-box;';return ph;}function whPrepareCloneCanvases(sourceRoot,cloneRoot){const sourceCanvases=[].slice.call(sourceRoot.querySelectorAll('canvas'));const cloneCanvases=[].slice.call(cloneRoot.querySelectorAll('canvas'));sourceCanvases.forEach(function(sourceCanvas,idx){const cloneCanvas=cloneCanvases[idx];if(!cloneCanvas)return;const rect=sourceCanvas.getBoundingClientRect();const valid=sourceCanvas.width>0&&sourceCanvas.height>0&&rect.width>0&&rect.height>0;const wrapper=cloneCanvas.parentElement;if(wrapper){wrapper.style.width='100%';wrapper.style.minHeight=Math.max(260,Math.ceil(rect.height||sourceCanvas.height||320))+'px';wrapper.style.display='block';wrapper.style.overflow='visible';}if(!valid){cloneCanvas.replaceWith(whCanvasPlaceholder(sourceCanvas));return;}try{const img=new Image();img.src=sourceCanvas.toDataURL('image/png',1);img.alt=sourceCanvas.getAttribute('aria-label')||sourceCanvas.id||'chart';img.width=Math.ceil(rect.width);img.height=Math.ceil(rect.height);img.style.cssText='display:block;max-width:100%;height:auto;object-fit:contain;margin:0 auto;';cloneCanvas.replaceWith(img);}catch(_){cloneCanvas.replaceWith(whCanvasPlaceholder(sourceCanvas));}});}function whRemoveInvalidCanvases(root){const invalid=[].slice.call(root.querySelectorAll('canvas')).filter(function(c){const rect=c.getBoundingClientRect();return c.width<=0||c.height<=0||rect.width<=0||rect.height<=0;});invalid.forEach(function(c){c.replaceWith(whCanvasPlaceholder(c));});return invalid.length;}function whInvalidBackgroundElements(root){return [].slice.call(root.querySelectorAll('*')).filter(function(el){const style=getComputedStyle(el);const rect=el.getBoundingClientRect();return style.backgroundImage!=='none'&&(rect.width<=0||el.clientWidth<=0||el.offsetWidth<=0);});}function whSanitizeInvalidBackgrounds(root){const before=whInvalidBackgroundElements(root);before.forEach(function(el){el.style.backgroundImage='none';el.style.backgroundRepeat='no-repeat';});const after=whInvalidBackgroundElements(root);root.dataset.invalidBackgroundElementsBeforeCapture=String(before.length);root.dataset.invalidBackgroundElementsAfterCapture=String(after.length);return {before:before.length,after:after.length};}function whExportSelector(el){if(!el)return '';if(el===document.body)return 'body';if(el.id)return '#'+el.id;const parts=[];let node=el;while(node&&node.nodeType===1&&node!==document.body&&parts.length<7){let part=node.tagName.toLowerCase();if(node.id){part+='#'+node.id;parts.unshift(part);break;}const classes=String(node.className||'').trim().split(/\s+/).filter(Boolean).slice(0,3);if(classes.length)part+='.'+classes.join('.');const parent=node.parentElement;if(parent){const same=[].slice.call(parent.children).filter(function(child){return child.tagName===node.tagName;});if(same.length>1)part+=':nth-of-type('+(same.indexOf(node)+1)+')';}parts.unshift(part);node=parent;}return parts.join(' > ');}function whIsPaintColor(color){return !!color&&color!=='transparent'&&color!=='rgba(0, 0, 0, 0)';}function whStyleHasPaintSource(style){if(!style)return false;const bgRepeat=String(style.backgroundRepeat||'');return style.backgroundImage!=='none'||style.borderImageSource!=='none'||style.maskImage!=='none'||style.webkitMaskImage!=='none'||style.filter!=='none'||(whIsPaintColor(style.backgroundColor)&&bgRepeat&&bgRepeat!=='no-repeat');}function whPseudoHasPaint(style){return !!style&&(style.content!=='none'||style.backgroundImage!=='none'||style.borderImageSource!=='none'||style.maskImage!=='none'||style.webkitMaskImage!=='none');}function whZeroSizeElement(el){const rect=el.getBoundingClientRect();return rect.width<=0||rect.height<=0;}function whEnsureExportPseudoStyle(root){if(root.querySelector(':scope > style[data-warehouse-export-pseudo-guard]'))return;const style=document.createElement('style');style.setAttribute('data-warehouse-export-pseudo-guard','true');style.textContent='.warehouse-performance-export-node .warehouse-export-disable-before::before{content:none!important;background:none!important;background-image:none!important;border-image:none!important;mask:none!important;-webkit-mask:none!important}.warehouse-performance-export-node .warehouse-export-disable-after::after{content:none!important;background:none!important;background-image:none!important;border-image:none!important;mask:none!important;-webkit-mask:none!important}';root.prepend(style);}function whSanitizeZeroSizePaintSources(root){whEnsureExportPseudoStyle(root);const elements=[root].concat([].slice.call(root.querySelectorAll('*')));let firstSelector='';function scan(){const invalid=[];const pseudo=[];elements.forEach(function(el){if(!(el instanceof HTMLElement||el instanceof SVGElement))return;const zero=whZeroSizeElement(el);const style=getComputedStyle(el);if(zero&&whStyleHasPaintSource(style)){invalid.push(el);}['::before','::after'].forEach(function(type){const ps=getComputedStyle(el,type);if(zero&&whPseudoHasPaint(ps)){pseudo.push({el,type});}});});return {invalid,pseudo};}const before=scan();before.invalid.forEach(function(el){if(!firstSelector)firstSelector=whExportSelector(el);el.style.setProperty('background-image','none','important');el.style.setProperty('background-repeat','no-repeat','important');el.style.setProperty('border-image-source','none','important');el.style.setProperty('mask-image','none','important');el.style.setProperty('-webkit-mask-image','none','important');if(el instanceof SVGElement)el.style.setProperty('filter','none','important');});before.pseudo.forEach(function(item){if(!firstSelector)firstSelector=whExportSelector(item.el)+(item.type||'');item.el.classList.add(item.type==='::before'?'warehouse-export-disable-before':'warehouse-export-disable-after');});const after=scan();root.dataset.zeroSizePaintSourcesBefore=String(before.invalid.length);root.dataset.zeroSizePaintSourcesAfter=String(after.invalid.length);root.dataset.zeroSizePseudoBefore=String(before.pseudo.length);root.dataset.zeroSizePseudoAfter=String(after.pseudo.length);root.dataset.firstZeroSizePaintSelector=firstSelector;return {before:before.invalid.length,after:after.invalid.length,pseudoBefore:before.pseudo.length,pseudoAfter:after.pseudo.length,firstSelector};}function whClone(source){const clone=source.cloneNode(true);whPrepareCloneCanvases(source,clone);whCleanup(clone);clone.classList.add('warehouse-performance-export-node');clone.style.display='block';clone.style.width='100%';clone.style.maxWidth='100%';clone.style.overflow='visible';return clone;}
+    function whCanvasPlaceholder(sourceCanvas){const ph=document.createElement('div');ph.className='warehouse-export-chart-placeholder';const parent=sourceCanvas?.parentElement;const title=parent?.querySelector('h3')?.textContent||sourceCanvas?.getAttribute('aria-label')||sourceCanvas?.id||'الرسم البياني';ph.textContent=title;ph.style.cssText='min-height:220px;width:100%;display:grid;place-items:center;border:1px dashed rgba(141,220,89,.35);border-radius:16px;color:#d4ebd5;background:rgba(0,35,28,.55);font-weight:800;text-align:center;padding:18px;box-sizing:border-box;';return ph;}function whPrepareCloneCanvases(sourceRoot,cloneRoot){const sourceCanvases=[].slice.call(sourceRoot.querySelectorAll('canvas'));const cloneCanvases=[].slice.call(cloneRoot.querySelectorAll('canvas'));sourceCanvases.forEach(function(sourceCanvas,idx){const cloneCanvas=cloneCanvases[idx];if(!cloneCanvas)return;const rect=sourceCanvas.getBoundingClientRect();const valid=sourceCanvas.width>0&&sourceCanvas.height>0&&rect.width>0&&rect.height>0;const wrapper=cloneCanvas.parentElement;if(wrapper){wrapper.style.width='100%';wrapper.style.minHeight=Math.max(260,Math.ceil(rect.height||sourceCanvas.height||320))+'px';wrapper.style.display='block';wrapper.style.overflow='visible';}if(!valid){cloneCanvas.replaceWith(whCanvasPlaceholder(sourceCanvas));return;}try{const img=new Image();img.src=sourceCanvas.toDataURL('image/png',1);img.alt=sourceCanvas.getAttribute('aria-label')||sourceCanvas.id||'chart';img.width=Math.ceil(rect.width);img.height=Math.ceil(rect.height);img.style.cssText='display:block;max-width:100%;height:auto;object-fit:contain;margin:0 auto;';cloneCanvas.replaceWith(img);}catch(_){cloneCanvas.replaceWith(whCanvasPlaceholder(sourceCanvas));}});}function whRemoveInvalidCanvases(root){const invalid=[].slice.call(root.querySelectorAll('canvas')).filter(function(c){const rect=c.getBoundingClientRect();return c.width<=0||c.height<=0||rect.width<=0||rect.height<=0;});invalid.forEach(function(c){c.replaceWith(whCanvasPlaceholder(c));});return invalid.length;}function whInvalidBackgroundElements(root){return [].slice.call(root.querySelectorAll('*')).filter(function(el){const style=getComputedStyle(el);const rect=el.getBoundingClientRect();return style.backgroundImage!=='none'&&(rect.width<=0||el.clientWidth<=0||el.offsetWidth<=0);});}function whSanitizeInvalidBackgrounds(root){const before=whInvalidBackgroundElements(root);before.forEach(function(el){el.style.backgroundImage='none';el.style.backgroundRepeat='no-repeat';});const after=whInvalidBackgroundElements(root);root.dataset.invalidBackgroundElementsBeforeCapture=String(before.length);root.dataset.invalidBackgroundElementsAfterCapture=String(after.length);return {before:before.length,after:after.length};}function whExportSelector(el){if(!el)return '';if(el===document.body)return 'body';if(el.id)return '#'+el.id;const parts=[];let node=el;while(node&&node.nodeType===1&&node!==document.body&&parts.length<7){let part=node.tagName.toLowerCase();if(node.id){part+='#'+node.id;parts.unshift(part);break;}const classes=String(node.className||'').trim().split(/\s+/).filter(Boolean).slice(0,3);if(classes.length)part+='.'+classes.join('.');const parent=node.parentElement;if(parent){const same=[].slice.call(parent.children).filter(function(child){return child.tagName===node.tagName;});if(same.length>1)part+=':nth-of-type('+(same.indexOf(node)+1)+')';}parts.unshift(part);node=parent;}return parts.join(' > ');}function whIsPaintColor(color){return !!color&&color!=='transparent'&&color!=='rgba(0, 0, 0, 0)';}function whStyleHasPaintSource(style){if(!style)return false;const bgRepeat=String(style.backgroundRepeat||'');return style.backgroundImage!=='none'||style.borderImageSource!=='none'||style.maskImage!=='none'||style.webkitMaskImage!=='none'||style.filter!=='none'||(whIsPaintColor(style.backgroundColor)&&bgRepeat&&bgRepeat!=='no-repeat');}function whPseudoHasPaint(style){return !!style&&(style.content!=='none'||style.backgroundImage!=='none'||style.borderImageSource!=='none'||style.maskImage!=='none'||style.webkitMaskImage!=='none');}function whZeroSizeElement(el){const rect=el.getBoundingClientRect();return rect.width<=0||rect.height<=0;}function whEnsureExportPseudoStyle(root){if(root.querySelector(':scope > style[data-warehouse-export-pseudo-guard]'))return;const style=document.createElement('style');style.setAttribute('data-warehouse-export-pseudo-guard','true');style.textContent='.warehouse-performance-export-node .warehouse-export-disable-before::before{content:none!important;background:none!important;background-image:none!important;border-image:none!important;mask:none!important;-webkit-mask:none!important}.warehouse-performance-export-node .warehouse-export-disable-after::after{content:none!important;background:none!important;background-image:none!important;border-image:none!important;mask:none!important;-webkit-mask:none!important}';root.prepend(style);}function whSanitizeZeroSizePaintSources(root){whEnsureExportPseudoStyle(root);const elements=[root].concat([].slice.call(root.querySelectorAll('*')));let firstSelector='';function scan(){const invalid=[];const pseudo=[];elements.forEach(function(el){if(!(el instanceof HTMLElement||el instanceof SVGElement))return;const zero=whZeroSizeElement(el);const style=getComputedStyle(el);if(zero&&whStyleHasPaintSource(style)){invalid.push(el);}['::before','::after'].forEach(function(type){const ps=getComputedStyle(el,type);if(zero&&whPseudoHasPaint(ps)){pseudo.push({el,type});}});});return {invalid,pseudo};}const before=scan();before.invalid.forEach(function(el){if(!firstSelector)firstSelector=whExportSelector(el);el.style.setProperty('background-image','none','important');el.style.setProperty('background-repeat','no-repeat','important');el.style.setProperty('border-image-source','none','important');el.style.setProperty('mask-image','none','important');el.style.setProperty('-webkit-mask-image','none','important');if(el instanceof SVGElement)el.style.setProperty('filter','none','important');});before.pseudo.forEach(function(item){if(!firstSelector)firstSelector=whExportSelector(item.el)+(item.type||'');item.el.classList.add(item.type==='::before'?'warehouse-export-disable-before':'warehouse-export-disable-after');});const after=scan();root.dataset.zeroSizePaintSourcesBefore=String(before.invalid.length);root.dataset.zeroSizePaintSourcesAfter=String(after.invalid.length);root.dataset.zeroSizePseudoBefore=String(before.pseudo.length);root.dataset.zeroSizePseudoAfter=String(after.pseudo.length);root.dataset.firstZeroSizePaintSelector=firstSelector;return {before:before.invalid.length,after:after.invalid.length,pseudoBefore:before.pseudo.length,pseudoAfter:after.pseudo.length,firstSelector};}function whClone(source){const clone=source.cloneNode(true);whPrepareCloneCanvases(source,clone);whCleanup(clone);clone.classList.add('warehouse-performance-export-node');clone.style.display='block';clone.style.width='100%';clone.style.maxWidth='100%';clone.style.overflow='visible';return clone;}
     function whScale(width,height){const maxSide=30000;const maxArea=90000000;const sideScale=Math.min(maxSide/Math.max(width,height,1),2);const areaScale=Math.sqrt(maxArea/Math.max(width*height,1));return Math.max(1,Math.min(2,sideScale,areaScale));}
     async function whCapture(box){const Html2Canvas=window.html2canvas;if(!Html2Canvas)throw new Error('html2canvas is not loaded');document.body.appendChild(box);if(document.fonts&&document.fonts.ready)await document.fonts.ready;await new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(resolve);});});await whWaitImages(box);const invalidCanvasesBeforeCapture=whRemoveInvalidCanvases(box);box.dataset.invalidCanvasesBeforeCapture=String(invalidCanvasesBeforeCapture);const invalidBackgrounds=whSanitizeInvalidBackgrounds(box);box.dataset.invalidBackgroundElementsBeforeCapture=String(invalidBackgrounds.before);box.dataset.invalidBackgroundElementsAfterCapture=String(invalidBackgrounds.after);whSanitizeZeroSizePaintSources(box);await new Promise(function(resolve){requestAnimationFrame(resolve);});await new Promise(function(resolve){requestAnimationFrame(resolve);});const rect=box.getBoundingClientRect();const width=Math.ceil(box.scrollWidth);const height=Math.ceil(box.scrollHeight);if(!rect.width||!rect.height||!width||!height)throw new Error('Invalid warehouse export dimensions: '+width+'x'+height);return Html2Canvas(box,{scale:whScale(width,height),useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width:width,height:height,windowWidth:width,windowHeight:height});}
-    async function whSavePng(canvas,title){return new Promise(function(resolve){canvas.toBlob(async function(blob){if(!blob){alert('طھط¹ط°ط± ط¥ظ†ط´ط§ط، طµظˆط±ط© PNG.');resolve(false);return;}await saveBlobWithPicker(blob,whFileSlug(title)+'-'+whDateToken()+'.png','image/png');resolve(true);},'image/png',1);});}
-    async function exportWarehousePerformanceWidgetPng(element,title){if(!element)return;const box=whBox(title||whTitle(element),whWidth(element));box.appendChild(whClone(element));try{const canvas=await whCapture(box);await whSavePng(canvas,title||whTitle(element));}catch(err){console.error('Warehouse widget PNG export failed',err);alert('طھط¹ط°ط± طھطµط¯ظٹط± ظ‡ط°ط§ ط§ظ„ط¨ظˆظƒط³. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');}finally{try{box.remove();}catch(_){}}}
-    function whTargets(){const content=document.querySelector('#warehousesReportContent');if(!content)return [];const targets=[];const kpis=document.querySelector('#warehousesReportKpis');if(kpis)targets.push({element:kpis,title:'ط¥ط¬ظ…ط§ظ„ظٹط§طھ ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ†'});const ranking=content.querySelector('.warehouse-ranking-card');if(ranking)targets.push({element:ranking,title:'طھط±طھظٹط¨ ط§ظ„ظ…ط®ط§ط²ظ† ط­ط³ط¨ ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„'});content.querySelectorAll('#warehousesQuickTiles article').forEach(function(card){targets.push({element:card,title:whTitle(card)});});const chart=content.querySelector('.warehouse-chart-card-wide');if(chart)targets.push({element:chart,title:'ظ…ظ‚ط§ط±ظ†ط© ظ…ط®ط§ط²ظ† ط§ظ„ظ…ظ†طھط¬ ط§ظ„طھط§ظ…'});const donut=content.querySelector('.warehouse-donut-card');if(donut)targets.push({element:donut,title:'طھظˆط²ظٹط¹ ط¥ط¬ظ…ط§ظ„ظٹ ط§ظ„طھط­ظ…ظٹظ„ ط¹ظ„ظ‰ ط§ظ„ظ…ط®ط§ط²ظ†'});content.querySelectorAll('.warehouse-mini-table-card').forEach(function(card){targets.push({element:card,title:whTitle(card)});});const table=content.querySelector('.warehouse-report-main-card');if(table)targets.push({element:table,title:'ط¬ط¯ظˆظ„ ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ† ط§ظ„ظ…ط¬ظ…ط¹'});return targets;}
-    function ensureWarehousePerformancePngButtons(){whTargets().forEach(function(item){const element=item.element;const title=item.title;if(!element||element.querySelector(':scope > .warehouse-widget-png-btn'))return;element.classList.add('warehouse-widget-png-scope');element.dataset.warehouseWidgetTitle=title;const btn=document.createElement('button');btn.type='button';btn.className='warehouse-widget-png-btn';btn.title='طھطµط¯ظٹط± ظ‡ط°ط§ ط§ظ„ط¨ظˆظƒط³ ظƒطµظˆط±ط© PNG';btn.setAttribute('aria-label','طھطµط¯ظٹط± '+title+' ظƒطµظˆط±ط© PNG');btn.innerHTML='<span>PNG</span>'+whPngIcon();btn.addEventListener('click',function(event){event.preventDefault();event.stopPropagation();exportWarehousePerformanceWidgetPng(element,title);});element.prepend(btn);});}
-    async function exportWarehousePerformanceReportPng(){const source=document.querySelector('#warehousesReportContent');if(!source){alert('ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ طھظ‚ط±ظٹط± ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ†.');return;}const box=whBox('طھظ‚ط±ظٹط± ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ†',1800);const clone=whClone(source);clone.querySelector('.executive-title-card')?.remove();clone.querySelector('.hidden-export-table')?.remove();clone.classList.add('warehouse-performance-full-export');box.appendChild(clone);try{const canvas=await whCapture(box);await whSavePng(canvas,'warehouse-performance');}catch(err){console.error('Warehouse performance PNG export failed',err);alert('طھط¹ط°ط± طھط¬ظ‡ظٹط² ط§ظ„طھظ‚ط±ظٹط± ظ„ظ„طھطµط¯ظٹط±. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');}finally{try{box.remove();}catch(_){}}}
-    async function exportWarehousePerformanceReportPdf(){const source=document.querySelector('#warehousesReportContent');if(!source){alert('ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ طھظ‚ط±ظٹط± ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ†.');return;}const JsPDF=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;if(!JsPDF){alert('ظ…ظƒطھط¨ط© PDF ط؛ظٹط± ظ…ط­ظ…ظ„ط©. طھط£ظƒط¯ ظ…ظ† ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط¥ظ†طھط±ظ†طھ ط«ظ… ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');return;}const box=whBox('طھظ‚ط±ظٹط± ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ†',1800);const clone=whClone(source);clone.querySelector('.executive-title-card')?.remove();clone.querySelector('.hidden-export-table')?.remove();clone.classList.add('warehouse-performance-full-export');box.appendChild(clone);try{const canvas=await whCapture(box);const pdf=new JsPDF({orientation:'landscape',unit:'mm',format:'a3',compress:true});const pageWidth=pdf.internal.pageSize.getWidth();const pageHeight=pdf.internal.pageSize.getHeight();const margin=8;const imgWidth=pageWidth-(margin*2);const imgHeight=(canvas.height*imgWidth)/canvas.width;const pageContentHeight=pageHeight-(margin*2);const imgData=canvas.toDataURL('image/jpeg',0.92);let offset=0;let page=0;while(offset<imgHeight){if(page>0)pdf.addPage('a3','landscape');pdf.addImage(imgData,'JPEG',margin,margin-offset,imgWidth,imgHeight,undefined,'FAST');offset+=pageContentHeight;page+=1;}const blob=pdf.output('blob');await saveBlobWithPicker(blob,'warehouse-performance-'+whDateToken()+'.pdf','application/pdf');await logSystemActivity(activityExportSection('طھظ‚ط±ظٹط± ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ†'),'طھطµط¯ظٹط± PDF','طھطµط¯ظٹط± طھظ‚ط±ظٹط± ط£ط¯ط§ط، ط§ظ„ظ…ط®ط§ط²ظ† PDF');}catch(err){console.error('Warehouse performance PDF export failed',err);alert('طھط¹ط°ط± طھطµط¯ظٹط± PDF. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');}finally{try{box.remove();}catch(_){}}}
+    async function whSavePng(canvas,title){return new Promise(function(resolve){canvas.toBlob(async function(blob){if(!blob){alert('تعذر إنشاء صورة PNG.');resolve(false);return;}await saveBlobWithPicker(blob,whFileSlug(title)+'-'+whDateToken()+'.png','image/png');resolve(true);},'image/png',1);});}
+    async function exportWarehousePerformanceWidgetPng(element,title){if(!element)return;const box=whBox(title||whTitle(element),whWidth(element));box.appendChild(whClone(element));try{const canvas=await whCapture(box);await whSavePng(canvas,title||whTitle(element));}catch(err){console.error('Warehouse widget PNG export failed',err);alert('تعذر تصدير هذا البوكس. حاول مرة أخرى.');}finally{try{box.remove();}catch(_){}}}
+    function whTargets(){const content=document.querySelector('#warehousesReportContent');if(!content)return [];const targets=[];const kpis=document.querySelector('#warehousesReportKpis');if(kpis)targets.push({element:kpis,title:'إجماليات أداء المخازن'});const ranking=content.querySelector('.warehouse-ranking-card');if(ranking)targets.push({element:ranking,title:'ترتيب المخازن حسب إجمالي التحميل'});content.querySelectorAll('#warehousesQuickTiles article').forEach(function(card){targets.push({element:card,title:whTitle(card)});});const chart=content.querySelector('.warehouse-chart-card-wide');if(chart)targets.push({element:chart,title:'مقارنة مخازن المنتج التام'});const donut=content.querySelector('.warehouse-donut-card');if(donut)targets.push({element:donut,title:'توزيع إجمالي التحميل على المخازن'});content.querySelectorAll('.warehouse-mini-table-card').forEach(function(card){targets.push({element:card,title:whTitle(card)});});const table=content.querySelector('.warehouse-report-main-card');if(table)targets.push({element:table,title:'جدول أداء المخازن المجمع'});return targets;}
+    function ensureWarehousePerformancePngButtons(){whTargets().forEach(function(item){const element=item.element;const title=item.title;if(!element||element.querySelector(':scope > .warehouse-widget-png-btn'))return;element.classList.add('warehouse-widget-png-scope');element.dataset.warehouseWidgetTitle=title;const btn=document.createElement('button');btn.type='button';btn.className='warehouse-widget-png-btn';btn.title='تصدير هذا البوكس كصورة PNG';btn.setAttribute('aria-label','تصدير '+title+' كصورة PNG');btn.innerHTML='<span>PNG</span>'+whPngIcon();btn.addEventListener('click',function(event){event.preventDefault();event.stopPropagation();exportWarehousePerformanceWidgetPng(element,title);});element.prepend(btn);});}
+    async function exportWarehousePerformanceReportPng(){const source=document.querySelector('#warehousesReportContent');if(!source){alert('لم يتم العثور على تقرير أداء المخازن.');return;}const box=whBox('تقرير أداء المخازن',1800);const clone=whClone(source);clone.querySelector('.executive-title-card')?.remove();clone.querySelector('.hidden-export-table')?.remove();clone.classList.add('warehouse-performance-full-export');box.appendChild(clone);try{const canvas=await whCapture(box);await whSavePng(canvas,'warehouse-performance');}catch(err){console.error('Warehouse performance PNG export failed',err);alert('تعذر تجهيز التقرير للتصدير. حاول مرة أخرى.');}finally{try{box.remove();}catch(_){}}}
+    async function exportWarehousePerformanceReportPdf(){const source=document.querySelector('#warehousesReportContent');if(!source){alert('لم يتم العثور على تقرير أداء المخازن.');return;}const JsPDF=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;if(!JsPDF){alert('مكتبة PDF غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.');return;}const box=whBox('تقرير أداء المخازن',1800);const clone=whClone(source);clone.querySelector('.executive-title-card')?.remove();clone.querySelector('.hidden-export-table')?.remove();clone.classList.add('warehouse-performance-full-export');box.appendChild(clone);try{const canvas=await whCapture(box);const pdf=new JsPDF({orientation:'landscape',unit:'mm',format:'a3',compress:true});const pageWidth=pdf.internal.pageSize.getWidth();const pageHeight=pdf.internal.pageSize.getHeight();const margin=8;const imgWidth=pageWidth-(margin*2);const imgHeight=(canvas.height*imgWidth)/canvas.width;const pageContentHeight=pageHeight-(margin*2);const imgData=canvas.toDataURL('image/jpeg',0.92);let offset=0;let page=0;while(offset<imgHeight){if(page>0)pdf.addPage('a3','landscape');pdf.addImage(imgData,'JPEG',margin,margin-offset,imgWidth,imgHeight,undefined,'FAST');offset+=pageContentHeight;page+=1;}const blob=pdf.output('blob');await saveBlobWithPicker(blob,'warehouse-performance-'+whDateToken()+'.pdf','application/pdf');await logSystemActivity(activityExportSection('تقرير أداء المخازن'),'تصدير PDF','تصدير تقرير أداء المخازن PDF');}catch(err){console.error('Warehouse performance PDF export failed',err);alert('تعذر تصدير PDF. حاول مرة أخرى.');}finally{try{box.remove();}catch(_){}}}
 function styleSalesTotalsExportCard(card){
   card.classList.add('sales-totals-png-main-card');
   card.style.cssText=[
@@ -9032,9 +9032,9 @@ function styleSalesTotalsExportCard(card){
 async function exportSalesTotalsReportPng(){
   const source=$('#salesTotalsRows');
   const cards=[...(source?.querySelectorAll('.sales-totals-row-card')||[])];
-  if(!cards.length){ alert('ظ„ط§ طھظˆط¬ط¯ ظ…ط¬ظ…ظˆط¹ط§طھ ظ„طھطµط¯ظٹط±ظ‡ط§.'); return; }
+  if(!cards.length){ alert('لا توجد مجموعات لتصديرها.'); return; }
   const Html2Canvas=window.html2canvas;
-  if(!Html2Canvas){ alert('ظ…ظƒطھط¨ط© طھطµط¯ظٹط± ط§ظ„طµظˆط± ط؛ظٹط± ظ…ط­ظ…ظ„ط©. طھط£ظƒط¯ ظ…ظ† ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط¥ظ†طھط±ظ†طھ ط«ظ… ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.'); return; }
+  if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
   const exportBox=document.createElement('section');
   exportBox.className='sales-totals-png-export-box';
   exportBox.dir='rtl';
@@ -9047,7 +9047,7 @@ async function exportSalesTotalsReportPng(){
   ].join(';');
   const header=document.createElement('header');
   header.style.cssText='display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid rgba(141,220,89,.28);';
-  header.innerHTML=`<h2 style="margin:0;color:#fff;font-size:32px;line-height:1.25;font-weight:900;">ظ…ظ„ط®طµ ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظ…ط®ط§ط²ظ†</h2><p style="margin:0;color:#bdf2a0;font-size:17px;line-height:1.4;font-weight:800;">${escapeHtml(currentReportExportPeriodText())}</p>`;
+  header.innerHTML=`<h2 style="margin:0;color:#fff;font-size:32px;line-height:1.25;font-weight:900;">ملخص مبيعات المخازن</h2><p style="margin:0;color:#bdf2a0;font-size:17px;line-height:1.4;font-weight:800;">${escapeHtml(currentReportExportPeriodText())}</p>`;
   const grid=document.createElement('div');
   grid.className='sales-totals-png-export-grid';
   grid.style.cssText='display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;width:100%;align-items:stretch;';
@@ -9067,12 +9067,12 @@ async function exportSalesTotalsReportPng(){
     if(!rect.width || !rect.height || !width || !height) throw new Error('Invalid sales totals export dimensions');
     const canvas=await Html2Canvas(exportBox,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
     canvas.toBlob(async blob=>{
-      if(!blob){ alert('طھط¹ط°ط± ط¥ظ†ط´ط§ط، طµظˆط±ط© PNG.'); return; }
-      await saveBlobWithPicker(blob,`${safeFileName('ظ…ظ„ط®طµ ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظ…ط®ط§ط²ظ†')}.png`,'image/png');
+      if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
+      await saveBlobWithPicker(blob,`${safeFileName('ملخص مبيعات المخازن')}.png`,'image/png');
     },'image/png',1);
   }catch(err){
     console.error(err);
-    alert('طھط¹ط°ط± طھطµط¯ظٹط± ظ…ظ„ط®طµ ظ…ط¨ظٹط¹ط§طھ ط§ظ„ظ…ط®ط§ط²ظ†. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+    alert('تعذر تصدير ملخص مبيعات المخازن. حاول مرة أخرى.');
   }finally{
     try{ exportBox.remove(); }catch(_){}
   }
@@ -9086,14 +9086,14 @@ function itemsReportPngDateRange(){
 function itemsReportPngFilterLine(){
   const filters=getReportFilters();
   const range=itemsReportPngDateRange();
-  const parts=[`ط§ظ„ظپطھط±ط©: ظ…ظ† ${range.from || 'ط§ظ„ط¨ط¯ط§ظٹط©'} ط¥ظ„ظ‰ ${range.to || 'ط§ظ„ظ†ظ‡ط§ظٹط©'}`];
+  const parts=[`الفترة: من ${range.from || 'البداية'} إلى ${range.to || 'النهاية'}`];
   const plantSelect=$('#reportPlantFilter');
   const warehouseSelect=$('#reportWarehouseFilter');
   if(!enterpriseFilterIsAll(filters.plant)){
-    parts.push(`ط§ظ„ظ…طµظ†ط¹: ${enterpriseFilterText(filters.plant,plantSelect,'ط¬ظ…ظٹط¹ ط§ظ„ظ…طµط§ظ†ط¹')}`);
+    parts.push(`المصنع: ${enterpriseFilterText(filters.plant,plantSelect,'جميع المصانع')}`);
   }
   if(!enterpriseFilterIsAll(filters.warehouse)){
-    parts.push(`ط§ظ„ظ…ط®ط²ظ†: ${enterpriseFilterText(filters.warehouse,warehouseSelect,'ط¬ظ…ظٹط¹ ظ…ط®ط§ط²ظ† ط§ظ„ط¨ظٹط¹')}`);
+    parts.push(`المخزن: ${enterpriseFilterText(filters.warehouse,warehouseSelect,'جميع مخازن البيع')}`);
   }
   return parts.join(' / ');
 }
@@ -9105,7 +9105,7 @@ function setItemsReportPngBusy(button,busy,label){
   if(!button) return;
   if(!button.dataset.defaultText) button.dataset.defaultText=button.textContent.trim();
   button.disabled=!!busy;
-  button.textContent=busy ? (label || 'ط¬ط§ط±ظٹ ط¥ظ†ط´ط§ط، PNG...') : button.dataset.defaultText;
+  button.textContent=busy ? (label || 'جاري إنشاء PNG...') : button.dataset.defaultText;
 }
 function normalizeItemsReportPngClone(root){
   if(!root) return;
@@ -9149,7 +9149,7 @@ function itemsReportPngHeader(title){
 }
 async function captureItemsReportPngBox(box,fileName){
   const Html2Canvas=window.html2canvas;
-  if(!Html2Canvas){ alert('ظ…ظƒطھط¨ط© طھطµط¯ظٹط± ط§ظ„طµظˆط± ط؛ظٹط± ظ…ط­ظ…ظ„ط©. طھط£ظƒط¯ ظ…ظ† ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط¥ظ†طھط±ظ†طھ ط«ظ… ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.'); return false; }
+  if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return false; }
   document.body.appendChild(box);
   try{
     if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
@@ -9161,7 +9161,7 @@ async function captureItemsReportPngBox(box,fileName){
     const canvas=await Html2Canvas(box,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
     return await new Promise(resolve=>{
       canvas.toBlob(async blob=>{
-        if(!blob){ alert('طھط¹ط°ط± ط¥ظ†ط´ط§ط، طµظˆط±ط© PNG.'); resolve(false); return; }
+        if(!blob){ alert('تعذر إنشاء صورة PNG.'); resolve(false); return; }
         await saveBlobWithPicker(blob,fileName,'image/png');
         resolve(true);
       },'image/png',1);
@@ -9284,20 +9284,20 @@ async function exportItemsReportSummaryPng(button){
   const source=$('#itemsReportContent');
   const kpis=$('#itemsReportKpis');
   const topGrid=source?.querySelector('.item-report-top-grid');
-  if(!source || !kpis || !topGrid){ alert('ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ…ظ„ط®طµ طھظ‚ط±ظٹط± ط§ظ„ط£طµظ†ط§ظپ.'); return; }
-  setItemsReportPngBusy(button,true,'ط¬ط§ط±ظٹ طھطµط¯ظٹط± ط§ظ„ظ…ظ„ط®طµ...');
+  if(!source || !kpis || !topGrid){ alert('لم يتم العثور على ملخص تقرير الأصناف.'); return; }
+  setItemsReportPngBusy(button,true,'جاري تصدير الملخص...');
   const box=createItemsReportPngBox('items-report-summary-png-export items-summary-export-clone',1800);
   try{
     const kpiClone=kpis.cloneNode(true);
     const topClone=topGrid.cloneNode(true);
     normalizeItemsReportPngClone(kpiClone);
     normalizeItemsReportPngClone(topClone);
-    box.append(itemsReportPngHeader('طھظ‚ط±ظٹط± ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط£طµظ†ط§ظپ'),kpiClone,topClone);
+    box.append(itemsReportPngHeader('تقرير مراجعة الأصناف'),kpiClone,topClone);
     const ok=await captureItemsReportPngBox(box,itemsReportPngFileName('items-report-summary'));
-    if(ok) await logSystemActivity(activityExportSection('طھظ‚ط±ظٹط± ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط£طµظ†ط§ظپ'),'طھطµط¯ظٹط± PNG','طھطµط¯ظٹط± ظ…ظ„ط®طµ طھظ‚ط±ظٹط± ط§ظ„ط£طµظ†ط§ظپ PNG');
+    if(ok) await logSystemActivity(activityExportSection('تقرير مراجعة الأصناف'),'تصدير PNG','تصدير ملخص تقرير الأصناف PNG');
   }catch(err){
     console.error('Items summary PNG export failed',err);
-    alert('طھط¹ط°ط± طھطµط¯ظٹط± ظ…ظ„ط®طµ طھظ‚ط±ظٹط± ط§ظ„ط£طµظ†ط§ظپ PNG. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+    alert('تعذر تصدير ملخص تقرير الأصناف PNG. حاول مرة أخرى.');
     try{ box.remove(); }catch(_){ }
   }finally{
     setItemsReportPngBusy(button,false);
@@ -9307,8 +9307,8 @@ async function exportItemsReviewTablePng(button){
   if(button?.disabled) return;
   const source=$('#itemsReportContent .item-report-main-card');
   const table=$('#itemsReportTable');
-  if(!source || !table){ alert('ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط¬ط¯ظˆظ„ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط£طµظ†ط§ظپ.'); return; }
-  setItemsReportPngBusy(button,true,'ط¬ط§ط±ظٹ طھطµط¯ظٹط± ط§ظ„ط¬ط¯ظˆظ„...');
+  if(!source || !table){ alert('لم يتم العثور على جدول مراجعة الأصناف.'); return; }
+  setItemsReportPngBusy(button,true,'جاري تصدير الجدول...');
   const width=Math.max(1600, source.scrollWidth || 0, table.scrollWidth || 0);
   const box=createItemsReportPngBox('items-review-table-png-export',width);
   try{
@@ -9322,10 +9322,10 @@ async function exportItemsReviewTablePng(button){
     if(head) head.insertAdjacentElement('afterend',period);
     box.appendChild(clone);
     const ok=await captureItemsReportPngBox(box,itemsReportPngFileName('items-review-table'));
-    if(ok) await logSystemActivity(activityExportSection('طھظ‚ط±ظٹط± ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط£طµظ†ط§ظپ'),'طھطµط¯ظٹط± PNG','طھطµط¯ظٹط± ط¬ط¯ظˆظ„ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط£طµظ†ط§ظپ ط§ظ„ظ…ط¬ظ…ط¹ PNG');
+    if(ok) await logSystemActivity(activityExportSection('تقرير مراجعة الأصناف'),'تصدير PNG','تصدير جدول مراجعة الأصناف المجمع PNG');
   }catch(err){
     console.error('Items review table PNG export failed',err);
-    alert('طھط¹ط°ط± طھطµط¯ظٹط± ط¬ط¯ظˆظ„ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ط£طµظ†ط§ظپ PNG. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+    alert('تعذر تصدير جدول مراجعة الأصناف PNG. حاول مرة أخرى.');
     try{ box.remove(); }catch(_){ }
   }finally{
     setItemsReportPngBusy(button,false);
@@ -9341,7 +9341,7 @@ async function exportActiveReportPng(){
   if(!rendered) return;
   const {canvas,info}=rendered;
   canvas.toBlob(async blob=>{
-    if(!blob){ alert('طھط¹ط°ط± ط¥ظ†ط´ط§ط، طµظˆط±ط© PNG.'); return; }
+    if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
     await saveBlobWithPicker(blob,`${safeFileName(info.title)}.png`,'image/png');
   },'image/png',1);
 }
@@ -9354,7 +9354,7 @@ async function exportActiveReportVisualPdf(){
   if(!rendered) return;
   const {canvas,info}=rendered;
   const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-  if(!JsPDF){ alert('ظ…ظƒطھط¨ط© PDF ط؛ظٹط± ظ…ط­ظ…ظ„ط©. طھط£ظƒط¯ ظ…ظ† ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط¥ظ†طھط±ظ†طھ ط«ظ… ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.'); return; }
+  if(!JsPDF){ alert('مكتبة PDF غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
   try{
     const orientation=canvas.width>=canvas.height?'landscape':'portrait';
     const pdf=new JsPDF({orientation,unit:'mm',format:'a4',compress:true});
@@ -9376,10 +9376,10 @@ async function exportActiveReportVisualPdf(){
     }
     const blob=pdf.output('blob');
     await saveBlobWithPicker(blob,`${safeFileName(info.title)}.pdf`,'application/pdf');
-    await logSystemActivity(activityExportSection(info.title),'طھطµط¯ظٹط± PDF',`طھطµط¯ظٹط± ${info.title} PDF`);
+    await logSystemActivity(activityExportSection(info.title),'تصدير PDF',`تصدير ${info.title} PDF`);
   }catch(err){
     console.error(err);
-    alert('طھط¹ط°ط± طھطµط¯ظٹط± PDF. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+    alert('تعذر تصدير PDF. حاول مرة أخرى.');
   }
 }
 
@@ -9387,14 +9387,14 @@ async function loadExecutiveReport(options={}){
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
   let rows=[]; try{ rows=await fetchAllSalesAuditRows(filters,{ascending:false}); }catch(error){console.warn('executive report load error',error);return;}
   const stats={salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0}; const daily={}, productMap={}, whMap={}, whSalesMap={}, plantStats={}; getPlantsCatalog().forEach(p=>plantStats[p.code]={sales:0,production:0,outgoing:0,incoming:0,loading:0});
-  rows.forEach(r=>{const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0}; const wh=String(r.warehouse_code||'').toUpperCase(); const meta=dashboardWhMeta(wh); const plant=r.plant_code||meta.plant||'ط؛ظٹط± ظ…ط­ط¯ط¯'; if(!plantStats[plant]) plantStats[plant]={sales:0,production:0,outgoing:0,incoming:0,loading:0}; const sales=toNumber(r.sales_quantity), prod=toNumber(r.production_quantity), out=toNumber(r.outgoing_transfer_quantity), inc=toNumber(r.incoming_transfer_quantity), load=toNumber(r.total_loading_quantity); stats.salesQty+=sales;stats.productionQty+=prod;stats.outgoingTransferQty+=out;stats.incomingTransferQty+=inc;stats.totalLoadingQty+=load; daily[d].sales+=Math.abs(sales);daily[d].production+=Math.abs(prod);daily[d].outgoing+=Math.abs(out);daily[d].incoming+=Math.abs(inc); plantStats[plant].sales+=sales;plantStats[plant].production+=prod;plantStats[plant].outgoing+=out;plantStats[plant].incoming+=inc;plantStats[plant].loading+=load; if(sales) whSalesMap[wh]=(whSalesMap[wh]||0)+Math.abs(sales); const pk=String(r.material_code||r.material_name||'ط؛ظٹط± ظ…ط­ط¯ط¯'); if(!productMap[pk]) productMap[pk]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0}; productMap[pk].sales+=sales;productMap[pk].production+=prod;productMap[pk].outgoing+=out;productMap[pk].incoming+=inc;productMap[pk].loading+=load; if(!whMap[wh]) whMap[wh]={code:wh,name:meta.name||r.warehouse_name||'-',plant:plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0}; whMap[wh].sales+=sales;whMap[wh].production+=prod;whMap[wh].outgoing+=out;whMap[wh].incoming+=inc;whMap[wh].loading+=load;whMap[wh].totalActivity+=Math.abs(sales)+Math.abs(prod)+Math.abs(out)+Math.abs(inc)+Math.abs(load);});
+  rows.forEach(r=>{const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0}; const wh=String(r.warehouse_code||'').toUpperCase(); const meta=dashboardWhMeta(wh); const plant=r.plant_code||meta.plant||'غير محدد'; if(!plantStats[plant]) plantStats[plant]={sales:0,production:0,outgoing:0,incoming:0,loading:0}; const sales=toNumber(r.sales_quantity), prod=toNumber(r.production_quantity), out=toNumber(r.outgoing_transfer_quantity), inc=toNumber(r.incoming_transfer_quantity), load=toNumber(r.total_loading_quantity); stats.salesQty+=sales;stats.productionQty+=prod;stats.outgoingTransferQty+=out;stats.incomingTransferQty+=inc;stats.totalLoadingQty+=load; daily[d].sales+=Math.abs(sales);daily[d].production+=Math.abs(prod);daily[d].outgoing+=Math.abs(out);daily[d].incoming+=Math.abs(inc); plantStats[plant].sales+=sales;plantStats[plant].production+=prod;plantStats[plant].outgoing+=out;plantStats[plant].incoming+=inc;plantStats[plant].loading+=load; if(sales) whSalesMap[wh]=(whSalesMap[wh]||0)+Math.abs(sales); const pk=String(r.material_code||r.material_name||'غير محدد'); if(!productMap[pk]) productMap[pk]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0}; productMap[pk].sales+=sales;productMap[pk].production+=prod;productMap[pk].outgoing+=out;productMap[pk].incoming+=inc;productMap[pk].loading+=load; if(!whMap[wh]) whMap[wh]={code:wh,name:meta.name||r.warehouse_name||'-',plant:plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0}; whMap[wh].sales+=sales;whMap[wh].production+=prod;whMap[wh].outgoing+=out;whMap[wh].incoming+=inc;whMap[wh].loading+=load;whMap[wh].totalActivity+=Math.abs(sales)+Math.abs(prod)+Math.abs(out)+Math.abs(inc)+Math.abs(load);});
   const products=Object.values(productMap).sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales)); const warehouses=Object.values(whMap).sort((a,b)=>b.totalActivity-a.totalActivity);
-  EXECUTIVE_REPORT_STATE={rows,stats,filters}; if($('#executiveReportMeta')) $('#executiveReportMeta').textContent=reportFilterLabel(filters); renderExecutiveKPIs(stats); drawReportLine(daily); drawReportPlantBar(plantStats); drawReportDonut(whSalesMap); renderRankTable('#executiveTopProductsTable',['#','ظƒظˆط¯ ط§ظ„طµظ†ظپ','ط§ط³ظ… ط§ظ„طµظ†ظپ','ط§ظ„ط¨ظٹط¹','ط§ظ„ط¥ظ†طھط§ط¬','ط§ظ„طھط­ظ…ظٹظ„'],products.slice(0,10).map((p,i)=>[i+1,escapeHtml(p.code),escapeHtml(p.name),fmt(p.sales),fmt(p.production),fmt(p.loading)])); renderRankTable('#executiveTopWarehousesTable',['#','ظƒظˆط¯ ط§ظ„ظ…ط®ط²ظ†','ط§ط³ظ… ط§ظ„ظ…ط®ط²ظ†','ط§ظ„ظ…طµظ†ط¹','ط§ظ„ط¨ظٹط¹','ط§ظ„طھط­ظ…ظٹظ„'],warehouses.slice(0,10).map((w,i)=>[i+1,escapeHtml(w.code),escapeHtml(w.name),escapeHtml(w.plant),fmt(w.sales),fmt(w.loading)])); renderExecutiveInsights(products,warehouses,plantStats,stats); renderExecutiveExportTable(stats,products,warehouses,plantStats);
+  EXECUTIVE_REPORT_STATE={rows,stats,filters}; if($('#executiveReportMeta')) $('#executiveReportMeta').textContent=reportFilterLabel(filters); renderExecutiveKPIs(stats); drawReportLine(daily); drawReportPlantBar(plantStats); drawReportDonut(whSalesMap); renderRankTable('#executiveTopProductsTable',['#','كود الصنف','اسم الصنف','البيع','الإنتاج','التحميل'],products.slice(0,10).map((p,i)=>[i+1,escapeHtml(p.code),escapeHtml(p.name),fmt(p.sales),fmt(p.production),fmt(p.loading)])); renderRankTable('#executiveTopWarehousesTable',['#','كود المخزن','اسم المخزن','المصنع','البيع','التحميل'],warehouses.slice(0,10).map((w,i)=>[i+1,escapeHtml(w.code),escapeHtml(w.name),escapeHtml(w.plant),fmt(w.sales),fmt(w.loading)])); renderExecutiveInsights(products,warehouses,plantStats,stats); renderExecutiveExportTable(stats,products,warehouses,plantStats);
 }
 
 function dashboardPngTitleFromElement(element){
   if(!element) return 'dashboard-box';
-  if(element.id==='dashboard') return 'ط§ظ„ط´ط§ط´ط© ط§ظ„ط±ط¦ظٹط³ظٹط©';
+  if(element.id==='dashboard') return 'الشاشة الرئيسية';
   const heading=element.querySelector('h2,h3,.num');
   const text=(heading?.textContent||element.getAttribute('aria-label')||'dashboard-box').replace(/\s+/g,' ').trim();
   return text || 'dashboard-box';
@@ -9408,9 +9408,9 @@ function ensureDashboardPngButtons(){
     fullBtn.id='dashboardFullPngBtn';
     fullBtn.type='button';
     fullBtn.className='secondary dashboard-full-png-btn';
-    fullBtn.innerHTML='<span class="png-icon" aria-hidden="true">'+modernIcon('image')+'</span><span>طھطµط¯ظٹط± ط§ظ„ط´ط§ط´ط© PNG</span>';
-    fullBtn.title='طھطµط¯ظٹط± ط§ظ„ط´ط§ط´ط© ط§ظ„ط±ط¦ظٹط³ظٹط© ظƒط§ظ…ظ„ط© ظƒطµظˆط±ط© PNG';
-    fullBtn.addEventListener('click',()=>exportDashboardElementAsPng(dashboard,'ط§ظ„ط´ط§ط´ط© ط§ظ„ط±ط¦ظٹط³ظٹط©'));
+    fullBtn.innerHTML='<span class="png-icon" aria-hidden="true">'+modernIcon('image')+'</span><span>تصدير الشاشة PNG</span>';
+    fullBtn.title='تصدير الشاشة الرئيسية كاملة كصورة PNG';
+    fullBtn.addEventListener('click',()=>exportDashboardElementAsPng(dashboard,'الشاشة الرئيسية'));
     filters.appendChild(fullBtn);
   }
   dashboard.querySelectorAll('.panel.glass,.kpi.glass').forEach((box,idx)=>{
@@ -9421,8 +9421,8 @@ function ensureDashboardPngButtons(){
     const btn=document.createElement('button');
     btn.type='button';
     btn.className='widget-png-btn';
-    btn.title='طھطµط¯ظٹط± ظ‡ط°ط§ ط§ظ„ط¨ظˆظƒط³ ظƒطµظˆط±ط© PNG';
-    btn.setAttribute('aria-label','طھطµط¯ظٹط± ظ‡ط°ط§ ط§ظ„ط¨ظˆظƒط³ ظƒطµظˆط±ط© PNG');
+    btn.title='تصدير هذا البوكس كصورة PNG';
+    btn.setAttribute('aria-label','تصدير هذا البوكس كصورة PNG');
     btn.innerHTML='<span>PNG</span><span class="png-mini-icon" aria-hidden="true">'+modernIcon('image')+'</span>';
     btn.addEventListener('click',(ev)=>{
       ev.stopPropagation();
@@ -9434,7 +9434,7 @@ function ensureDashboardPngButtons(){
 async function exportDashboardElementAsPng(element,title){
   if(!element) return;
   const Html2Canvas=window.html2canvas;
-  if(!Html2Canvas){ alert('ظ…ظƒطھط¨ط© طھطµط¯ظٹط± ط§ظ„طµظˆط± ط؛ظٹط± ظ…ط­ظ…ظ„ط©. طھط£ظƒط¯ ظ…ظ† ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط¥ظ†طھط±ظ†طھ ط«ظ… ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.'); return; }
+  if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
   const previousActive=document.activeElement;
   element.classList.add('png-capturing-now');
   document.body.classList.add('dashboard-png-exporting');
@@ -9458,12 +9458,12 @@ async function exportDashboardElementAsPng(element,title){
       height
     });
     canvas.toBlob(async blob=>{
-      if(!blob){ alert('طھط¹ط°ط± ط¥ظ†ط´ط§ط، طµظˆط±ط© PNG.'); return; }
+      if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
       await saveBlobWithPicker(blob,`${safeFileName(title||'dashboard')}.png`,'image/png');
     },'image/png',1);
   }catch(err){
     console.error(err);
-    alert('طھط¹ط°ط± طھطµط¯ظٹط± ط§ظ„طµظˆط±ط©. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.');
+    alert('تعذر تصدير الصورة. حاول مرة أخرى.');
   }finally{
     element.classList.remove('png-capturing-now');
     document.body.classList.remove('dashboard-png-exporting');
@@ -9540,9 +9540,9 @@ function initInventoryClosing() {
 
   // Setup export buttons
   const exportConfigs = [
-    { id: 'Wf01', title: 'طھظ‚ظپظٹظ„ ط§ظ„ظˆط§ط­ط©' },
-    { id: 'El01', title: 'طھظ‚ظپظٹظ„ ط§ظ„ظ…طµظ†ط¹ ط§ظ„ط±ط¦ظٹط³ظٹ' },
-    { id: 'El02', title: 'طھظ‚ظپظٹظ„ ظ…طµظ†ط¹ ط§ظ„ط¹ط§ظ…ط±ظٹط©' }
+    { id: 'Wf01', title: 'تقفيل الواحة' },
+    { id: 'El01', title: 'تقفيل المصنع الرئيسي' },
+    { id: 'El02', title: 'تقفيل مصنع العامرية' }
   ];
 
   exportConfigs.forEach(cfg => {
@@ -9568,7 +9568,7 @@ function initInventoryClosing() {
       pngBtn.addEventListener('click', async () => {
         const panel = document.getElementById(panelId);
         if(!panel) return;
-        if(!window.html2canvas) { alert('ظ…ظƒطھط¨ط© PNG ط؛ظٹط± ظ…طھظˆظپط±ط©'); return; }
+        if(!window.html2canvas) { alert('مكتبة PNG غير متوفرة'); return; }
         
         try {
           const canvas = await html2canvas(panel, {
@@ -9592,7 +9592,7 @@ function initInventoryClosing() {
           }, 'image/png', 1);
         } catch (err) {
           console.error('PNG Export error:', err);
-          alert('ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، طھطµط¯ظٹط± PNG');
+          alert('حدث خطأ أثناء تصدير PNG');
         }
       });
     }
@@ -9612,7 +9612,7 @@ const INVENTORY_COUNT_WAREHOUSE_BY_PLANT = {
   EL01: 'N401',
   EL02: 'E401'
 };
-let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, lines: [], creating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: 'â€”' };
+let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, lines: [], creating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: '—' };
 function inventoryCountTodayIso(){
   const now=new Date();
   const cairo=new Date(now.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));
@@ -9634,17 +9634,17 @@ function inventoryCountUpdateCreateButton(){
   btn.disabled=busy || !canAdd || hasCurrent || blocked;
   btn.classList.toggle('permission-disabled',!canAdd || hasCurrent || blocked);
   if(hasCurrent){
-    btn.textContent='ط§ظ„ط¬ط±ط¯ ظ…ظˆط¬ظˆط¯';
-    btn.title='طھظ… ظپطھط­ ط¬ط±ط¯ ظ…ظˆط¬ظˆط¯ ظ„ظ‡ط°ط§ ط§ظ„طھط§ط±ظٹط® ظˆط§ظ„ظ…ط®ط²ظ†';
+    btn.textContent='الجرد موجود';
+    btn.title='تم فتح جرد موجود لهذا التاريخ والمخزن';
   }else if(blocked){
-    btn.textContent='ط¬ط±ط¯ ط؛ظٹط± ظ…ظƒطھظ…ظ„';
-    btn.title='ظ…ط³طھظ†ط¯ ط§ظ„ط¬ط±ط¯ ظ…ظˆط¬ظˆط¯طŒ ظ„ظƒظ† ظ„ط§ طھظˆط¬ط¯ ظ†ط³ط®ط© ط­ط§ظ„ظٹط© طµط§ظ„ط­ط©.';
+    btn.textContent='جرد غير مكتمل';
+    btn.title='مستند الجرد موجود، لكن لا توجد نسخة حالية صالحة.';
   }else{
-    btn.textContent='ط¬ط±ط¯ ط¬ط¯ظٹط¯';
-    btn.title=canAdd ? '' : 'ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©';
+    btn.textContent='جرد جديد';
+    btn.title=canAdd ? '' : 'غير متاح للصلاحية الحالية';
   }
 }
-function inventoryCountSetLoading(active,message='ط¬ط§ط±ظچ ط¥ظ†ط´ط§ط، ط§ظ„ط¬ط±ط¯...'){
+function inventoryCountSetLoading(active,message='جارٍ إنشاء الجرد...'){
   INVENTORY_COUNT_STATE.loading=!!active;
   const overlay=$('#inventoryCountLoadingOverlay');
   if(overlay){
@@ -9672,7 +9672,7 @@ function syncInventoryCountWarehouse(){
   select.value=warehouse;
 }
 function formatInventoryCountQuantity(value){
-  if(value===null || value===undefined || value==='') return 'â€”';
+  if(value===null || value===undefined || value==='') return '—';
   return fmt(value);
 }
 function formatInventoryCountManualQuantity(value){
@@ -9709,17 +9709,17 @@ function inventoryCountTotalNumber(value){
   return Number.isFinite(n) ? n : 0;
 }
 function inventoryCountReviewerName(){
-  return String(INVENTORY_COUNT_STATE.reviewerName || 'â€”').trim() || 'â€”';
+  return String(INVENTORY_COUNT_STATE.reviewerName || '—').trim() || '—';
 }
 function setInventoryCountReviewerFromResult(data){
   INVENTORY_COUNT_STATE.reviewerUserId=data?.reviewer_user_id || null;
-  INVENTORY_COUNT_STATE.reviewerName=String(data?.reviewer_name || 'â€”').trim() || 'â€”';
+  INVENTORY_COUNT_STATE.reviewerName=String(data?.reviewer_name || '—').trim() || '—';
   updateInventoryCountReviewerFooter();
 }
 function updateInventoryCountReviewerFooter(){
   const footer=$('#inventoryCountReviewerFooter');
   if(!footer) return;
-  footer.textContent=`ط§ظ„ظ‚ط§ط¦ظ… ط¨ط§ظ„ظ…ط±ط§ط¬ط¹ط© / ${inventoryCountReviewerName()}`;
+  footer.textContent=`القائم بالمراجعة / ${inventoryCountReviewerName()}`;
 }
 function renderInventoryCountTotals(rows=[]){
   const tfoot=$('#inventoryCountLinesTable tfoot');
@@ -9731,7 +9731,7 @@ function renderInventoryCountTotals(rows=[]){
   }
   const total=key=>rows.reduce((sum,row)=>sum+inventoryCountTotalNumber(row?.[key]),0);
   tfoot.innerHTML=`<tr class="inventory-count-total-row">
-    <td>ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹ</td>
+    <td>الإجمالي</td>
     <td></td>
     <td></td>
     <td>${formatInventoryOpeningBalance(total('opening_balance'))}</td>
@@ -9757,11 +9757,11 @@ function formatInventoryCountText(value){
   return escapeHtml(String(value));
 }
 function inventoryCountStatusLabel(status){
-  if(status==='draft') return 'ط¬ط¯ظٹط¯';
-  if(status==='incomplete') return 'ط؛ظٹط± ظ…ظƒطھظ…ظ„';
-  if(status==='complete') return 'ظ…ظƒطھظ…ظ„';
-  if(status==='exception') return 'ط§ط³طھط«ظ†ط§ط،';
-  return 'ط¬ط¯ظٹط¯';
+  if(status==='draft') return 'جديد';
+  if(status==='incomplete') return 'غير مكتمل';
+  if(status==='complete') return 'مكتمل';
+  if(status==='exception') return 'استثناء';
+  return 'جديد';
 }
 function formatInventoryOpeningBalance(value){
   if(value===null || value===undefined || String(value).trim()==='') return '';
@@ -9819,7 +9819,7 @@ function formatInventoryDateInputValue(value){
 function inventoryCountCounterOptionLabel(option){
   const name=String(option?.full_name || option?.name || '').trim();
   const job=String(option?.job_title || '').trim();
-  return job ? `${name} â€” ${job}` : name;
+  return job ? `${name} — ${job}` : name;
 }
 let INVENTORY_COUNT_OPENING_BALANCE_MEASURE_CANVAS=null;
 function inventoryCountCssPixels(value){
@@ -9881,26 +9881,26 @@ function updateInventoryOpeningBalanceInputsWidth(root=document){
 function renderInventoryOpeningBalanceCell(row){
   const mode=INVENTORY_COUNT_STATE.openingBalanceMode || 'manual_first_day';
   if(mode==='carried_forward'){
-    return `<td class="inventory-opening-balance-cell" title="ظ…ط±ط­ظ‘ظ„ ظ…ظ† ط§ظ„ظٹظˆظ… ط§ظ„ط³ط§ط¨ظ‚ ط§ظ„ظ…ط¹طھظ…ط¯">${formatInventoryCountManualQuantity(row.opening_balance)}</td>`;
+    return `<td class="inventory-opening-balance-cell" title="مرحّل من اليوم السابق المعتمد">${formatInventoryCountManualQuantity(row.opening_balance)}</td>`;
   }
   const value=inventoryCountOpeningBalanceInputValue(row.opening_balance);
-  return `<td class="inventory-opening-balance-cell"><input class="inventory-opening-balance-input" type="number" step="0.001" inputmode="decimal" aria-label="ط±طµظٹط¯ ط£ظˆظ„" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" /></td>`;
+  return `<td class="inventory-opening-balance-cell"><input class="inventory-opening-balance-input" type="number" step="0.001" inputmode="decimal" aria-label="رصيد أول" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" /></td>`;
 }
 function renderInventoryProductionQuantityCell(row){
   const value=inventoryCountProductionInputValue(row.production_quantity);
-  return `<td class="inventory-production-quantity-cell"><input class="inventory-production-quantity-input" type="number" step="0.001" inputmode="decimal" aria-label="ط§ظ„ط¥ظ†طھط§ط¬" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" /></td>`;
+  return `<td class="inventory-production-quantity-cell"><input class="inventory-production-quantity-input" type="number" step="0.001" inputmode="decimal" aria-label="الإنتاج" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" /></td>`;
 }
 function renderInventoryPhysicalBalanceCell(row){
   const value=formatInventoryManualThreeDecimal(row.physical_balance);
-  return `<td class="inventory-physical-balance-cell"><input class="inventory-physical-balance-input" type="number" step="0.001" inputmode="decimal" aria-label="ط§ظ„ط±طµظٹط¯ ط§ظ„ظپط¹ظ„ظٹ" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" /></td>`;
+  return `<td class="inventory-physical-balance-cell"><input class="inventory-physical-balance-input" type="number" step="0.001" inputmode="decimal" aria-label="الرصيد الفعلي" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" /></td>`;
 }
 function renderInventoryOldestQuantityCell(row){
   const value=formatInventoryManualThreeDecimal(row.oldest_quantity);
-  return `<td class="inventory-oldest-quantity-cell"><input class="inventory-oldest-quantity-input" type="number" step="0.001" inputmode="decimal" aria-label="ظƒظ…ظٹط© ط£ظ‚ط¯ظ… طھط§ط±ظٹط®" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" /></td>`;
+  return `<td class="inventory-oldest-quantity-cell"><input class="inventory-oldest-quantity-input" type="number" step="0.001" inputmode="decimal" aria-label="كمية أقدم تاريخ" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" /></td>`;
 }
 function renderInventoryOldestDateCell(row){
   const value=formatInventoryDateInputValue(row.oldest_date);
-  return `<td class="inventory-oldest-date-cell"><input class="inventory-oldest-date-input" type="date" aria-label="ط£ظ‚ط¯ظ… طھط§ط±ظٹط®" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" /></td>`;
+  return `<td class="inventory-oldest-date-cell"><input class="inventory-oldest-date-input" type="date" aria-label="أقدم تاريخ" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}" /></td>`;
 }
 function renderInventoryCounterCell(row){
   const currentId=String(row.inventory_counter_id || '').trim();
@@ -9908,9 +9908,9 @@ function renderInventoryCounterCell(row){
   const currentJob=String(row.inventory_counter_job_title_snapshot || '').trim();
   const options=INVENTORY_COUNT_STATE.inventoryCounterOptions || [];
   const hasCurrent=currentId && options.some(option=>String(option.id)===currentId);
-  let html='<option value="">â€”</option>';
+  let html='<option value="">—</option>';
   if(currentId && !hasCurrent && currentName){
-    const label=currentJob ? `${currentName} â€” ${currentJob}` : currentName;
+    const label=currentJob ? `${currentName} — ${currentJob}` : currentName;
     html += `<option value="${escapeHtml(currentId)}" selected>${escapeHtml(label)}</option>`;
   }
   html += options.map(option=>{
@@ -9918,14 +9918,14 @@ function renderInventoryCounterCell(row){
     const selected=id===currentId ? ' selected' : '';
     return `<option value="${escapeHtml(id)}"${selected}>${escapeHtml(inventoryCountCounterOptionLabel(option))}</option>`;
   }).join('');
-  return `<td class="inventory-counter-cell"><select class="inventory-counter-select" aria-label="ط§ظ„ظ‚ط§ط¦ظ… ط¨ط§ظ„ط¬ط±ط¯" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(currentId)}">${html}</select></td>`;
+  return `<td class="inventory-counter-cell"><select class="inventory-counter-select" aria-label="القائم بالجرد" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(currentId)}">${html}</select></td>`;
 }
 function renderInventoryCountLines(rows=[]){
   const tbody=$('#inventoryCountLinesTable tbody');
   if(!tbody) return;
   INVENTORY_COUNT_STATE.lines=rows;
   if(!rows.length){
-    tbody.innerHTML='<tr><td colspan="18" class="empty-state">ظ„ط§ طھظˆط¬ط¯ ط¨ظ†ظˆط¯ ط¬ط±ط¯ ظ„ظ„ظ†ط³ط®ط© ط§ظ„ط­ط§ظ„ظٹط©.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="18" class="empty-state">لا توجد بنود جرد للنسخة الحالية.</td></tr>';
     renderInventoryCountTotals([]);
     return;
   }
@@ -9967,16 +9967,16 @@ async function filterInventoryCountLinesByCurrentWarehouse(rows=[]){
   const allowed=new Set((data||[]).map(row=>String(row.material_code||'').trim().toUpperCase()));
   return rows.filter(row=>allowed.has(String(row.material_code||'').trim().toUpperCase()));
 }
-function resetInventoryCountView(message='ظ„ظ… ظٹطھظ… ط¥ظ†ط´ط§ط، ط¬ط±ط¯ ط¨ط¹ط¯.'){
+function resetInventoryCountView(message='لم يتم إنشاء جرد بعد.'){
   INVENTORY_COUNT_STATE.status='idle';
   INVENTORY_COUNT_STATE.documentId=null;
   INVENTORY_COUNT_STATE.versionId=null;
   INVENTORY_COUNT_STATE.versionNo=null;
   INVENTORY_COUNT_STATE.reviewerUserId=null;
-  INVENTORY_COUNT_STATE.reviewerName='â€”';
+  INVENTORY_COUNT_STATE.reviewerName='—';
   renderInventoryCountLines([]);
   const meta=$('#inventoryCountCurrentVersionMeta');
-  if(meta) meta.textContent='ط§ظ„ط¥طµط¯ط§ط±: â€” | ط¹ط¯ط¯ ط§ظ„ط£طµظ†ط§ظپ: 0';
+  if(meta) meta.textContent='الإصدار: — | عدد الأصناف: 0';
   inventoryCountSetStatus(message);
   inventoryCountUpdateCreateButton();
 }
@@ -10009,7 +10009,7 @@ async function loadInventoryCountCounterOptions(plantCode=inventoryCountReadInpu
 async function loadInventoryCountLines(versionId,requestSeq=null){
   if(!versionId) return;
   if(!window.WarehouseDB?.ready){
-    inventoryCountSetStatus('ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± ظ…طھطµظ„ط©.','err');
+    inventoryCountSetStatus('قاعدة البيانات غير متصلة.','err');
     return;
   }
   await loadInventoryCountCounterOptions(inventoryCountReadInputs().plantCode);
@@ -10024,19 +10024,19 @@ async function loadInventoryCountLines(versionId,requestSeq=null){
   if(requestSeq!==null && requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
   renderInventoryCountLines(rows);
   const meta=$('#inventoryCountCurrentVersionMeta');
-  if(meta) meta.textContent=`ط§ظ„ط¥طµط¯ط§ط±: ${INVENTORY_COUNT_STATE.versionNo || 1} | ط¹ط¯ط¯ ط§ظ„ط£طµظ†ط§ظپ: ${rows.length}`;
+  if(meta) meta.textContent=`الإصدار: ${INVENTORY_COUNT_STATE.versionNo || 1} | عدد الأصناف: ${rows.length}`;
 }
 async function openExistingInventoryCountFromUi(options={}){
   const {showLoading=false}=options;
   const {inventoryDate,plantCode,warehouseCode}=inventoryCountReadInputs();
   const requestSeq=++INVENTORY_COUNT_STATE.requestSeq;
   if(!inventoryDate || !plantCode || !warehouseCode){
-    resetInventoryCountView('ط§ط®طھط± ط§ظ„طھط§ط±ظٹط® ظˆط§ظ„ظ…طµظ†ط¹ ط«ظ… ط§ط¶ط؛ط· ط¬ط±ط¯ ط¬ط¯ظٹط¯.');
+    resetInventoryCountView('اختر التاريخ والمصنع ثم اضغط جرد جديد.');
     return;
   }
   if(!window.WarehouseDB?.ready){
-    resetInventoryCountView('ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± ظ…طھطµظ„ط©.');
-    inventoryCountSetStatus('ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± ظ…طھطµظ„ط©.','err');
+    resetInventoryCountView('قاعدة البيانات غير متصلة.');
+    inventoryCountSetStatus('قاعدة البيانات غير متصلة.','err');
     return;
   }
   INVENTORY_COUNT_STATE.status='loading';
@@ -10044,12 +10044,12 @@ async function openExistingInventoryCountFromUi(options={}){
   INVENTORY_COUNT_STATE.versionId=null;
   INVENTORY_COUNT_STATE.versionNo=null;
   INVENTORY_COUNT_STATE.reviewerUserId=null;
-  INVENTORY_COUNT_STATE.reviewerName='â€”';
+  INVENTORY_COUNT_STATE.reviewerName='—';
   renderInventoryCountLines([]);
   const meta=$('#inventoryCountCurrentVersionMeta');
-  if(meta) meta.textContent='ط§ظ„ط¥طµط¯ط§ط±: â€” | ط¹ط¯ط¯ ط§ظ„ط£طµظ†ط§ظپ: 0';
-  if(showLoading) inventoryCountSetLoading(true,'ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ط¬ط±ط¯...');
-  inventoryCountSetStatus('ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ط¬ط±ط¯...');
+  if(meta) meta.textContent='الإصدار: — | عدد الأصناف: 0';
+  if(showLoading) inventoryCountSetLoading(true,'جاري تحميل الجرد...');
+  inventoryCountSetStatus('جاري تحميل الجرد...');
   inventoryCountUpdateCreateButton();
   try{
     const {data,error}=await WarehouseDB.client.rpc('get_inventory_count',{
@@ -10068,12 +10068,12 @@ async function openExistingInventoryCountFromUi(options={}){
       INVENTORY_COUNT_STATE.status='found';
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,requestSeq);
       if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
-      inventoryCountSetStatus('ط§ظ„ط¬ط±ط¯ ظ…ظˆط¬ظˆط¯.','ok');
+      inventoryCountSetStatus('الجرد موجود.','ok');
       inventoryCountUpdateCreateButton();
       return;
     }
     if(status==='not_found'){
-      resetInventoryCountView('ظ„ظ… ظٹطھظ… ط¥ظ†ط´ط§ط، ط¬ط±ط¯ ط¨ط¹ط¯.');
+      resetInventoryCountView('لم يتم إنشاء جرد بعد.');
       INVENTORY_COUNT_STATE.status='not_found';
       inventoryCountUpdateCreateButton();
       return;
@@ -10086,13 +10086,13 @@ async function openExistingInventoryCountFromUi(options={}){
       setInventoryCountReviewerFromResult(data);
       renderInventoryCountLines([]);
       const meta=$('#inventoryCountCurrentVersionMeta');
-      if(meta) meta.textContent='ط§ظ„ط¥طµط¯ط§ط±: â€” | ط¹ط¯ط¯ ط§ظ„ط£طµظ†ط§ظپ: 0';
-      inventoryCountSetStatus('ظ…ط³طھظ†ط¯ ط§ظ„ط¬ط±ط¯ ظ…ظˆط¬ظˆط¯طŒ ظ„ظƒظ† ظ„ط§ طھظˆط¬ط¯ ظ†ط³ط®ط© ط­ط§ظ„ظٹط© طµط§ظ„ط­ط©.','err');
+      if(meta) meta.textContent='الإصدار: — | عدد الأصناف: 0';
+      inventoryCountSetStatus('مستند الجرد موجود، لكن لا توجد نسخة حالية صالحة.','err');
       inventoryCountUpdateCreateButton();
       return;
     }
     INVENTORY_COUNT_STATE.status='idle';
-    resetInventoryCountView('ظ„ظ… ظٹطھظ… ط¥ظ†ط´ط§ط، ط¬ط±ط¯ ط¨ط¹ط¯.');
+    resetInventoryCountView('لم يتم إنشاء جرد بعد.');
   }catch(err){
     if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
     console.error('Inventory count load failed',err);
@@ -10110,21 +10110,21 @@ async function createInventoryCountFromUi(){
   if(INVENTORY_COUNT_STATE.versionId || INVENTORY_COUNT_STATE.status==='found') return;
   if(INVENTORY_COUNT_STATE.status==='no_current_version') return;
   if(!hasPermission('inventory_count','add')){
-    alert('ط؛ظٹط± ظ…طھط§ط­ ظ„ظ„طµظ„ط§ط­ظٹط© ط§ظ„ط­ط§ظ„ظٹط©');
+    alert('غير متاح للصلاحية الحالية');
     return;
   }
   if(!window.WarehouseDB?.ready){
-    inventoryCountSetStatus('ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± ظ…طھطµظ„ط©.','err');
+    inventoryCountSetStatus('قاعدة البيانات غير متصلة.','err');
     return;
   }
   const {inventoryDate,plantCode,warehouseCode}=inventoryCountReadInputs();
-  if(!inventoryDate){ inventoryCountSetStatus('طھط§ط±ظٹط® ط§ظ„ط¬ط±ط¯ ظ…ط·ظ„ظˆط¨.','err'); return; }
-  if(!plantCode){ inventoryCountSetStatus('ط§ظ„ظ…طµظ†ط¹ ظ…ط·ظ„ظˆط¨.','err'); return; }
-  if(!warehouseCode){ inventoryCountSetStatus('ط§ظ„ظ…ط®ط²ظ† ظ…ط·ظ„ظˆط¨.','err'); return; }
+  if(!inventoryDate){ inventoryCountSetStatus('تاريخ الجرد مطلوب.','err'); return; }
+  if(!plantCode){ inventoryCountSetStatus('المصنع مطلوب.','err'); return; }
+  if(!warehouseCode){ inventoryCountSetStatus('المخزن مطلوب.','err'); return; }
   INVENTORY_COUNT_STATE.creating=true;
   const requestSeq=++INVENTORY_COUNT_STATE.requestSeq;
-  inventoryCountSetLoading(true,'ط¬ط§ط±ظچ ط¥ظ†ط´ط§ط، ط§ظ„ط¬ط±ط¯...');
-  inventoryCountSetStatus('ط¬ط§ط±ظچ ط¥ظ†ط´ط§ط، ط§ظ„ط¬ط±ط¯...');
+  inventoryCountSetLoading(true,'جارٍ إنشاء الجرد...');
+  inventoryCountSetStatus('جارٍ إنشاء الجرد...');
   try{
     const {data,error}=await WarehouseDB.client.rpc('create_inventory_count',{
       p_inventory_date: inventoryDate,
@@ -10137,15 +10137,15 @@ async function createInventoryCountFromUi(){
     INVENTORY_COUNT_STATE.versionId=data?.version_id || null;
     INVENTORY_COUNT_STATE.versionNo=Number(data?.version_no || data?.versionNo || 1) || 1;
     INVENTORY_COUNT_STATE.reviewerUserId=CURRENT_AUTH_USER?.id || null;
-    INVENTORY_COUNT_STATE.reviewerName=String(CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'â€”').trim() || 'â€”';
+    INVENTORY_COUNT_STATE.reviewerName=String(CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || '—').trim() || '—';
     updateInventoryCountReviewerFooter();
     INVENTORY_COUNT_STATE.status='found';
     await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,requestSeq);
     if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
-    inventoryCountSetStatus('طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ط¬ط±ط¯ ط¨ظ†ط¬ط§ط­.','ok');
+    inventoryCountSetStatus('تم إنشاء الجرد بنجاح.','ok');
     inventoryCountUpdateCreateButton();
-    if(window.showToast) window.showToast('طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ط¬ط±ط¯ ط¨ظ†ط¬ط§ط­.','success');
-    else alert('طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ط¬ط±ط¯ ط¨ظ†ط¬ط§ط­.');
+    if(window.showToast) window.showToast('تم إنشاء الجرد بنجاح.','success');
+    else alert('تم إنشاء الجرد بنجاح.');
   }catch(err){
     if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
     console.error('Inventory count creation failed',err);
@@ -10153,7 +10153,7 @@ async function createInventoryCountFromUi(){
     if(message.includes('Inventory count already exists for this date and warehouse.')){
       await openExistingInventoryCountFromUi({showLoading:false});
       if(INVENTORY_COUNT_STATE.status==='found'){
-        inventoryCountSetStatus('ط§ظ„ط¬ط±ط¯ ظ…ظˆط¬ظˆط¯.','ok');
+        inventoryCountSetStatus('الجرد موجود.','ok');
         return;
       }
     }
@@ -10193,7 +10193,7 @@ async function saveInventoryOpeningBalanceInput(input){
   const expectedRowVersion=input.dataset.rowVersion ? Number(input.dataset.rowVersion) : null;
   INVENTORY_COUNT_STATE.openingBalanceSaving.add(lineId);
   input.disabled=true;
-  inventoryCountSetStatus('ط¬ط§ط±ظچ ط­ظپط¸ ط±طµظٹط¯ ط£ظˆظ„...');
+  inventoryCountSetStatus('جارٍ حفظ رصيد أول...');
   try{
     const {data,error}=await WarehouseDB.client.rpc('save_inventory_count_opening_balance',{
       p_line_id: lineId,
@@ -10214,8 +10214,8 @@ async function saveInventoryOpeningBalanceInput(input){
     input.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
     const productionInput=$(`#inventoryCountLinesTable .inventory-production-quantity-input[data-line-id="${CSS.escape(lineId)}"]`);
     if(productionInput) productionInput.dataset.rowVersion=input.dataset.rowVersion;
-    inventoryCountSetStatus('طھظ… ط­ظپط¸ ط±طµظٹط¯ ط£ظˆظ„.','ok');
-    if(window.showToast) window.showToast('طھظ… ط­ظپط¸ ط±طµظٹط¯ ط£ظˆظ„.','success');
+    inventoryCountSetStatus('تم حفظ رصيد أول.','ok');
+    if(window.showToast) window.showToast('تم حفظ رصيد أول.','success');
     if(INVENTORY_COUNT_STATE.versionId){
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
     }
@@ -10256,7 +10256,7 @@ async function saveInventoryProductionQuantityInput(input){
   const expectedRowVersion=input.dataset.rowVersion ? Number(input.dataset.rowVersion) : null;
   INVENTORY_COUNT_STATE.productionSaving.add(lineId);
   input.disabled=true;
-  inventoryCountSetStatus('ط¬ط§ط±ظچ ط­ظپط¸ ط§ظ„ط¥ظ†طھط§ط¬...');
+  inventoryCountSetStatus('جارٍ حفظ الإنتاج...');
   try{
     const {data,error}=await WarehouseDB.client.rpc('save_inventory_count_production_quantity',{
       p_line_id: lineId,
@@ -10277,8 +10277,8 @@ async function saveInventoryProductionQuantityInput(input){
     input.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
     const openingInput=$(`#inventoryCountLinesTable .inventory-opening-balance-input[data-line-id="${CSS.escape(lineId)}"]`);
     if(openingInput) openingInput.dataset.rowVersion=input.dataset.rowVersion;
-    inventoryCountSetStatus('طھظ… ط­ظپط¸ ط§ظ„ط¥ظ†طھط§ط¬.','ok');
-    if(window.showToast) window.showToast('طھظ… ط­ظپط¸ ط§ظ„ط¥ظ†طھط§ط¬.','success');
+    inventoryCountSetStatus('تم حفظ الإنتاج.','ok');
+    if(window.showToast) window.showToast('تم حفظ الإنتاج.','success');
     if(INVENTORY_COUNT_STATE.versionId){
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
     }
@@ -10319,7 +10319,7 @@ async function saveInventoryPhysicalBalanceInput(input){
   const expectedRowVersion=input.dataset.rowVersion ? Number(input.dataset.rowVersion) : null;
   INVENTORY_COUNT_STATE.physicalBalanceSaving.add(lineId);
   input.disabled=true;
-  inventoryCountSetStatus('ط¬ط§ط±ظٹ ط­ظپط¸ ط§ظ„ط±طµظٹط¯ ط§ظ„ظپط¹ظ„ظٹ...');
+  inventoryCountSetStatus('جاري حفظ الرصيد الفعلي...');
   try{
     const {data,error}=await WarehouseDB.client.rpc('save_inventory_count_physical_balance',{
       p_line_id: lineId,
@@ -10340,8 +10340,8 @@ async function saveInventoryPhysicalBalanceInput(input){
     input.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
     updateInventoryPhysicalBalanceInputWidth(input);
     renderInventoryCountTotals(INVENTORY_COUNT_STATE.lines);
-    inventoryCountSetStatus('طھظ… ط­ظپط¸ ط§ظ„ط±طµظٹط¯ ط§ظ„ظپط¹ظ„ظٹ.','ok');
-    if(window.showToast) window.showToast('طھظ… ط­ظپط¸ ط§ظ„ط±طµظٹط¯ ط§ظ„ظپط¹ظ„ظٹ.','success');
+    inventoryCountSetStatus('تم حفظ الرصيد الفعلي.','ok');
+    if(window.showToast) window.showToast('تم حفظ الرصيد الفعلي.','success');
     if(INVENTORY_COUNT_STATE.versionId){
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
     }
@@ -10382,7 +10382,7 @@ async function saveInventoryOldestQuantityInput(input){
   const expectedRowVersion=input.dataset.rowVersion ? Number(input.dataset.rowVersion) : null;
   INVENTORY_COUNT_STATE.oldestQuantitySaving.add(lineId);
   input.disabled=true;
-  inventoryCountSetStatus('ط¬ط§ط±ظٹ ط­ظپط¸ ظƒظ…ظٹط© ط£ظ‚ط¯ظ… طھط§ط±ظٹط®...');
+  inventoryCountSetStatus('جاري حفظ كمية أقدم تاريخ...');
   try{
     const {data,error}=await WarehouseDB.client.rpc('save_inventory_count_oldest_quantity',{
       p_line_id: lineId,
@@ -10401,8 +10401,8 @@ async function saveInventoryOldestQuantityInput(input){
     input.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
     updateInventoryOldestQuantityInputWidth(input);
     renderInventoryCountTotals(INVENTORY_COUNT_STATE.lines);
-    inventoryCountSetStatus('طھظ… ط­ظپط¸ ظƒظ…ظٹط© ط£ظ‚ط¯ظ… طھط§ط±ظٹط®.','ok');
-    if(window.showToast) window.showToast('طھظ… ط­ظپط¸ ظƒظ…ظٹط© ط£ظ‚ط¯ظ… طھط§ط±ظٹط®.','success');
+    inventoryCountSetStatus('تم حفظ كمية أقدم تاريخ.','ok');
+    if(window.showToast) window.showToast('تم حفظ كمية أقدم تاريخ.','success');
     if(INVENTORY_COUNT_STATE.versionId){
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
     }
@@ -10427,7 +10427,7 @@ async function saveInventoryOldestDateInput(input){
   const expectedRowVersion=input.dataset.rowVersion ? Number(input.dataset.rowVersion) : null;
   INVENTORY_COUNT_STATE.oldestDateSaving.add(lineId);
   input.disabled=true;
-  inventoryCountSetStatus('ط¬ط§ط±ظٹ ط­ظپط¸ ط£ظ‚ط¯ظ… طھط§ط±ظٹط®...');
+  inventoryCountSetStatus('جاري حفظ أقدم تاريخ...');
   try{
     const {data,error}=await WarehouseDB.client.rpc('save_inventory_count_oldest_date',{
       p_line_id: lineId,
@@ -10444,8 +10444,8 @@ async function saveInventoryOldestDateInput(input){
     input.value=savedValue;
     input.dataset.lastSaved=savedValue;
     input.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
-    inventoryCountSetStatus('طھظ… ط­ظپط¸ ط£ظ‚ط¯ظ… طھط§ط±ظٹط®.','ok');
-    if(window.showToast) window.showToast('طھظ… ط­ظپط¸ ط£ظ‚ط¯ظ… طھط§ط±ظٹط®.','success');
+    inventoryCountSetStatus('تم حفظ أقدم تاريخ.','ok');
+    if(window.showToast) window.showToast('تم حفظ أقدم تاريخ.','success');
     if(INVENTORY_COUNT_STATE.versionId){
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
     }
@@ -10469,7 +10469,7 @@ async function saveInventoryCounterSelect(select){
   const expectedRowVersion=select.dataset.rowVersion ? Number(select.dataset.rowVersion) : null;
   INVENTORY_COUNT_STATE.inventoryCounterSaving.add(lineId);
   select.disabled=true;
-  inventoryCountSetStatus('ط¬ط§ط±ظٹ ط­ظپط¸ ط§ظ„ظ‚ط§ط¦ظ… ط¨ط§ظ„ط¬ط±ط¯...');
+  inventoryCountSetStatus('جاري حفظ القائم بالجرد...');
   try{
     const {data,error}=await WarehouseDB.client.rpc('save_inventory_count_counter',{
       p_line_id: lineId,
@@ -10486,8 +10486,8 @@ async function saveInventoryCounterSelect(select){
     }
     select.dataset.lastSaved=String(data?.inventory_counter_id || '');
     select.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
-    inventoryCountSetStatus('طھظ… ط­ظپط¸ ط§ظ„ظ‚ط§ط¦ظ… ط¨ط§ظ„ط¬ط±ط¯.','ok');
-    if(window.showToast) window.showToast('طھظ… ط­ظپط¸ ط§ظ„ظ‚ط§ط¦ظ… ط¨ط§ظ„ط¬ط±ط¯.','success');
+    inventoryCountSetStatus('تم حفظ القائم بالجرد.','ok');
+    if(window.showToast) window.showToast('تم حفظ القائم بالجرد.','success');
     if(INVENTORY_COUNT_STATE.versionId){
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
     }
@@ -10627,7 +10627,7 @@ async function refreshOpenInventoryCountAfterClosingSource(reportDate, plantCode
     inventoryCountSetStatus(err?.message || 'تعذر تحديث بيانات الجرد بعد تقرير التقفيل.', 'err');
   }
 }
-const IC_ALLOWED_UOM = ['TO', 'TON', 'T', 'KG', 'KGS', 'KILOGRAM', 'ط·ظ†', 'ظƒط¬ظ…'];
+const IC_ALLOWED_UOM = ['TO', 'TON', 'T', 'KG', 'KGS', 'KILOGRAM', 'طن', 'كجم'];
 
 function icCleanHeader(h) {
   if (typeof h !== 'string') return '';
@@ -10640,24 +10640,24 @@ function icMapRow(row, headers, sourceRowNumber) {
     return idx > -1 ? row[idx] : null;
   };
   
-  let tDate = getVal('ط§ظ„طھط§ط±ظٹط®');
+  let tDate = getVal('التاريخ');
   if (tDate instanceof Date) {
     tDate = new Date(tDate.getTime() - (tDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
   }
   
   return {
     source_row_number: sourceRowNumber,
-    material_code: String(getVal('ظƒظˆط¯ ط§ظ„ظ…ط§ط¯ط©') || '').trim(),
-    material_name: String(getVal('ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©') || '').trim(),
-    quantity: parseFloat(getVal('ط§ظ„ظƒظ…ظٹط©')),
-    uom: String(getVal('ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³') || '').trim(),
-    movement_type: String(getVal('ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©') || '').trim(),
-    movement_text: String(getVal('ظˆطµظپ ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©') || '').trim(),
-    warehouse_code: String(getVal('ط§ظ„ظ…ط®ط²ظ†') || '').trim(),
-    plant_code: String(getVal('ط§ظ„ظ…طµظ†ط¹') || '').trim(),
-    plant_name: String(getVal('ط¥ط³ظ… ط§ظ„ظ…طµظ†ط¹') || '').trim(),
+    material_code: String(getVal('كود المادة') || '').trim(),
+    material_name: String(getVal('وصف المادة') || '').trim(),
+    quantity: parseFloat(getVal('الكمية')),
+    uom: String(getVal('وحدة القياس') || '').trim(),
+    movement_type: String(getVal('نوع الحركة') || '').trim(),
+    movement_text: String(getVal('وصف نوع الحركة') || '').trim(),
+    warehouse_code: String(getVal('المخزن') || '').trim(),
+    plant_code: String(getVal('المصنع') || '').trim(),
+    plant_name: String(getVal('إسم المصنع') || '').trim(),
     transaction_date: String(tDate || '').trim(),
-    worker_group: String(getVal('ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ط¹ظ…ط§ظ„') || '').trim(),
+    worker_group: String(getVal('مجموعة العمال') || '').trim(),
     raw_row: JSON.stringify(row)
   };
 }
@@ -10703,10 +10703,10 @@ function normalizeInventoryClosingUploadRows(rows) {
 
     if (movementType === '301' && quantity < 0) {
       next.movement_type = 'Z51';
-      next.movement_text = 'ظ†.ظ…ط®ط²ظˆظ† ط¥ظ„ظ‰ ظ….ظ…ظ†ظ‚ظˆظ„';
+      next.movement_text = 'ن.مخزون إلى م.منقول';
     } else if (movementType === '301' && quantity > 0) {
       next.movement_type = '101';
-      next.movement_text = 'ط§.ط¨ط¶ط§ط¦ط¹ ظ„ظ…ط®ط²ظˆظ† ظ…ظ†ظ‚ظˆظ„';
+      next.movement_text = 'ا.بضائع لمخزون منقول';
     }
 
     if (Number.isFinite(quantity)) next.quantity = Math.abs(quantity);
@@ -10722,12 +10722,12 @@ async function icLoadLastUploadBatch(tabKey) {
   if (!tableEl) return;
 
   if(!window.WarehouseDB?.ready) {
-    tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± ظ…طھطµظ„ط©</td></tr>';
+    tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">قاعدة البيانات غير متصلة</td></tr>';
     return;
   }
 
   try {
-    // Order by `id` (primary key â€” always exists) to avoid 42703 on missing timestamp columns
+    // Order by `id` (primary key — always exists) to avoid 42703 on missing timestamp columns
     const {data, error} = await WarehouseDB.client
       .from('inventory_closing_upload_batches')
       .select('*')
@@ -10738,7 +10738,7 @@ async function icLoadLastUploadBatch(tabKey) {
 
     if (error) throw error;
     if (!data || data.length === 0) {
-      tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">ظ„ط§ ظٹظˆط¬ط¯ ط¹ظ…ظ„ظٹط§طھ ط±ظپط¹ ط³ط§ط¨ظ‚ط©</td></tr>';
+      tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">لا يوجد عمليات رفع سابقة</td></tr>';
       return;
     }
 
@@ -10756,10 +10756,10 @@ async function icLoadLastUploadBatch(tabKey) {
     });
 
     const rows = data.map(batch => {
-      // Resolve upload timestamp â€” try known possible column names defensively
+      // Resolve upload timestamp — try known possible column names defensively
       const rawTs = batch.completed_at ?? batch.created_at ?? batch.upload_date ?? batch.uploaded_at ?? batch.inserted_at ?? null;
       const bDate = rawTs ? new Date(rawTs).toLocaleString('ar-EG') : '--';
-      // Resolve row count â€” try known possible column names defensively
+      // Resolve row count — try known possible column names defensively
       const rowCount = batch.row_count ?? batch.received_rows ?? batch.final_row_count ?? batch.expected_rows ?? '--';
       
       const uploader = batch.uploaded_by_name || batch.uploaded_by || '--';
@@ -10767,17 +10767,17 @@ async function icLoadLastUploadBatch(tabKey) {
       const rDate = typeof normalizeDateISO === 'function' ? normalizeDateISO(batch.report_date) : batch.report_date;
       
       // View button: carries ONLY data-action and data-batch-id (no file_name, report_date, row_count in DOM)
-      const viewBtn = `<button type="button" class="ic-batch-view-btn" data-action="view-ic" data-batch-id="${escapeHtml(String(batch.id))}">ط¹ط±ط¶</button>`;
+      const viewBtn = `<button type="button" class="ic-batch-view-btn" data-action="view-ic" data-batch-id="${escapeHtml(String(batch.id))}">عرض</button>`;
       
       let replaceBtn = '';
       if (batch.status === 'succeeded') {
-        replaceBtn = `<button type="button" class="small-action replace" data-action="replace-ic" data-batch-id="${escapeHtml(String(batch.id))}">ط§ط³طھط¨ط¯ط§ظ„</button>`;
+        replaceBtn = `<button type="button" class="small-action replace" data-action="replace-ic" data-batch-id="${escapeHtml(String(batch.id))}">استبدال</button>`;
       }
       const deleteBtn = `<button type="button" class="small-action delete" data-action="delete-ic" data-batch-id="${escapeHtml(String(batch.id))}">ط­ط°ظپ</button>`;
       
       const actionsHtml = `<div style="display:flex;gap:4px;align-items:center;">${viewBtn}${replaceBtn}${deleteBtn}</div>`;
       
-      let statusIndicator = batch.status === 'replaced' ? ' <span style="font-size:10px;color:#f1bf35;background:rgba(241,191,53,0.15);padding:2px 4px;border-radius:4px;">(ظ…ط³طھط¨ط¯ظ„)</span>' : '';
+      let statusIndicator = batch.status === 'replaced' ? ' <span style="font-size:10px;color:#f1bf35;background:rgba(241,191,53,0.15);padding:2px 4px;border-radius:4px;">(مستبدل)</span>' : '';
 
       return [
         (rDate || batch.report_date || '--') + statusIndicator,
@@ -10791,9 +10791,9 @@ async function icLoadLastUploadBatch(tabKey) {
     });
 
     if (typeof table === 'function') {
-      table(tableSelector, ['طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±','ط§ط³ظ… ط§ظ„ظ…ظ„ظپ','ط¹ط¯ط¯ ط§ظ„ط³ط·ظˆط±','ط§ظ„ط­ط¬ظ…','ط§ظ„ط±ط§ظپط¹','طھط§ط±ظٹط® ط§ظ„ط±ظپط¹','ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ'], rows);
+      table(tableSelector, ['تاريخ التقرير','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الإجراءات'], rows);
     } else {
-      let html = '<thead><tr><th>طھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±</th><th>ط§ط³ظ… ط§ظ„ظ…ظ„ظپ</th><th>ط¹ط¯ط¯ ط§ظ„ط³ط·ظˆط±</th><th>ط§ظ„ط­ط¬ظ…</th><th>ط§ظ„ط±ط§ظپط¹</th><th>طھط§ط±ظٹط® ط§ظ„ط±ظپط¹</th><th>ط§ظ„ط¥ط¬ط±ط§ط،ط§طھ</th></tr></thead><tbody>';
+      let html = '<thead><tr><th>تاريخ التقرير</th><th>اسم الملف</th><th>عدد السطور</th><th>الحجم</th><th>الرافع</th><th>تاريخ الرفع</th><th>الإجراءات</th></tr></thead><tbody>';
       rows.forEach(r => {
         html += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td></tr>`;
       });
@@ -10803,15 +10803,15 @@ async function icLoadLastUploadBatch(tabKey) {
 
   } catch (err) {
     console.error('IC: Failed to load upload history:', err);
-    tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">ظپط´ظ„ ط¬ظ„ط¨ ط³ط¬ظ„ ط§ظ„ط±ظپط¹</td></tr>';
+    tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">فشل جلب سجل الرفع</td></tr>';
   }
 }
 
 // ============================================================
-// IC Batch View Modal Engine â€” Phase IC-03.0
+// IC Batch View Modal Engine — Phase IC-03.0
 // ============================================================
 
-/** Isolated metadata Map â€” key: batch.id (string), value: {fileName, reportDate, rowCount} */
+/** Isolated metadata Map — key: batch.id (string), value: {fileName, reportDate, rowCount} */
 const inventoryClosingBatchMeta = new Map();
 
 /** Active request token for race-condition prevention */
@@ -10851,7 +10851,7 @@ async function openIcBatchViewModal(batchId, triggerBtn) {
 
   // Clear old data
   tbody.innerHTML = '';
-  _icSetStatus('ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ...', '');
+  _icSetStatus('جاري تحميل البيانات...', '');
 
   // Open modal
   overlay.classList.add('ic-batch-view-open');
@@ -10860,7 +10860,7 @@ async function openIcBatchViewModal(batchId, triggerBtn) {
   // Focus close button for accessibility
   requestAnimationFrame(() => { closeBtn && closeBtn.focus(); });
 
-  // Issue a new request token â€” any previous request becomes stale
+  // Issue a new request token — any previous request becomes stale
   const token = Symbol('ic-view-' + batchId);
   _icViewRequestToken = token;
 
@@ -10873,7 +10873,7 @@ async function openIcBatchViewModal(batchId, triggerBtn) {
   let allRows = [];
 
   try {
-    if (!window.WarehouseDB?.ready) throw new Error('ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± ظ…طھطµظ„ط©.');
+    if (!window.WarehouseDB?.ready) throw new Error('قاعدة البيانات غير متصلة.');
 
     while (true) {
       // Race condition check before each page fetch
@@ -10897,7 +10897,7 @@ async function openIcBatchViewModal(batchId, triggerBtn) {
       }
 
       const fetched = data ? data.length : 0;
-      _icSetStatus('ط¬ط§ط±ظٹ طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ: ' + allRows.length.toLocaleString('en-US') + ' طµظپ', '');
+      _icSetStatus('جاري تحميل البيانات: ' + allRows.length.toLocaleString('en-US') + ' صف', '');
 
       if (fetched < PAGE_SIZE) break; // Last page
       from += PAGE_SIZE;
@@ -10907,7 +10907,7 @@ async function openIcBatchViewModal(batchId, triggerBtn) {
     if (_icViewRequestToken !== token) return;
 
     if (allRows.length === 0) {
-      _icSetStatus('ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ„ظ‡ط°ظ‡ ط§ظ„ط¯ظپط¹ط©.', 'empty');
+      _icSetStatus('لا توجد بيانات لهذه الدفعة.', 'empty');
       return;
     }
 
@@ -10935,7 +10935,7 @@ async function openIcBatchViewModal(batchId, triggerBtn) {
     });
     tbody.appendChild(fragment);
 
-    _icSetStatus('طھظ… طھط­ظ…ظٹظ„ ' + allRows.length.toLocaleString('en-US') + ' طµظپ', '');
+    _icSetStatus('تم تحميل ' + allRows.length.toLocaleString('en-US') + ' صف', '');
     if (rcEl && (meta.rowCount === '--' || meta.rowCount === null || meta.rowCount === undefined)) {
       rcEl.textContent = allRows.length.toLocaleString('en-US');
     }
@@ -10943,7 +10943,7 @@ async function openIcBatchViewModal(batchId, triggerBtn) {
   } catch (err) {
     if (_icViewRequestToken !== token) return;
     console.error('IC Batch View: fetch error', err);
-    _icSetStatus('ظپط´ظ„ طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ: ' + (err.message || 'ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ'), 'error');
+    _icSetStatus('فشل تحميل البيانات: ' + (err.message || 'خطأ غير معروف'), 'error');
   }
 }
 
@@ -11022,13 +11022,13 @@ function handleReplaceIc(batchId) {
   if (!meta) return;
   
   const titles = {
-    'closing_wf01': 'طھظ‚ظپظٹظ„ ط§ظ„ظˆط§ط­ط©',
-    'closing_el01': 'طھظ‚ظپظٹظ„ ط§ظ„ظ…طµظ†ط¹ ط§ظ„ط±ط¦ظٹط³ظٹ',
-    'closing_el02': 'طھظ‚ظپظٹظ„ ظ…طµظ†ط¹ ط§ظ„ط¹ط§ظ…ط±ظٹط©'
+    'closing_wf01': 'تقفيل الواحة',
+    'closing_el01': 'تقفيل المصنع الرئيسي',
+    'closing_el02': 'تقفيل مصنع العامرية'
   };
   const reportName = titles[meta.reportKey] || meta.reportKey;
   
-  const msg = `ط³ظٹطھظ… ط§ط³طھط¨ط¯ط§ظ„ ط§ظ„ظ†ط³ط®ط© ط§ظ„ط­ط§ظ„ظٹط© ط¨ظ…ظ„ظپ ط¬ط¯ظٹط¯.\nط§ظ„ظ…ظ„ظپ ط§ظ„ط­ط§ظ„ظٹ: ${meta.fileName}\nطھط§ط±ظٹط® ط§ظ„طھظ‚ط±ظٹط±: ${meta.reportDate}\nط§ظ„طھظ‚ط±ظٹط±: ${reportName}\n\nظ‡ظ„ طھط±ظٹط¯ ط§ظ„ظ…طھط§ط¨ط¹ط©طں`;
+  const msg = `سيتم استبدال النسخة الحالية بملف جديد.\nالملف الحالي: ${meta.fileName}\nتاريخ التقرير: ${meta.reportDate}\nالتقرير: ${reportName}\n\nهل تريد المتابعة؟`;
 
   if (!window.confirm(msg)) return;
   
@@ -11051,9 +11051,9 @@ async function handleDeleteIc(batchId) {
   
   let msg = '';
   if (meta.status === 'succeeded') {
-     msg = "ظ‡ط°ظ‡ ظ‡ظٹ ط§ظ„ظ†ط³ط®ط© ط§ظ„ظ†ط´ط·ط© ظ„ظ‡ط°ط§ ط§ظ„طھظ‚ط±ظٹط± ظˆط§ظ„طھط§ط±ظٹط®. ط³ظٹطھظ… ط­ط°ظپ ظ…ظ„ظپ ط§ظ„ظ€Batch ظˆظƒظ„ طµظپظˆظپ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط±طھط¨ط·ط© ط¨ظ‡ ظ†ظ‡ط§ط¦ظٹظ‹ط§ ظ…ظ† ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھطŒ ظˆظ„ظ† ظٹظ…ظƒظ† ط§ط³طھط¹ط§ط¯طھظ‡ط§طŒ ظˆظ„ظ† ظٹطھظ… طھظ†ط´ظٹط· ظ†ط³ط®ط© ظ‚ط¯ظٹظ…ط© طھظ„ظ‚ط§ط¦ظٹظ‹ط§. ظ‡ظ„ طھط±ظٹط¯ ط§ظ„ظ…طھط§ط¨ط¹ط©طں";
+     msg = "هذه هي النسخة النشطة لهذا التقرير والتاريخ. سيتم حذف ملف الـBatch وكل صفوف البيانات المرتبطة به نهائيًا من قاعدة البيانات، ولن يمكن استعادتها، ولن يتم تنشيط نسخة قديمة تلقائيًا. هل تريد المتابعة؟";
   } else if (meta.status === 'replaced') {
-     msg = "ط³ظٹطھظ… ط­ط°ظپ ط§ظ„ظ†ط³ط®ط© ط§ظ„ظ…ط³طھط¨ط¯ظ„ط© ظˆظƒظ„ طµظپظˆظپظ‡ط§ ظ†ظ‡ط§ط¦ظٹظ‹ط§ ظ…ظ† ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ظ„طھط­ط±ظٹط± ط§ظ„ظ…ط³ط§ط­ط©. ظ„ط§ ظٹظ…ظƒظ† ط§ظ„طھط±ط§ط¬ط¹ ط¹ظ† ظ‡ط°ط§ ط§ظ„ط¥ط¬ط±ط§ط،. ظ‡ظ„ طھط±ظٹط¯ ط§ظ„ظ…طھط§ط¨ط¹ط©طں";
+     msg = "سيتم حذف النسخة المستبدلة وكل صفوفها نهائيًا من قاعدة البيانات لتحرير المساحة. لا يمكن التراجع عن هذا الإجراء. هل تريد المتابعة؟";
   } else {
      return;
   }
@@ -11067,9 +11067,9 @@ async function handleDeleteIc(batchId) {
      if (error) throw error;
      
      if (window.showToast) {
-       window.showToast('طھظ… ط§ظ„ط­ط°ظپ ط¨ظ†ط¬ط§ط­.', 'success');
+       window.showToast('تم الحذف بنجاح.', 'success');
      } else {
-       alert('طھظ… ط§ظ„ط­ط°ظپ ط¨ظ†ط¬ط§ط­.');
+       alert('تم الحذف بنجاح.');
      }
      
      inventoryClosingBatchMeta.delete(String(batchId));
@@ -11078,7 +11078,7 @@ async function handleDeleteIc(batchId) {
      await refreshOpenInventoryCountAfterClosingSource(meta.reportDate, config.plantCode, config.warehouseCode);
   } catch (err) {
      console.error('Delete error', err);
-     alert('ظپط´ظ„ ط§ظ„ط­ط°ظپ: ' + (err.message || 'ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ'));
+     alert('فشل الحذف: ' + (err.message || 'خطأ غير معروف'));
   }
 }
 
@@ -11106,40 +11106,40 @@ async function handleInventoryClosingReportFile(tabKey, file) {
 
   const reportDate = dateInput?.value;
   if (!reportDate) {
-    alert('ظٹط±ط¬ظ‰ ط§ط®طھظٹط§ط± طھط§ط±ظٹط® ط§ظ„ظ…ط±ط§ط¬ط¹ط©.');
+    alert('يرجى اختيار تاريخ المراجعة.');
     fileInput.value = '';
     return;
   }
 
   try {
-    if(!window.WarehouseDB?.ready) throw new Error('ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± ظ…طھطµظ„ط©.');
+    if(!window.WarehouseDB?.ready) throw new Error('قاعدة البيانات غير متصلة.');
     const {data: permData, error: permErr} = await WarehouseDB.client.rpc('can_upload_inventory_closing_reports');
     if (permErr) throw permErr;
     if (!permData) {
-      alert('ظ„ظٹط³ ظ„ط¯ظٹظƒ طµظ„ط§ط­ظٹط© ظ„ط±ظپط¹ طھظ‚ط§ط±ظٹط± ط§ظ„ط¬ط±ط¯.');
+      alert('ليس لديك صلاحية لرفع تقارير الجرد.');
       fileInput.value = '';
       return;
     }
   } catch (err) {
     console.error(err);
-    alert('ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„طµظ„ط§ط­ظٹط§طھ.');
+    alert('حدث خطأ أثناء التحقق من الصلاحيات.');
     fileInput.value = '';
     return;
   }
 
   btn.disabled = true;
   dateInput.disabled = true;
-  setStatus('ط¬ط§ط±ظٹ ظ‚ط±ط§ط،ط© ط§ظ„ظ…ظ„ظپ...');
+  setStatus('جاري قراءة الملف...');
 
   let batchId = null;
 
   try {
-    if (!window.XLSX) throw new Error('ظ…ظƒطھط¨ط© Excel ط؛ظٹط± ظ…طھظˆظپط±ط©.');
+    if (!window.XLSX) throw new Error('مكتبة Excel غير متوفرة.');
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    if (!sheet) throw new Error('ط§ظ„ظ…ظ„ظپ ظ„ط§ ظٹط­طھظˆظٹ ط¹ظ„ظ‰ ط£ظˆط±ط§ظ‚ طµط§ظ„ط­ط©.');
+    if (!sheet) throw new Error('الملف لا يحتوي على أوراق صالحة.');
 
     const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
     
@@ -11151,18 +11151,18 @@ async function handleInventoryClosingReportFile(tabKey, file) {
       }
     }
     
-    if(headerRowIdx === -1) throw new Error('ط§ظ„ظ…ظ„ظپ ظ„ط§ ظٹط­طھظˆظٹ ط¹ظ„ظ‰ ط¨ظٹط§ظ†ط§طھ.');
+    if(headerRowIdx === -1) throw new Error('الملف لا يحتوي على بيانات.');
     
     const headers = matrix[headerRowIdx].map(icCleanHeader);
     const required = [
-      'ظƒظˆط¯ ط§ظ„ظ…ط§ط¯ط©', 'ظˆطµظپ ط§ظ„ظ…ط§ط¯ط©', 'ط§ظ„ظƒظ…ظٹط©', 'ظˆط­ط¯ط© ط§ظ„ظ‚ظٹط§ط³', 'ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©',
-      'ظˆطµظپ ظ†ظˆط¹ ط§ظ„ط­ط±ظƒط©', 'ط§ظ„ظ…ط®ط²ظ†', 'ط§ظ„ظ…طµظ†ط¹', 'ط¥ط³ظ… ط§ظ„ظ…طµظ†ط¹', 'ط§ظ„طھط§ط±ظٹط®', 'ظ…ط¬ظ…ظˆط¹ط© ط§ظ„ط¹ظ…ط§ظ„'
+      'كود المادة', 'وصف المادة', 'الكمية', 'وحدة القياس', 'نوع الحركة',
+      'وصف نوع الحركة', 'المخزن', 'المصنع', 'إسم المصنع', 'التاريخ', 'مجموعة العمال'
     ];
     for (let r of required) {
-      if (headers.indexOf(r) === -1) throw new Error('ظٹظˆط¬ط¯ ط¹ظ…ظˆط¯ ظ…ط·ظ„ظˆط¨ ط؛ظٹط± ظ…ظˆط¬ظˆط¯: ' + r);
+      if (headers.indexOf(r) === -1) throw new Error('يوجد عمود مطلوب غير موجود: ' + r);
     }
 
-    setStatus('ط¬ط§ط±ظٹ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط¨ظٹط§ظ†ط§طھ...');
+    setStatus('جاري التحقق من البيانات...');
     const parsedRows = [];
     
     for (let i = headerRowIdx + 1; i < matrix.length; i++) {
@@ -11173,32 +11173,32 @@ async function handleInventoryClosingReportFile(tabKey, file) {
       
       if (!mapped.material_code || !mapped.uom || !mapped.movement_type || !mapped.movement_text || !mapped.transaction_date || isNaN(mapped.quantity)) {
         if(isNaN(mapped.quantity)) {
-            throw new Error('طھظˆط¬ط¯ ظ‚ظٹظ…ط© ظƒظ…ظٹط© ط؛ظٹط± طµط§ظ„ط­ط© ظپظٹ ط§ظ„طµظپ ط±ظ‚ظ… ' + (i + 1));
+            throw new Error('توجد قيمة كمية غير صالحة في الصف رقم ' + (i + 1));
         }
-        throw new Error('ظٹظˆط¬ط¯ ظ‚ظٹظ… ط¥ظ„ط²ط§ظ…ظٹط© ظ…ظپظ‚ظˆط¯ط© ظپظٹ ط§ظ„طµظپ ط±ظ‚ظ… ' + (i + 1));
+        throw new Error('يوجد قيم إلزامية مفقودة في الصف رقم ' + (i + 1));
       }
       
       const d = new Date(mapped.transaction_date);
       if (isNaN(d.getTime())) {
-        throw new Error('ظٹظˆط¬ط¯ طھط§ط±ظٹط® ط؛ظٹط± طµط§ظ„ط­ ظپظٹ ط§ظ„طµظپ ط±ظ‚ظ… ' + (i + 1) + ': ' + mapped.transaction_date);
+        throw new Error('يوجد تاريخ غير صالح في الصف رقم ' + (i + 1) + ': ' + mapped.transaction_date);
       }
       mapped.transaction_date = d.toISOString().split('T')[0];
       
       if (!IC_ALLOWED_UOM.includes(mapped.uom.toUpperCase())) {
-         throw new Error('ظˆط­ط¯ط© ظ‚ظٹط§ط³ ط؛ظٹط± ظ…ط¯ط¹ظˆظ…ط© ظپظٹ ط§ظ„طµظپ ط±ظ‚ظ… ' + (i + 1) + ': ' + mapped.uom);
+         throw new Error('وحدة قياس غير مدعومة في الصف رقم ' + (i + 1) + ': ' + mapped.uom);
       }
       
       if (mapped.plant_code !== config.plantCode || mapped.warehouse_code !== config.warehouseCode) {
-        throw new Error('ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…طµظ†ط¹ ط£ظˆ ط§ظ„ظ…ط®ط²ظ† ظ„ط§ طھط·ط§ط¨ظ‚ طھظ‚ط±ظٹط± ط§ظ„طھظ‚ظپظٹظ„ ط§ظ„ظ…ط®طھط§ط± ظپظٹ ط§ظ„طµظپ ط±ظ‚ظ… ' + (i + 1) + '. ظ…طھظˆظ‚ط¹: ' + config.plantCode + '-' + config.warehouseCode);
+        throw new Error('بيانات المصنع أو المخزن لا تطابق تقرير التقفيل المختار في الصف رقم ' + (i + 1) + '. متوقع: ' + config.plantCode + '-' + config.warehouseCode);
       }
       
       parsedRows.push(mapped);
     }
 
-    if(parsedRows.length === 0) throw new Error('ط§ظ„ظ…ظ„ظپ ظ„ط§ ظٹط­طھظˆظٹ ط¹ظ„ظ‰ ط¨ظٹط§ظ†ط§طھ ظپط¹ظ„ظٹط©.');
+    if(parsedRows.length === 0) throw new Error('الملف لا يحتوي على بيانات فعلية.');
     const normalizedRows = normalizeInventoryClosingUploadRows(parsedRows);
 
-    setStatus('ط¬ط§ط±ظٹ ط±ظپط¹ ط§ظ„ط¨ظٹط§ظ†ط§طھ...');
+    setStatus('جاري رفع البيانات...');
 
     const { data: userData } = await WarehouseDB.getUser();
     const uploaderName = userData?.user?.user_metadata?.full_name || userData?.user?.email || null;
@@ -11217,7 +11217,7 @@ async function handleInventoryClosingReportFile(tabKey, file) {
     batchId = (_beginResult !== null && typeof _beginResult === 'object')
       ? (_beginResult.batch_id || _beginResult.id || _beginResult)
       : _beginResult;
-    if(!batchId) throw new Error('ظ„ظ… ظٹطھظ… ط¥ط±ط¬ط§ط¹ batch_id ظ…ظ† ط§ظ„ط®ط§ط¯ظ….');
+    if(!batchId) throw new Error('لم يتم إرجاع batch_id من الخادم.');
 
     const CHUNK_SIZE = 250;
     for (let i = 0; i < normalizedRows.length; i += CHUNK_SIZE) {
@@ -11229,10 +11229,10 @@ async function handleInventoryClosingReportFile(tabKey, file) {
       if (chunkErr) throw chunkErr;
       
       const percent = Math.round((Math.min(i + CHUNK_SIZE, normalizedRows.length) / normalizedRows.length) * 100);
-      setStatus('ط¬ط§ط±ظٹ ط±ظپط¹ ط§ظ„ط¨ظٹط§ظ†ط§طھ... (' + percent + '%)');
+      setStatus('جاري رفع البيانات... (' + percent + '%)');
     }
 
-    setStatus('ط¬ط§ط±ظٹ ط§ط¹طھظ…ط§ط¯ ط§ظ„طھظ‚ط±ظٹط±...');
+    setStatus('جاري اعتماد التقرير...');
     const { data: finData, error: finErr } = await WarehouseDB.client.rpc('finalize_inventory_closing_upload', {
       p_batch_id: batchId
     });
@@ -11243,10 +11243,10 @@ async function handleInventoryClosingReportFile(tabKey, file) {
       ? (_finResult.status || _finResult.new_status || _finResult)
       : _finResult;
     if (finStatus !== 'succeeded') {
-      throw new Error('ظپط´ظ„ ط§ط¹طھظ…ط§ط¯ ط§ظ„طھظ‚ط±ظٹط±: ط§ظ„ط­ط§ظ„ط© ظ„ظٹط³طھ succeeded (ط§ظ„ط­ط§ظ„ط© ط§ظ„ظ…ظڈط±ط¬ظژط¹ط©: ' + JSON.stringify(_finResult) + ')');
+      throw new Error('فشل اعتماد التقرير: الحالة ليست succeeded (الحالة المُرجَعة: ' + JSON.stringify(_finResult) + ')');
     }
 
-    setStatus('طھظ… ط±ظپط¹ ط§ظ„طھظ‚ط±ظٹط± ط¨ظ†ط¬ط§ط­. (' + normalizedRows.length + ' طµظپ)', 'ok');
+    setStatus('تم رفع التقرير بنجاح. (' + normalizedRows.length + ' صف)', 'ok');
     fileInput.value = '';
     
     await icLoadLastUploadBatch(tabKey);
@@ -11264,7 +11264,7 @@ async function handleInventoryClosingReportFile(tabKey, file) {
       }
     }
     console.error('IC Upload Error:', err);
-    setStatus('ظپط´ظ„ ط±ظپط¹ ط§ظ„طھظ‚ط±ظٹط±: ' + (err.message || 'ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ'), 'err');
+    setStatus('فشل رفع التقرير: ' + (err.message || 'خطأ غير معروف'), 'err');
   } finally {
     btn.disabled = false;
     dateInput.disabled = false;
@@ -11325,7 +11325,7 @@ async function ensureStorekeepersLoaded() {
 async function loadStorekeepersTable() {
   const tbody = document.querySelector('#storekeepersSettingsTable tbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">ط¬ط§ط±ظٹ ط§ظ„طھط­ظ…ظٹظ„...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري التحميل...</td></tr>';
   
   try {
     let query = WarehouseDB.client.from('storekeepers').select('*').order('created_at', { ascending: false });
@@ -11348,7 +11348,7 @@ async function loadStorekeepersTable() {
     if (error) throw error;
     
     if (!data || data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;" class="empty-row">ظ„ط§ ظٹظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ„ط¹ط±ط¶ظ‡ط§</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;" class="empty-row">لا يوجد بيانات لعرضها</td></tr>';
       return;
     }
     
@@ -11359,18 +11359,18 @@ async function loadStorekeepersTable() {
         <td>${escapeHtml(st.plant_code || '')}</td>
         <td>
           <span class="status-badge ${st.is_active ? 'status-active' : 'status-inactive'}">
-            ${st.is_active ? 'ظ†ط´ط·' : 'ط؛ظٹط± ظ†ط´ط·'}
+            ${st.is_active ? 'نشط' : 'غير نشط'}
           </span>
         </td>
         <td>
           <div class="actions-cell">
             <button class="small-action edit" type="button" data-action="edit-storekeeper"
               onclick="editStorekeeper('${st.id}', '${escapeHtml(st.full_name)}', '${escapeHtml(st.job_title)}', '${st.plant_code}', ${st.is_active})">
-              طھط¹ط¯ظٹظ„
+              تعديل
             </button>
             <button class="small-action ${st.is_active ? 'delete' : 'view'}" type="button" data-action="toggle-storekeeper"
               onclick="toggleStorekeeperStatus('${st.id}', ${!st.is_active})">
-              ${st.is_active ? 'ط¥ظٹظ‚ط§ظپ' : 'طھظپط¹ظٹظ„'}
+              ${st.is_active ? 'إيقاف' : 'تفعيل'}
             </button>
           </div>
         </td>
@@ -11381,7 +11381,7 @@ async function loadStorekeepersTable() {
     
   } catch (err) {
     console.error('Error loading storekeepers:', err);
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط¬ظ„ط¨ ط§ظ„ط¨ظٹط§ظ†ط§طھ</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:red;">حدث خطأ أثناء جلب البيانات</td></tr>';
   }
 }
 
@@ -11400,7 +11400,7 @@ document.getElementById('storekeeperSettingsForm')?.addEventListener('submit', a
   }
   const btn = document.getElementById('saveStorekeeperBtn');
   const originalText = btn.textContent;
-  btn.textContent = 'ط¬ط§ط±ظٹ ط§ظ„ط­ظپط¸...';
+  btn.textContent = 'جاري الحفظ...';
   btn.disabled = true;
   
   try {
@@ -11415,13 +11415,13 @@ document.getElementById('storekeeperSettingsForm')?.addEventListener('submit', a
         .update({ full_name, job_title, plant_code, is_active, updated_at: new Date().toISOString() })
         .eq('id', id);
       if (error) throw error;
-      if (window.showToast) window.showToast('طھظ… ط§ظ„طھط¹ط¯ظٹظ„ ط¨ظ†ط¬ط§ط­', 'success');
+      if (window.showToast) window.showToast('تم التعديل بنجاح', 'success');
     } else {
       // Insert
       const { error } = await WarehouseDB.client.from('storekeepers')
         .insert([{ full_name, job_title, plant_code, is_active }]);
       if (error) throw error;
-      if (window.showToast) window.showToast('طھظ…طھ ط§ظ„ط¥ط¶ط§ظپط© ط¨ظ†ط¬ط§ط­', 'success');
+      if (window.showToast) window.showToast('تمت الإضافة بنجاح', 'success');
     }
     
     resetStorekeeperForm();
@@ -11429,7 +11429,7 @@ document.getElementById('storekeeperSettingsForm')?.addEventListener('submit', a
     await reloadInventoryCountStorekeepers(); // Refresh dropdowns in inventory closing
   } catch (err) {
     console.error('Error saving storekeeper:', err);
-    alert('ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط­ظپط¸: ' + (err.message || ''));
+    alert('حدث خطأ أثناء الحفظ: ' + (err.message || ''));
   } finally {
     btn.textContent = originalText;
     btn.disabled = false;
@@ -11449,7 +11449,7 @@ function editStorekeeper(id, full_name, job_title, plant_code, is_active) {
   document.getElementById('storekeeperPlantInput').value = plant_code;
   document.getElementById('storekeeperActiveInput').checked = is_active;
   
-  document.getElementById('saveStorekeeperBtn').textContent = 'طھط­ط¯ظٹط« ط£ظ…ظٹظ† ط§ظ„ظ…ط®ط²ظ†';
+  document.getElementById('saveStorekeeperBtn').textContent = 'تحديث أمين المخزن';
   document.getElementById('cancelStorekeeperBtn').style.display = 'inline-block';
   applyStorekeepersSettingsPermissions();
 }
@@ -11462,7 +11462,7 @@ function resetStorekeeperForm() {
   }
   document.getElementById('storekeeperIdInput').value = '';
   document.getElementById('storekeeperSettingsForm').reset();
-  document.getElementById('saveStorekeeperBtn').textContent = 'ط­ظپط¸ ط£ظ…ظٹظ† ط§ظ„ظ…ط®ط²ظ†';
+  document.getElementById('saveStorekeeperBtn').textContent = 'حفظ أمين المخزن';
   document.getElementById('cancelStorekeeperBtn').style.display = 'none';
   applyStorekeepersSettingsPermissions();
 }
@@ -11480,12 +11480,12 @@ async function toggleStorekeeperStatus(id, newStatus) {
       .update({ is_active: newStatus, updated_at: new Date().toISOString() })
       .eq('id', id);
     if (error) throw error;
-    if (window.showToast) window.showToast('طھظ… طھط­ط¯ظٹط« ط§ظ„ط­ط§ظ„ط© ط¨ظ†ط¬ط§ط­', 'success');
+    if (window.showToast) window.showToast('تم تحديث الحالة بنجاح', 'success');
     await loadStorekeepersTable();
     await reloadInventoryCountStorekeepers();
   } catch (err) {
     console.error('Status update error', err);
-    alert('ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„طھط­ط¯ظٹط«');
+    alert('حدث خطأ أثناء التحديث');
   }
 }
 
@@ -11505,10 +11505,10 @@ async function reloadInventoryCountStorekeepers() {
       
       const filtered = (data || []).filter(st => st.plant_code === plant);
       
-     let html = '<option value="">ط§ط®طھط± ط§ظ„ظ‚ط§ط¦ظ… ط¨ط§ظ„ط¬ط±ط¯</option>';
+     let html = '<option value="">اختر القائم بالجرد</option>';
 
 filtered.forEach((st) => {
-  html += `<option value="${escapeHtml(st.id)}">${escapeHtml(st.full_name)} â€” ${escapeHtml(st.job_title)}</option>`;
+  html += `<option value="${escapeHtml(st.id)}">${escapeHtml(st.full_name)} — ${escapeHtml(st.job_title)}</option>`;
 });
 
 select.innerHTML = html;
