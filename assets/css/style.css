@@ -3788,3 +3788,26 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
   -webkit-appearance: none;
   margin: 0;
 }
+/* Inventory Count - total row and reviewer footer only */
+#inventoryCountLinesTable tfoot td {
+  background: rgba(0,74,43,.92);
+  border-top: 1px solid rgba(132,207,80,.75);
+  border-bottom: 0;
+  color: #9cff66;
+  font-weight: 900;
+  font-size: 14px;
+  text-align: center;
+}
+
+#inventoryCountLinesTable .inventory-count-total-row td:first-child {
+  color: #d8ffd1;
+}
+
+#inventory_closing .inventory-count-reviewer-footer {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-top: 1px solid rgba(132,207,80,.34);
+  color: #d8ffd1;
+  font-weight: 900;
+  text-align: right;
+}

@@ -9683,6 +9683,54 @@ function formatInventoryCountMovementQuantity(value){
   if(value===null || value===undefined || value==='') return '0';
   return fmt(value);
 }
+function inventoryCountTotalNumber(value){
+  if(value===null || value===undefined || value==='') return 0;
+  const n=Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+function inventoryCountReviewerName(){
+  const headerName=String(document.getElementById('currentUserName')?.textContent || '').trim();
+  if(headerName && headerName!=='--') return headerName;
+  const profile=typeof CURRENT_APP_PROFILE!=='undefined' ? CURRENT_APP_PROFILE : null;
+  const authUser=typeof CURRENT_AUTH_USER!=='undefined' ? CURRENT_AUTH_USER : null;
+  return String(profile?.full_name || profile?.name || authUser?.user_metadata?.full_name || authUser?.email || '—').trim() || '—';
+}
+function updateInventoryCountReviewerFooter(){
+  const footer=$('#inventoryCountReviewerFooter');
+  if(!footer) return;
+  footer.textContent=`القائم بالمراجعة / ${inventoryCountReviewerName()}`;
+}
+function renderInventoryCountTotals(rows=[]){
+  const tfoot=$('#inventoryCountLinesTable tfoot');
+  if(!tfoot) return;
+  if(!rows.length){
+    tfoot.innerHTML='';
+    updateInventoryCountReviewerFooter();
+    return;
+  }
+  const total=key=>rows.reduce((sum,row)=>sum+inventoryCountTotalNumber(row?.[key]),0);
+  tfoot.innerHTML=`<tr class="inventory-count-total-row">
+    <td>الإجمالي</td>
+    <td></td>
+    <td></td>
+    <td>${formatInventoryOpeningBalance(total('opening_balance'))}</td>
+    <td>${formatInventoryCountMovementQuantity(total('production_quantity'))}</td>
+    <td>${formatInventoryCountMovementQuantity(total('incoming_transfers'))}</td>
+    <td>${formatInventoryCountMovementQuantity(total('actual_returns'))}</td>
+    <td>${formatInventoryCountMovementQuantity(total('adjustment_increase_z22'))}</td>
+    <td>${formatInventoryCountMovementQuantity(total('adjustment_shortage_z21'))}</td>
+    <td>${formatInventoryCountMovementQuantity(total('sales_quantity'))}</td>
+    <td>${formatInventoryCountMovementQuantity(total('outgoing_transfers'))}</td>
+    <td>${formatInventoryCountMovementQuantity(total('rework_311'))}</td>
+    <td>${formatInventoryCountMovementQuantity(total('book_balance'))}</td>
+    <td>${formatInventoryCountMovementQuantity(total('physical_balance'))}</td>
+    <td>${formatInventoryCountMovementQuantity(total('inventory_variance'))}</td>
+    <td>${formatInventoryCountMovementQuantity(total('oldest_quantity'))}</td>
+    <td></td>
+    <td></td>
+  </tr>`;
+  updateInventoryCountReviewerFooter();
+}
 function formatInventoryCountText(value){
   if(value===null || value===undefined) return '';
   return escapeHtml(String(value));
@@ -9758,6 +9806,7 @@ function renderInventoryCountLines(rows=[]){
   INVENTORY_COUNT_STATE.lines=rows;
   if(!rows.length){
     tbody.innerHTML='<tr><td colspan="18" class="empty-state">لا توجد بنود جرد للنسخة الحالية.</td></tr>';
+    renderInventoryCountTotals([]);
     return;
   }
   tbody.innerHTML=rows.map(row=>`<tr>
@@ -9781,6 +9830,7 @@ function renderInventoryCountLines(rows=[]){
     <td>${formatInventoryCountText(row.inventory_counter_name_snapshot)}</td>
   </tr>`).join('');
   updateInventoryOpeningBalanceInputsWidth(tbody);
+  renderInventoryCountTotals(rows);
 }
 async function filterInventoryCountLinesByCurrentWarehouse(rows=[]){
   const warehouseCode=inventoryCountReadInputs().warehouseCode;
@@ -10000,6 +10050,7 @@ async function saveInventoryOpeningBalanceInput(input){
       row.opening_balance=data?.opening_balance ?? null;
       row.row_version=data?.row_version ?? row.row_version;
     }
+    renderInventoryCountTotals(INVENTORY_COUNT_STATE.lines);
     const savedValue=inventoryCountOpeningBalanceInputValue(data?.opening_balance);
     input.value=savedValue;
     updateInventoryOpeningBalanceInputWidth(input);
@@ -10055,6 +10106,7 @@ function initInventoryCountScreen(){
   syncInventoryCountWarehouse();
   inventoryCountSetLoading(false);
   bindInventoryOpeningBalanceEvents();
+  updateInventoryCountReviewerFooter();
   inventoryCountUpdateCreateButton();
   if(createBtn.dataset.inventoryCountCreateBound!=='1'){
     createBtn.dataset.inventoryCountCreateBound='1';
