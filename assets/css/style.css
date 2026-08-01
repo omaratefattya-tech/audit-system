@@ -3860,3 +3860,48 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
   color: #d8ffd1;
   background: rgba(255, 255, 255, .04);
 }
+/* Inventory Count - remaining manual fields only */
+#inventoryCountLinesTable .inventory-physical-balance-cell,
+#inventoryCountLinesTable .inventory-oldest-quantity-cell,
+#inventoryCountLinesTable .inventory-oldest-date-cell,
+#inventoryCountLinesTable .inventory-counter-cell {
+  position: relative;
+  overflow: visible;
+  text-align: center;
+}
+
+#inventoryCountLinesTable .inventory-physical-balance-input,
+#inventoryCountLinesTable .inventory-oldest-quantity-input {
+  box-sizing: border-box;
+  width: 76px;
+  min-width: 76px;
+  max-width: none;
+  margin: 0 auto;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+
+#inventoryCountLinesTable .inventory-physical-balance-input:focus,
+#inventoryCountLinesTable .inventory-oldest-quantity-input:focus,
+#inventoryCountLinesTable .inventory-oldest-date-input:focus,
+#inventoryCountLinesTable .inventory-counter-select:focus {
+  position: relative;
+  z-index: 5;
+}
+
+#inventoryCountLinesTable .inventory-physical-balance-input::-webkit-inner-spin-button,
+#inventoryCountLinesTable .inventory-physical-balance-input::-webkit-outer-spin-button,
+#inventoryCountLinesTable .inventory-oldest-quantity-input::-webkit-inner-spin-button,
+#inventoryCountLinesTable .inventory-oldest-quantity-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+#inventoryCountLinesTable .inventory-oldest-date-input,
+#inventoryCountLinesTable .inventory-counter-select {
+  box-sizing: border-box;
+  min-width: 132px;
+  max-width: 220px;
+  min-height: 30px;
+  margin: 0 auto;
+}
