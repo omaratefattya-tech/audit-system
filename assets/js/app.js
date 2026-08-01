@@ -30,7 +30,7 @@ function enterpriseFilterText(value,select,allText='الكل'){
   const active=enterpriseFilterActiveValues(value);
   if(!active.length) return allText;
   const labels=active.map(v=>[...(select?.options||[])].find(o=>o.value===v)?.textContent?.trim() || v);
-  return labels.length<=3 ? labels.join('طŒ ') : `${labels.slice(0,3).join('طŒ ')} +${labels.length-3}`;
+  return labels.length<=3 ? labels.join('، ') : `${labels.slice(0,3).join('، ')} +${labels.length-3}`;
 }
 function enterpriseMultiSelectValues(select){
   if(!select) return ['all'];
@@ -322,7 +322,7 @@ function renderPlants(){
 const TABLE_STATE={};
 function escapeHtml(v){return String(v??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));}
 function stripHtml(v){const tmp=document.createElement('div');tmp.innerHTML=String(v??'');return (tmp.textContent||tmp.innerText||'').trim();}
-function normalizeArabicDigits(v){return String(v??'').replace(/[ظ -ظ©]/g,d=>'ظ ظ،ظ¢ظ£ظ¤ظ¥ظ¦ظ§ظ¨ظ©'.indexOf(d)).replace(/[غ°-غ¹]/g,d=>'غ°غ±غ²غ³غ´غµغ¶غ·غ¸غ¹'.indexOf(d));}
+function normalizeArabicDigits(v){return String(v??'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));}
 
 function warehouseMetaByCode(code){
   const target=String(code||'').trim().toUpperCase();
@@ -2782,7 +2782,7 @@ function normalizeHeader(v){return String(v||'').replace(/\s+/g,' ').trim();}
 function parseArabicNumber(v){
   if(v===null || v===undefined || v==='') return 0;
   if(typeof v==='number') return v;
-  const s=String(v).replace(/,/g,'').replace(/[ظ -ظ©]/g,d=>'ظ ظ،ظ¢ظ£ظ¤ظ¥ظ¦ظ§ظ¨ظ©'.indexOf(d)).trim();
+  const s=String(v).replace(/,/g,'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).trim();
   const n=Number(s);
   return Number.isFinite(n)?n:0;
 }
@@ -2954,10 +2954,10 @@ function normKey(v){return normText(v).toLowerCase();}
 function normalizeIncomingMatchKeyPart(value){
   const raw=stripHiddenUnicode(value)
     .trim()
-    .replace(/[ظ -ظ©]/g,d=>String('ظ ظ،ظ¢ظ£ظ¤ظ¥ظ¦ظ§ظ¨ظ©'.indexOf(d)))
-    .replace(/[غ°-غ¹]/g,d=>String('غ°غ±غ²غ³غ´غµغ¶غ·غ¸غ¹'.indexOf(d)))
+    .replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
     .replace(/\s+/g,'')
-    .replace(/[ظ¬طŒ,]/g,'');
+    .replace(/[٬،,]/g,'');
   if(!raw) return '';
   const normalizedNumber=raw.replace(/\.0+$/,'');
   if(/^\d+$/.test(normalizedNumber)) return normalizedNumber.replace(/^0+(?=\d)/,'') || '0';
@@ -2976,7 +2976,7 @@ function freightDescriptionKey(v){return normKeyKeepSapSpaces(v);}
 function isSupplierVehicle(vehicleNumber, vehicleDescription){
   const no=normText(vehicleNumber);
   const desc=normText(vehicleDescription);
-  return !desc || no.includes('ط³') || (!no.startsWith('300') && !desc);
+  return !desc || no.includes('س') || (!no.startsWith('300') && !desc);
 }
 function incomingTypeFromVehicle(vehicleNumber, vehicleDescription){
   return isSupplierVehicle(vehicleNumber, vehicleDescription) ? 'وصّال' : 'أرضة';
@@ -3356,7 +3356,7 @@ async function loadSalesBatches(){
     b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
     `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض</button>
      <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
-     <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">ط­ط°ظپ</button>`
+     <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">حذف</button>`
   ]);
   table('#salesBatchesTable',['تاريخ التقرير','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الإجراءات'],rows);
 }
@@ -3477,7 +3477,7 @@ async function loadIncomingBatches(){
     b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
     `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض</button>
      <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
-     <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">ط­ط°ظپ</button>`
+     <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">حذف</button>`
   ]);
   table('#incomingBatchesTable',['تاريخ التقرير','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الإجراءات'],rows);
 }
@@ -3590,7 +3590,7 @@ async function loadScaleBatches(){
     b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
     `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض المراجعة</button>
      <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
-     <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">ط­ط°ظپ</button>`
+     <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">حذف</button>`
   ]);
   table('#scaleBatchesTable',['تاريخ التقرير','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الإجراءات'],rows);
 }
@@ -3823,7 +3823,7 @@ async function loadFreightBatches(){
     b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
     b.status || '-',
     `<button class="small-action view" data-action="view">عرض المرجع الحالي</button>
-     <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.reference_date)}">ط­ط°ظپ</button>`
+     <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.reference_date)}">حذف</button>`
   ]);
   table('#freightBatchesTable',['تاريخ المرجع','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الحالة','الإجراءات'],rows);
 }
@@ -5707,7 +5707,7 @@ const PERMISSION_ACTIONS = [
   {key:'view', label:'عرض'},
   {key:'add', label:'إضافة'},
   {key:'edit', label:'تعديل'},
-  {key:'delete', label:'ط­ط°ظپ'},
+  {key:'delete', label:'حذف'},
   {key:'upload', label:'رفع'},
   {key:'export_excel', label:'Excel'},
   {key:'export_pdf', label:'PDF'},
@@ -6266,7 +6266,7 @@ async function saveManagedUser(e){
     resetUserManagementForm(false);
     await loadUsersManagement();
   }catch(err){
-    setUsersStatus('ط®ط·ط£: '+(err.message||err),'err');
+    setUsersStatus('خطأ: '+(err.message||err),'err');
   }
 }
 async function toggleManagedUser(userId,currentActive){
@@ -6478,11 +6478,11 @@ function parseRawMaterialsNumber(value,label,rowNumber,options={}){
     throw new Error(`الصف ${rowNumber}: ${label} يجب أن تكون رقمًا صالحًا.`);
   }
   const normalized=text
-    .replace(/[ظ -ظ©]/g,d=>String('ظ ظ،ظ¢ظ£ظ¤ظ¥ظ¦ظ§ظ¨ظ©'.indexOf(d)))
-    .replace(/[غ°-غ¹]/g,d=>String('غ°غ±غ²غ³غ´غµغ¶غ·غ¸غ¹'.indexOf(d)))
-    .replace(/ظ¬/g,'')
+    .replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/٬/g,'')
     .replace(/,/g,'')
-    .replace(/ظ«/g,'.');
+    .replace(/٫/g,'.');
   const n=Number(normalized);
   if(!Number.isFinite(n)) throw new Error(`الصف ${rowNumber}: ${label} يجب أن تكون رقمًا صالحًا.`);
   return n;
@@ -7802,8 +7802,8 @@ function flattenExceptions(items){
       ...ex,
       code:item.code,
       name:item.name,
-      warehouses:item.warehouses.join('طŒ ')||'-',
-      plants:item.plants.join('طŒ ')||'-',
+      warehouses:item.warehouses.join('، ')||'-',
+      plants:item.plants.join('، ')||'-',
       sales:item.sales,
       production:item.production,
       outgoing:item.outgoing,
@@ -8133,7 +8133,7 @@ function auditScoreStatus(score){
 function calculateAuditScoreForPlant(plantCode,modelBase){
   const st=(modelBase.plantStats||{})[plantCode]||{sales:0,production:0,outgoing:0,incoming:0,loading:0,activity:0};
   const rows=(modelBase.rows||[]).filter(r=>String(r.plant_code||dashboardWhMeta(String(r.warehouse_code||'').toUpperCase()).plant||'')===String(plantCode));
-  const exceptions=(modelBase.exceptions||[]).filter(e=>String(e.plants||'').split('طŒ').map(x=>x.trim()).includes(String(plantCode)));
+  const exceptions=(modelBase.exceptions||[]).filter(e=>String(e.plants||'').split('،').map(x=>x.trim()).includes(String(plantCode)));
   const totalActivity=Math.abs(st.sales||0)+Math.abs(st.production||0)+Math.abs(st.outgoing||0)+Math.abs(st.incoming||0)+Math.abs(st.loading||0);
   const hasData=rows.length>0 && totalActivity>0;
   const expectedLoading=Math.abs((st.sales||0)+(st.outgoing||0));
@@ -8267,7 +8267,7 @@ function smartPeriodPhrase(model){
   const to=normalizeDateISO(filters.to||'');
   if(from && to) return 'خلال الفترة من '+from+' إلى '+to;
   if(from) return 'من '+from;
-  if(to) return 'ط­طھظ‰ '+to;
+  if(to) return 'حتى '+to;
   return 'خلال الفترة المحددة';
 }
 function smartLocationPhrase(entry){
@@ -8281,15 +8281,15 @@ function smartLocationPhrase(entry){
 function smartExceptionText(e,period){
   const location=smartLocationPhrase(e);
   const bits=['الصنف '+smartCleanValue(e?.code), smartCleanValue(e?.name)].filter(Boolean).join(' — ');
-  const where=location ? ' ظپظٹ '+location : '';
+  const where=location ? ' في '+location : '';
   const details=smartCleanValue(e?.details) ? ': '+e.details : '';
   const score=Number.isFinite(Number(e?.reviewScore)) ? ' — '+fmt(e.reviewScore)+' نقطة' : '';
   return bits+where+' بسبب '+(smartCleanValue(e?.label)||'مؤشر مراجعة')+details+' '+period+score+'.';
 }
 function smartItemText(item,reason,period){
-  const location=smartLocationPhrase({warehouses:(item?.warehouses||[]).join('طŒ '),plants:(item?.plants||[]).join('طŒ ')});
+  const location=smartLocationPhrase({warehouses:(item?.warehouses||[]).join('، '),plants:(item?.plants||[]).join('، ')});
   const bits=['الصنف '+smartCleanValue(item?.code), smartCleanValue(item?.name)].filter(Boolean).join(' — ');
-  const where=location ? ' ظپظٹ '+location : '';
+  const where=location ? ' في '+location : '';
   return bits+where+' '+reason+' '+period+'.';
 }
 function smartAlertDetailsHtml(details,extra){
@@ -10773,7 +10773,7 @@ async function icLoadLastUploadBatch(tabKey) {
       if (batch.status === 'succeeded') {
         replaceBtn = `<button type="button" class="small-action replace" data-action="replace-ic" data-batch-id="${escapeHtml(String(batch.id))}">استبدال</button>`;
       }
-      const deleteBtn = `<button type="button" class="small-action delete" data-action="delete-ic" data-batch-id="${escapeHtml(String(batch.id))}">ط­ط°ظپ</button>`;
+      const deleteBtn = `<button type="button" class="small-action delete" data-action="delete-ic" data-batch-id="${escapeHtml(String(batch.id))}">حذف</button>`;
       
       const actionsHtml = `<div style="display:flex;gap:4px;align-items:center;">${viewBtn}${replaceBtn}${deleteBtn}</div>`;
       
