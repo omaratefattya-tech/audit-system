@@ -3838,3 +3838,25 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
   -webkit-appearance: none;
   margin: 0;
 }
+/* Inventory Count - variance read-only state only */
+#inventoryCountLinesTable .inventory-variance-cell {
+  font-weight: 900;
+  transition: background-color .15s ease, box-shadow .15s ease, color .15s ease;
+}
+
+#inventoryCountLinesTable .inventory-variance-shortage {
+  color: #ffd4d4;
+  background: rgba(219, 75, 75, .14);
+  box-shadow: inset 0 0 0 1px rgba(219, 75, 75, .3), 0 0 14px rgba(219, 75, 75, .12);
+}
+
+#inventoryCountLinesTable .inventory-variance-surplus {
+  color: #d8ffd1;
+  background: rgba(132, 207, 80, .13);
+  box-shadow: inset 0 0 0 1px rgba(132, 207, 80, .32), 0 0 14px rgba(132, 207, 80, .12);
+}
+
+#inventoryCountLinesTable .inventory-variance-match {
+  color: #d8ffd1;
+  background: rgba(255, 255, 255, .04);
+}

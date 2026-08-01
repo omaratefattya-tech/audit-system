@@ -9688,6 +9688,21 @@ function formatInventoryCountThreeDecimalQuantity(value){
   const n=Number(value);
   return Number.isFinite(n) ? n.toFixed(3) : '0.000';
 }
+function inventoryCountVarianceState(value){
+  const n=Number(value);
+  if(!Number.isFinite(n) || Math.abs(n)<0.0005) return 'match';
+  return n<0 ? 'shortage' : 'surplus';
+}
+function inventoryCountVarianceTitle(value){
+  const state=inventoryCountVarianceState(value);
+  if(state==='shortage') return '\u0641\u0631\u0642 \u0639\u062c\u0632';
+  if(state==='surplus') return '\u0641\u0631\u0642 \u0632\u064a\u0627\u062f\u0629';
+  return '\u0645\u0637\u0627\u0628\u0642';
+}
+function renderInventoryVarianceCell(value){
+  const state=inventoryCountVarianceState(value);
+  return `<td class="inventory-variance-cell inventory-variance-${state}" title="${escapeHtml(inventoryCountVarianceTitle(value))}">${formatInventoryCountThreeDecimalQuantity(value)}</td>`;
+}
 function inventoryCountTotalNumber(value){
   if(value===null || value===undefined || value==='') return 0;
   const n=Number(value);
@@ -9723,14 +9738,14 @@ function renderInventoryCountTotals(rows=[]){
     <td>${formatInventoryCountMovementQuantity(total('production_quantity'))}</td>
     <td>${formatInventoryCountThreeDecimalQuantity(total('incoming_transfers'))}</td>
     <td>${formatInventoryCountThreeDecimalQuantity(total('actual_returns'))}</td>
-    <td>${formatInventoryCountMovementQuantity(total('adjustment_increase_z22'))}</td>
-    <td>${formatInventoryCountMovementQuantity(total('adjustment_shortage_z21'))}</td>
-    <td>${formatInventoryCountMovementQuantity(total('sales_quantity'))}</td>
-    <td>${formatInventoryCountMovementQuantity(total('outgoing_transfers'))}</td>
-    <td>${formatInventoryCountMovementQuantity(total('rework_311'))}</td>
-    <td>${formatInventoryCountMovementQuantity(total('book_balance'))}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(total('adjustment_increase_z22'))}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(total('adjustment_shortage_z21'))}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(total('sales_quantity'))}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(total('outgoing_transfers'))}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(total('rework_311'))}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(total('book_balance'))}</td>
     <td>${formatInventoryCountMovementQuantity(total('physical_balance'))}</td>
-    <td>${formatInventoryCountMovementQuantity(total('inventory_variance'))}</td>
+    ${renderInventoryVarianceCell(total('inventory_variance'))}
     <td>${formatInventoryCountMovementQuantity(total('oldest_quantity'))}</td>
     <td></td>
     <td></td>
@@ -9852,14 +9867,14 @@ function renderInventoryCountLines(rows=[]){
     ${renderInventoryProductionQuantityCell(row)}
     <td>${formatInventoryCountThreeDecimalQuantity(row.incoming_transfers)}</td>
     <td>${formatInventoryCountThreeDecimalQuantity(row.actual_returns)}</td>
-    <td>${formatInventoryCountMovementQuantity(row.adjustment_increase_z22)}</td>
-    <td>${formatInventoryCountMovementQuantity(row.adjustment_shortage_z21)}</td>
-    <td>${formatInventoryCountMovementQuantity(row.sales_quantity)}</td>
-    <td>${formatInventoryCountMovementQuantity(row.outgoing_transfers)}</td>
-    <td>${formatInventoryCountMovementQuantity(row.rework_311)}</td>
-    <td>${formatInventoryCountQuantity(row.book_balance)}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(row.adjustment_increase_z22)}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(row.adjustment_shortage_z21)}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(row.sales_quantity)}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(row.outgoing_transfers)}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(row.rework_311)}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(row.book_balance)}</td>
     <td>${formatInventoryCountManualQuantity(row.physical_balance)}</td>
-    <td>${formatInventoryCountQuantity(row.inventory_variance)}</td>
+    ${renderInventoryVarianceCell(row.inventory_variance)}
     <td>${formatInventoryCountManualQuantity(row.oldest_quantity)}</td>
     <td>${formatInventoryCountText(row.oldest_date)}</td>
     <td>${formatInventoryCountText(row.inventory_counter_name_snapshot)}</td>
@@ -10104,6 +10119,9 @@ async function saveInventoryOpeningBalanceInput(input){
     if(productionInput) productionInput.dataset.rowVersion=input.dataset.rowVersion;
     inventoryCountSetStatus('تم حفظ رصيد أول.','ok');
     if(window.showToast) window.showToast('تم حفظ رصيد أول.','success');
+    if(INVENTORY_COUNT_STATE.versionId){
+      await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
+    }
   }catch(err){
     input.value=lastSaved;
     updateInventoryOpeningBalanceInputWidth(input);
@@ -10164,6 +10182,9 @@ async function saveInventoryProductionQuantityInput(input){
     if(openingInput) openingInput.dataset.rowVersion=input.dataset.rowVersion;
     inventoryCountSetStatus('تم حفظ الإنتاج.','ok');
     if(window.showToast) window.showToast('تم حفظ الإنتاج.','success');
+    if(INVENTORY_COUNT_STATE.versionId){
+      await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
+    }
   }catch(err){
     input.value=lastSaved;
     updateInventoryProductionQuantityInputWidth(input);
