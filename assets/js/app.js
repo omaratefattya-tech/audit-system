@@ -9683,6 +9683,11 @@ function formatInventoryCountMovementQuantity(value){
   if(value===null || value===undefined || value==='') return '0';
   return fmt(value);
 }
+function formatInventoryCountThreeDecimalQuantity(value){
+  if(value===null || value===undefined || value==='') return '0.000';
+  const n=Number(value);
+  return Number.isFinite(n) ? n.toFixed(3) : '0.000';
+}
 function inventoryCountTotalNumber(value){
   if(value===null || value===undefined || value==='') return 0;
   const n=Number(value);
@@ -9716,8 +9721,8 @@ function renderInventoryCountTotals(rows=[]){
     <td></td>
     <td>${formatInventoryOpeningBalance(total('opening_balance'))}</td>
     <td>${formatInventoryCountMovementQuantity(total('production_quantity'))}</td>
-    <td>${formatInventoryCountMovementQuantity(total('incoming_transfers'))}</td>
-    <td>${formatInventoryCountMovementQuantity(total('actual_returns'))}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(total('incoming_transfers'))}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(total('actual_returns'))}</td>
     <td>${formatInventoryCountMovementQuantity(total('adjustment_increase_z22'))}</td>
     <td>${formatInventoryCountMovementQuantity(total('adjustment_shortage_z21'))}</td>
     <td>${formatInventoryCountMovementQuantity(total('sales_quantity'))}</td>
@@ -9845,8 +9850,8 @@ function renderInventoryCountLines(rows=[]){
     <td>${formatInventoryCountText(row.uom)}</td>
     ${renderInventoryOpeningBalanceCell(row)}
     ${renderInventoryProductionQuantityCell(row)}
-    <td>${formatInventoryCountMovementQuantity(row.incoming_transfers)}</td>
-    <td>${formatInventoryCountMovementQuantity(row.actual_returns)}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(row.incoming_transfers)}</td>
+    <td>${formatInventoryCountThreeDecimalQuantity(row.actual_returns)}</td>
     <td>${formatInventoryCountMovementQuantity(row.adjustment_increase_z22)}</td>
     <td>${formatInventoryCountMovementQuantity(row.adjustment_shortage_z21)}</td>
     <td>${formatInventoryCountMovementQuantity(row.sales_quantity)}</td>
