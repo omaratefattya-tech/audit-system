@@ -243,15 +243,24 @@
 }
 
 #inventoryCountLinesTable .inventory-oldest-date-cell .custom-date-picker-display {
-  min-width: 118px;
-  width: 128px;
+  min-width: 148px;
+  width: 148px;
   height: 34px;
-  padding-block: 6px;
+  padding: 6px 30px;
+  direction: ltr;
   font-size: 12px;
   border-radius: 12px;
   background: rgba(0, 35, 27, .58);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+}
+
+#inventoryCountLinesTable tbody tr:nth-child(odd) {
+  background: rgba(0, 58, 40, .42);
+}
+
+#inventoryCountLinesTable tbody tr:nth-child(even) {
+  background: rgba(0, 82, 50, .28);
 }
 
 @media (prefers-color-scheme: light) {
