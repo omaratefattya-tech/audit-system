@@ -614,6 +614,7 @@
             <h2>الجرد وتوثيق المخزون</h2>
             <div class="focus-mode-actions">
               <button class="secondary focus-mode-btn" id="inventoryClosingFocusModeBtn" type="button" data-focus-target="inventory_closing">Focus Mode</button>
+              <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountColumnManagerBtn" type="button" aria-expanded="false" aria-controls="inventoryCountColumnManagerPanel">إدارة الأعمدة</button>
               <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountExportPngBtn" type="button">PNG</button>
               <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountExportPdfBtn" type="button">PDF</button>
               <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountExportExcelBtn" type="button">EXCEL</button>
@@ -645,10 +646,7 @@
             <div id="inventoryCountCurrentVersionMeta" class="hint" style="text-align: right; margin: 0; align-self: center;">الإصدار: — | عدد الأصناف: 0</div>
             <button class="primary" id="createInventoryCountBtn" type="button">جرد جديد</button>
           </div>
-
-          <div class="upload-status" id="inventoryCountStatus">اختر التاريخ والمصنع ثم اضغط جرد جديد.</div>
-
-          <div class="table-wrap" style="margin-top: 14px;">
+          <div class="table-wrap" style="margin-top: 0;">
             <table id="inventoryCountLinesTable" data-no-universal-table="1" style="min-width: 1800px;">
               <thead>
                 <tr>
@@ -679,6 +677,7 @@
             </table>
           </div>
           <div id="inventoryCountReviewerFooter" class="inventory-count-reviewer-footer">القائم بالمراجعة / —</div>
+          <div id="inventoryCountColumnManagerPanel" class="inventory-count-column-panel" hidden aria-hidden="true"></div>
           <div id="inventoryCountToastStack" class="inventory-count-toast-stack" aria-live="polite" aria-atomic="false"></div>
 
           <div id="inventoryCountLoadingOverlay" hidden aria-hidden="true" style="position: absolute; inset: 0; z-index: 8; display: none; place-items: center; background: rgba(0, 18, 14, .72); backdrop-filter: blur(3px); border-radius: 12px;">

@@ -9638,17 +9638,37 @@ const INVENTORY_COUNT_WAREHOUSE_BY_PLANT = {
   EL01: 'N401',
   EL02: 'E401'
 };
-let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, documentStatus: null, versionStatus: null, lines: [], creating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: '—' };
+let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, documentStatus: null, versionStatus: null, lines: [], creating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: '—', visibleColumnKeys: null, columnManagerDraftKeys: null };
+const INVENTORY_COUNT_VISIBLE_COLUMNS_STORAGE_KEY = 'inventory_count_visible_columns';
+const INVENTORY_COUNT_COLUMNS = [
+  { key: 'material_code', label: 'كود المادة', required: true },
+  { key: 'material_name', label: 'وصف المادة', required: true },
+  { key: 'uom', label: 'وحدة القياس', required: true },
+  { key: 'opening_balance', label: 'رصيد أول' },
+  { key: 'production_quantity', label: 'الإنتاج' },
+  { key: 'incoming_transfers', label: 'التحويلات الواردة' },
+  { key: 'actual_returns', label: 'مرتجع فعلي' },
+  { key: 'adjustment_increase_z22', label: 'تسوية زيادة Z22' },
+  { key: 'adjustment_shortage_z21', label: 'تسوية عجز Z21' },
+  { key: 'sales_quantity', label: 'كمية البيع' },
+  { key: 'outgoing_transfers', label: 'التحويلات الصادرة' },
+  { key: 'rework_311', label: 'إعادة التصنيع 311' },
+  { key: 'book_balance', label: 'الرصيد الدفتري' },
+  { key: 'physical_balance', label: 'الرصيد الفعلي' },
+  { key: 'inventory_variance', label: 'فرق الجرد' },
+  { key: 'oldest_quantity', label: 'كمية أقدم تاريخ' },
+  { key: 'oldest_date', label: 'أقدم تاريخ' },
+  { key: 'inventory_counter', label: 'القائم بالجرد' }
+];
+const INVENTORY_COUNT_REQUIRED_COLUMN_KEYS = new Set(INVENTORY_COUNT_COLUMNS.filter(column=>column.required).map(column=>column.key));
 function inventoryCountTodayIso(){
   const now=new Date();
   const cairo=new Date(now.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));
   return `${cairo.getFullYear()}-${String(cairo.getMonth()+1).padStart(2,'0')}-${String(cairo.getDate()).padStart(2,'0')}`;
 }
 function inventoryCountSetStatus(message,type=''){
-  const el=$('#inventoryCountStatus');
-  if(!el) return;
-  el.className='upload-status '+(type||'');
-  el.textContent=message || '';
+  const toastType = type === 'err' ? 'error' : (type === 'ok' ? 'success' : (type || 'info'));
+  showInventoryCountToast(message || '', toastType);
 }
 function inventoryCountUpdateCreateButton(){
   const btn=$('#createInventoryCountBtn');
@@ -9810,6 +9830,188 @@ function renderInventoryCountTotals(rows=[]){
     <td></td>
   </tr>`;
   updateInventoryCountReviewerFooter();
+  applyInventoryCountColumnVisibility();
+}
+function inventoryCountAllColumnKeys(){
+  return INVENTORY_COUNT_COLUMNS.map(column=>column.key);
+}
+function inventoryCountSanitizeVisibleColumnKeys(keys){
+  const valid=new Set(inventoryCountAllColumnKeys());
+  const incoming=Array.isArray(keys) ? keys : inventoryCountAllColumnKeys();
+  const result=[];
+  INVENTORY_COUNT_COLUMNS.forEach(column=>{
+    if(column.required || incoming.includes(column.key)) result.push(column.key);
+  });
+  INVENTORY_COUNT_REQUIRED_COLUMN_KEYS.forEach(key=>{
+    if(valid.has(key) && !result.includes(key)) result.push(key);
+  });
+  return result.length ? result : inventoryCountAllColumnKeys();
+}
+function inventoryCountReadVisibleColumnKeys(){
+  try{
+    const raw=window.localStorage?.getItem(INVENTORY_COUNT_VISIBLE_COLUMNS_STORAGE_KEY);
+    if(!raw) return inventoryCountAllColumnKeys();
+    const parsed=JSON.parse(raw);
+    return inventoryCountSanitizeVisibleColumnKeys(parsed);
+  }catch(_){
+    return inventoryCountAllColumnKeys();
+  }
+}
+function inventoryCountSaveVisibleColumnKeys(keys){
+  const sanitized=inventoryCountSanitizeVisibleColumnKeys(keys);
+  try{ window.localStorage?.setItem(INVENTORY_COUNT_VISIBLE_COLUMNS_STORAGE_KEY,JSON.stringify(sanitized)); }catch(_){ }
+  INVENTORY_COUNT_STATE.visibleColumnKeys=sanitized;
+  return sanitized;
+}
+function inventoryCountVisibleColumnKeys(){
+  if(!Array.isArray(INVENTORY_COUNT_STATE.visibleColumnKeys)) INVENTORY_COUNT_STATE.visibleColumnKeys=inventoryCountReadVisibleColumnKeys();
+  return inventoryCountSanitizeVisibleColumnKeys(INVENTORY_COUNT_STATE.visibleColumnKeys);
+}
+function inventoryCountVisibleColumnSet(){
+  return new Set(inventoryCountVisibleColumnKeys());
+}
+function inventoryCountVisibleColumnCount(){
+  return inventoryCountVisibleColumnKeys().length;
+}
+function inventoryCountVisibleColumnIndexes(){
+  const visible=inventoryCountVisibleColumnSet();
+  return INVENTORY_COUNT_COLUMNS.map((column,index)=>visible.has(column.key) ? index : -1).filter(index=>index>=0);
+}
+function inventoryCountFilterVisibleColumns(values){
+  const indexes=inventoryCountVisibleColumnIndexes();
+  return indexes.map(index=>values[index]);
+}
+function applyInventoryCountColumnKeys(){
+  const table=$('#inventoryCountLinesTable');
+  if(!table) return;
+  const rows=[];
+  if(table.tHead) rows.push(...table.tHead.rows);
+  table.tBodies && [...table.tBodies].forEach(body=>rows.push(...body.rows));
+  if(table.tFoot) rows.push(...table.tFoot.rows);
+  rows.forEach(row=>{
+    if(row.cells.length!==INVENTORY_COUNT_COLUMNS.length) return;
+    [...row.cells].forEach((cell,index)=>{
+      const column=INVENTORY_COUNT_COLUMNS[index];
+      if(!column) return;
+      cell.dataset.inventoryColumnKey=column.key;
+      cell.classList.add('inventory-count-column-cell',`inventory-count-column-${column.key}`);
+    });
+  });
+}
+function applyInventoryCountColumnVisibility(keys=null){
+  const table=$('#inventoryCountLinesTable');
+  if(!table) return;
+  const visible=new Set(inventoryCountSanitizeVisibleColumnKeys(keys || inventoryCountVisibleColumnKeys()));
+  INVENTORY_COUNT_STATE.visibleColumnKeys=[...visible].filter(key=>INVENTORY_COUNT_COLUMNS.some(column=>column.key===key));
+  applyInventoryCountColumnKeys();
+  table.querySelectorAll('[data-inventory-column-key]').forEach(cell=>{
+    const key=cell.dataset.inventoryColumnKey;
+    cell.classList.toggle('inventory-count-column-hidden',!visible.has(key));
+  });
+  table.querySelectorAll('tbody .empty-state').forEach(cell=>{ cell.colSpan=visible.size; });
+  renderInventoryCountColumnManagerOptions();
+  updateInventoryCountFreezePanes();
+}
+function inventoryCountColumnManagerDraftSet(){
+  if(!(INVENTORY_COUNT_STATE.columnManagerDraftKeys instanceof Set)){
+    INVENTORY_COUNT_STATE.columnManagerDraftKeys=new Set(inventoryCountVisibleColumnKeys());
+  }
+  INVENTORY_COUNT_REQUIRED_COLUMN_KEYS.forEach(key=>INVENTORY_COUNT_STATE.columnManagerDraftKeys.add(key));
+  return INVENTORY_COUNT_STATE.columnManagerDraftKeys;
+}
+function renderInventoryCountColumnManagerOptions(){
+  const panel=$('#inventoryCountColumnManagerPanel');
+  if(!panel || panel.hidden) return;
+  const draft=inventoryCountColumnManagerDraftSet();
+  const list=panel.querySelector('.inventory-count-column-list');
+  if(!list) return;
+  list.innerHTML=INVENTORY_COUNT_COLUMNS.map(column=>{
+    const checked=draft.has(column.key) || column.required;
+    const disabled=column.required ? ' disabled title="عمود أساسي لا يمكن إخفاؤه"' : '';
+    return `<label class="inventory-count-column-option${column.required ? ' is-required' : ''}"><input type="checkbox" data-column-key="${escapeHtml(column.key)}"${checked ? ' checked' : ''}${disabled}><span>${escapeHtml(column.label)}</span></label>`;
+  }).join('');
+}
+function openInventoryCountColumnManager(){
+  const panel=$('#inventoryCountColumnManagerPanel');
+  const btn=$('#inventoryCountColumnManagerBtn');
+  if(!panel || !btn) return;
+  INVENTORY_COUNT_STATE.columnManagerDraftKeys=new Set(inventoryCountVisibleColumnKeys());
+  panel.hidden=false;
+  panel.setAttribute('aria-hidden','false');
+  btn.setAttribute('aria-expanded','true');
+  if(!panel.dataset.rendered){
+    panel.dataset.rendered='1';
+    panel.innerHTML=`<div class="inventory-count-column-panel-head"><strong>إدارة الأعمدة</strong><button type="button" class="inventory-count-column-close" data-column-manager-action="cancel" aria-label="إغلاق"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div><div class="inventory-count-column-list"></div><div class="inventory-count-column-actions"><button type="button" class="secondary" data-column-manager-action="show-all">إظهار الكل</button><button type="button" class="secondary" data-column-manager-action="default">استعادة الافتراضي</button><button type="button" class="secondary" data-column-manager-action="cancel">إلغاء</button><button type="button" class="primary" data-column-manager-action="apply">تطبيق</button></div>`;
+  }
+  renderInventoryCountColumnManagerOptions();
+  requestAnimationFrame(()=>panel.querySelector('input:not(:disabled),button')?.focus({preventScroll:true}));
+}
+function closeInventoryCountColumnManager(applyChanges=false){
+  const panel=$('#inventoryCountColumnManagerPanel');
+  const btn=$('#inventoryCountColumnManagerBtn');
+  if(!panel) return;
+  if(applyChanges){
+    inventoryCountSaveVisibleColumnKeys([...inventoryCountColumnManagerDraftSet()]);
+  }else{
+    INVENTORY_COUNT_STATE.visibleColumnKeys=inventoryCountReadVisibleColumnKeys();
+  }
+  INVENTORY_COUNT_STATE.columnManagerDraftKeys=null;
+  applyInventoryCountColumnVisibility();
+  panel.hidden=true;
+  panel.setAttribute('aria-hidden','true');
+  btn?.setAttribute('aria-expanded','false');
+}
+function initInventoryCountColumnManager(){
+  const btn=$('#inventoryCountColumnManagerBtn');
+  const panel=$('#inventoryCountColumnManagerPanel');
+  if(!btn || !panel || btn.dataset.columnManagerBound==='1') return;
+  btn.dataset.columnManagerBound='1';
+  INVENTORY_COUNT_STATE.visibleColumnKeys=inventoryCountReadVisibleColumnKeys();
+  btn.addEventListener('click',event=>{
+    event.preventDefault();
+    if(panel.hidden) openInventoryCountColumnManager();
+    else closeInventoryCountColumnManager(false);
+  });
+  panel.addEventListener('change',event=>{
+    const checkbox=event.target.closest('input[type="checkbox"][data-column-key]');
+    if(!checkbox) return;
+    const key=checkbox.dataset.columnKey;
+    const draft=inventoryCountColumnManagerDraftSet();
+    if(INVENTORY_COUNT_REQUIRED_COLUMN_KEYS.has(key)){
+      checkbox.checked=true;
+      showInventoryCountToast('عمود أساسي لا يمكن إخفاؤه','warning');
+      return;
+    }
+    if(checkbox.checked) draft.add(key);
+    else draft.delete(key);
+    INVENTORY_COUNT_REQUIRED_COLUMN_KEYS.forEach(requiredKey=>draft.add(requiredKey));
+    applyInventoryCountColumnVisibility([...draft]);
+  });
+  panel.addEventListener('click',event=>{
+    const action=event.target.closest('[data-column-manager-action]')?.dataset.columnManagerAction;
+    if(!action) return;
+    event.preventDefault();
+    if(action==='apply') closeInventoryCountColumnManager(true);
+    if(action==='cancel') closeInventoryCountColumnManager(false);
+    if(action==='show-all' || action==='default'){
+      INVENTORY_COUNT_STATE.columnManagerDraftKeys=new Set(inventoryCountAllColumnKeys());
+      applyInventoryCountColumnVisibility([...INVENTORY_COUNT_STATE.columnManagerDraftKeys]);
+    }
+  });
+  document.addEventListener('click',event=>{
+    if(panel.hidden) return;
+    if(panel.contains(event.target) || btn.contains(event.target)) return;
+    closeInventoryCountColumnManager(false);
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape' && !panel.hidden) closeInventoryCountColumnManager(false);
+  });
+  applyInventoryCountColumnKeys();
+  applyInventoryCountColumnVisibility();
+}
+function inventoryCountImportantToast(message,type){
+  const text=String(message || '');
+  return type==='error' || type==='warning' || /لا يوجد|لا توجد|لا يمكن|غير متاح|غير مسموح|صلاحية|تعارض|modified by another user|Reload and try again|فشل|تعذر|مطلوب|ليست/.test(text);
 }
 function inventoryCountToastIcon(type){
   if(type==='success') return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
@@ -9820,6 +10022,7 @@ function inventoryCountToastIcon(type){
 function showInventoryCountToast(message,type='info'){
   const text=String(message || '').trim();
   if(!text) return;
+  type = type === 'err' ? 'error' : (type === 'ok' ? 'success' : (type || 'info'));
   const stack=$('#inventoryCountToastStack');
   if(!stack){
     if(window.showToast) window.showToast(text,type==='error'?'error':type);
@@ -9838,7 +10041,7 @@ function showInventoryCountToast(message,type='info'){
   toast.querySelector('.inventory-count-toast-text').textContent=text;
   stack.appendChild(toast);
   requestAnimationFrame(()=>toast.classList.add('is-visible'));
-  let remaining=type==='error' ? 4500 : 3000;
+  let remaining=inventoryCountImportantToast(text,type) ? 6000 : 3000;
   let started=Date.now();
   let timer=null;
   const close=()=>{
@@ -9982,7 +10185,7 @@ function inventoryCountBuildExportSheet(){
   table.className='inventory-count-export-table';
   const thead=document.createElement('thead');
   const headRow=document.createElement('tr');
-  inventoryCountExportHeaders().forEach(label=>{
+  inventoryCountFilterVisibleColumns(inventoryCountExportHeaders()).forEach(label=>{
     const th=document.createElement('th');
     th.textContent=label;
     headRow.appendChild(th);
@@ -9991,7 +10194,7 @@ function inventoryCountBuildExportSheet(){
   const tbody=document.createElement('tbody');
   rows.forEach(row=>{
     const tr=document.createElement('tr');
-    inventoryCountExportDisplayRow(row).forEach(value=>{
+    inventoryCountFilterVisibleColumns(inventoryCountExportDisplayRow(row)).forEach(value=>{
       const td=document.createElement('td');
       td.textContent=value;
       tr.appendChild(td);
@@ -10001,7 +10204,7 @@ function inventoryCountBuildExportSheet(){
   const tfoot=document.createElement('tfoot');
   const totalRow=document.createElement('tr');
   totalRow.className='inventory-count-export-total-row';
-  inventoryCountExportTotalRow(true).forEach(value=>{
+  inventoryCountFilterVisibleColumns(inventoryCountExportTotalRow(true)).forEach(value=>{
     const td=document.createElement('td');
     td.textContent=value;
     totalRow.appendChild(td);
@@ -10071,22 +10274,26 @@ async function exportInventoryCountExcel(){
   try{
     const matrix=[
       ...inventoryCountExportMetaRows(),
-      inventoryCountExportHeaders(),
-      ...rows.map(inventoryCountExportExcelRow),
-      inventoryCountExportTotalRow(false),
+      inventoryCountFilterVisibleColumns(inventoryCountExportHeaders()),
+      ...rows.map(row=>inventoryCountFilterVisibleColumns(inventoryCountExportExcelRow(row))),
+      inventoryCountFilterVisibleColumns(inventoryCountExportTotalRow(false)),
       [],
       [`القائم بالمراجعة / ${inventoryCountReviewerName()}`]
     ];
     const ws=XLSX.utils.aoa_to_sheet(matrix);
     ws['!rtl']=true;
-    ws['!cols']=inventoryCountExportHeaders().map((_,index)=>({wch:Math.min(42,Math.max(12,...matrix.map(row=>String(row[index] ?? '').length + 2)))}));
+    ws['!cols']=inventoryCountFilterVisibleColumns(inventoryCountExportHeaders()).map((_,index)=>({wch:Math.min(42,Math.max(12,...matrix.map(row=>String(row[index] ?? '').length + 2)))}));
     const numericStartRow=inventoryCountExportMetaRows().length + 2;
     const numericEndRow=numericStartRow + rows.length;
+    const visibleNumericColumns=inventoryCountVisibleColumnIndexes()
+      .map((originalIndex,visibleIndex)=>({originalIndex,visibleIndex}))
+      .filter(item=>item.originalIndex>=3 && item.originalIndex<=15)
+      .map(item=>item.visibleIndex);
     for(let r=numericStartRow;r<=numericEndRow;r+=1){
-      for(let c=3;c<=15;c+=1){
+      visibleNumericColumns.forEach(c=>{
         const cell=ws[XLSX.utils.encode_cell({r:r-1,c})];
         if(cell && typeof cell.v==='number') cell.z='0.000';
-      }
+      });
     }
     const wb=XLSX.utils.book_new();
     wb.Workbook={Views:[{RTL:true}]};
@@ -10117,7 +10324,8 @@ function updateInventoryCountFreezePanes(){
   table.style.setProperty('--ic-sticky-code-right','0px');
   table.style.setProperty('--ic-sticky-name-right',`${codeWidth}px`);
   table.style.setProperty('--ic-sticky-uom-right',`${codeWidth + nameWidth}px`);
-}function formatInventoryCountText(value){
+}
+function formatInventoryCountText(value){
   if(value===null || value===undefined) return '';
   return escapeHtml(String(value));
 }
@@ -10290,12 +10498,13 @@ function renderInventoryCountLines(rows=[]){
   if(!tbody) return;
   INVENTORY_COUNT_STATE.lines=rows;
   if(!rows.length){
-    tbody.innerHTML='<tr><td colspan="18" class="empty-state">لا توجد بنود جرد للنسخة الحالية.</td></tr>';
+    tbody.innerHTML=`<tr><td colspan="${inventoryCountVisibleColumnCount()}" class="empty-state">لا توجد بنود جرد للنسخة الحالية.</td></tr>`;
     renderInventoryCountTotals([]);
+    applyInventoryCountColumnVisibility();
     updateInventoryCountFreezePanes();
     return;
   }
-  tbody.innerHTML=rows.map(row=>`<tr>
+    tbody.innerHTML=rows.map(row=>`<tr>
     <td>${formatInventoryCountText(row.material_code)}</td>
     <td>${formatInventoryCountText(row.material_name)}</td>
     <td>${formatInventoryCountText(row.uom)}</td>
@@ -10559,7 +10768,7 @@ async function createInventoryCountFromUi(){
   if(INVENTORY_COUNT_STATE.versionId || INVENTORY_COUNT_STATE.status==='found') return;
   if(INVENTORY_COUNT_STATE.status==='no_current_version') return;
   if(!hasPermission('inventory_count','add')){
-    alert('غير متاح للصلاحية الحالية');
+    showInventoryCountToast('غير متاح للصلاحية الحالية','error');
     return;
   }
   if(!window.WarehouseDB?.ready){
@@ -10595,8 +10804,7 @@ async function createInventoryCountFromUi(){
     if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
     inventoryCountSetStatus('تم إنشاء الجرد بنجاح.','ok');
     inventoryCountUpdateCreateButton();
-    if(window.showToast) window.showToast('تم إنشاء الجرد بنجاح.','success');
-    else alert('تم إنشاء الجرد بنجاح.');
+    showInventoryCountToast('تم إنشاء الجرد بنجاح.','success');
   }catch(err){
     if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
     console.error('Inventory count creation failed',err);
@@ -10609,7 +10817,6 @@ async function createInventoryCountFromUi(){
       }
     }
     inventoryCountSetStatus(message, 'err');
-    alert(message);
   }finally{
     INVENTORY_COUNT_STATE.creating=false;
     if(requestSeq===INVENTORY_COUNT_STATE.requestSeq) inventoryCountSetLoading(false);
@@ -11012,6 +11219,7 @@ function initInventoryCountScreen(){
   syncInventoryCountWarehouse();
   inventoryCountSetLoading(false);
   bindInventoryOpeningBalanceEvents();
+  initInventoryCountColumnManager();
   updateInventoryCountReviewerFooter();
   inventoryCountUpdateCreateButton();
   if(createBtn.dataset.inventoryCountCreateBound!=='1'){

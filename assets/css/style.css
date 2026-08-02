@@ -4226,3 +4226,162 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
     width: auto;
   }
 }
+#inventoryCountLinesTable .inventory-count-column-hidden {
+  display: none !important;
+}
+
+#inventory_closing .inventory-count-column-panel {
+  position: fixed;
+  top: 82px;
+  left: 24px;
+  z-index: 88;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(680px, calc(100vh - 112px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(141, 220, 89, .36);
+  background: linear-gradient(145deg, rgba(0, 52, 39, .84), rgba(0, 22, 18, .74));
+  color: #f4fff5;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .42), inset 0 1px 0 rgba(255, 255, 255, .08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+#inventory_closing .inventory-count-column-panel[hidden] {
+  display: none !important;
+}
+
+#inventory_closing .inventory-count-column-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(141, 220, 89, .2);
+}
+
+#inventory_closing .inventory-count-column-panel-head strong {
+  font-size: 15px;
+  font-weight: 900;
+  color: #dfffce;
+}
+
+#inventory_closing .inventory-count-column-close {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .06);
+  color: #f4fff5;
+  cursor: pointer;
+}
+
+#inventory_closing .inventory-count-column-close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#inventory_closing .inventory-count-column-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  overflow: auto;
+  padding-inline-end: 2px;
+}
+
+#inventory_closing .inventory-count-column-option {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid rgba(141, 220, 89, .18);
+  border-radius: 12px;
+  background: rgba(0, 37, 29, .58);
+  color: #f4fff5;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+#inventory_closing .inventory-count-column-option:hover {
+  background: rgba(132, 207, 80, .12);
+}
+
+#inventory_closing .inventory-count-column-option input {
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+  accent-color: #8ddc59;
+}
+
+#inventory_closing .inventory-count-column-option.is-required {
+  opacity: .82;
+  cursor: default;
+}
+
+#inventory_closing .inventory-count-column-option span {
+  min-width: 0;
+  line-height: 1.35;
+}
+
+#inventory_closing .inventory-count-column-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(141, 220, 89, .2);
+}
+
+#inventory_closing .inventory-count-column-actions button {
+  min-height: 40px;
+  padding: 9px 13px;
+}
+
+body.light-mode #inventory_closing .inventory-count-column-panel {
+  background: linear-gradient(145deg, rgba(244, 255, 248, .90), rgba(221, 242, 229, .82));
+  color: #0f2c18;
+  border-color: rgba(29, 128, 69, .34);
+  box-shadow: 0 24px 60px rgba(0, 42, 29, .18), inset 0 1px 0 rgba(255, 255, 255, .55);
+}
+
+body.light-mode #inventory_closing .inventory-count-column-panel-head strong,
+body.light-mode #inventory_closing .inventory-count-column-close {
+  color: #0f2c18;
+}
+
+body.light-mode #inventory_closing .inventory-count-column-option {
+  background: rgba(255, 255, 255, .62);
+  border-color: rgba(29, 128, 69, .2);
+  color: #0f2c18;
+}
+
+@media (max-width: 700px) {
+  #inventory_closing .inventory-count-column-panel {
+    top: auto;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    width: auto;
+    max-height: min(78vh, 680px);
+    border-radius: 22px;
+  }
+  #inventory_closing .inventory-count-column-list {
+    grid-template-columns: 1fr;
+  }
+  #inventory_closing .inventory-count-column-actions button {
+    flex: 1 1 calc(50% - 6px);
+  }
+}
