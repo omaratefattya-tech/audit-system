@@ -2425,7 +2425,7 @@ function switchSection(section){
   if(section==='raw_materials') setTimeout(()=>loadRawMaterialsScreen(),50);
   if(section==='users') setTimeout(()=>loadUsersManagement(),50);
   if(section==='permissions') setTimeout(()=>loadPermissionsManagement(),50);
-  if(section==='inventory_closing') setTimeout(()=>openExistingInventoryCountFromUi({showLoading:true}),50);
+  if(section==='inventory_closing') setTimeout(()=>openDefaultInventoryCountFromUi({showLoading:true}),50);
   setTimeout(()=>applyPermissionActionGuards(section),80);
 }
 function closeMobileDashboardPanels(){
@@ -9633,7 +9633,7 @@ const INVENTORY_COUNT_WAREHOUSE_BY_PLANT = {
   EL01: 'N401',
   EL02: 'E401'
 };
-let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, lines: [], creating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: '—' };
+let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, documentStatus: null, versionStatus: null, lines: [], creating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: '—' };
 function inventoryCountTodayIso(){
   const now=new Date();
   const cairo=new Date(now.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));
@@ -10027,6 +10027,8 @@ function resetInventoryCountView(message='لم يتم إنشاء جرد بعد.'
   INVENTORY_COUNT_STATE.documentId=null;
   INVENTORY_COUNT_STATE.versionId=null;
   INVENTORY_COUNT_STATE.versionNo=null;
+  INVENTORY_COUNT_STATE.documentStatus=null;
+  INVENTORY_COUNT_STATE.versionStatus=null;
   INVENTORY_COUNT_STATE.reviewerUserId=null;
   INVENTORY_COUNT_STATE.reviewerName='—';
   renderInventoryCountLines([]);
@@ -10081,6 +10083,79 @@ async function loadInventoryCountLines(versionId,requestSeq=null){
   const meta=$('#inventoryCountCurrentVersionMeta');
   if(meta) meta.textContent=`الإصدار: ${INVENTORY_COUNT_STATE.versionNo || 1} | عدد الأصناف: ${rows.length}`;
 }
+function setInventoryCountInputsFromResult(data){
+  const dateInput=$('#inventoryCountDateInput');
+  const plantSelect=$('#inventoryCountPlantSelect');
+  const warehouseSelect=$('#inventoryCountWarehouseSelect');
+  const plantCode=String(data?.plant_code || '').trim().toUpperCase();
+  const warehouseCode=String(data?.warehouse_code || '').trim().toUpperCase();
+  const inventoryDate=formatInventoryDateInputValue(data?.inventory_date);
+  if(plantSelect && plantCode) plantSelect.value=plantCode;
+  syncInventoryCountWarehouse();
+  if(warehouseSelect && warehouseCode) warehouseSelect.value=warehouseCode;
+  if(dateInput){
+    dateInput.value=inventoryDate;
+    if(window.CustomDatePicker) window.CustomDatePicker.refresh(dateInput);
+  }
+  updateInventoryCountSelectedDateSummary();
+}
+async function openDefaultInventoryCountFromUi(options={}){
+  const {showLoading=false}=options;
+  const requestSeq=++INVENTORY_COUNT_STATE.requestSeq;
+  if(!window.WarehouseDB?.ready){
+    resetInventoryCountView('قاعدة البيانات غير متصلة.');
+    inventoryCountSetStatus('قاعدة البيانات غير متصلة.','err');
+    return;
+  }
+  INVENTORY_COUNT_STATE.status='loading';
+  INVENTORY_COUNT_STATE.documentId=null;
+  INVENTORY_COUNT_STATE.versionId=null;
+  INVENTORY_COUNT_STATE.versionNo=null;
+  INVENTORY_COUNT_STATE.documentStatus=null;
+  INVENTORY_COUNT_STATE.versionStatus=null;
+  INVENTORY_COUNT_STATE.reviewerUserId=null;
+  INVENTORY_COUNT_STATE.reviewerName='—';
+  renderInventoryCountLines([]);
+  const meta=$('#inventoryCountCurrentVersionMeta');
+  if(meta) meta.textContent='الإصدار: — | عدد الأصناف: 0';
+  if(showLoading) inventoryCountSetLoading(true,'جاري تحميل آخر جرد...');
+  inventoryCountSetStatus('جاري تحميل آخر جرد...');
+  inventoryCountUpdateCreateButton();
+  try{
+    const {data,error}=await WarehouseDB.client.rpc('get_default_inventory_count');
+    if(error) throw error;
+    if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
+    const status=data?.status || '';
+    if(status==='open_inventory_count_found' || status==='completed_inventory_count_found'){
+      setInventoryCountInputsFromResult(data);
+      INVENTORY_COUNT_STATE.documentId=data.document_id || null;
+      INVENTORY_COUNT_STATE.versionId=data.version_id || null;
+      INVENTORY_COUNT_STATE.versionNo=Number(data.version_no || 1) || 1;
+      INVENTORY_COUNT_STATE.documentStatus=data.document_status || null;
+      INVENTORY_COUNT_STATE.versionStatus=data.version_status || null;
+      setInventoryCountReviewerFromResult(data);
+      INVENTORY_COUNT_STATE.status='found';
+      await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,requestSeq);
+      if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
+      inventoryCountSetStatus(status==='open_inventory_count_found' ? 'تم فتح آخر جرد مفتوح.' : 'تم فتح آخر جرد مكتمل.','ok');
+      inventoryCountUpdateCreateButton();
+      return;
+    }
+    resetInventoryCountView('لم يتم إنشاء أي جرد بعد.');
+    INVENTORY_COUNT_STATE.status='not_found';
+    inventoryCountUpdateCreateButton();
+  }catch(err){
+    if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
+    console.error('Default inventory count load failed',err);
+    resetInventoryCountView('');
+    inventoryCountSetStatus(err?.message || '', 'err');
+  }finally{
+    if(requestSeq===INVENTORY_COUNT_STATE.requestSeq){
+      inventoryCountSetLoading(false);
+      inventoryCountUpdateCreateButton();
+    }
+  }
+}
 async function openExistingInventoryCountFromUi(options={}){
   const {showLoading=false}=options;
   const {inventoryDate,plantCode,warehouseCode}=inventoryCountReadInputs();
@@ -10098,6 +10173,8 @@ async function openExistingInventoryCountFromUi(options={}){
   INVENTORY_COUNT_STATE.documentId=null;
   INVENTORY_COUNT_STATE.versionId=null;
   INVENTORY_COUNT_STATE.versionNo=null;
+  INVENTORY_COUNT_STATE.documentStatus=null;
+  INVENTORY_COUNT_STATE.versionStatus=null;
   INVENTORY_COUNT_STATE.reviewerUserId=null;
   INVENTORY_COUNT_STATE.reviewerName='—';
   renderInventoryCountLines([]);
@@ -10119,6 +10196,8 @@ async function openExistingInventoryCountFromUi(options={}){
       INVENTORY_COUNT_STATE.documentId=data.document_id || null;
       INVENTORY_COUNT_STATE.versionId=data.version_id || null;
       INVENTORY_COUNT_STATE.versionNo=Number(data.version_no || 1) || 1;
+      INVENTORY_COUNT_STATE.documentStatus=data.document_status || null;
+      INVENTORY_COUNT_STATE.versionStatus=data.version_status || null;
       setInventoryCountReviewerFromResult(data);
       INVENTORY_COUNT_STATE.status='found';
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,requestSeq);
@@ -10138,6 +10217,8 @@ async function openExistingInventoryCountFromUi(options={}){
       INVENTORY_COUNT_STATE.documentId=data?.document_id || null;
       INVENTORY_COUNT_STATE.versionId=null;
       INVENTORY_COUNT_STATE.versionNo=null;
+      INVENTORY_COUNT_STATE.documentStatus=data?.document_status || null;
+      INVENTORY_COUNT_STATE.versionStatus=null;
       setInventoryCountReviewerFromResult(data);
       renderInventoryCountLines([]);
       const meta=$('#inventoryCountCurrentVersionMeta');
@@ -10191,6 +10272,8 @@ async function createInventoryCountFromUi(){
     INVENTORY_COUNT_STATE.documentId=data?.document_id || null;
     INVENTORY_COUNT_STATE.versionId=data?.version_id || null;
     INVENTORY_COUNT_STATE.versionNo=Number(data?.version_no || data?.versionNo || 1) || 1;
+    INVENTORY_COUNT_STATE.documentStatus=data?.document_status || null;
+    INVENTORY_COUNT_STATE.versionStatus=data?.version_status || null;
     INVENTORY_COUNT_STATE.reviewerUserId=CURRENT_AUTH_USER?.id || null;
     INVENTORY_COUNT_STATE.reviewerName=String(CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || '—').trim() || '—';
     updateInventoryCountReviewerFooter();
