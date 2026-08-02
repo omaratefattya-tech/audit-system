@@ -614,6 +614,9 @@
             <h2>الجرد وتوثيق المخزون</h2>
             <div class="focus-mode-actions">
               <button class="secondary focus-mode-btn" id="inventoryClosingFocusModeBtn" type="button" data-focus-target="inventory_closing">Focus Mode</button>
+              <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountExportPngBtn" type="button">PNG</button>
+              <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountExportPdfBtn" type="button">PDF</button>
+              <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountExportExcelBtn" type="button">EXCEL</button>
               <button class="secondary focus-mode-close-btn" id="inventoryClosingFocusModeCloseBtn" type="button" data-focus-close hidden>إغلاق Focus Mode</button>
             </div>
           </div>
@@ -676,6 +679,7 @@
             </table>
           </div>
           <div id="inventoryCountReviewerFooter" class="inventory-count-reviewer-footer">القائم بالمراجعة / —</div>
+          <div id="inventoryCountToastStack" class="inventory-count-toast-stack" aria-live="polite" aria-atomic="false"></div>
 
           <div id="inventoryCountLoadingOverlay" hidden aria-hidden="true" style="position: absolute; inset: 0; z-index: 8; display: none; place-items: center; background: rgba(0, 18, 14, .72); backdrop-filter: blur(3px); border-radius: 12px;">
             <div class="glass-soft" style="padding: 18px 24px; border-radius: 12px; font-weight: 900;">جارٍ إنشاء الجرد...</div>

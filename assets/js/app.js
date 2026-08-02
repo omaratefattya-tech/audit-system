@@ -2712,6 +2712,7 @@ function enterFocusMode(section){
   document.body.classList.add('focus-mode-active');
   document.body.dataset.focusSection=section;
   setFocusModeButtonState();
+  if(section==='inventory_closing') requestAnimationFrame(updateInventoryCountFreezePanes);
   requestAnimationFrame(()=>target.querySelector('[data-focus-close]')?.focus({preventScroll:true}));
 }
 function exitFocusMode(options={}){
@@ -2719,6 +2720,7 @@ function exitFocusMode(options={}){
   document.body.classList.remove('focus-mode-active');
   delete document.body.dataset.focusSection;
   setFocusModeButtonState();
+  updateInventoryCountFreezePanes();
   if(wasActive && options.restoreScroll!==false) requestAnimationFrame(()=>window.scrollTo({top:FOCUS_MODE_SCROLL_Y,behavior:'auto'}));
 }
 function initFocusModeControls(){
@@ -2738,6 +2740,9 @@ function initFocusModeControls(){
   });
   document.addEventListener('keydown',event=>{
     if(event.key==='Escape' && document.body.classList.contains('focus-mode-active')) exitFocusMode();
+  });
+  window.addEventListener('resize',()=>{
+    if(document.body.classList.contains('focus-mode-active') && document.body.dataset.focusSection==='inventory_closing') updateInventoryCountFreezePanes();
   });
   setFocusModeButtonState();
 }
@@ -9806,7 +9811,313 @@ function renderInventoryCountTotals(rows=[]){
   </tr>`;
   updateInventoryCountReviewerFooter();
 }
-function formatInventoryCountText(value){
+function inventoryCountToastIcon(type){
+  if(type==='success') return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  if(type==='error') return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>';
+  if(type==='warning') return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>';
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16v-4"/><path d="M12 8h.01"/><circle cx="12" cy="12" r="9"/></svg>';
+}
+function showInventoryCountToast(message,type='info'){
+  const text=String(message || '').trim();
+  if(!text) return;
+  const stack=$('#inventoryCountToastStack');
+  if(!stack){
+    if(window.showToast) window.showToast(text,type==='error'?'error':type);
+    return;
+  }
+  const now=Date.now();
+  const duplicate=[...stack.children].find(item=>item.dataset.message===text && now-Number(item.dataset.createdAt||0)<900);
+  if(duplicate) return;
+  while(stack.children.length>=4) stack.firstElementChild?.remove();
+  const toast=document.createElement('div');
+  toast.className=`inventory-count-toast inventory-count-toast-${type || 'info'}`;
+  toast.dataset.message=text;
+  toast.dataset.createdAt=String(now);
+  toast.setAttribute('role',type==='error'?'alert':'status');
+  toast.innerHTML=`<span class="inventory-count-toast-icon">${inventoryCountToastIcon(type)}</span><span class="inventory-count-toast-text"></span><button type="button" class="inventory-count-toast-close" aria-label="إغلاق"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>`;
+  toast.querySelector('.inventory-count-toast-text').textContent=text;
+  stack.appendChild(toast);
+  requestAnimationFrame(()=>toast.classList.add('is-visible'));
+  let remaining=type==='error' ? 4500 : 3000;
+  let started=Date.now();
+  let timer=null;
+  const close=()=>{
+    window.clearTimeout(timer);
+    toast.classList.remove('is-visible');
+    toast.classList.add('is-leaving');
+    setTimeout(()=>toast.remove(),220);
+  };
+  const start=()=>{
+    started=Date.now();
+    window.clearTimeout(timer);
+    timer=window.setTimeout(close,remaining);
+  };
+  toast.addEventListener('mouseenter',()=>{
+    remaining=Math.max(600,remaining-(Date.now()-started));
+    window.clearTimeout(timer);
+  });
+  toast.addEventListener('mouseleave',start);
+  toast.querySelector('.inventory-count-toast-close')?.addEventListener('click',close);
+  start();
+}
+function inventoryCountExportFileBase(){
+  const {inventoryDate,plantCode,warehouseCode}=inventoryCountReadInputs();
+  return `Inventory Count-${inventoryDate || inventoryCountTodayIso()}-${plantCode || 'Plant'}-${warehouseCode || 'Warehouse'}`.replace(/[\\/:*?"<>|]/g,'-');
+}
+function inventoryCountPlain(value){
+  if(value===null || value===undefined) return '';
+  return String(value).trim();
+}
+function inventoryCountCounterExportLabel(row){
+  const name=inventoryCountPlain(row?.inventory_counter_name_snapshot);
+  const job=inventoryCountPlain(row?.inventory_counter_job_title_snapshot);
+  return job ? `${name} — ${job}` : name;
+}
+function inventoryCountExcelNumber(value,emptyValue=''){
+  if(value===null || value===undefined || value==='') return emptyValue;
+  const n=Number(value);
+  return Number.isFinite(n) ? n : emptyValue;
+}
+function inventoryCountExportHeaders(){
+  return ['كود المادة','وصف المادة','وحدة القياس','رصيد أول','الإنتاج','التحويلات الواردة','مرتجع فعلي','تسوية زيادة Z22','تسوية عجز Z21','كمية البيع','التحويلات الصادرة','إعادة التصنيع 311','الرصيد الدفتري','الرصيد الفعلي','فرق الجرد','كمية أقدم تاريخ','أقدم تاريخ','القائم بالجرد'];
+}
+function inventoryCountExportMetaRows(){
+  const {inventoryDate,plantCode,warehouseCode}=inventoryCountReadInputs();
+  const dayName=inventoryCountSelectedDayName(inventoryDate);
+  return [
+    ['الجرد وتوثيق المخزون'],
+    ['اليوم والتاريخ', dayName ? `${dayName} — ${formatDisplayDate(inventoryDate,'')}` : 'اختر تاريخ الجرد'],
+    ['المصنع', plantCode || '—'],
+    ['المخزن', warehouseCode || '—'],
+    ['رقم الإصدار', INVENTORY_COUNT_STATE.versionNo || '—'],
+    ['عدد الأصناف', (INVENTORY_COUNT_STATE.lines || []).length],
+    []
+  ];
+}
+function inventoryCountExportDisplayRow(row){
+  return [
+    inventoryCountPlain(row?.material_code),
+    inventoryCountPlain(row?.material_name),
+    inventoryCountPlain(row?.uom),
+    formatInventoryOpeningBalance(row?.opening_balance),
+    formatInventoryProductionQuantity(row?.production_quantity),
+    formatInventoryCountThreeDecimalQuantity(row?.incoming_transfers),
+    formatInventoryCountThreeDecimalQuantity(row?.actual_returns),
+    formatInventoryCountThreeDecimalQuantity(row?.adjustment_increase_z22),
+    formatInventoryCountThreeDecimalQuantity(row?.adjustment_shortage_z21),
+    formatInventoryCountThreeDecimalQuantity(row?.sales_quantity),
+    formatInventoryCountThreeDecimalQuantity(row?.outgoing_transfers),
+    formatInventoryCountThreeDecimalQuantity(row?.rework_311),
+    formatInventoryCountThreeDecimalQuantity(row?.book_balance),
+    formatInventoryManualThreeDecimal(row?.physical_balance),
+    formatInventoryCountThreeDecimalQuantity(row?.inventory_variance),
+    formatInventoryManualThreeDecimal(row?.oldest_quantity),
+    formatDisplayDate(row?.oldest_date,''),
+    inventoryCountCounterExportLabel(row)
+  ];
+}
+function inventoryCountExportExcelRow(row){
+  return [
+    inventoryCountPlain(row?.material_code),
+    inventoryCountPlain(row?.material_name),
+    inventoryCountPlain(row?.uom),
+    inventoryCountExcelNumber(row?.opening_balance),
+    inventoryCountExcelNumber(row?.production_quantity),
+    inventoryCountExcelNumber(row?.incoming_transfers,0),
+    inventoryCountExcelNumber(row?.actual_returns,0),
+    inventoryCountExcelNumber(row?.adjustment_increase_z22,0),
+    inventoryCountExcelNumber(row?.adjustment_shortage_z21,0),
+    inventoryCountExcelNumber(row?.sales_quantity,0),
+    inventoryCountExcelNumber(row?.outgoing_transfers,0),
+    inventoryCountExcelNumber(row?.rework_311,0),
+    inventoryCountExcelNumber(row?.book_balance,0),
+    inventoryCountExcelNumber(row?.physical_balance),
+    inventoryCountExcelNumber(row?.inventory_variance,0),
+    inventoryCountExcelNumber(row?.oldest_quantity),
+    formatDisplayDate(row?.oldest_date,''),
+    inventoryCountCounterExportLabel(row)
+  ];
+}
+function inventoryCountExportTotalRow(display=true){
+  const rows=INVENTORY_COUNT_STATE.lines || [];
+  const total=key=>rows.reduce((sum,row)=>sum+inventoryCountTotalNumber(row?.[key]),0);
+  const numeric=value=>display ? formatInventoryCountThreeDecimalQuantity(value) : value;
+  return [
+    'الإجمالي','','',
+    display ? formatInventoryOpeningBalance(total('opening_balance')) : total('opening_balance'),
+    display ? formatInventoryProductionQuantity(total('production_quantity')) : total('production_quantity'),
+    numeric(total('incoming_transfers')),
+    numeric(total('actual_returns')),
+    numeric(total('adjustment_increase_z22')),
+    numeric(total('adjustment_shortage_z21')),
+    numeric(total('sales_quantity')),
+    numeric(total('outgoing_transfers')),
+    numeric(total('rework_311')),
+    numeric(total('book_balance')),
+    display ? formatInventoryManualThreeDecimal(total('physical_balance')) : total('physical_balance'),
+    numeric(total('inventory_variance')),
+    display ? formatInventoryManualThreeDecimal(total('oldest_quantity')) : total('oldest_quantity'),
+    '', ''
+  ];
+}
+function inventoryCountBuildExportSheet(){
+  const rows=INVENTORY_COUNT_STATE.lines || [];
+  const sheet=document.createElement('section');
+  sheet.className='inventory-count-export-sheet';
+  sheet.dir='rtl';
+  sheet.lang='ar';
+  const header=document.createElement('header');
+  header.className='inventory-count-export-header';
+  const title=document.createElement('h1');
+  title.textContent='الجرد وتوثيق المخزون';
+  const meta=document.createElement('div');
+  meta.className='inventory-count-export-meta';
+  inventoryCountExportMetaRows().slice(1,-1).forEach(row=>{
+    const item=document.createElement('span');
+    item.textContent=`${row[0]}: ${row[1]}`;
+    meta.appendChild(item);
+  });
+  header.append(title,meta);
+  const table=document.createElement('table');
+  table.className='inventory-count-export-table';
+  const thead=document.createElement('thead');
+  const headRow=document.createElement('tr');
+  inventoryCountExportHeaders().forEach(label=>{
+    const th=document.createElement('th');
+    th.textContent=label;
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+  const tbody=document.createElement('tbody');
+  rows.forEach(row=>{
+    const tr=document.createElement('tr');
+    inventoryCountExportDisplayRow(row).forEach(value=>{
+      const td=document.createElement('td');
+      td.textContent=value;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  const tfoot=document.createElement('tfoot');
+  const totalRow=document.createElement('tr');
+  totalRow.className='inventory-count-export-total-row';
+  inventoryCountExportTotalRow(true).forEach(value=>{
+    const td=document.createElement('td');
+    td.textContent=value;
+    totalRow.appendChild(td);
+  });
+  tfoot.appendChild(totalRow);
+  table.append(thead,tbody,tfoot);
+  const footer=document.createElement('footer');
+  footer.textContent=`القائم بالمراجعة / ${inventoryCountReviewerName()}`;
+  sheet.append(header,table,footer);
+  return sheet;
+}
+async function inventoryCountCaptureExportSheet(){
+  const Html2Canvas=window.html2canvas;
+  if(!Html2Canvas) throw new Error('مكتبة تصدير الصور غير محملة.');
+  const sheet=inventoryCountBuildExportSheet();
+  document.body.appendChild(sheet);
+  try{
+    if(document.fonts && document.fonts.ready) await document.fonts.ready;
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    const width=Math.ceil(Math.max(sheet.scrollWidth,sheet.getBoundingClientRect().width,1));
+    const height=Math.ceil(Math.max(sheet.scrollHeight,sheet.getBoundingClientRect().height,1));
+    const canvas=await Html2Canvas(sheet,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+    return {canvas,width,height};
+  }finally{
+    sheet.remove();
+  }
+}
+async function exportInventoryCountPng(){
+  if(!(INVENTORY_COUNT_STATE.lines || []).length){ showInventoryCountToast('لا توجد بيانات للتصدير.','warning'); return; }
+  try{
+    const {canvas}=await inventoryCountCaptureExportSheet();
+    await new Promise(resolve=>canvas.toBlob(async blob=>{
+      if(!blob){ showInventoryCountToast('تعذر إنشاء صورة PNG.','error'); resolve(); return; }
+      await saveBlobWithPicker(blob,`${inventoryCountExportFileBase()}.png`,'image/png');
+      showInventoryCountToast('تم التصدير بنجاح.','success');
+      resolve();
+    },'image/png',1));
+  }catch(err){
+    console.error('Inventory count PNG export failed',err);
+    showInventoryCountToast(err?.message || 'فشل التصدير.','error');
+  }
+}
+async function exportInventoryCountPdf(){
+  if(!(INVENTORY_COUNT_STATE.lines || []).length){ showInventoryCountToast('لا توجد بيانات للتصدير.','warning'); return; }
+  const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+  if(!JsPDF){ showInventoryCountToast('مكتبة PDF غير محملة.','error'); return; }
+  try{
+    const {canvas,width,height}=await inventoryCountCaptureExportSheet();
+    const pageWidth=Math.max(1,Math.ceil(width));
+    const pageHeight=Math.max(1,Math.ceil(height));
+    const orientation=pageWidth>=pageHeight ? 'landscape' : 'portrait';
+    const pdf=new JsPDF({orientation,unit:'px',format:[pageWidth,pageHeight],compress:true});
+    const finalWidth=pdf.internal.pageSize.getWidth();
+    const finalHeight=pdf.internal.pageSize.getHeight();
+    pdf.addImage(canvas.toDataURL('image/png',1),'PNG',0,0,finalWidth,finalHeight,undefined,'FAST');
+    await saveBlobWithPicker(pdf.output('blob'),`${inventoryCountExportFileBase()}.pdf`,'application/pdf');
+    showInventoryCountToast('تم التصدير بنجاح.','success');
+  }catch(err){
+    console.error('Inventory count PDF export failed',err);
+    showInventoryCountToast(err?.message || 'فشل التصدير.','error');
+  }
+}
+async function exportInventoryCountExcel(){
+  const rows=INVENTORY_COUNT_STATE.lines || [];
+  if(!rows.length){ showInventoryCountToast('لا توجد بيانات للتصدير.','warning'); return; }
+  if(!window.XLSX){ showInventoryCountToast('مكتبة Excel غير محملة.','error'); return; }
+  try{
+    const matrix=[
+      ...inventoryCountExportMetaRows(),
+      inventoryCountExportHeaders(),
+      ...rows.map(inventoryCountExportExcelRow),
+      inventoryCountExportTotalRow(false),
+      [],
+      [`القائم بالمراجعة / ${inventoryCountReviewerName()}`]
+    ];
+    const ws=XLSX.utils.aoa_to_sheet(matrix);
+    ws['!rtl']=true;
+    ws['!cols']=inventoryCountExportHeaders().map((_,index)=>({wch:Math.min(42,Math.max(12,...matrix.map(row=>String(row[index] ?? '').length + 2)))}));
+    const numericStartRow=inventoryCountExportMetaRows().length + 2;
+    const numericEndRow=numericStartRow + rows.length;
+    for(let r=numericStartRow;r<=numericEndRow;r+=1){
+      for(let c=3;c<=15;c+=1){
+        const cell=ws[XLSX.utils.encode_cell({r:r-1,c})];
+        if(cell && typeof cell.v==='number') cell.z='0.000';
+      }
+    }
+    const wb=XLSX.utils.book_new();
+    wb.Workbook={Views:[{RTL:true}]};
+    XLSX.utils.book_append_sheet(wb,ws,'Inventory Count');
+    const out=XLSX.write(wb,{bookType:'xlsx',type:'array',cellStyles:true});
+    const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    await saveBlobWithPicker(blob,`${inventoryCountExportFileBase()}.xlsx`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    showInventoryCountToast('تم التصدير بنجاح.','success');
+  }catch(err){
+    console.error('Inventory count Excel export failed',err);
+    showInventoryCountToast(err?.message || 'فشل التصدير.','error');
+  }
+}
+function updateInventoryCountFreezePanes(){
+  const table=$('#inventoryCountLinesTable');
+  if(!table) return;
+  if(!(document.body.classList.contains('focus-mode-active') && document.body.dataset.focusSection==='inventory_closing')){
+    table.style.removeProperty('--ic-sticky-code-right');
+    table.style.removeProperty('--ic-sticky-name-right');
+    table.style.removeProperty('--ic-sticky-uom-right');
+    return;
+  }
+  const firstRow=table.tHead?.rows?.[0] || table.tBodies?.[0]?.rows?.[0];
+  if(!firstRow) return;
+  const cells=firstRow.cells;
+  const codeWidth=Math.ceil(cells[0]?.getBoundingClientRect().width || 110);
+  const nameWidth=Math.ceil(cells[1]?.getBoundingClientRect().width || 220);
+  table.style.setProperty('--ic-sticky-code-right','0px');
+  table.style.setProperty('--ic-sticky-name-right',`${codeWidth}px`);
+  table.style.setProperty('--ic-sticky-uom-right',`${codeWidth + nameWidth}px`);
+}function formatInventoryCountText(value){
   if(value===null || value===undefined) return '';
   return escapeHtml(String(value));
 }
@@ -9981,6 +10292,7 @@ function renderInventoryCountLines(rows=[]){
   if(!rows.length){
     tbody.innerHTML='<tr><td colspan="18" class="empty-state">لا توجد بنود جرد للنسخة الحالية.</td></tr>';
     renderInventoryCountTotals([]);
+    updateInventoryCountFreezePanes();
     return;
   }
   tbody.innerHTML=rows.map(row=>`<tr>
@@ -10006,6 +10318,7 @@ function renderInventoryCountLines(rows=[]){
   updateInventoryOpeningBalanceInputsWidth(tbody);
   if(window.CustomDatePicker) window.CustomDatePicker.init(tbody);
   renderInventoryCountTotals(rows);
+  updateInventoryCountFreezePanes();
 }
 async function filterInventoryCountLinesByCurrentWarehouse(rows=[]){
   const warehouseCode=inventoryCountReadInputs().warehouseCode;
@@ -10331,7 +10644,6 @@ async function saveInventoryOpeningBalanceInput(input){
   const expectedRowVersion=input.dataset.rowVersion ? Number(input.dataset.rowVersion) : null;
   INVENTORY_COUNT_STATE.openingBalanceSaving.add(lineId);
   input.disabled=true;
-  inventoryCountSetStatus('جارٍ حفظ رصيد أول...');
   try{
     const {data,error}=await WarehouseDB.client.rpc('save_inventory_count_opening_balance',{
       p_line_id: lineId,
@@ -10352,16 +10664,14 @@ async function saveInventoryOpeningBalanceInput(input){
     input.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
     const productionInput=$(`#inventoryCountLinesTable .inventory-production-quantity-input[data-line-id="${CSS.escape(lineId)}"]`);
     if(productionInput) productionInput.dataset.rowVersion=input.dataset.rowVersion;
-    inventoryCountSetStatus('تم حفظ رصيد أول.','ok');
-    if(window.showToast) window.showToast('تم حفظ رصيد أول.','success');
+    showInventoryCountToast('تم حفظ رصيد أول.','success');
     if(INVENTORY_COUNT_STATE.versionId){
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
     }
   }catch(err){
     input.value=lastSaved;
     updateInventoryOpeningBalanceInputWidth(input);
-    inventoryCountSetStatus(err?.message || '', 'err');
-    alert(err?.message || '');
+    showInventoryCountToast(err?.message || 'حدث خطأ أثناء الحفظ.','error');
   }finally{
     INVENTORY_COUNT_STATE.openingBalanceSaving.delete(lineId);
     input.disabled=false;
@@ -10394,7 +10704,6 @@ async function saveInventoryProductionQuantityInput(input){
   const expectedRowVersion=input.dataset.rowVersion ? Number(input.dataset.rowVersion) : null;
   INVENTORY_COUNT_STATE.productionSaving.add(lineId);
   input.disabled=true;
-  inventoryCountSetStatus('جارٍ حفظ الإنتاج...');
   try{
     const {data,error}=await WarehouseDB.client.rpc('save_inventory_count_production_quantity',{
       p_line_id: lineId,
@@ -10415,16 +10724,14 @@ async function saveInventoryProductionQuantityInput(input){
     input.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
     const openingInput=$(`#inventoryCountLinesTable .inventory-opening-balance-input[data-line-id="${CSS.escape(lineId)}"]`);
     if(openingInput) openingInput.dataset.rowVersion=input.dataset.rowVersion;
-    inventoryCountSetStatus('تم حفظ الإنتاج.','ok');
-    if(window.showToast) window.showToast('تم حفظ الإنتاج.','success');
+    showInventoryCountToast('تم حفظ الإنتاج.','success');
     if(INVENTORY_COUNT_STATE.versionId){
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
     }
   }catch(err){
     input.value=lastSaved;
     updateInventoryProductionQuantityInputWidth(input);
-    inventoryCountSetStatus(err?.message || '', 'err');
-    alert(err?.message || '');
+    showInventoryCountToast(err?.message || 'حدث خطأ أثناء الحفظ.','error');
   }finally{
     INVENTORY_COUNT_STATE.productionSaving.delete(lineId);
     input.disabled=false;
@@ -10457,7 +10764,6 @@ async function saveInventoryPhysicalBalanceInput(input){
   const expectedRowVersion=input.dataset.rowVersion ? Number(input.dataset.rowVersion) : null;
   INVENTORY_COUNT_STATE.physicalBalanceSaving.add(lineId);
   input.disabled=true;
-  inventoryCountSetStatus('جاري حفظ الرصيد الفعلي...');
   try{
     const {data,error}=await WarehouseDB.client.rpc('save_inventory_count_physical_balance',{
       p_line_id: lineId,
@@ -10478,16 +10784,14 @@ async function saveInventoryPhysicalBalanceInput(input){
     input.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
     updateInventoryPhysicalBalanceInputWidth(input);
     renderInventoryCountTotals(INVENTORY_COUNT_STATE.lines);
-    inventoryCountSetStatus('تم حفظ الرصيد الفعلي.','ok');
-    if(window.showToast) window.showToast('تم حفظ الرصيد الفعلي.','success');
+    showInventoryCountToast('تم حفظ الرصيد الفعلي.','success');
     if(INVENTORY_COUNT_STATE.versionId){
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
     }
   }catch(err){
     input.value=lastSaved;
     updateInventoryPhysicalBalanceInputWidth(input);
-    inventoryCountSetStatus(err?.message || '', 'err');
-    alert(err?.message || '');
+    showInventoryCountToast(err?.message || 'حدث خطأ أثناء الحفظ.','error');
   }finally{
     INVENTORY_COUNT_STATE.physicalBalanceSaving.delete(lineId);
     input.disabled=false;
@@ -10520,7 +10824,6 @@ async function saveInventoryOldestQuantityInput(input){
   const expectedRowVersion=input.dataset.rowVersion ? Number(input.dataset.rowVersion) : null;
   INVENTORY_COUNT_STATE.oldestQuantitySaving.add(lineId);
   input.disabled=true;
-  inventoryCountSetStatus('جاري حفظ كمية أقدم تاريخ...');
   try{
     const {data,error}=await WarehouseDB.client.rpc('save_inventory_count_oldest_quantity',{
       p_line_id: lineId,
@@ -10539,16 +10842,14 @@ async function saveInventoryOldestQuantityInput(input){
     input.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
     updateInventoryOldestQuantityInputWidth(input);
     renderInventoryCountTotals(INVENTORY_COUNT_STATE.lines);
-    inventoryCountSetStatus('تم حفظ كمية أقدم تاريخ.','ok');
-    if(window.showToast) window.showToast('تم حفظ كمية أقدم تاريخ.','success');
+    showInventoryCountToast('تم حفظ كمية أقدم تاريخ.','success');
     if(INVENTORY_COUNT_STATE.versionId){
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
     }
   }catch(err){
     input.value=lastSaved;
     updateInventoryOldestQuantityInputWidth(input);
-    inventoryCountSetStatus(err?.message || '', 'err');
-    alert(err?.message || '');
+    showInventoryCountToast(err?.message || 'حدث خطأ أثناء الحفظ.','error');
   }finally{
     INVENTORY_COUNT_STATE.oldestQuantitySaving.delete(lineId);
     input.disabled=false;
@@ -10566,7 +10867,6 @@ async function saveInventoryOldestDateInput(input){
   INVENTORY_COUNT_STATE.oldestDateSaving.add(lineId);
   input.disabled=true;
   if(window.CustomDatePicker) window.CustomDatePicker.refresh(input);
-  inventoryCountSetStatus('جاري حفظ أقدم تاريخ...');
   try{
     const {data,error}=await WarehouseDB.client.rpc('save_inventory_count_oldest_date',{
       p_line_id: lineId,
@@ -10584,16 +10884,14 @@ async function saveInventoryOldestDateInput(input){
     if(window.CustomDatePicker) window.CustomDatePicker.refresh(input);
     input.dataset.lastSaved=savedValue;
     input.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
-    inventoryCountSetStatus('تم حفظ أقدم تاريخ.','ok');
-    if(window.showToast) window.showToast('تم حفظ أقدم تاريخ.','success');
+    showInventoryCountToast('تم حفظ أقدم تاريخ.','success');
     if(INVENTORY_COUNT_STATE.versionId){
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
     }
   }catch(err){
     input.value=lastSaved;
     if(window.CustomDatePicker) window.CustomDatePicker.refresh(input);
-    inventoryCountSetStatus(err?.message || '', 'err');
-    alert(err?.message || '');
+    showInventoryCountToast(err?.message || 'حدث خطأ أثناء الحفظ.','error');
   }finally{
     INVENTORY_COUNT_STATE.oldestDateSaving.delete(lineId);
     input.disabled=false;
@@ -10611,7 +10909,6 @@ async function saveInventoryCounterSelect(select){
   const expectedRowVersion=select.dataset.rowVersion ? Number(select.dataset.rowVersion) : null;
   INVENTORY_COUNT_STATE.inventoryCounterSaving.add(lineId);
   select.disabled=true;
-  inventoryCountSetStatus('جاري حفظ القائم بالجرد...');
   try{
     const {data,error}=await WarehouseDB.client.rpc('save_inventory_count_counter',{
       p_line_id: lineId,
@@ -10628,15 +10925,13 @@ async function saveInventoryCounterSelect(select){
     }
     select.dataset.lastSaved=String(data?.inventory_counter_id || '');
     select.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
-    inventoryCountSetStatus('تم حفظ القائم بالجرد.','ok');
-    if(window.showToast) window.showToast('تم حفظ القائم بالجرد.','success');
+    showInventoryCountToast('تم حفظ القائم بالجرد.','success');
     if(INVENTORY_COUNT_STATE.versionId){
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
     }
   }catch(err){
     select.value=lastSaved;
-    inventoryCountSetStatus(err?.message || '', 'err');
-    alert(err?.message || '');
+    showInventoryCountToast(err?.message || 'حدث خطأ أثناء الحفظ.','error');
   }finally{
     INVENTORY_COUNT_STATE.inventoryCounterSaving.delete(lineId);
     select.disabled=false;
@@ -10737,6 +11032,18 @@ function initInventoryCountScreen(){
       scheduleInventoryCountOpen();
     });
   }
+  const exportBindings=[
+    ['#inventoryCountExportPngBtn',exportInventoryCountPng],
+    ['#inventoryCountExportPdfBtn',exportInventoryCountPdf],
+    ['#inventoryCountExportExcelBtn',exportInventoryCountExcel]
+  ];
+  exportBindings.forEach(([selector,handler])=>{
+    const btn=$(selector);
+    if(btn && btn.dataset.inventoryCountExportBound!=='1'){
+      btn.dataset.inventoryCountExportBound='1';
+      btn.addEventListener('click',handler);
+    }
+  });
   applyPermissionActionGuards('inventory_closing');
   inventoryCountUpdateCreateButton();
 }
@@ -10768,10 +11075,10 @@ async function refreshOpenInventoryCountAfterClosingSource(reportDate, plantCode
 
   try {
     await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId, INVENTORY_COUNT_STATE.requestSeq);
-    inventoryCountSetStatus('تم تحديث تقرير التقفيل وإعادة احتساب الجرد بنجاح.', 'ok');
+    showInventoryCountToast('تم تحديث تقرير التقفيل وإعادة احتساب الجرد بنجاح.','success');
   } catch (err) {
     console.warn('Inventory count reload after closing source change failed', err);
-    inventoryCountSetStatus(err?.message || 'تعذر تحديث بيانات الجرد بعد تقرير التقفيل.', 'err');
+    showInventoryCountToast(err?.message || 'تعذر تحديث بيانات الجرد بعد تقرير التقفيل.','error');
   }
 }
 const IC_ALLOWED_UOM = ['TO', 'TON', 'T', 'KG', 'KGS', 'KILOGRAM', 'طن', 'كجم'];

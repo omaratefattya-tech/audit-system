@@ -3905,3 +3905,324 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
   min-height: 30px;
   margin: 0 auto;
 }
+/* Inventory Count - export controls, scoped toast and focus freeze panes */
+#inventory_closing .focus-mode-actions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#inventory_closing .inventory-count-export-btn {
+  min-width: 74px;
+  min-height: 40px;
+  padding: 10px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0;
+}
+
+#inventory_closing .inventory-count-toast-stack {
+  position: fixed;
+  left: 24px;
+  top: 22px;
+  z-index: 90;
+  display: grid;
+  gap: 10px;
+  width: min(380px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+#inventory_closing .inventory-count-toast {
+  direction: rtl;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(141, 220, 89, .28);
+  background: linear-gradient(145deg, rgba(0, 48, 37, .78), rgba(0, 22, 18, .66));
+  color: #f4fff5;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .34), inset 0 1px 0 rgba(255, 255, 255, .08);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  opacity: 0;
+  transform: translateY(-10px) scale(.98);
+  transition: opacity .18s ease, transform .18s ease;
+  pointer-events: auto;
+}
+
+#inventory_closing .inventory-count-toast.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+#inventory_closing .inventory-count-toast.is-leaving {
+  opacity: 0;
+  transform: translateY(-6px) scale(.98);
+}
+
+#inventory_closing .inventory-count-toast-success {
+  border-color: rgba(132, 207, 80, .58);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .34), 0 0 22px rgba(132, 207, 80, .16), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+#inventory_closing .inventory-count-toast-error {
+  border-color: rgba(255, 100, 100, .58);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .34), 0 0 22px rgba(255, 80, 80, .14), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+#inventory_closing .inventory-count-toast-warning {
+  border-color: rgba(241, 187, 48, .62);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .34), 0 0 22px rgba(241, 187, 48, .14), inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+#inventory_closing .inventory-count-toast-info {
+  border-color: rgba(70, 190, 210, .46);
+}
+
+#inventory_closing .inventory-count-toast-icon,
+#inventory_closing .inventory-count-toast-close {
+  display: grid;
+  place-items: center;
+}
+
+#inventory_closing .inventory-count-toast-icon svg,
+#inventory_closing .inventory-count-toast-close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#inventory_closing .inventory-count-toast-text {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+#inventory_closing .inventory-count-toast-close {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .06);
+  color: inherit;
+  padding: 0;
+  cursor: pointer;
+}
+
+.inventory-count-export-sheet {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  width: max-content;
+  min-width: 2200px;
+  min-height: 420px;
+  padding: 28px;
+  box-sizing: border-box;
+  direction: rtl;
+  font-family: Cairo, Arial, sans-serif;
+  color: #fff;
+  background: radial-gradient(circle at 50% 0%, rgba(94, 180, 71, .14), transparent 34%), linear-gradient(180deg, #00291f, #001611);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.inventory-count-export-header {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(141, 220, 89, .28);
+  text-align: center;
+}
+
+.inventory-count-export-header h1 {
+  margin: 0;
+  color: #fff;
+  font-size: 30px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.inventory-count-export-meta {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: #dfffd4;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.inventory-count-export-meta span {
+  padding: 6px 10px;
+  border: 1px solid rgba(141, 220, 89, .24);
+  border-radius: 999px;
+  background: rgba(141, 220, 89, .08);
+}
+
+.inventory-count-export-table {
+  width: 100%;
+  border-collapse: collapse;
+  direction: rtl;
+  background: #fff;
+  color: #111;
+  font-size: 12px;
+}
+
+.inventory-count-export-table th,
+.inventory-count-export-table td {
+  border: 1px solid #627267;
+  padding: 7px 6px;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.inventory-count-export-table th {
+  background: #dff1d8;
+  color: #111;
+  font-weight: 900;
+}
+
+.inventory-count-export-table tfoot td {
+  background: #e8f7df;
+  color: #0f2c18;
+  font-weight: 900;
+}
+
+.inventory-count-export-sheet footer {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(141, 220, 89, .28);
+  color: #dfffd4;
+  font-size: 14px;
+  font-weight: 900;
+  text-align: right;
+}
+
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventory_closing.active-section {
+  display: block !important;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventory_closing > .panel.glass {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0 !important;
+  margin: 0;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventory_closing .table-wrap {
+  flex: 1 1 auto;
+  min-height: 260px;
+  overflow: auto !important;
+  position: relative;
+  border: 1px solid rgba(141, 220, 89, .18);
+  border-radius: 10px;
+}
+
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable {
+  table-layout: auto !important;
+  width: max-content !important;
+  min-width: 1800px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable thead th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 32 !important;
+  background: #06452f !important;
+  color: #dfffce !important;
+  box-shadow: 0 1px 0 rgba(141, 220, 89, .32), 0 10px 18px rgba(0, 0, 0, .28);
+}
+
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable th:nth-child(1),
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable td:nth-child(1),
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable th:nth-child(2),
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable td:nth-child(2),
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable th:nth-child(3),
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable td:nth-child(3) {
+  position: sticky;
+  z-index: 24;
+  background: #003323;
+  color: #f4fff5;
+}
+
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable th:nth-child(1),
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable td:nth-child(1) {
+  right: var(--ic-sticky-code-right, 0px);
+}
+
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable th:nth-child(2),
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable td:nth-child(2) {
+  right: var(--ic-sticky-name-right, 110px);
+}
+
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable th:nth-child(3),
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable td:nth-child(3) {
+  right: var(--ic-sticky-uom-right, 330px);
+  box-shadow: -10px 0 18px rgba(0, 0, 0, .22);
+}
+
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable thead th:nth-child(1),
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable thead th:nth-child(2),
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable thead th:nth-child(3) {
+  z-index: 38 !important;
+  background: #06452f !important;
+}
+
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable tbody tr:nth-child(even) td:nth-child(-n+3) {
+  background: #003b29;
+}
+
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable tbody tr:hover td:nth-child(-n+3) {
+  background: #0b4b32;
+}
+
+body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable tfoot td:nth-child(-n+3) {
+  z-index: 28;
+  background: rgba(0, 74, 43, .98);
+}
+
+@media (max-width: 700px) {
+  #inventory_closing .focus-mode-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  #inventory_closing .inventory-count-export-btn,
+  #inventory_closing .focus-mode-btn,
+  #inventory_closing .focus-mode-close-btn {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 0;
+  }
+  #inventory_closing .inventory-count-toast-stack {
+    left: 16px;
+    right: 16px;
+    top: 14px;
+    width: auto;
+  }
+}
