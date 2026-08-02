@@ -352,14 +352,6 @@
     background: linear-gradient(135deg, rgba(255,255,255,.9), rgba(222,246,219,.78));
     color: #052318;
   }
-
-  #inventoryCountLinesTable tbody tr:nth-child(odd) {
-    background: rgba(221, 245, 219, .54);
-  }
-
-  #inventoryCountLinesTable tbody tr:nth-child(even) {
-    background: rgba(199, 232, 201, .38);
-  }
 }
 @media (max-width: 640px) {
   .custom-date-picker-popup.custom-date-picker-mobile {
