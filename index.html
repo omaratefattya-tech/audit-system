@@ -15,6 +15,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
   <link rel="stylesheet" href="assets/css/style.css?v=ir-hotfix-2-20260726" />
+  <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ir-hotfix-2-20260726" />
 </head>
 <body>
   <section id="loginScreen" class="login-screen">
@@ -621,7 +622,7 @@
           <div class="glass-soft" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; align-items: end; padding: 14px; border-radius: 12px; margin-bottom: 14px;">
             <label style="display: flex; flex-direction: column; gap: 6px;">
               تاريخ الجرد
-              <input id="inventoryCountDateInput" type="date" />
+              <input id="inventoryCountDateInput" type="date" data-custom-date-picker data-custom-date-picker-placeholder="اختر تاريخ الجرد" aria-label="تاريخ الجرد" />
             </label>
             <label style="display: flex; flex-direction: column; gap: 6px;">
               المصنع
@@ -637,6 +638,7 @@
                 <option value="W401">W401</option>
               </select>
             </label>
+            <div id="inventoryCountSelectedDateSummary" class="inventory-count-selected-date-summary is-empty" aria-live="polite"><span class="inventory-count-day-badge"></span><span class="inventory-count-date-value">اختر تاريخ الجرد</span></div>
             <div id="inventoryCountCurrentVersionMeta" class="hint" style="text-align: right; margin: 0; align-self: center;">الإصدار: — | عدد الأصناف: 0</div>
             <button class="primary" id="createInventoryCountBtn" type="button">جرد جديد</button>
           </div>
@@ -1546,6 +1548,7 @@
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js?v=inv-04-1"></script>
+  <script src="assets/js/custom-date-picker.js?v=inv-04-1"></script>
   <script>
   </script>
   <script src="assets/js/footer.js"></script>
