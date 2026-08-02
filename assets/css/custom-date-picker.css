@@ -264,25 +264,103 @@
 }
 
 @media (prefers-color-scheme: light) {
+  .custom-date-picker-popup {
+    color: #052318;
+  }
+
   .custom-date-picker-display {
-    background: linear-gradient(135deg, rgba(255,255,255,.72), rgba(226,249,220,.46));
-    color: #062016;
+    border-color: rgba(22, 128, 69, .55);
+    background: linear-gradient(135deg, rgba(255,255,255,.88), rgba(222,246,219,.76));
+    color: #052318;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.78), 0 8px 22px rgba(15,75,47,.12);
   }
+
+  .custom-date-picker-display:hover,
+  .custom-date-picker-display:focus {
+    border-color: rgba(25, 139, 72, .82);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 0 0 3px rgba(25,139,72,.16), 0 14px 30px rgba(15,75,47,.16);
+  }
+
+  .custom-date-picker-display::placeholder {
+    color: rgba(5, 35, 24, .68);
+  }
+
+  .custom-date-picker-icon {
+    color: rgba(5, 70, 41, .86);
+  }
+
   .custom-date-picker-panel {
-    background: linear-gradient(145deg, rgba(250,255,248,.88), rgba(217,246,211,.66));
-    color: #062016;
+    border-color: rgba(25, 139, 72, .34);
+    background: linear-gradient(145deg, rgba(248,255,247,.94), rgba(214,243,210,.84));
+    color: #052318;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.86), 0 24px 70px rgba(16,70,45,.20), 0 0 28px rgba(25,139,72,.10);
   }
-  .custom-date-picker-head strong,
+
+  .custom-date-picker-head strong {
+    color: #052318;
+  }
+
   .custom-date-picker-head button,
   .custom-date-picker-footer button,
   .custom-date-picker-day {
-    color: #062016;
+    border-color: rgba(25, 139, 72, .24);
+    background: rgba(255,255,255,.62);
+    color: #052318;
   }
+
+  .custom-date-picker-head button:hover,
+  .custom-date-picker-head button:focus-visible,
+  .custom-date-picker-footer button:hover,
+  .custom-date-picker-footer button:focus-visible,
+  .custom-date-picker-day:hover,
+  .custom-date-picker-day:focus-visible {
+    border-color: rgba(25, 139, 72, .56);
+    background: rgba(56, 163, 89, .16);
+    color: #031b12;
+    box-shadow: 0 0 0 3px rgba(25,139,72,.12), 0 10px 22px rgba(16,70,45,.12);
+  }
+
   .custom-date-picker-weekdays span {
-    color: rgba(6,32,22,.66);
+    color: rgba(5, 35, 24, .78);
+  }
+
+  .custom-date-picker-day.is-muted {
+    color: rgba(5, 35, 24, .56);
+    background: rgba(255,255,255,.34);
+  }
+
+  .custom-date-picker-day.is-today {
+    border-color: rgba(25, 139, 72, .82);
+    box-shadow: inset 0 0 0 1px rgba(25,139,72,.26), 0 0 0 2px rgba(25,139,72,.10);
+  }
+
+  .custom-date-picker-day.is-selected {
+    color: #ffffff;
+    background: linear-gradient(135deg, #178846, #39a95a);
+    border-color: rgba(10, 92, 49, .88);
+    box-shadow: 0 0 18px rgba(25,139,72,.24), inset 0 1px 0 rgba(255,255,255,.28);
+  }
+
+  .custom-date-picker-apply {
+    color: #ffffff !important;
+    background: linear-gradient(135deg, #16803f, #34a853) !important;
+    border-color: rgba(10, 92, 49, .78) !important;
+  }
+
+  #inventoryCountLinesTable .inventory-oldest-date-cell .custom-date-picker-display {
+    border-color: rgba(22, 128, 69, .55);
+    background: linear-gradient(135deg, rgba(255,255,255,.9), rgba(222,246,219,.78));
+    color: #052318;
+  }
+
+  #inventoryCountLinesTable tbody tr:nth-child(odd) {
+    background: rgba(221, 245, 219, .54);
+  }
+
+  #inventoryCountLinesTable tbody tr:nth-child(even) {
+    background: rgba(199, 232, 201, .38);
   }
 }
-
 @media (max-width: 640px) {
   .custom-date-picker-popup.custom-date-picker-mobile {
     inset: auto 0 0 0 !important;
