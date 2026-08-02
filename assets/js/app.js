@@ -117,7 +117,7 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape') enterpriseC
 const colors=['#51b848','#1f9e9a','#7fc34b','#f1bf35','#526d62','#e88f2d'];
 function fmt(n){return Number(n).toLocaleString('en-US',{maximumFractionDigits:3})}
 function setDefaultDates(){const now=new Date();const cairo=new Date(now.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));const first=new Date(cairo.getFullYear(),cairo.getMonth(),1);const last=new Date(cairo.getFullYear(),cairo.getMonth()+1,0);const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;$('#fromDate').value=iso(first);$('#toDate').value=iso(last)}
-function startCairoClock(){const time=$('#cairoTime'),date=$('#cairoDate');function tick(){const now=new Date();time.textContent=new Intl.DateTimeFormat('ar-EG',{timeZone:'Africa/Cairo',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(now);date.textContent=new Intl.DateTimeFormat('ar-EG',{timeZone:'Africa/Cairo',weekday:'long',year:'numeric',month:'long',day:'numeric'}).format(now)}tick();setInterval(tick,1000)}
+function startCairoClock(){const time=$('#cairoTime'),date=$('#cairoDate');function tick(){const now=new Date();const cairo=new Date(now.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));time.textContent=new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Cairo',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(now);date.textContent=formatDisplayDate(cairo)}tick();setInterval(tick,1000)}
 function dbBadge(){const box=document.createElement('span');box.className='db-status'+(window.WarehouseDB?.ready?' ready':'');box.textContent=window.WarehouseDB?.ready?'Supabase متصل':'Supabase جاهز للإعداد';document.querySelector('.page-title div').appendChild(box)}
 let PLANTS_CATALOG_CACHE=null;
 let PLANTS_CATALOG_PENDING=null;
@@ -750,7 +750,7 @@ async function exportTableToExcel(tableId,reportTitle){
   if(!window.XLSX){ alert('مكتبة Excel غير محملة.'); return; }
   const meta=[
     [reportTitle],
-    ['تاريخ التصدير', new Date().toLocaleString('ar-EG')],
+    ['تاريخ التصدير', formatDisplayDateTime(new Date())],
     []
   ];
   const ws=XLSX.utils.aoa_to_sheet([...meta,...matrix]);
@@ -803,7 +803,7 @@ async function exportTableToPdf(tableId,reportTitle){
   exportLayer.innerHTML=`
     <div style="text-align:center;margin-bottom:12px;color:#111;background:#fff;">
       <h1 style="font-size:24px;margin:0 0 8px;font-weight:800;color:#111;line-height:1.5;">${escapeHtml(reportTitle)}</h1>
-      <div style="font-size:13px;color:#333;line-height:1.6;">تاريخ التصدير: ${escapeHtml(new Date().toLocaleString('ar-EG'))}</div>
+      <div style="font-size:13px;color:#333;line-height:1.6;">تاريخ التصدير: ${escapeHtml(formatDisplayDateTime(new Date()))}</div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:10px;direction:rtl;background:#fff;color:#111;">
       <thead><tr>${head.map(h=>`<th style="border:1px solid #555;padding:6px 5px;background:#dff1d8;color:#111;text-align:center;font-weight:800;line-height:1.45;white-space:normal;">${escapeHtml(h)}</th>`).join('')}</tr></thead>
@@ -860,10 +860,7 @@ async function exportTableToPdf(tableId,reportTitle){
   }
 }
 function formatSalesReviewExportDate(value){
-  const d=normalizeDateISO(value||'');
-  if(!d) return '';
-  const parts=d.split('-');
-  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return formatDisplayDate(value,'');
 }
 function currentSalesReviewDate(){
   return normalizeDateISO($('#salesReportDateSelect')?.value || activeSalesReportDate || '');
@@ -1254,11 +1251,7 @@ function renderModernSidebarIcons(){
 }
 
 function formatMobileDashboardDateLabel(v){
-  const d=normalizeDateISO(v||'');
-  if(!d) return '';
-  const parts=d.split('-');
-  if(parts.length!==3) return d;
-  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return formatDisplayDate(v,'');
 }
 function updateMobileDashboardPeriodLabel(){
   const node=$('#mobileDashboardPeriodLabel b');
@@ -1436,10 +1429,10 @@ function renderDashboardSalesHeatmap(allRows,filters={}){
     const ratio=max?Math.max(.12,val/max):0;
     const heatmapClass=getHeatmapCellClass(val,min,max);
     const className=heatmapClass ? `heat-cell ${heatmapClass}` : 'heat-cell';
-    cells.push(`<div class="${className}" style="--heat:${ratio.toFixed(3)}" title="${date} - ${fmt(val)} طن"><b>${day}</b><span>${fmt(val)}</span></div>`);
+    cells.push(`<div class="${className}" style="--heat:${ratio.toFixed(3)}" title="${formatDisplayDate(date,date)} - ${fmt(val)} طن"><b>${day}</b><span>${fmt(val)}</span></div>`);
   }
   node.innerHTML=`
-    <div class="heatmap-head"><strong>${monthKey}</strong><span>الأقل</span><i></i><span>الأعلى</span></div>
+    <div class="heatmap-head"><strong>${monthKey.split('-').reverse().join('/')}</strong><span>الأقل</span><i></i><span>الأعلى</span></div>
     <div class="heatmap-weekdays">${weekDayLabels.map(d=>`<span>${d}</span>`).join('')}</div>
     <div class="heatmap-grid">${cells.join('')}</div>
     <div class="heatmap-footer"><b>${fmt(Object.values(daily).reduce((a,b)=>a+b,0))}</b><span>إجمالي البيع للأيام المعروضة حسب الفلتر</span></div>`;
@@ -2776,6 +2769,37 @@ let activeSalesWarehouse = SALES_WAREHOUSES[0];
 let activeSalesReportDate = '';
 function todayISO(){const d=new Date();const c=new Date(d.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));return `${c.getFullYear()}-${String(c.getMonth()+1).padStart(2,'0')}-${String(c.getDate()).padStart(2,'0')}`;}
 function normalizeDateISO(v){return v ? String(v).slice(0,10) : '';}
+function formatDisplayDate(value,emptyText='—'){
+  if(value===null || value===undefined || value==='') return emptyText;
+  const pad=n=>String(n).padStart(2,'0');
+  if(value instanceof Date){
+    if(Number.isNaN(value.getTime())) return emptyText;
+    return pad(value.getDate())+'/'+pad(value.getMonth()+1)+'/'+value.getFullYear();
+  }
+  const text=String(value).trim();
+  if(!text) return emptyText;
+  const iso=text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(iso) return iso[3]+'/'+iso[2]+'/'+iso[1];
+  const parsed=new Date(text);
+  if(Number.isNaN(parsed.getTime())) return emptyText;
+  return pad(parsed.getDate())+'/'+pad(parsed.getMonth()+1)+'/'+parsed.getFullYear();
+}
+function formatDisplayDateTime(value,emptyText='—'){
+  if(value===null || value===undefined || value==='') return emptyText;
+  const dateText=formatDisplayDate(value,emptyText);
+  if(dateText===emptyText) return emptyText;
+  const pad=n=>String(n).padStart(2,'0');
+  const parsed=value instanceof Date ? value : new Date(value);
+  if(!Number.isNaN(parsed.getTime())) return dateText+' '+pad(parsed.getHours())+':'+pad(parsed.getMinutes());
+  const text=String(value).trim();
+  const time=text.match(/[T\s](\d{2}):(\d{2})/);
+  return time ? dateText+' '+time[1]+':'+time[2] : dateText;
+}
+function formatDisplayDateRange(from,to){
+  const fromText=from ? formatDisplayDate(from,'') : '';
+  const toText=to ? formatDisplayDate(to,'') : '';
+  return (fromText||toText) ? (fromText || 'البداية')+' → '+(toText || 'النهاية') : 'كل الفترات';
+}
 function currentUploaderName(userData){return CURRENT_APP_PROFILE?.full_name || userData?.user?.email || 'مستخدم';}
 
 function normalizeHeader(v){return String(v||'').replace(/\s+/g,' ').trim();}
@@ -3108,7 +3132,7 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
   if(scaleErr) throw scaleErr;
   if(!incomingBatch || !scaleBatch){
     const missing=!incomingBatch?'MB51':'تقرير الميزان';
-    const msg=`تم الحفظ، ولم يتم إنشاء مراجعة الوارد لأن ${missing} غير متوفر لنفس التاريخ ${reportDate}.`;
+    const msg=`تم الحفظ، ولم يتم إنشاء مراجعة الوارد لأن ${missing} غير متوفر لنفس التاريخ ${formatDisplayDate(reportDate,reportDate)}.`;
     if(targetStatus) targetStatus.textContent=msg;
     return {built:false,message:msg};
   }
@@ -3223,7 +3247,7 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
     };
   });
   if(results.length) await insertChunks('incoming_audit_results',results,300);
-  if(targetStatus){ targetStatus.className='upload-status ok'; targetStatus.textContent=`تم إنشاء نتائج مراجعة الوارد تلقائياً: ${results.length} سطر لتاريخ ${reportDate}.`; }
+  if(targetStatus){ targetStatus.className='upload-status ok'; targetStatus.textContent=`تم إنشاء نتائج مراجعة الوارد تلقائياً: ${results.length} سطر لتاريخ ${formatDisplayDate(reportDate,reportDate)}.`; }
   await refreshInboundReportDates();
   await loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});
   return {built:true,count:results.length};
@@ -3269,7 +3293,7 @@ async function handleSalesFile(file){
       .eq('status','active');
     if(existingError) throw existingError;
     if(existing?.length){
-      const ok=confirm(`يوجد تقرير مبيعات مرفوع بالفعل بتاريخ ${reportDate}.
+      const ok=confirm(`يوجد تقرير مبيعات مرفوع بالفعل بتاريخ ${formatDisplayDate(reportDate,reportDate)}.
 هل تريد استبداله بالملف الجديد؟`);
       if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
       status.textContent='جاري حذف النسخة القديمة لنفس التاريخ...';
@@ -3279,7 +3303,7 @@ async function handleSalesFile(file){
       clearUnifiedSalesRowsCache();
     }
 
-    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء نسخة يومية بتاريخ ${reportDate}...`;
+    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء نسخة يومية بتاريخ ${formatDisplayDate(reportDate,reportDate)}...`;
     const {data:batch,error:batchError}=await WarehouseDB.client.from('sales_upload_batches').insert({
       file_name:file.name,
       uploaded_by:userData.user.id,
@@ -3297,9 +3321,9 @@ async function handleSalesFile(file){
     await insertChunks('sales_raw_transactions',payload,400);
     clearUnifiedSalesRowsCache();
     activeSalesReportDate=reportDate;
-    status.textContent=`تم رفع ${payload.length} سطر بنجاح لتاريخ ${reportDate}.`;
+    status.textContent=`تم رفع ${payload.length} سطر بنجاح لتاريخ ${formatDisplayDate(reportDate,reportDate)}.`;
     status.className='upload-status ok';
-    await logSystemActivity('التقارير',existing?.length?'استبدال تقرير':'رفع تقرير',`${existing?.length?'استبدال':'رفع'} تقرير مراجعة البيع بتاريخ ${reportDate} (${payload.length} حركة)`);
+    await logSystemActivity('التقارير',existing?.length?'استبدال تقرير':'رفع تقرير',`${existing?.length?'استبدال':'رفع'} تقرير مراجعة البيع بتاريخ ${formatDisplayDate(reportDate,reportDate)} (${payload.length} حركة)`);
     await loadSalesBatches();
     await refreshSalesReportDates(reportDate);
     await loadSalesReport(activeSalesWarehouse);
@@ -3348,12 +3372,12 @@ async function loadSalesBatches(){
     return;
   }
   const rows=(data||[]).map(b=>[
-    normalizeDateISO(b.report_date) || '-',
+    formatDisplayDate(b.report_date,'-'),
     b.file_name || '-',
     Number(b.row_count||0).toLocaleString('en-US'),
     formatFileSize(b.file_size_bytes),
     b.uploaded_by_name || b.uploaded_by || '-',
-    b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
+    formatDisplayDateTime(b.upload_date,'-'),
     `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض</button>
      <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
      <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">حذف</button>`
@@ -3374,11 +3398,11 @@ async function handleSalesBatchAction(btn){
     $('#salesExcelInput')?.click();
   }
   if(action==='delete'){
-    if(!confirm(`سيتم حذف تقرير المبيعات بتاريخ ${date} وكل بياناته الخام. هل أنت متأكد؟`)) return;
+    if(!confirm(`سيتم حذف تقرير المبيعات بتاريخ ${formatDisplayDate(date,date)} وكل بياناته الخام. هل أنت متأكد؟`)) return;
     const {error:delError}=await WarehouseDB.client.from('sales_upload_batches').delete().eq('id',btn.dataset.id);
     if(delError){ alert('خطأ أثناء الحذف: '+delError.message); return; }
     clearUnifiedSalesRowsCache();
-    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير مراجعة البيع بتاريخ ${date}`);
+    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير مراجعة البيع بتاريخ ${formatDisplayDate(date,date)}`);
     await loadSalesBatches();
     await refreshSalesReportDates();
     await loadSalesReport(activeSalesWarehouse);
@@ -3417,7 +3441,7 @@ async function handleIncomingFile(file){
       .eq('status','active');
     if(existingError) throw existingError;
     if(existing?.length){
-      const ok=confirm(`يوجد تقرير وارد MB51 مرفوع بالفعل بتاريخ ${reportDate}.
+      const ok=confirm(`يوجد تقرير وارد MB51 مرفوع بالفعل بتاريخ ${formatDisplayDate(reportDate,reportDate)}.
 هل تريد استبداله بالملف الجديد؟`);
       if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
       status.textContent='جاري حذف النسخة القديمة لنفس التاريخ...';
@@ -3429,7 +3453,7 @@ async function handleIncomingFile(file){
       if(deleteError) throw deleteError;
     }
 
-    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء نسخة وارد بتاريخ ${reportDate}...`;
+    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء نسخة وارد بتاريخ ${formatDisplayDate(reportDate,reportDate)}...`;
     const {data:batch,error:batchError}=await WarehouseDB.client.from('incoming_upload_batches').insert({
       file_name:file.name,
       uploaded_by:userData.user.id,
@@ -3445,9 +3469,9 @@ async function handleIncomingFile(file){
     const payload=payloadPreview.map(r=>({...r,batch_id:batch.id}));
     status.textContent=`جاري رفع ${payload.length} سطر وارد إلى Supabase...`;
     await insertChunks('incoming_raw_transactions',payload,400);
-    status.textContent=`تم رفع ${payload.length} سطر وارد بنجاح لتاريخ ${reportDate}.`;
+    status.textContent=`تم رفع ${payload.length} سطر وارد بنجاح لتاريخ ${formatDisplayDate(reportDate,reportDate)}.`;
     status.className='upload-status ok';
-    await logSystemActivity('التقارير',existing?.length?'استبدال تقرير':'رفع تقرير',`${existing?.length?'استبدال':'رفع'} تقرير MB51 بتاريخ ${reportDate} (${payload.length} حركة)`);
+    await logSystemActivity('التقارير',existing?.length?'استبدال تقرير':'رفع تقرير',`${existing?.length?'استبدال':'رفع'} تقرير MB51 بتاريخ ${formatDisplayDate(reportDate,reportDate)} (${payload.length} حركة)`);
     await loadIncomingBatches();
     await tryBuildIncomingAudit(reportDate,status);
   }catch(err){
@@ -3469,12 +3493,12 @@ async function loadIncomingBatches(){
     return;
   }
   const rows=(data||[]).map(b=>[
-    normalizeDateISO(b.report_date) || '-',
+    formatDisplayDate(b.report_date,'-'),
     b.file_name || '-',
     Number(b.row_count||0).toLocaleString('en-US'),
     formatFileSize(b.file_size_bytes),
     b.uploaded_by_name || b.uploaded_by || '-',
-    b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
+    formatDisplayDateTime(b.upload_date,'-'),
     `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض</button>
      <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
      <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">حذف</button>`
@@ -3496,13 +3520,13 @@ async function handleIncomingBatchAction(btn){
     $('#incomingExcelInput')?.click();
   }
   if(action==='delete'){
-    if(!confirm(`سيتم حذف تقرير الوارد بتاريخ ${date} وكل بياناته الخام. هل أنت متأكد؟`)) return;
+    if(!confirm(`سيتم حذف تقرير الوارد بتاريخ ${formatDisplayDate(date,date)} وكل بياناته الخام. هل أنت متأكد؟`)) return;
     await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',date);
     const {error:rawDeleteError}=await WarehouseDB.client.from('incoming_raw_transactions').delete().eq('batch_id',btn.dataset.id);
     if(rawDeleteError){ alert('خطأ أثناء حذف بيانات الوارد: '+rawDeleteError.message); return; }
     const {error:delError}=await WarehouseDB.client.from('incoming_upload_batches').delete().eq('id',btn.dataset.id);
     if(delError){ alert('خطأ أثناء حذف نسخة الوارد: '+delError.message); return; }
-    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير MB51 بتاريخ ${date}`);
+    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير MB51 بتاريخ ${formatDisplayDate(date,date)}`);
     await loadIncomingBatches();
   }
 }
@@ -3532,7 +3556,7 @@ async function handleScaleFile(file){
       .eq('status','active');
     if(existingError) throw existingError;
     if(existing?.length){
-      const ok=confirm(`يوجد تقرير ميزان مرفوع بالفعل بتاريخ ${reportDate}.\nهل تريد استبداله بالملف الجديد؟`);
+      const ok=confirm(`يوجد تقرير ميزان مرفوع بالفعل بتاريخ ${formatDisplayDate(reportDate,reportDate)}.\nهل تريد استبداله بالملف الجديد؟`);
       if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
       status.textContent='جاري حذف نسخة الميزان القديمة لنفس التاريخ...';
       const ids=existing.map(x=>x.id);
@@ -3542,7 +3566,7 @@ async function handleScaleFile(file){
       const {error:deleteError}=await WarehouseDB.client.from('scale_upload_batches').delete().in('id',ids);
       if(deleteError) throw deleteError;
     }
-    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء نسخة ميزان بتاريخ ${reportDate}...`;
+    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء نسخة ميزان بتاريخ ${formatDisplayDate(reportDate,reportDate)}...`;
     const {data:batch,error:batchError}=await WarehouseDB.client.from('scale_upload_batches').insert({
       file_name:file.name,
       uploaded_by:userData.user.id,
@@ -3558,9 +3582,9 @@ async function handleScaleFile(file){
     const payload=payloadPreview.map(r=>({...r,batch_id:batch.id}));
     status.textContent=`جاري رفع ${payload.length} سطر ميزان إلى Supabase...`;
     await insertChunks('scale_raw_transactions',payload,400);
-    status.textContent=`تم رفع ${payload.length} سطر ميزان بنجاح لتاريخ ${reportDate}.`;
+    status.textContent=`تم رفع ${payload.length} سطر ميزان بنجاح لتاريخ ${formatDisplayDate(reportDate,reportDate)}.`;
     status.className='upload-status ok';
-    await logSystemActivity('التقارير',existing?.length?'استبدال تقرير':'رفع تقرير',`${existing?.length?'استبدال':'رفع'} تقرير الميزان بتاريخ ${reportDate} (${payload.length} حركة)`);
+    await logSystemActivity('التقارير',existing?.length?'استبدال تقرير':'رفع تقرير',`${existing?.length?'استبدال':'رفع'} تقرير الميزان بتاريخ ${formatDisplayDate(reportDate,reportDate)} (${payload.length} حركة)`);
     await loadScaleBatches();
     await tryBuildIncomingAudit(reportDate,status);
   }catch(err){
@@ -3582,12 +3606,12 @@ async function loadScaleBatches(){
     return;
   }
   const rows=(data||[]).map(b=>[
-    normalizeDateISO(b.report_date) || '-',
+    formatDisplayDate(b.report_date,'-'),
     b.file_name || '-',
     Number(b.row_count||0).toLocaleString('en-US'),
     formatFileSize(b.file_size_bytes),
     b.uploaded_by_name || b.uploaded_by || '-',
-    b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
+    formatDisplayDateTime(b.upload_date,'-'),
     `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض المراجعة</button>
      <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
      <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">حذف</button>`
@@ -3609,13 +3633,13 @@ async function handleScaleBatchAction(btn){
     $('#scaleExcelInput')?.click();
   }
   if(action==='delete'){
-    if(!confirm(`سيتم حذف تقرير الميزان بتاريخ ${date} وكل بياناته الخام ونتائج مراجعة الوارد المبنية عليه. هل أنت متأكد؟`)) return;
+    if(!confirm(`سيتم حذف تقرير الميزان بتاريخ ${formatDisplayDate(date,date)} وكل بياناته الخام ونتائج مراجعة الوارد المبنية عليه. هل أنت متأكد؟`)) return;
     await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',date);
     const {error:rawDeleteError}=await WarehouseDB.client.from('scale_raw_transactions').delete().eq('batch_id',btn.dataset.id);
     if(rawDeleteError){ alert('خطأ أثناء حذف بيانات الميزان: '+rawDeleteError.message); return; }
     const {error:delError}=await WarehouseDB.client.from('scale_upload_batches').delete().eq('id',btn.dataset.id);
     if(delError){ alert('خطأ أثناء حذف نسخة الميزان: '+delError.message); return; }
-    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير الميزان بتاريخ ${date}`);
+    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير الميزان بتاريخ ${formatDisplayDate(date,date)}`);
     await loadScaleBatches();
     await refreshInboundReportDates();
     await loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});
@@ -3728,7 +3752,7 @@ async function loadInboundAuditReport(date='',options={}){
     const movementStatus=r.movement_cell_status || r.raw_result?.movement_cell_status || 'neutral';
     const movementValue=(r.incoming_movement_type || r.raw_result?.movement_type || '-') + (r.incoming_movement_text ? ' - '+r.incoming_movement_text : '');
     const values=[
-      normalizeDateISO(r.report_date) || '-',
+      formatDisplayDate(r.report_date,'-'),
       r.material_code || '-',
       r.material_name || '-',
       r.uom || '-',
@@ -3815,12 +3839,12 @@ async function loadFreightBatches(){
     .order('upload_date',{ascending:false});
   if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل سجل نولون الوارد: ${error.message}</td></tr></tbody>`; return; }
   const rows=(data||[]).map(b=>[
-    normalizeDateISO(b.reference_date) || '-',
+    formatDisplayDate(b.reference_date,'-'),
     b.file_name || '-',
     Number(b.row_count||0).toLocaleString('en-US'),
     formatFileSize(b.file_size_bytes),
     b.uploaded_by_name || b.uploaded_by || '-',
-    b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
+    formatDisplayDateTime(b.upload_date,'-'),
     b.status || '-',
     `<button class="small-action view" data-action="view">عرض المرجع الحالي</button>
      <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.reference_date)}">حذف</button>`
@@ -3844,7 +3868,7 @@ async function loadFreightRates(){
     r.vehicle_description || '-',
     fmt(r.rate_per_ton || 0),
     r.is_active ? 'نشط' : 'غير نشط',
-    r.updated_at ? new Date(r.updated_at).toLocaleString('ar-EG') : '-'
+    formatDisplayDateTime(r.updated_at,'-')
   ]);
   table('#freightRatesTable',['وصف النولون','نوع البضاعة','المصنع','وصف العربية','قيمة النولون للطن','الحالة','آخر تحديث'],rows);
 }
@@ -5497,6 +5521,7 @@ function setActivityLogStatus(message,type=''){
 function activityLogRowValue(row,key,index=0){
   if(key==='index') return String(index+1);
   if(key==='created_time') return String(row.created_time||'').slice(0,8);
+  if(key==='created_date') return formatDisplayDate(row.created_date,'');
   return row[key] == null ? '' : String(row[key]);
 }
 function filteredActivityLogRows(){
@@ -5990,8 +6015,7 @@ function setUsersStatus(message,type=''){
 function roleLabel(role){ return USER_ROLE_LABELS[role] || role || 'Viewer'; }
 function userInitial(name,email){ return String((name||email||'م').trim()).charAt(0).toUpperCase() || 'م'; }
 function userDateText(v){
-  if(!v) return '--';
-  try{ return new Date(v).toLocaleString('ar-EG',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); }catch(_){ return String(v).slice(0,19).replace('T',' '); }
+  return formatDisplayDateTime(v,'--');
 }
 function normalizeManagedUser(row){
   return {
@@ -6687,7 +6711,7 @@ async function loadRawMaterialsUploadBatch(key){
     Number(b.row_count||0).toLocaleString('en-US'),
     formatFileSize(b.file_size_bytes),
     b.uploaded_by_name || b.uploaded_by || '-',
-    b.upload_date ? new Date(b.upload_date).toLocaleString('ar-EG') : '-',
+    formatDisplayDateTime(b.upload_date,'-'),
     b.status || '-'
   ]);
   table('#'+config.tableId,['اسم الملف','عدد الصفوف','الحجم','الرافع','تاريخ الرفع','الحالة'],rows);
@@ -7062,7 +7086,7 @@ async function exportRawMaterialsExcel(){
   const data=rawMaterialsExportData();
   if(!data.rows.length){ alert('لا توجد بيانات للتصدير.'); return; }
   if(!window.XLSX){ alert('مكتبة Excel غير محملة.'); return; }
-  const meta=[[rawMaterialsExportTitle(data.tabKey)],['تاريخ التصدير',new Date().toLocaleString('ar-EG')],...data.summary.map(line=>[line]),[]];
+  const meta=[[rawMaterialsExportTitle(data.tabKey)],['تاريخ التصدير',formatDisplayDateTime(new Date())],...data.summary.map(line=>[line]),[]];
   const ws=XLSX.utils.aoa_to_sheet([...meta,...data.matrix]);
   ws['!cols']=data.matrix[0].map((_,i)=>({wch:Math.max(14,...data.matrix.map(r=>String(r[i]??'').length).slice(0,500).map(n=>Math.min(n,44)))}));
   ws['!rtl']=true;
@@ -7085,7 +7109,7 @@ function rawMaterialsExportBox(data){
   box.dir='rtl';
   box.lang='ar';
   box.style.cssText='position:fixed;left:0;top:0;width:1500px;min-height:400px;background:#001611;color:#f4fff5;font-family:Cairo,Arial,Tahoma,sans-serif;padding:22px;box-sizing:border-box;z-index:2147483647;overflow:visible;';
-  box.innerHTML=`<header class="raw-materials-export-header"><h1>${escapeHtml(rawMaterialsExportTitle(data.tabKey))}</h1><p>تاريخ التصدير: ${escapeHtml(new Date().toLocaleString('ar-EG'))}</p><div>${data.summary.map(line=>`<span>${escapeHtml(line)}</span>`).join('')}</div></header>${rawMaterialsExportTableHtml(data.matrix)}`;
+  box.innerHTML=`<header class="raw-materials-export-header"><h1>${escapeHtml(rawMaterialsExportTitle(data.tabKey))}</h1><p>تاريخ التصدير: ${escapeHtml(formatDisplayDateTime(new Date()))}</p><div>${data.summary.map(line=>`<span>${escapeHtml(line)}</span>`).join('')}</div></header>${rawMaterialsExportTableHtml(data.matrix)}`;
   return box;
 }
 async function rawMaterialsCaptureExportBox(box,backgroundColor='#001611'){
@@ -7312,8 +7336,8 @@ function getReportFilters(){
 function reportFilterLabel(filters){
   const plant=enterpriseFilterText(filters.plant,$('#reportPlantFilter'),'جميع المصانع');
   const wh=enterpriseFilterText(filters.warehouse,$('#reportWarehouseFilter'),'جميع مخازن البيع');
-  const period=(filters.from||filters.to)?`${filters.from||'البداية'} → ${filters.to||'النهاية'}`:'كل الفترات';
-  return `الفترة: ${period} / المصنع: ${plant} / المخزن: ${wh} / تاريخ الإصدار: ${new Date().toLocaleString('ar-EG')}`;
+  const period=formatDisplayDateRange(filters.from,filters.to);
+  return `الفترة: ${period} / المصنع: ${plant} / المخزن: ${wh} / تاريخ الإصدار: ${formatDisplayDateTime(new Date())}`;
 }
 function renderExecutiveKPIs(stats){
   const cards=[
@@ -7621,7 +7645,7 @@ function renderItemAnalyticsAuditTrail(model){
   if(search) rows=rows.filter(r=>Object.values(r).some(v=>String(v||'').toLowerCase().includes(search)));
   const sort=ITEM_ANALYTICS_STATE.auditSort||{key:'date',dir:'asc'};rows=[...rows].sort((a,b)=>{const av=sort.key==='quantity'?toNumber(a[sort.key]):String(a[sort.key]||'');const bv=sort.key==='quantity'?toNumber(b[sort.key]):String(b[sort.key]||'');const cmp=av>bv?1:av<bv?-1:0;return sort.dir==='desc'?-cmp:cmp;});
   const heads=[['date','التاريخ'],['code','الصنف'],['name','وصف الصنف'],['plant','المصنع'],['warehouse','المخزن'],['movement','الحركة'],['description','وصف الحركة'],['quantity','الكمية'],['unit','الوحدة'],['direction','الاتجاه']];
-  const html='<thead><tr>'+heads.map(([k,h])=>`<th data-ia-sort="${k}">${escapeHtml(h)}</th>`).join('')+'</tr></thead><tbody>'+rows.map(r=>`<tr class="ia-dir-${r.direction==='داخل'?'in':r.direction==='خارج'?'out':'return'}"><td>${escapeHtml(r.date)}</td><td>${escapeHtml(r.code)}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.plant)}</td><td>${escapeHtml(r.warehouse)}</td><td>${escapeHtml(r.movement)}</td><td>${escapeHtml(r.description)}</td><td>${fmt(r.quantity)}</td><td>${escapeHtml(r.unit)}</td><td>${escapeHtml(r.direction)}</td></tr>`).join('')+(rows.length?'':'<tr><td colspan="10">لا توجد بيانات حركة مطابقة</td></tr>')+'</tbody>';
+  const html='<thead><tr>'+heads.map(([k,h])=>`<th data-ia-sort="${k}">${escapeHtml(h)}</th>`).join('')+'</tr></thead><tbody>'+rows.map(r=>`<tr class="ia-dir-${r.direction==='داخل'?'in':r.direction==='خارج'?'out':'return'}"><td>${escapeHtml(formatDisplayDate(r.date,r.date||''))}</td><td>${escapeHtml(r.code)}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.plant)}</td><td>${escapeHtml(r.warehouse)}</td><td>${escapeHtml(r.movement)}</td><td>${escapeHtml(r.description)}</td><td>${fmt(r.quantity)}</td><td>${escapeHtml(r.unit)}</td><td>${escapeHtml(r.direction)}</td></tr>`).join('')+(rows.length?'':'<tr><td colspan="10">لا توجد بيانات حركة مطابقة</td></tr>')+'</tbody>';
   const tbl=$('#itemAnalyticsAuditTrailTable');if(tbl)tbl.innerHTML=html;
 }
 function renderItemAnalyticsComparisonTable(model){
@@ -7647,8 +7671,8 @@ async function loadItemAnalyticsReport(options={}){
   }catch(error){console.warn('item analytics load error',error);itemAnalyticsSetEmpty('تعذر تحميل تحليلات الأصناف. راجع الاتصال أو الفلاتر.');}
 }
 function itemAnalyticsWorkbookRows(model){
-  const summary=[['العنوان','تحليلات الأصناف'],['الفترة',`${model.filters.from||'البداية'} -> ${model.filters.to||'النهاية'}`],['الأصناف',enterpriseFilterText(model.filters.items,$('#itemAnalyticsItemFilter'),'')],['إجمالي البيع',model.stats.sales],['إجمالي الإنتاج',model.stats.production],['الوارد',model.stats.incoming],['الصادر',model.stats.outgoing],['التحميل',model.stats.loading],['عدد Queries',ITEM_ANALYTICS_STATE.queryCount||0]];
-  const timeline=[['التاريخ','الصنف','وصف الصنف','المصنع','المخزن','الحركة','وصف الحركة','الكمية','الوحدة','الاتجاه'],...(model.auditRows||[]).map(r=>[r.date,r.code,r.name,r.plant,r.warehouse,r.movement,r.description,r.quantity,r.unit,r.direction])];
+  const summary=[['العنوان','تحليلات الأصناف'],['الفترة',formatDisplayDateRange(model.filters.from,model.filters.to)],['الأصناف',enterpriseFilterText(model.filters.items,$('#itemAnalyticsItemFilter'),'')],['إجمالي البيع',model.stats.sales],['إجمالي الإنتاج',model.stats.production],['الوارد',model.stats.incoming],['الصادر',model.stats.outgoing],['التحميل',model.stats.loading],['عدد Queries',ITEM_ANALYTICS_STATE.queryCount||0]];
+  const timeline=[['التاريخ','الصنف','وصف الصنف','المصنع','المخزن','الحركة','وصف الحركة','الكمية','الوحدة','الاتجاه'],...(model.auditRows||[]).map(r=>[formatDisplayDate(r.date,r.date||''),r.code,r.name,r.plant,r.warehouse,r.movement,r.description,r.quantity,r.unit,r.direction])];
   const comparison=[['الصنف','الوصف','البيع','الإنتاج','الوارد','الصادر','التحميل','مساهمة البيع','ABC','الترتيب','التراكمي'],...model.abc.selectedRows.map(r=>[r.code,r.name,r.sales,r.production,r.incoming,r.outgoing,r.loading,r.contribution,r.abc,r.rank,r.cumulative])];
   const forecast=[['البند','القيمة'],...($('#itemAnalyticsForecast')?.innerText||'').split('\n').filter(Boolean).map(t=>[t,''])];
   return {summary,timeline,comparison,forecast};
@@ -7920,7 +7944,7 @@ function exceptionsReportPngDateRange(){
 }
 function exceptionsReportPngFilterLine(){
   const range=exceptionsReportPngDateRange();
-  return `الفترة: من ${range.from || 'البداية'} إلى ${range.to || 'النهاية'}`;
+  return `الفترة: من ${formatDisplayDate(range.from,'البداية')} إلى ${formatDisplayDate(range.to,'النهاية')}`;
 }
 function exceptionsReportPngFileName(prefix){
   const range=exceptionsReportPngDateRange();
@@ -8265,9 +8289,9 @@ function smartPeriodPhrase(model){
   const filters=model?.filters||{};
   const from=normalizeDateISO(filters.from||'');
   const to=normalizeDateISO(filters.to||'');
-  if(from && to) return 'خلال الفترة من '+from+' إلى '+to;
-  if(from) return 'من '+from;
-  if(to) return 'حتى '+to;
+  if(from && to) return 'خلال الفترة من '+formatDisplayDate(from,from)+' إلى '+formatDisplayDate(to,to);
+  if(from) return 'من '+formatDisplayDate(from,from);
+  if(to) return 'حتى '+formatDisplayDate(to,to);
   return 'خلال الفترة المحددة';
 }
 function smartLocationPhrase(entry){
@@ -8629,8 +8653,8 @@ function renderProductionKpis(model){
   const cards=[
     {title:'إجمالي إنتاج المصانع',value:fmt(st.total),unit:'طن',icon:'production',extraClass:'production-kpi'},
     {title:'متوسط الإنتاج اليومي',value:fmt(st.avgDaily),unit:'طن/يوم',icon:'trendUp',extraClass:'production-kpi'},
-    {title:'أعلى يوم إنتاج',value:fmt(st.maxDay?.value||0),unit:st.maxDay?.date||'-',icon:'check',extraClass:'production-kpi'},
-    {title:'أقل يوم إنتاج',value:fmt(st.minDay?.value||0),unit:st.minDay?.date||'-',icon:'ban',extraClass:'production-kpi'},
+    {title:'أعلى يوم إنتاج',value:fmt(st.maxDay?.value||0),unit:formatDisplayDate(st.maxDay?.date,'-'),icon:'check',extraClass:'production-kpi'},
+    {title:'أقل يوم إنتاج',value:fmt(st.minDay?.value||0),unit:formatDisplayDate(st.minDay?.date,'-'),icon:'ban',extraClass:'production-kpi'},
     {title:'عدد أيام الإنتاج',value:fmt(st.days),unit:'يوم',icon:'calendar',extraClass:'production-kpi'},
     {title:'نسبة التغير',value:fmt(st.changePct||0),unit:'%',icon:'trendUp',extraClass:'production-kpi'}
   ];
@@ -8660,13 +8684,13 @@ function renderProductionPlantHeatmap(model){
   const node=$('#productionPlantHeatmap'); if(!node) return; const days=Object.keys(model.daily||{}).sort(); const plants=model.plants||[];
   if(!days.length || !plants.length){ node.innerHTML='<div class="empty-row">لا توجد بيانات إنتاج</div>'; return; }
   const cols=`92px repeat(${days.length}, minmax(58px,1fr))`;
-  const dayHead=days.map(d=>`<span>${escapeHtml(d.slice(5))}</span>`).join('');
+  const dayHead=days.map(d=>`<span>${escapeHtml(formatDisplayDate(d,d))}</span>`).join('');
   const rows=plants.map(p=>{
     const rowValues=days.map(d=>Math.abs(toNumber(model.plantDaily[p.code]?.[d]||0)));
     const positives=rowValues.filter(v=>v>0);
     const rowMax=Math.max(...positives,0);
     const rowMin=positives.length?Math.min(...positives):0;
-    return `<div class="prod-heat-row" style="grid-template-columns:${cols}"><strong>${escapeHtml(p.code)}</strong>${days.map((d,idx)=>{const v=rowValues[idx]||0; return `<i class="${heatClass(v,rowMin,rowMax)}" title="${escapeHtml(p.code)} / ${escapeHtml(d)} / ${fmt(v)} طن"><b>${fmt(v)}</b></i>`;}).join('')}</div>`;
+    return `<div class="prod-heat-row" style="grid-template-columns:${cols}"><strong>${escapeHtml(p.code)}</strong>${days.map((d,idx)=>{const v=rowValues[idx]||0; return `<i class="${heatClass(v,rowMin,rowMax)}" title="${escapeHtml(p.code)} / ${escapeHtml(formatDisplayDate(d,d))} / ${fmt(v)} طن"><b>${fmt(v)}</b></i>`;}).join('')}</div>`;
   }).join('');
   node.innerHTML=`<div class="prod-heat-head" style="grid-template-columns:${cols}"><strong>المصنع</strong>${dayHead}</div>${rows}<div class="prod-heat-scale"><span>أقل يوم داخل كل مصنع</span><em></em><span>أعلى يوم داخل كل مصنع</span></div>`;
 }
@@ -8674,14 +8698,14 @@ function renderProductionAllHeatmap(model){
   const node=$('#productionAllHeatmap'); if(!node) return; const entries=Object.entries(model.daily||{}).sort(([a],[b])=>a.localeCompare(b));
   if(!entries.length){node.innerHTML='<div class="empty-row">لا توجد بيانات إنتاج</div>';return;}
   const values=entries.map(([,v])=>Math.abs(toNumber(v))).filter(v=>v>0), max=Math.max(...values,0), min=values.length?Math.min(...values):0;
-  node.innerHTML=`<div class="production-all-grid">${entries.map(([d,v])=>{const val=Math.abs(toNumber(v)); return `<div class="all-heat-cell ${heatClass(val,min,max)}" title="${escapeHtml(d)} - ${fmt(val)} طن"><b>${escapeHtml(d.slice(5))}</b><span>${fmt(val)}</span></div>`;}).join('')}</div><div class="prod-heat-scale"><span>أقل يوم إنتاج</span><em></em><span>أعلى يوم إنتاج</span></div>`;
+  node.innerHTML=`<div class="production-all-grid">${entries.map(([d,v])=>{const val=Math.abs(toNumber(v)); return `<div class="all-heat-cell ${heatClass(val,min,max)}" title="${escapeHtml(formatDisplayDate(d,d))} - ${fmt(val)} طن"><b>${escapeHtml(formatDisplayDate(d,d))}</b><span>${fmt(val)}</span></div>`;}).join('')}</div><div class="prod-heat-scale"><span>أقل يوم إنتاج</span><em></em><span>أعلى يوم إنتاج</span></div>`;
 }
 function renderProductionTopProducts(products){
   renderRankTable('#productionTopProductsTable',['#','كود الصنف','اسم الصنف','إجمالي الإنتاج','النسبة'],(products||[]).slice(0,10).map((p,i)=>[i+1,escapeHtml(p.code),escapeHtml(p.name),fmt(p.production),`${fmt(p.pct)}%`]));
 }
 function renderProductionInsights(model){
   const st=model.summary||{}, top=model.products?.[0]||{}, lowPlant=[...(model.plants||[])].sort((a,b)=>a.production-b.production)[0]||{};
-  const lines=[['trophy','أعلى مصنع إنتاجاً: '+(st.topPlant?.code||'-')+' بإجمالي '+fmt(st.topPlant?.production||0)+' طن'],['box','أعلى صنف إنتاجاً: '+(top.code||'-')+' - '+escapeHtml(top.name||'-')+' بإجمالي '+fmt(top.production||0)+' طن'],['trendDown','أقل مصنع إنتاجاً: '+(lowPlant.code||'-')+' بإجمالي '+fmt(lowPlant.production||0)+' طن'],['check','أعلى يوم إنتاج: '+(st.maxDay?.date||'-')+' بقيمة '+fmt(st.maxDay?.value||0)+' طن'],['ban','أقل يوم إنتاج: '+(st.minDay?.date||'-')+' بقيمة '+fmt(st.minDay?.value||0)+' طن'],['shield','مؤشر استقرار الإنتاج: '+fmt(st.stability||0)+'%']];
+  const lines=[['trophy','أعلى مصنع إنتاجاً: '+(st.topPlant?.code||'-')+' بإجمالي '+fmt(st.topPlant?.production||0)+' طن'],['box','أعلى صنف إنتاجاً: '+(top.code||'-')+' - '+escapeHtml(top.name||'-')+' بإجمالي '+fmt(top.production||0)+' طن'],['trendDown','أقل مصنع إنتاجاً: '+(lowPlant.code||'-')+' بإجمالي '+fmt(lowPlant.production||0)+' طن'],['check','أعلى يوم إنتاج: '+formatDisplayDate(st.maxDay?.date,'-')+' بقيمة '+fmt(st.maxDay?.value||0)+' طن'],['ban','أقل يوم إنتاج: '+formatDisplayDate(st.minDay?.date,'-')+' بقيمة '+fmt(st.minDay?.value||0)+' طن'],['shield','مؤشر استقرار الإنتاج: '+fmt(st.stability||0)+'%']];
   const node=$('#productionInsights'); if(node) node.innerHTML=lines.map(l=>'<div class="production-insight"><span>'+modernIcon(l[0])+'</span><b>'+l[1]+'</b></div>').join('');
 }
 function renderProductionExportTable(model){
@@ -8735,7 +8759,7 @@ function renderSalesTotalsReport(groups,filters){
   if(tbl){
     tbl.innerHTML=`<thead><tr><th>الصف</th><th>المخازن</th><th>إجمالي البيع</th><th>إجمالي الإنتاج</th><th>إجمالي التحويلات الصادرة</th><th>إجمالي التحويلات الواردة</th><th>إجمالي التحميل</th></tr></thead><tbody>${(groups||[]).map(g=>`<tr><td>${escapeHtml(g.title)}</td><td>${escapeHtml(g.codes.join(' / '))}</td><td>${fmt(g.stats.salesQty)}</td><td>${fmt(g.stats.productionQty)}</td><td>${fmt(g.stats.outgoingTransferQty)}</td><td>${fmt(g.stats.incomingTransferQty)}</td><td>${fmt(g.stats.totalLoadingQty)}</td></tr>`).join('')}</tbody>`;
   }
-  if($('#salesTotalsReportMeta')) $('#salesTotalsReportMeta').textContent=`الفترة: ${filters.from||'--'} → ${filters.to||'--'} `;
+  if($('#salesTotalsReportMeta')) $('#salesTotalsReportMeta').textContent=`الفترة: ${formatDisplayDate(filters.from,'--')} → ${formatDisplayDate(filters.to,'--')} `;
 }
 async function loadSalesTotalsReport(options={}){
   if(!WarehouseDB?.ready) return;
@@ -8946,10 +8970,7 @@ function safeFileName(title){
   return `${String(title||'Report').replace(/[\/:*?"<>|]/g,'-')}-${stamp}`;
 }
 function reportExportDateText(value){
-  const d=normalizeDateISO(value||'');
-  if(!d) return '';
-  const parts=d.split('-');
-  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return formatDisplayDate(value,'');
 }
 function currentReportExportPeriodText(){
   const from=normalizeDateISO($('#reportFromDate')?.value || '');
@@ -9086,7 +9107,7 @@ function itemsReportPngDateRange(){
 function itemsReportPngFilterLine(){
   const filters=getReportFilters();
   const range=itemsReportPngDateRange();
-  const parts=[`الفترة: من ${range.from || 'البداية'} إلى ${range.to || 'النهاية'}`];
+  const parts=[`الفترة: من ${formatDisplayDate(range.from,'البداية')} إلى ${formatDisplayDate(range.to,'النهاية')}`];
   const plantSelect=$('#reportPlantFilter');
   const warehouseSelect=$('#reportWarehouseFilter');
   if(!enterpriseFilterIsAll(filters.plant)){
@@ -10758,13 +10779,13 @@ async function icLoadLastUploadBatch(tabKey) {
     const rows = data.map(batch => {
       // Resolve upload timestamp — try known possible column names defensively
       const rawTs = batch.completed_at ?? batch.created_at ?? batch.upload_date ?? batch.uploaded_at ?? batch.inserted_at ?? null;
-      const bDate = rawTs ? new Date(rawTs).toLocaleString('ar-EG') : '--';
+      const bDate = formatDisplayDateTime(rawTs,'--');
       // Resolve row count — try known possible column names defensively
       const rowCount = batch.row_count ?? batch.received_rows ?? batch.final_row_count ?? batch.expected_rows ?? '--';
       
       const uploader = batch.uploaded_by_name || batch.uploaded_by || '--';
       const fileSize = typeof formatFileSize === 'function' ? formatFileSize(batch.file_size_bytes) : '-';
-      const rDate = typeof normalizeDateISO === 'function' ? normalizeDateISO(batch.report_date) : batch.report_date;
+      const rDate = formatDisplayDate(batch.report_date,'--');
       
       // View button: carries ONLY data-action and data-batch-id (no file_name, report_date, row_count in DOM)
       const viewBtn = `<button type="button" class="ic-batch-view-btn" data-action="view-ic" data-batch-id="${escapeHtml(String(batch.id))}">عرض</button>`;
@@ -10846,7 +10867,7 @@ async function openIcBatchViewModal(batchId, triggerBtn) {
   const rdEl = document.getElementById('icBatchViewReportDate');
   const rcEl = document.getElementById('icBatchViewRowCount');
   if (fnEl) fnEl.textContent = meta.fileName || '--';
-  if (rdEl) rdEl.textContent = meta.reportDate || '--';
+  if (rdEl) rdEl.textContent = formatDisplayDate(meta.reportDate,'--');
   if (rcEl) rcEl.textContent = meta.rowCount !== undefined && meta.rowCount !== null ? String(meta.rowCount) : '--';
 
   // Clear old data
@@ -10928,7 +10949,7 @@ async function openIcBatchViewModal(batchId, triggerBtn) {
         `<td>${escapeHtml(String(row.plant_code ?? ''))}</td>`,
         `<td>${escapeHtml(String(row.warehouse_code ?? ''))}</td>`,
         `<td>${escapeHtml(String(row.plant_name ?? ''))}</td>`,
-        `<td>${escapeHtml(String(row.transaction_date ?? ''))}</td>`,
+        `<td>${escapeHtml(formatDisplayDate(row.transaction_date,''))}</td>`,
         `<td>${escapeHtml(String(row.worker_group ?? ''))}</td>`
       ].join('');
       fragment.appendChild(tr);
@@ -11028,7 +11049,7 @@ function handleReplaceIc(batchId) {
   };
   const reportName = titles[meta.reportKey] || meta.reportKey;
   
-  const msg = `سيتم استبدال النسخة الحالية بملف جديد.\nالملف الحالي: ${meta.fileName}\nتاريخ التقرير: ${meta.reportDate}\nالتقرير: ${reportName}\n\nهل تريد المتابعة؟`;
+  const msg = `سيتم استبدال النسخة الحالية بملف جديد.\nالملف الحالي: ${meta.fileName}\nتاريخ التقرير: ${formatDisplayDate(meta.reportDate,meta.reportDate)}\nالتقرير: ${reportName}\n\nهل تريد المتابعة؟`;
 
   if (!window.confirm(msg)) return;
   
