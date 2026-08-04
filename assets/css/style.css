@@ -4385,3 +4385,204 @@ body.light-mode #inventory_closing .inventory-count-column-option {
     flex: 1 1 calc(50% - 6px);
   }
 }
+/* Inventory Count - mobile controls, search tools and settlement action */
+#inventory_closing .inventory-count-mobile-tool-btn,
+#inventory_closing .inventory-count-mobile-panel-head,
+#inventory_closing .inventory-count-mobile-sheet-overlay,
+#inventory_closing .inventory-count-mobile-sheet {
+  display: none;
+}
+
+#inventory_closing .inventory-count-table-tools {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(160px, 220px) minmax(130px, 160px) auto;
+  gap: 10px;
+  align-items: end;
+  margin: 0 0 12px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(141, 220, 89, .18);
+  background: linear-gradient(135deg, rgba(2, 38, 32, .62), rgba(0, 72, 52, .28));
+}
+
+#inventory_closing .inventory-count-table-tools label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #d8ffd1;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+#inventory_closing .inventory-count-table-tools input,
+#inventory_closing .inventory-count-table-tools select {
+  min-height: 40px;
+  width: 100%;
+}
+
+#inventory_closing .inventory-count-search-field {
+  min-width: 0;
+}
+
+#inventoryCountLinesTable .inventory-settlement-cell {
+  text-align: center;
+  min-width: 122px;
+}
+
+#inventoryCountLinesTable .inventory-settlement-btn {
+  min-height: 34px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  background: rgba(0, 55, 38, .74);
+}
+
+#inventoryCountLinesTable .inventory-settlement-btn:hover,
+#inventoryCountLinesTable .inventory-settlement-btn:focus-visible {
+  background: rgba(132, 207, 80, .16);
+  outline: 1px solid rgba(141, 220, 89, .42);
+}
+
+#inventory_closing .inventory-count-mobile-export-list {
+  display: grid;
+  gap: 10px;
+}
+
+#inventory_closing .inventory-count-mobile-export-list button {
+  min-height: 44px;
+}
+
+@media (max-width: 700px) {
+  #inventory_closing .inventory-count-mobile-tool-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 calc(33.333% - 8px);
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 9px;
+    font-size: 12px;
+    letter-spacing: 0;
+  }
+
+  #inventory_closing #inventoryCountMobileSettingsBtn { order: 1; }
+  #inventory_closing #inventoryCountMobileExportBtn { order: 2; }
+  #inventory_closing #inventoryClosingFocusModeBtn { order: 3; }
+  #inventory_closing #inventoryCountMobileSearchBtn { order: 4; }
+  #inventory_closing #inventoryCountColumnManagerBtn { order: 5; }
+  #inventory_closing #inventoryClosingFocusModeCloseBtn { order: 6; }
+
+  #inventory_closing #inventoryCountExportPngBtn,
+  #inventory_closing #inventoryCountExportPdfBtn,
+  #inventory_closing #inventoryCountExportExcelBtn {
+    display: none !important;
+  }
+
+  #inventory_closing .inventory-count-export-btn,
+  #inventory_closing .focus-mode-btn,
+  #inventory_closing .focus-mode-close-btn {
+    flex: 1 1 calc(50% - 6px);
+  }
+
+  #inventory_closing .inventory-count-mobile-sheet-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    background: rgba(0, 12, 10, .62);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+  }
+
+  #inventory_closing .inventory-count-mobile-sheet-overlay:not([hidden]) {
+    display: block;
+  }
+
+  #inventory_closing .inventory-count-mobile-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    grid-column: 1 / -1;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(141, 220, 89, .2);
+  }
+
+  #inventory_closing .inventory-count-mobile-panel-head strong {
+    color: #dfffce;
+    font-weight: 900;
+  }
+
+  #inventory_closing .inventory-count-mobile-panel-close {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, .16);
+    background: rgba(255, 255, 255, .06);
+    color: #fff;
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  #inventory_closing .inventory-count-settings-box,
+  #inventory_closing .inventory-count-table-tools,
+  #inventory_closing .inventory-count-mobile-sheet {
+    display: none !important;
+  }
+
+  body.inventory-count-settings-open #inventory_closing .inventory-count-settings-box,
+  body.inventory-count-search-open #inventory_closing .inventory-count-table-tools,
+  body.inventory-count-export-open #inventory_closing .inventory-count-mobile-sheet {
+    display: grid !important;
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    z-index: 125;
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+    max-height: min(78svh, 620px);
+    overflow: auto;
+    margin: 0 !important;
+    padding: 14px;
+    border-radius: 22px;
+    background: linear-gradient(160deg, rgba(0, 58, 43, .98), rgba(0, 22, 19, .99));
+    border: 1px solid rgba(141, 220, 89, .32);
+    box-shadow: 0 -20px 60px rgba(0, 0, 0, .55);
+  }
+
+  body.inventory-count-search-open #inventory_closing .inventory-count-table-tools label,
+  body.inventory-count-settings-open #inventory_closing .inventory-count-settings-box label {
+    font-size: 12px;
+  }
+
+  body.inventory-count-search-open #inventory_closing .inventory-count-table-tools input,
+  body.inventory-count-search-open #inventory_closing .inventory-count-table-tools select,
+  body.inventory-count-settings-open #inventory_closing .inventory-count-settings-box input,
+  body.inventory-count-settings-open #inventory_closing .inventory-count-settings-box select {
+    height: 44px;
+    border-radius: 12px;
+    font-size: 13px;
+    width: 100%;
+  }
+
+  body.inventory-count-search-open #inventory_closing .inventory-count-table-tools button,
+  body.inventory-count-settings-open #inventory_closing .inventory-count-settings-box button {
+    min-height: 44px;
+    border-radius: 12px;
+  }
+
+  #inventoryCountLinesTable .inventory-settlement-cell {
+    min-width: 106px;
+  }
+
+  #inventoryCountLinesTable .inventory-settlement-btn {
+    min-height: 40px;
+    padding: 7px 9px;
+    font-size: 11px;
+  }
+}

@@ -613,6 +613,9 @@
           <div class="focus-mode-title-row" data-focus-section="inventory_closing">
             <h2>الجرد وتوثيق المخزون</h2>
             <div class="focus-mode-actions">
+              <button class="secondary inventory-count-mobile-tool-btn" id="inventoryCountMobileSettingsBtn" type="button" aria-controls="inventoryCountSettingsBox" aria-expanded="false">إعدادات الجرد</button>
+              <button class="secondary inventory-count-mobile-tool-btn" id="inventoryCountMobileExportBtn" type="button" aria-controls="inventoryCountMobileExportPanel" aria-expanded="false">تصدير</button>
+              <button class="secondary inventory-count-mobile-tool-btn" id="inventoryCountMobileSearchBtn" type="button" aria-controls="inventoryCountTableTools" aria-expanded="false">بحث وترتيب</button>
               <button class="secondary focus-mode-btn" id="inventoryClosingFocusModeBtn" type="button" data-focus-target="inventory_closing">Focus Mode</button>
               <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountColumnManagerBtn" type="button" aria-expanded="false" aria-controls="inventoryCountColumnManagerPanel">إدارة الأعمدة</button>
               <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountExportPngBtn" type="button">PNG</button>
@@ -623,7 +626,24 @@
           </div>
           <p class="hint">إنشاء جرد جديد وعرض أصناف الجرد والرصيد الدفتري من النسخة التي تم إنشاؤها.</p>
 
-          <div class="glass-soft" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; align-items: end; padding: 14px; border-radius: 12px; margin-bottom: 14px;">
+          <div id="inventoryCountMobileSheetOverlay" class="inventory-count-mobile-sheet-overlay" hidden aria-hidden="true"></div>
+          <div id="inventoryCountMobileExportPanel" class="inventory-count-mobile-sheet inventory-count-mobile-export-panel" hidden aria-hidden="true" role="dialog" aria-label="تصدير الجرد">
+            <div class="inventory-count-mobile-panel-head">
+              <strong>تصدير</strong>
+              <button class="inventory-count-mobile-panel-close" id="inventoryCountMobileExportCloseBtn" type="button" aria-label="إغلاق">&times;</button>
+            </div>
+            <div class="inventory-count-mobile-export-list">
+              <button class="secondary" type="button" data-inventory-mobile-export="png">PNG</button>
+              <button class="secondary" type="button" data-inventory-mobile-export="pdf">PDF</button>
+              <button class="secondary" type="button" data-inventory-mobile-export="excel">EXCEL</button>
+            </div>
+          </div>
+
+          <div id="inventoryCountSettingsBox" class="glass-soft inventory-count-settings-box" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; align-items: end; padding: 14px; border-radius: 12px; margin-bottom: 14px;">
+            <div class="inventory-count-mobile-panel-head">
+              <strong>إعدادات الجرد</strong>
+              <button class="inventory-count-mobile-panel-close" id="inventoryCountMobileSettingsCloseBtn" type="button" aria-label="إغلاق">&times;</button>
+            </div>
             <label style="display: flex; flex-direction: column; gap: 6px;">
               تاريخ الجرد
               <input id="inventoryCountDateInput" type="date" data-custom-date-picker data-custom-date-picker-placeholder="اختر تاريخ الجرد" aria-label="تاريخ الجرد" />
@@ -646,8 +666,45 @@
             <div id="inventoryCountCurrentVersionMeta" class="hint" style="text-align: right; margin: 0; align-self: center;">الإصدار: — | عدد الأصناف: 0</div>
             <button class="primary" id="createInventoryCountBtn" type="button">جرد جديد</button>
           </div>
+          <div id="inventoryCountTableTools" class="inventory-count-table-tools" role="search" aria-label="بحث وترتيب">
+            <div class="inventory-count-mobile-panel-head">
+              <strong>بحث وترتيب</strong>
+              <button class="inventory-count-mobile-panel-close" id="inventoryCountMobileSearchCloseBtn" type="button" aria-label="إغلاق">&times;</button>
+            </div>
+            <label class="inventory-count-search-field">
+              <span>بحث</span>
+              <input id="inventoryCountSearchInput" type="search" placeholder="ابحث بكود المادة أو وصف المادة" autocomplete="off" />
+            </label>
+            <label>
+              <span>ترتيب حسب</span>
+              <select id="inventoryCountSortKeySelect">
+                <option value="">الترتيب الافتراضي</option>
+                <option value="material_code">كود المادة</option>
+                <option value="material_name">وصف المادة</option>
+                <option value="opening_balance">رصيد أول</option>
+                <option value="production_quantity">الإنتاج</option>
+                <option value="incoming_transfers">التحويلات الواردة</option>
+                <option value="actual_returns">المرتجع الفعلي</option>
+                <option value="sales_quantity">كمية البيع</option>
+                <option value="outgoing_transfers">التحويلات الصادرة</option>
+                <option value="book_balance">الرصيد الدفتري</option>
+                <option value="physical_balance">الرصيد الفعلي</option>
+                <option value="inventory_variance">فرق الجرد</option>
+                <option value="oldest_quantity">كمية أقدم تاريخ</option>
+                <option value="oldest_date">أقدم تاريخ</option>
+              </select>
+            </label>
+            <label>
+              <span>الاتجاه</span>
+              <select id="inventoryCountSortDirectionSelect">
+                <option value="asc">تصاعدي</option>
+                <option value="desc">تنازلي</option>
+              </select>
+            </label>
+            <button class="secondary" id="inventoryCountSearchResetBtn" type="button">مسح</button>
+          </div>
           <div class="table-wrap" style="margin-top: 0;">
-            <table id="inventoryCountLinesTable" data-no-universal-table="1" style="min-width: 1800px;">
+            <table id="inventoryCountLinesTable" data-no-universal-table="1" style="min-width: 1920px;">
               <thead>
                 <tr>
                   <th>كود المادة</th>
@@ -668,10 +725,11 @@
                   <th>كمية أقدم تاريخ</th>
                   <th>أقدم تاريخ</th>
                   <th>القائم بالجرد</th>
+                  <th>تسوية الجرد</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><td colspan="18" class="empty-state">لم يتم إنشاء جرد بعد.</td></tr>
+                <tr><td colspan="19" class="empty-state">لم يتم إنشاء جرد بعد.</td></tr>
               </tbody>
               <tfoot></tfoot>
             </table>
