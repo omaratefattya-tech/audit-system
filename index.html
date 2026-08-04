@@ -615,7 +615,7 @@
             <div class="focus-mode-actions">
               <button class="secondary inventory-count-mobile-tool-btn" id="inventoryCountMobileSettingsBtn" type="button" aria-controls="inventoryCountSettingsBox" aria-expanded="false">إعدادات الجرد</button>
               <button class="secondary inventory-count-mobile-tool-btn" id="inventoryCountMobileExportBtn" type="button" aria-controls="inventoryCountMobileExportPanel" aria-expanded="false">تصدير</button>
-              <button class="secondary inventory-count-mobile-tool-btn" id="inventoryCountMobileSearchBtn" type="button" aria-controls="inventoryCountTableTools" aria-expanded="false">بحث وترتيب</button>
+              <button class="secondary inventory-count-mobile-tool-btn" id="inventoryCountMobileSearchBtn" type="button" aria-controls="inventoryCountMobileFilterPanel" aria-expanded="false">بحث وفلترة</button>
               <button class="secondary focus-mode-btn" id="inventoryClosingFocusModeBtn" type="button" data-focus-target="inventory_closing">Focus Mode</button>
               <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountColumnManagerBtn" type="button" aria-expanded="false" aria-controls="inventoryCountColumnManagerPanel">إدارة الأعمدة</button>
               <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountExportPngBtn" type="button">PNG</button>
@@ -637,6 +637,14 @@
               <button class="secondary" type="button" data-inventory-mobile-export="pdf">PDF</button>
               <button class="secondary" type="button" data-inventory-mobile-export="excel">EXCEL</button>
             </div>
+          </div>
+
+          <div id="inventoryCountMobileFilterPanel" class="inventory-count-mobile-sheet inventory-count-mobile-filter-panel" hidden aria-hidden="true" role="dialog" aria-label="بحث وفلترة">
+            <div class="inventory-count-mobile-panel-head">
+              <strong>بحث وفلترة</strong>
+              <button class="inventory-count-mobile-panel-close" id="inventoryCountMobileSearchCloseBtn" type="button" aria-label="إغلاق">&times;</button>
+            </div>
+            <div class="inventory-count-mobile-filter-list"></div>
           </div>
 
           <div id="inventoryCountSettingsBox" class="glass-soft inventory-count-settings-box" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; align-items: end; padding: 14px; border-radius: 12px; margin-bottom: 14px;">
@@ -666,66 +674,50 @@
             <div id="inventoryCountCurrentVersionMeta" class="hint" style="text-align: right; margin: 0; align-self: center;">الإصدار: — | عدد الأصناف: 0</div>
             <button class="primary" id="createInventoryCountBtn" type="button">جرد جديد</button>
           </div>
-          <div id="inventoryCountTableTools" class="inventory-count-table-tools" role="search" aria-label="بحث وترتيب">
-            <div class="inventory-count-mobile-panel-head">
-              <strong>بحث وترتيب</strong>
-              <button class="inventory-count-mobile-panel-close" id="inventoryCountMobileSearchCloseBtn" type="button" aria-label="إغلاق">&times;</button>
-            </div>
-            <label class="inventory-count-search-field">
-              <span>بحث</span>
-              <input id="inventoryCountSearchInput" type="search" placeholder="ابحث بكود المادة أو وصف المادة" autocomplete="off" />
-            </label>
-            <label>
-              <span>ترتيب حسب</span>
-              <select id="inventoryCountSortKeySelect">
-                <option value="">الترتيب الافتراضي</option>
-                <option value="material_code">كود المادة</option>
-                <option value="material_name">وصف المادة</option>
-                <option value="opening_balance">رصيد أول</option>
-                <option value="production_quantity">الإنتاج</option>
-                <option value="incoming_transfers">التحويلات الواردة</option>
-                <option value="actual_returns">المرتجع الفعلي</option>
-                <option value="sales_quantity">كمية البيع</option>
-                <option value="outgoing_transfers">التحويلات الصادرة</option>
-                <option value="book_balance">الرصيد الدفتري</option>
-                <option value="physical_balance">الرصيد الفعلي</option>
-                <option value="inventory_variance">فرق الجرد</option>
-                <option value="oldest_quantity">كمية أقدم تاريخ</option>
-                <option value="oldest_date">أقدم تاريخ</option>
-              </select>
-            </label>
-            <label>
-              <span>الاتجاه</span>
-              <select id="inventoryCountSortDirectionSelect">
-                <option value="asc">تصاعدي</option>
-                <option value="desc">تنازلي</option>
-              </select>
-            </label>
-            <button class="secondary" id="inventoryCountSearchResetBtn" type="button">مسح</button>
-          </div>
           <div class="table-wrap" style="margin-top: 0;">
             <table id="inventoryCountLinesTable" data-no-universal-table="1" style="min-width: 1920px;">
               <thead>
-                <tr>
-                  <th>كود المادة</th>
-                  <th>وصف المادة</th>
-                  <th>وحدة القياس</th>
-                  <th>رصيد أول</th>
-                  <th>الإنتاج</th>
-                  <th>التحويلات الواردة</th>
-                  <th>مرتجع فعلي</th>
-                  <th>تسوية زيادة Z22</th>
-                  <th>تسوية عجز Z21</th>
-                  <th>كمية البيع</th>
-                  <th>التحويلات الصادرة</th>
-                  <th>إعادة التصنيع 311</th>
-                  <th>الرصيد الدفتري</th>
-                  <th>الرصيد الفعلي</th>
-                  <th>فرق الجرد</th>
-                  <th>كمية أقدم تاريخ</th>
-                  <th>أقدم تاريخ</th>
-                  <th>القائم بالجرد</th>
+                <tr class="inventory-count-head-row">
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="material_code" aria-label="كود المادة"><span>كود المادة</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="material_name" aria-label="وصف المادة"><span>وصف المادة</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="uom" aria-label="وحدة القياس"><span>وحدة القياس</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="opening_balance" aria-label="رصيد أول"><span>رصيد أول</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="production_quantity" aria-label="الإنتاج"><span>الإنتاج</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="incoming_transfers" aria-label="التحويلات الواردة"><span>التحويلات الواردة</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="actual_returns" aria-label="مرتجع فعلي"><span>مرتجع فعلي</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="adjustment_increase_z22" aria-label="تسوية زيادة Z22"><span>تسوية زيادة Z22</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="adjustment_shortage_z21" aria-label="تسوية عجز Z21"><span>تسوية عجز Z21</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="sales_quantity" aria-label="كمية البيع"><span>كمية البيع</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="outgoing_transfers" aria-label="التحويلات الصادرة"><span>التحويلات الصادرة</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="rework_311" aria-label="إعادة التصنيع 311"><span>إعادة التصنيع 311</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="book_balance" aria-label="الرصيد الدفتري"><span>الرصيد الدفتري</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="physical_balance" aria-label="الرصيد الفعلي"><span>الرصيد الفعلي</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="inventory_variance" aria-label="فرق الجرد"><span>فرق الجرد</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="oldest_quantity" aria-label="كمية أقدم تاريخ"><span>كمية أقدم تاريخ</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="oldest_date" aria-label="أقدم تاريخ"><span>أقدم تاريخ</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-count-sort-btn" type="button" data-inventory-sort-key="inventory_counter" aria-label="القائم بالجرد"><span>القائم بالجرد</span><span class="inventory-count-sort-indicator" aria-hidden="true"></span></button></th>
                   <th>تسوية الجرد</th>
+                </tr>
+                <tr class="inventory-count-filter-row">
+                  <th><input class="inventory-count-column-filter" type="search" data-inventory-filter-key="material_code" placeholder="ابحث بالكود" autocomplete="off" /></th>
+                  <th><input class="inventory-count-column-filter" type="search" data-inventory-filter-key="material_name" placeholder="ابحث بالوصف" autocomplete="off" /></th>
+                  <th><select class="inventory-count-column-filter" data-inventory-filter-key="uom"><option value="">الكل</option></select></th>
+                  <th><input class="inventory-count-column-filter" type="number" step="0.001" data-inventory-filter-key="opening_balance" placeholder="رقم" /></th>
+                  <th><input class="inventory-count-column-filter" type="number" step="0.001" data-inventory-filter-key="production_quantity" placeholder="رقم" /></th>
+                  <th><input class="inventory-count-column-filter" type="number" step="0.001" data-inventory-filter-key="incoming_transfers" placeholder="رقم" /></th>
+                  <th><input class="inventory-count-column-filter" type="number" step="0.001" data-inventory-filter-key="actual_returns" placeholder="رقم" /></th>
+                  <th><input class="inventory-count-column-filter" type="number" step="0.001" data-inventory-filter-key="adjustment_increase_z22" placeholder="رقم" /></th>
+                  <th><input class="inventory-count-column-filter" type="number" step="0.001" data-inventory-filter-key="adjustment_shortage_z21" placeholder="رقم" /></th>
+                  <th><input class="inventory-count-column-filter" type="number" step="0.001" data-inventory-filter-key="sales_quantity" placeholder="رقم" /></th>
+                  <th><input class="inventory-count-column-filter" type="number" step="0.001" data-inventory-filter-key="outgoing_transfers" placeholder="رقم" /></th>
+                  <th><input class="inventory-count-column-filter" type="number" step="0.001" data-inventory-filter-key="rework_311" placeholder="رقم" /></th>
+                  <th><input class="inventory-count-column-filter" type="number" step="0.001" data-inventory-filter-key="book_balance" placeholder="رقم" /></th>
+                  <th><input class="inventory-count-column-filter" type="number" step="0.001" data-inventory-filter-key="physical_balance" placeholder="رقم" /></th>
+                  <th><select class="inventory-count-column-filter" data-inventory-filter-key="inventory_variance_state"><option value="">الكل</option><option value="surplus">زيادة</option><option value="shortage">عجز</option><option value="match">مطابق</option></select></th>
+                  <th><input class="inventory-count-column-filter" type="number" step="0.001" data-inventory-filter-key="oldest_quantity" placeholder="رقم" /></th>
+                  <th><div class="inventory-count-date-filter"><input class="inventory-count-column-filter" type="date" data-inventory-filter-key="oldest_date_from" aria-label="من أقدم تاريخ" /><input class="inventory-count-column-filter" type="date" data-inventory-filter-key="oldest_date_to" aria-label="إلى أقدم تاريخ" /></div></th>
+                  <th><select class="inventory-count-column-filter" data-inventory-filter-key="inventory_counter"><option value="">الكل</option></select></th>
+                  <th><button class="secondary inventory-count-clear-filters-btn" id="inventoryCountClearFiltersBtn" type="button">مسح الفلاتر</button></th>
                 </tr>
               </thead>
               <tbody>
