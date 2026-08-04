@@ -4738,3 +4738,49 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
   #inventory_closing #inventoryCountColumnManagerBtn{order:6}
   #inventory_closing #inventoryClosingFocusModeCloseBtn{order:7}
 }
+
+/* Inventory audit sidebar scroll and differences replacement workflow */
+@media (min-width:1101px){
+  .sidebar{display:flex;flex-direction:column;overflow:visible;}
+  .sidebar .brand{flex:0 0 auto;}
+  .sidebar .nav{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:visible;padding-bottom:28px;overscroll-behavior:contain;scrollbar-gutter:stable;}
+  .sidebar .nav::-webkit-scrollbar{width:7px;}
+  .sidebar .nav::-webkit-scrollbar-thumb{background:rgba(141,220,89,.36);border-radius:999px;}
+  .sidebar .nav::-webkit-scrollbar-track{background:rgba(0,20,16,.28);border-radius:999px;}
+  .app-shell.sidebar-collapsed .sidebar .nav{overflow:visible!important;padding-bottom:0;}
+}
+.inventory-difference-plant-tabs{display:flex;gap:10px;align-items:stretch;overflow-x:auto;padding:6px 2px 12px;margin:8px 0 12px;scrollbar-gutter:stable;}
+.inventory-difference-plant-tab{flex:0 0 min(250px,78vw);min-height:58px;border:1px solid rgba(141,220,89,.24);border-radius:14px;background:linear-gradient(145deg,rgba(0,52,39,.66),rgba(0,24,20,.88));color:#f4fff5;font-family:inherit;text-align:right;padding:10px 12px;display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;cursor:pointer;box-shadow:0 10px 24px rgba(0,0,0,.16);}
+.inventory-difference-plant-tab span{font-weight:1000;color:#9be650;direction:ltr;}
+.inventory-difference-plant-tab strong{font-size:12px;line-height:1.35;white-space:normal;}
+.inventory-difference-plant-tab b{min-width:28px;height:28px;border-radius:999px;display:grid;place-items:center;background:rgba(141,220,89,.14);color:#dfffce;font-size:12px;}
+.inventory-difference-plant-tab.active{border-color:#8ddc59;background:linear-gradient(135deg,rgba(79,168,61,.86),rgba(18,105,47,.92));box-shadow:0 14px 28px rgba(0,0,0,.22),0 0 22px rgba(141,220,89,.16);}
+.inventory-difference-documents-wrap{margin-bottom:14px;border:1px solid rgba(141,220,89,.16);border-radius:12px;}
+#inventoryDifferenceDocumentsTable{min-width:980px;width:100%;}
+#inventoryDifferenceDocumentsTable th{background:rgba(0,70,45,.72);color:#d8ffd1;}
+#inventoryDifferenceDocumentsTable td{background:rgba(0,36,29,.44);color:#f4fff5;}
+#inventoryDifferenceDocumentsTable tbody tr:nth-child(even) td{background:rgba(0,47,36,.52);}
+.inventory-difference-actions{display:flex;gap:7px;align-items:center;justify-content:center;flex-wrap:wrap;}
+.inventory-difference-actions button[disabled]{opacity:.48;cursor:not-allowed;filter:grayscale(.2);}
+.inventory-difference-history-panel{margin:12px 0 14px;padding:12px;border:1px solid rgba(241,187,48,.24);border-radius:14px;background:rgba(52,38,0,.18);}
+.inventory-difference-history-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.inventory-difference-history-head strong{color:#ffd767;font-size:15px;}
+#inventoryDifferenceHistoryTable{min-width:1100px;width:100%;}
+#inventoryDifferenceHistoryTable th{background:rgba(70,52,0,.78);color:#ffe9a5;}
+#inventoryDifferenceHistoryTable td{background:rgba(48,36,0,.28);color:#fdf6df;}
+.inventory-difference-replace-modal{position:fixed;inset:0;z-index:180;display:grid;place-items:center;padding:18px;background:rgba(0,12,10,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.inventory-difference-replace-modal[hidden]{display:none!important;}
+.inventory-difference-replace-dialog{width:min(520px,calc(100vw - 28px));border:1px solid rgba(141,220,89,.32);border-radius:22px;background:linear-gradient(145deg,rgba(0,58,43,.94),rgba(0,22,18,.98));box-shadow:0 28px 80px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.08);padding:18px;direction:rtl;color:#f4fff5;display:grid;gap:14px;}
+.inventory-difference-replace-dialog h3{margin:0;color:#dfffce;font-size:18px;}
+.inventory-difference-replace-dialog p{margin:0;line-height:1.7;color:#f4fff5;font-weight:800;}
+.inventory-difference-replace-reason label{display:grid;gap:8px;color:#dfffce;font-weight:900;}
+.inventory-difference-replace-reason textarea{width:100%;min-height:120px;resize:vertical;font-family:inherit;line-height:1.6;background:rgba(0,24,20,.92);border:1px solid rgba(141,220,89,.36);border-radius:14px;color:#fff;padding:10px 12px;}
+#inventoryDifferenceReplaceCounter{display:block;text-align:left;color:#bdeca0;font-size:12px;margin-top:5px;}
+.inventory-difference-replace-actions{display:flex;gap:10px;justify-content:flex-start;flex-wrap:wrap;margin-top:10px;}
+.inventory-difference-replace-actions button{min-height:42px;}
+@media(max-width:700px){
+  .inventory-difference-plant-tabs{margin-inline:-2px;padding-bottom:10px;}
+  .inventory-difference-plant-tab{flex-basis:82vw;}
+  .inventory-difference-replace-modal{align-items:end;padding:10px;}
+  .inventory-difference-replace-dialog{width:100%;max-height:calc(100svh - 24px);overflow:auto;border-radius:22px 22px 16px 16px;}
+}

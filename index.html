@@ -755,15 +755,53 @@
           <div class="focus-mode-title-row">
             <h2>فروق الجرد</h2>
           </div>
-          <p class="hint">عرض نسخة مصمتة من مستند الجرد كما كانت لحظة إنشاء مستند فروق الجرد.</p>
-          <div class="inventory-difference-toolbar glass-soft">
-            <label>إنشاء مستند فروق الجرد
-              <select id="inventoryDifferenceSnapshotSelect">
-                <option value="">لا توجد مستندات</option>
-              </select>
-            </label>
-            <button class="secondary" id="inventoryDifferenceReloadBtn" type="button">تحديث</button>
+          <p class="hint">عرض النسخ المصمتة من مستندات الجرد حسب المصنع، مع الاحتفاظ بالنسخ المستبدلة كسجل تاريخي مستقل.</p>
+
+          <div class="inventory-difference-plant-tabs" id="inventoryDifferencePlantTabs" role="tablist" aria-label="مصانع فروق الجرد"></div>
+
+          <div class="table-wrap inventory-difference-documents-wrap">
+            <table id="inventoryDifferenceDocumentsTable" data-no-universal-table="1">
+              <thead>
+                <tr>
+                  <th>تاريخ الجرد</th>
+                  <th>المصنع</th>
+                  <th>الإصدار</th>
+                  <th>مُنشئ الجرد</th>
+                  <th>القائم بالمراجعة</th>
+                  <th>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td colspan="6" class="empty-state">لم يتم إنشاء أي مستند فروق جرد بعد.</td></tr>
+              </tbody>
+            </table>
           </div>
+
+          <div id="inventoryDifferenceHistoryPanel" class="inventory-difference-history-panel glass-soft" hidden>
+            <div class="inventory-difference-history-head">
+              <strong>النسخ المستبدلة</strong>
+              <button class="secondary" id="inventoryDifferenceHistoryCloseBtn" type="button">إغلاق</button>
+            </div>
+            <div class="table-wrap">
+              <table id="inventoryDifferenceHistoryTable" data-no-universal-table="1">
+                <thead>
+                  <tr>
+                    <th>رقم النسخة</th>
+                    <th>تاريخ الإنشاء</th>
+                    <th>منشئ النسخة</th>
+                    <th>سبب الاستبدال</th>
+                    <th>تاريخ الاستبدال</th>
+                    <th>من نفذ الاستبدال</th>
+                    <th>الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="7" class="empty-state">لا توجد نسخة مستبدلة</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <div id="inventoryDifferenceEmptyState" class="empty-state inventory-difference-empty">لم يتم إنشاء أي مستند فروق جرد بعد.</div>
           <div id="inventoryDifferenceToastStack" class="inventory-count-toast-stack" aria-live="polite" aria-atomic="false"></div>
           <div id="inventoryDifferenceContent" class="inventory-difference-content" hidden>
