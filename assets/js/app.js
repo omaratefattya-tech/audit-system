@@ -2420,9 +2420,9 @@ function setInventoryAuditNavGroupOpen(group,open){
 }
 function syncInventoryAuditNavigation(section=currentActiveSection()){
   const active=isInventoryAuditSection(section);
-  $('[data-inventory-nav-group],[data-inventory-mobile-nav-group]').forEach(group=>{ if(active) setInventoryAuditNavGroupOpen(group,true); });
-  $('[data-inventory-nav-toggle],[data-inventory-mobile-toggle]').forEach(toggle=>toggle.classList.toggle('active',active));
-  $('.mobile-drawer-item[data-mobile-section]').forEach(item=>item.classList.toggle('active',item.dataset.mobileSection===section));
+  $$('[data-inventory-nav-group],[data-inventory-mobile-nav-group]').forEach(group=>{ if(active) setInventoryAuditNavGroupOpen(group,true); });
+  $$('[data-inventory-nav-toggle],[data-inventory-mobile-toggle]').forEach(toggle=>toggle.classList.toggle('active',active));
+  $$('.mobile-drawer-item[data-mobile-section]').forEach(item=>item.classList.toggle('active',item.dataset.mobileSection===section));
 }
 function switchSection(section){
   if(document.body.classList.contains('focus-mode-active')) exitFocusMode({restoreScroll:false});
@@ -2430,9 +2430,9 @@ function switchSection(section){
     showPermissionDenied(section);
     return;
   }
-  $('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.section===section));
+  $$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.section===section));
   syncInventoryAuditNavigation(section);
-  $('.section').forEach(s=>s.classList.remove('active-section'));
+  $$('.section').forEach(s=>s.classList.remove('active-section'));
   const target=$('#'+section);
   if(target) target.classList.add('active-section');
   updateMobileDashboardState(section);
@@ -2713,8 +2713,8 @@ function initMobileDashboardControls(){
   initMobileDashboardShell();
 }
 function nav(){
-  $('.nav-item[data-section]').forEach(b=>b.onclick=()=>switchSection(b.dataset.section));
-  $('[data-inventory-nav-toggle]').forEach(btn=>{ btn.onclick=()=>{ const group=btn.closest('[data-inventory-nav-group]'); setInventoryAuditNavGroupOpen(group,!group?.classList.contains('is-open')); }; });
+  $$('.nav-item[data-section]').forEach(b=>b.onclick=()=>switchSection(b.dataset.section));
+  $$('[data-inventory-nav-toggle]').forEach(btn=>{ btn.onclick=()=>{ const group=btn.closest('[data-inventory-nav-group]'); setInventoryAuditNavGroupOpen(group,!group?.classList.contains('is-open')); }; });
   const active=$('.nav-item.active')?.dataset.section || 'dashboard';
   syncInventoryAuditNavigation(active);
   updateMobileDashboardState(active);
@@ -5889,11 +5889,11 @@ function applyNavigationPermissions(){
     rawMobileItem.disabled=!allowed;
   }
   const inventoryAllowed=canViewSection('inventory_closing');
-  $('[data-inventory-nav-group],[data-inventory-mobile-nav-group]').forEach(group=>{
+  $$('[data-inventory-nav-group],[data-inventory-mobile-nav-group]').forEach(group=>{
     group.classList.toggle('permission-hidden',!inventoryAllowed);
     group.hidden=!inventoryAllowed;
   });
-  $('.mobile-drawer-item[data-mobile-section="inventory_closing"],.mobile-drawer-item[data-mobile-section="inventory_differences"],.mobile-drawer-item[data-mobile-section="inventory_expiry_tracking"]').forEach(item=>{
+  $$('.mobile-drawer-item[data-mobile-section="inventory_closing"],.mobile-drawer-item[data-mobile-section="inventory_differences"],.mobile-drawer-item[data-mobile-section="inventory_expiry_tracking"]').forEach(item=>{
     item.disabled=!inventoryAllowed;
     item.classList.toggle('permission-hidden',!inventoryAllowed);
   });
