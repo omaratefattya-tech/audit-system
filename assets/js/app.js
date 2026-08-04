@@ -2408,14 +2408,31 @@ function updateMobileDashboardState(section){
 function syncMobileDashboardShellState(){
   updateMobileDashboardState(currentActiveSection());
 }
+const INVENTORY_AUDIT_SECTION_IDS = new Set(['inventory_closing','inventory_differences','inventory_expiry_tracking']);
+function isInventoryAuditSection(section){ return INVENTORY_AUDIT_SECTION_IDS.has(section); }
+function setInventoryAuditNavGroupOpen(group,open){
+  if(!group) return;
+  group.classList.toggle('is-open',!!open);
+  const submenu=group.querySelector('.inventory-audit-nav-submenu,.inventory-audit-mobile-submenu');
+  const toggle=group.querySelector('[data-inventory-nav-toggle],[data-inventory-mobile-toggle]');
+  if(submenu) submenu.hidden=!open;
+  if(toggle) toggle.setAttribute('aria-expanded',open?'true':'false');
+}
+function syncInventoryAuditNavigation(section=currentActiveSection()){
+  const active=isInventoryAuditSection(section);
+  $('[data-inventory-nav-group],[data-inventory-mobile-nav-group]').forEach(group=>{ if(active) setInventoryAuditNavGroupOpen(group,true); });
+  $('[data-inventory-nav-toggle],[data-inventory-mobile-toggle]').forEach(toggle=>toggle.classList.toggle('active',active));
+  $('.mobile-drawer-item[data-mobile-section]').forEach(item=>item.classList.toggle('active',item.dataset.mobileSection===section));
+}
 function switchSection(section){
   if(document.body.classList.contains('focus-mode-active')) exitFocusMode({restoreScroll:false});
   if(!canViewSection(section)){
     showPermissionDenied(section);
     return;
   }
-  $$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.section===section));
-  $$('.section').forEach(s=>s.classList.remove('active-section'));
+  $('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.section===section));
+  syncInventoryAuditNavigation(section);
+  $('.section').forEach(s=>s.classList.remove('active-section'));
   const target=$('#'+section);
   if(target) target.classList.add('active-section');
   updateMobileDashboardState(section);
@@ -2426,6 +2443,7 @@ function switchSection(section){
   if(section==='users') setTimeout(()=>loadUsersManagement(),50);
   if(section==='permissions') setTimeout(()=>loadPermissionsManagement(),50);
   if(section==='inventory_closing') setTimeout(()=>openDefaultInventoryCountFromUi({showLoading:true}),50);
+  if(section==='inventory_differences') setTimeout(()=>loadInventoryDifferenceScreen(),50);
   setTimeout(()=>applyPermissionActionGuards(section),80);
 }
 function closeMobileDashboardPanels(){
@@ -2674,6 +2692,13 @@ function initMobileDashboardShell(){
       closeMobileDashboardPanels();
       return;
     }
+    const inventoryMobileToggle=event.target.closest('[data-inventory-mobile-toggle]');
+    if(inventoryMobileToggle){
+      event.preventDefault();
+      const group=inventoryMobileToggle.closest('[data-inventory-mobile-nav-group]');
+      setInventoryAuditNavGroupOpen(group,!group?.classList.contains('is-open'));
+      return;
+    }
     const drawerItem=event.target.closest('.mobile-drawer-item[data-mobile-section]');
     if(drawerItem){
       event.preventDefault();
@@ -2688,8 +2713,10 @@ function initMobileDashboardControls(){
   initMobileDashboardShell();
 }
 function nav(){
-  $$('.nav-item').forEach(b=>b.onclick=()=>switchSection(b.dataset.section));
+  $('.nav-item[data-section]').forEach(b=>b.onclick=()=>switchSection(b.dataset.section));
+  $('[data-inventory-nav-toggle]').forEach(btn=>{ btn.onclick=()=>{ const group=btn.closest('[data-inventory-nav-group]'); setInventoryAuditNavGroupOpen(group,!group?.classList.contains('is-open')); }; });
   const active=$('.nav-item.active')?.dataset.section || 'dashboard';
+  syncInventoryAuditNavigation(active);
   updateMobileDashboardState(active);
   updateFiltersVisibility(active);
 }
@@ -5821,7 +5848,7 @@ function permissionsForRoleFromRows(role, rows){
   return defaults;
 }
 function isSuperAdmin(){ return CURRENT_APP_PROFILE?.role === 'super_admin'; }
-function permissionKeyForSection(section){ return section==='inventory_closing' ? 'inventory_count' : section; }
+function permissionKeyForSection(section){ return isInventoryAuditSection(section) ? 'inventory_count' : section; }
 function hasPermission(section, action='view'){
   if(isSuperAdmin()) return true;
   if(!section) return true;
@@ -5861,6 +5888,15 @@ function applyNavigationPermissions(){
     rawMobileItem.hidden=!allowed;
     rawMobileItem.disabled=!allowed;
   }
+  const inventoryAllowed=canViewSection('inventory_closing');
+  $('[data-inventory-nav-group],[data-inventory-mobile-nav-group]').forEach(group=>{
+    group.classList.toggle('permission-hidden',!inventoryAllowed);
+    group.hidden=!inventoryAllowed;
+  });
+  $('.mobile-drawer-item[data-mobile-section="inventory_closing"],.mobile-drawer-item[data-mobile-section="inventory_differences"],.mobile-drawer-item[data-mobile-section="inventory_expiry_tracking"]').forEach(item=>{
+    item.disabled=!inventoryAllowed;
+    item.classList.toggle('permission-hidden',!inventoryAllowed);
+  });
   const active=$('.nav-item.active');
   if(active && active.disabled){
     const first=[...$$('.nav-item')].find(b=>!b.disabled);
@@ -5889,8 +5925,10 @@ function applyPermissionActionGuards(section){
   disableByPermission('button[id*="Upload"],button[id*="pick"],.upload-report-tab',section,'upload','لا تملك صلاحية الرفع');
   disableByPermission('button[id*="save"],button[id*="Save"],button[id*="edit"],.edit-user-btn',section,'edit','لا تملك صلاحية التعديل');
   if(section==='inventory_closing'){
-    disableByPermission('#createInventoryCountBtn','inventory_count','add','غير متاح للصلاحية الحالية');
+    disableByPermission('#createInventoryCountBtn','inventory_count','add',"غير متاح للصلاحية الحالية");
+    disableByPermission('#createInventoryDifferenceSnapshotBtn','inventory_count','add',"غير متاح للصلاحية الحالية");
     if(typeof inventoryCountUpdateCreateButton === 'function') inventoryCountUpdateCreateButton();
+    if(typeof updateInventoryDifferenceSnapshotButton === 'function') updateInventoryDifferenceSnapshotButton();
   }
 }
 function setPermissionsStatus(message,type=''){
@@ -9644,7 +9682,7 @@ const INVENTORY_COUNT_WAREHOUSE_BY_PLANT = {
   EL01: 'N401',
   EL02: 'E401'
 };
-let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, documentStatus: null, versionStatus: null, lines: [], creating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: '—', visibleColumnKeys: null, columnManagerDraftKeys: null, searchText: '', columnFilters: {}, sortKey: '', sortDirection: 'asc' };
+let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, documentStatus: null, versionStatus: null, lines: [], creating: false, snapshotCreating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: '—', visibleColumnKeys: null, columnManagerDraftKeys: null, searchText: '', columnFilters: {}, sortKey: '', sortDirection: 'asc' };
 const INVENTORY_COUNT_VISIBLE_COLUMNS_STORAGE_KEY = 'inventory_count_visible_columns';
 const INVENTORY_COUNT_COLUMNS = [
   { key: 'material_code', label: 'كود المادة', required: true },
@@ -9697,6 +9735,16 @@ function inventoryCountSetStatus(message,type=''){
   const toastType = type === 'err' ? 'error' : (type === 'ok' ? 'success' : (type || 'info'));
   showInventoryCountToast(message || '', toastType);
 }
+function updateInventoryDifferenceSnapshotButton(){
+  const btn=$('#createInventoryDifferenceSnapshotBtn');
+  if(!btn) return;
+  const canAdd=hasPermission('inventory_count','add');
+  const busy=!!INVENTORY_COUNT_STATE.loading || !!INVENTORY_COUNT_STATE.creating || !!INVENTORY_COUNT_STATE.snapshotCreating;
+  const ready=!!INVENTORY_COUNT_STATE.documentId && !!INVENTORY_COUNT_STATE.versionId && (INVENTORY_COUNT_STATE.lines || []).length > 0 && INVENTORY_COUNT_STATE.documentStatus !== 'archived';
+  btn.disabled=busy || !canAdd || !ready;
+  btn.classList.toggle('permission-disabled',!canAdd || !ready);
+  btn.title=!canAdd ? "غير متاح للصلاحية الحالية" : (!ready ? "افتح مستند جرد يحتوي على أصناف أولاً" : "إنشاء نسخة مصمتة لعرضها في شاشة فروق الجرد");
+}
 function inventoryCountUpdateCreateButton(){
   const btn=$('#createInventoryCountBtn');
   if(!btn) return;
@@ -9714,8 +9762,9 @@ function inventoryCountUpdateCreateButton(){
     btn.title='مستند الجرد موجود، لكن لا توجد نسخة حالية صالحة.';
   }else{
     btn.textContent='جرد جديد';
-    btn.title=canAdd ? '' : 'غير متاح للصلاحية الحالية';
+    btn.title=canAdd ? '' : "غير متاح للصلاحية الحالية";
   }
+  updateInventoryDifferenceSnapshotButton();
 }
 function inventoryCountSetLoading(active,message='جارٍ إنشاء الجرد...'){
   INVENTORY_COUNT_STATE.loading=!!active;
@@ -10203,7 +10252,7 @@ function showInventoryCountToast(message,type='info'){
   const text=String(message || '').trim();
   if(!text) return;
   type = type === 'err' ? 'error' : (type === 'ok' ? 'success' : (type || 'info'));
-  const stack=$('#inventoryCountToastStack');
+  const stack=currentActiveSection()==='inventory_differences' ? ($('#inventoryDifferenceToastStack') || $('#inventoryCountToastStack')) : $('#inventoryCountToastStack');
   if(!stack){
     if(window.showToast) window.showToast(text,type==='error'?'error':type);
     return;
@@ -11533,10 +11582,201 @@ function initInventoryCountMobilePanels(){
   window.addEventListener('resize',()=>{ if(!isInventoryCountMobileViewport()) closeInventoryCountMobilePanels(); });
   closeInventoryCountMobilePanels();
 }
+
+
+const INVENTORY_DIFFERENCE_STATE = { snapshots: [], selectedSnapshotId: null, loading: false, requestSeq: 0 };
+function inventoryDifferenceSnapshotLabel(row){
+  const date=formatDisplayDate(row && row.inventory_date,"—");
+  const number=(row && (row.snapshot_number || row.source_document_number)) || "—";
+  return number+' / '+date+' / '+((row && row.plant_code) || "—")+' / '+((row && row.warehouse_code) || "—");
+}
+function inventoryDifferenceSetLoading(active){
+  INVENTORY_DIFFERENCE_STATE.loading=!!active;
+  const select=$('#inventoryDifferenceSnapshotSelect');
+  const reload=$('#inventoryDifferenceReloadBtn');
+  if(select) select.disabled=!!active;
+  if(reload) reload.disabled=!!active;
+}
+function inventoryDifferenceShowEmpty(message="لم يتم إنشاء أي مستند فروق جرد بعد."){
+  const empty=$('#inventoryDifferenceEmptyState');
+  const content=$('#inventoryDifferenceContent');
+  const tbody=$('#inventoryDifferenceLinesTable tbody');
+  const tfoot=$('#inventoryDifferenceLinesTable tfoot');
+  if(empty){ empty.hidden=false; empty.textContent=message; }
+  if(content) content.hidden=true;
+  if(tbody) tbody.innerHTML='<tr><td colspan="18" class="empty-state">'+escapeHtml(message)+'</td></tr>';
+  if(tfoot) tfoot.innerHTML='';
+}
+function renderInventoryDifferenceSnapshotOptions(selectedId=''){
+  const select=$('#inventoryDifferenceSnapshotSelect');
+  if(!select) return;
+  const rows=INVENTORY_DIFFERENCE_STATE.snapshots || [];
+  if(!rows.length){ select.innerHTML='<option value="">'+"لا توجد مستندات"+'</option>'; return; }
+  select.innerHTML=rows.map(row=>'<option value="'+escapeHtml(row.snapshot_id || '')+'">'+escapeHtml(inventoryDifferenceSnapshotLabel(row))+'</option>').join('');
+  if(selectedId) select.value=selectedId;
+}
+function renderInventoryDifferenceMeta(header){
+  const grid=$('#inventoryDifferenceMetaGrid');
+  if(!grid) return;
+  const meta=[
+    ["رقم مستند الفروق", header && header.snapshot_number || "—"],
+    ["تاريخ الجرد", formatDisplayDate(header && header.inventory_date,"—")],
+    ["المصنع", header && header.plant_code || "—"],
+    ["المخزن", header && header.warehouse_code || "—"],
+    ["رقم مستند الجرد", header && header.source_document_number || "—"],
+    ["الإصدار", header && header.source_version_no != null ? header.source_version_no : "—"],
+    ["تاريخ إنشاء النسخة", formatDisplayDateTime(header && header.created_at,"—")],
+    ["منشئ المستند", header && header.created_by_name || "—"],
+    ["القائم بالمراجعة", header && header.reviewer_name_snapshot || "—"],
+    ["عدد الأصناف", header && header.line_count != null ? header.line_count : 0]
+  ];
+  grid.innerHTML=meta.map(pair=>'<div class="inventory-difference-meta-card"><span>'+escapeHtml(pair[0])+'</span><strong>'+escapeHtml(String(pair[1] == null ? "—" : pair[1]))+'</strong></div>').join('');
+}
+function inventoryDifferenceCounterText(row){
+  const name=String(row && row.inventory_counter_name_snapshot || '').trim();
+  const job=String(row && row.inventory_counter_job_title_snapshot || '').trim();
+  return name && job ? name+' / '+job : (name || "—");
+}
+function renderInventoryDifferenceLines(lines=[]){
+  const tbody=$('#inventoryDifferenceLinesTable tbody');
+  const tfoot=$('#inventoryDifferenceLinesTable tfoot');
+  if(!tbody) return;
+  if(!lines.length){
+    tbody.innerHTML='<tr><td colspan="18" class="empty-state">'+"لا توجد أصناف داخل مستند فروق الجرد."+'</td></tr>';
+    if(tfoot) tfoot.innerHTML='';
+    return;
+  }
+  tbody.innerHTML=lines.map(row=>'<tr>'+
+    '<td>'+formatInventoryCountText(row.material_code)+'</td>'+
+    '<td>'+formatInventoryCountText(row.material_name)+'</td>'+
+    '<td>'+formatInventoryCountText(row.uom)+'</td>'+
+    '<td>'+formatInventoryManualThreeDecimal(row.opening_balance)+'</td>'+
+    '<td>'+formatInventoryManualThreeDecimal(row.production_quantity)+'</td>'+
+    '<td>'+formatInventoryCountThreeDecimalQuantity(row.incoming_transfers)+'</td>'+
+    '<td>'+formatInventoryCountThreeDecimalQuantity(row.actual_returns)+'</td>'+
+    '<td>'+formatInventoryCountThreeDecimalQuantity(row.adjustment_increase_z22)+'</td>'+
+    '<td>'+formatInventoryCountThreeDecimalQuantity(row.adjustment_shortage_z21)+'</td>'+
+    '<td>'+formatInventoryCountThreeDecimalQuantity(row.sales_quantity)+'</td>'+
+    '<td>'+formatInventoryCountThreeDecimalQuantity(row.outgoing_transfers)+'</td>'+
+    '<td>'+formatInventoryCountThreeDecimalQuantity(row.rework_311)+'</td>'+
+    '<td>'+formatInventoryCountThreeDecimalQuantity(row.book_balance)+'</td>'+
+    '<td>'+formatInventoryManualThreeDecimal(row.physical_balance)+'</td>'+
+    renderInventoryVarianceCell(row.inventory_variance)+
+    '<td>'+formatInventoryManualThreeDecimal(row.oldest_quantity)+'</td>'+
+    '<td>'+escapeHtml(formatDisplayDate(row.oldest_date,''))+'</td>'+
+    '<td>'+escapeHtml(inventoryDifferenceCounterText(row))+'</td></tr>').join('');
+  if(tfoot){
+    const total=key=>lines.reduce((sum,row)=>sum+inventoryCountTotalNumber(row && row[key]),0);
+    tfoot.innerHTML='<tr class="inventory-count-total-row"><td>'+"الإجمالي"+'</td><td></td><td></td>'+
+      '<td>'+formatInventoryManualThreeDecimal(total('opening_balance'))+'</td>'+
+      '<td>'+formatInventoryManualThreeDecimal(total('production_quantity'))+'</td>'+
+      '<td>'+formatInventoryCountThreeDecimalQuantity(total('incoming_transfers'))+'</td>'+
+      '<td>'+formatInventoryCountThreeDecimalQuantity(total('actual_returns'))+'</td>'+
+      '<td>'+formatInventoryCountThreeDecimalQuantity(total('adjustment_increase_z22'))+'</td>'+
+      '<td>'+formatInventoryCountThreeDecimalQuantity(total('adjustment_shortage_z21'))+'</td>'+
+      '<td>'+formatInventoryCountThreeDecimalQuantity(total('sales_quantity'))+'</td>'+
+      '<td>'+formatInventoryCountThreeDecimalQuantity(total('outgoing_transfers'))+'</td>'+
+      '<td>'+formatInventoryCountThreeDecimalQuantity(total('rework_311'))+'</td>'+
+      '<td>'+formatInventoryCountThreeDecimalQuantity(total('book_balance'))+'</td>'+
+      '<td>'+formatInventoryManualThreeDecimal(total('physical_balance'))+'</td>'+
+      renderInventoryVarianceCell(total('inventory_variance'))+
+      '<td>'+formatInventoryManualThreeDecimal(total('oldest_quantity'))+'</td><td></td><td></td></tr>';
+  }
+}
+async function loadInventoryDifferenceSnapshot(snapshotId=null){
+  if(!WarehouseDB?.ready){ inventoryDifferenceShowEmpty("قاعدة البيانات غير متصلة."); return; }
+  const requestSeq=++INVENTORY_DIFFERENCE_STATE.requestSeq;
+  inventoryDifferenceSetLoading(true);
+  try{
+    const {data,error}=await WarehouseDB.client.rpc('get_inventory_difference_snapshot',{p_snapshot_id: snapshotId || null});
+    if(error) throw error;
+    if(requestSeq!==INVENTORY_DIFFERENCE_STATE.requestSeq) return;
+    if(data && data.status!=='inventory_difference_snapshot_found'){
+      INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=null;
+      inventoryDifferenceShowEmpty("لم يتم إنشاء أي مستند فروق جرد بعد.");
+      renderInventoryDifferenceSnapshotOptions('');
+      return;
+    }
+    const header=data && data.header || {};
+    const lines=Array.isArray(data && data.lines) ? data.lines : [];
+    INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=header.snapshot_id || null;
+    renderInventoryDifferenceSnapshotOptions(INVENTORY_DIFFERENCE_STATE.selectedSnapshotId);
+    const empty=$('#inventoryDifferenceEmptyState');
+    const content=$('#inventoryDifferenceContent');
+    if(empty) empty.hidden=true;
+    if(content) content.hidden=false;
+    renderInventoryDifferenceMeta(header);
+    renderInventoryDifferenceLines(lines);
+  }catch(err){
+    inventoryDifferenceShowEmpty("تعذر تحميل مستند فروق الجرد.");
+    showInventoryCountToast(err && err.message || "تعذر تحميل مستند فروق الجرد.",'error');
+  }finally{
+    if(requestSeq===INVENTORY_DIFFERENCE_STATE.requestSeq) inventoryDifferenceSetLoading(false);
+  }
+}
+async function loadInventoryDifferenceScreen(){
+  if(!WarehouseDB?.ready){ inventoryDifferenceShowEmpty("قاعدة البيانات غير متصلة."); return; }
+  inventoryDifferenceSetLoading(true);
+  try{
+    const {data,error}=await WarehouseDB.client.rpc('list_inventory_difference_snapshots');
+    if(error) throw error;
+    const rows=Array.isArray(data) ? data : [];
+    INVENTORY_DIFFERENCE_STATE.snapshots=rows;
+    renderInventoryDifferenceSnapshotOptions(INVENTORY_DIFFERENCE_STATE.selectedSnapshotId);
+    const target=rows.some(row=>row.snapshot_id===INVENTORY_DIFFERENCE_STATE.selectedSnapshotId) ? INVENTORY_DIFFERENCE_STATE.selectedSnapshotId : (rows[0] && rows[0].snapshot_id || null);
+    if(target) await loadInventoryDifferenceSnapshot(target);
+    else inventoryDifferenceShowEmpty("لم يتم إنشاء أي مستند فروق جرد بعد.");
+  }catch(err){
+    inventoryDifferenceShowEmpty("تعذر تحميل مستندات فروق الجرد.");
+    showInventoryCountToast(err && err.message || "تعذر تحميل مستندات فروق الجرد.",'error');
+  }finally{
+    inventoryDifferenceSetLoading(false);
+  }
+}
+async function createInventoryDifferenceSnapshotFromUi(){
+  if(!WarehouseDB?.ready){ showInventoryCountToast("قاعدة البيانات غير متصلة.",'error'); return; }
+  if(!hasPermission('inventory_count','add')){ showInventoryCountToast("غير متاح للصلاحية الحالية",'error'); return; }
+  if(!INVENTORY_COUNT_STATE.versionId || !(INVENTORY_COUNT_STATE.lines || []).length){ showInventoryCountToast("افتح مستند جرد يحتوي على أصناف أولاً",'warning'); return; }
+  if(INVENTORY_COUNT_STATE.snapshotCreating) return;
+  INVENTORY_COUNT_STATE.snapshotCreating=true;
+  updateInventoryDifferenceSnapshotButton();
+  try{
+    const {data,error}=await WarehouseDB.client.rpc('create_inventory_difference_snapshot',{p_inventory_version_id: INVENTORY_COUNT_STATE.versionId});
+    if(error) throw error;
+    if(data && data.status==='snapshot_already_exists'){
+      showInventoryCountToast("تم إنشاء مستند فروق الجرد لهذه النسخة من قبل.",'warning');
+      return;
+    }
+    if(data && data.status==='inventory_difference_snapshot_created'){
+      showInventoryCountToast("تم إنشاء مستند الجرد ونقله إلى شاشة فروق الجرد بنجاح.",'success');
+      INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=data.snapshot_id || INVENTORY_DIFFERENCE_STATE.selectedSnapshotId;
+      return;
+    }
+    showInventoryCountToast("تعذر إنشاء مستند فروق الجرد.",'error');
+  }catch(err){
+    showInventoryCountToast(err && err.message || "تعذر إنشاء مستند فروق الجرد.",'error');
+  }finally{
+    INVENTORY_COUNT_STATE.snapshotCreating=false;
+    updateInventoryDifferenceSnapshotButton();
+  }
+}
+function initInventoryDifferenceScreen(){
+  const select=$('#inventoryDifferenceSnapshotSelect');
+  const reload=$('#inventoryDifferenceReloadBtn');
+  if(select && select.dataset.inventoryDifferenceBound!=='1'){
+    select.dataset.inventoryDifferenceBound='1';
+    select.addEventListener('change',()=>loadInventoryDifferenceSnapshot(select.value || null));
+  }
+  if(reload && reload.dataset.inventoryDifferenceBound!=='1'){
+    reload.dataset.inventoryDifferenceBound='1';
+    reload.addEventListener('click',()=>loadInventoryDifferenceScreen());
+  }
+}
 function initInventoryCountScreen(){
   const dateInput=$('#inventoryCountDateInput');
   const plantSelect=$('#inventoryCountPlantSelect');
   const createBtn=$('#createInventoryCountBtn');
+  const snapshotBtn=$('#createInventoryDifferenceSnapshotBtn');
   if(!dateInput || !plantSelect || !createBtn) return;
   if(!dateInput.value) dateInput.value=inventoryCountTodayIso();
   if(window.CustomDatePicker) window.CustomDatePicker.init(dateInput.parentElement || document);
@@ -11552,6 +11792,10 @@ function initInventoryCountScreen(){
   if(createBtn.dataset.inventoryCountCreateBound!=='1'){
     createBtn.dataset.inventoryCountCreateBound='1';
     createBtn.addEventListener('click',createInventoryCountFromUi);
+  }
+  if(snapshotBtn && snapshotBtn.dataset.inventoryDifferenceSnapshotBound!=='1'){
+    snapshotBtn.dataset.inventoryDifferenceSnapshotBound='1';
+    snapshotBtn.addEventListener('click',createInventoryDifferenceSnapshotFromUi);
   }
   if(dateInput.dataset.inventoryCountOpenBound!=='1'){
     dateInput.dataset.inventoryCountOpenBound='1';
@@ -11584,6 +11828,7 @@ function initInventoryCountScreen(){
 }
 document.addEventListener('DOMContentLoaded', initInventoryClosing);
 document.addEventListener('DOMContentLoaded', initInventoryCountScreen);
+document.addEventListener('DOMContentLoaded', initInventoryDifferenceScreen);
 // === Phase IC-02: Inventory Closing Upload Engine ===
 
 const INVENTORY_CLOSING_CONFIG = {
