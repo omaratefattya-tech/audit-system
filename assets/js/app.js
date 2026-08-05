@@ -9953,6 +9953,306 @@ function formatInventoryCountThreeDecimalQuantity(value){
   const n=Number(value);
   return Number.isFinite(n) ? n.toFixed(3) : '0.000';
 }
+function normalizeInventoryReviewNumber(value){
+  if(value===null || value===undefined || value==='') return 0;
+  const number=Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+function getInventoryReviewTolerance(production){
+  const value=normalizeInventoryReviewNumber(production);
+  if(value<=0) return null;
+  if(value<20) return 2.5;
+  if(value<50) return 1.5;
+  if(value<70) return 1;
+  return 0.6;
+}
+function calculateInventoryVarianceRate(variance,production){
+  const productionValue=normalizeInventoryReviewNumber(production);
+  if(productionValue<=0) return null;
+  return Math.abs(normalizeInventoryReviewNumber(variance)) / Math.abs(productionValue) * 100;
+}
+function getInventoryReviewMatchLabel(matchPercentage){
+  const rounded=Number(normalizeInventoryReviewNumber(matchPercentage).toFixed(2));
+  if(rounded===100) return 'تطابق كامل';
+  if(rounded>=90) return 'تطابق مرتفع';
+  if(rounded>=70) return 'تطابق محتمل';
+  return 'أقرب فرق عكسي — تطابق ضعيف';
+}
+function findBestInverseInventoryVariance(currentRow,lines=[]){
+  const currentVariance=normalizeInventoryReviewNumber(currentRow?.inventory_variance);
+  if(Math.abs(currentVariance)<0.0005) return null;
+  const currentId=String(currentRow?.id || '').trim();
+  const currentMaterialCode=String(currentRow?.material_code || '').trim();
+  const currentAbs=Math.abs(currentVariance);
+  const candidates=(Array.isArray(lines) ? lines : []).reduce((result,row)=>{
+    const lineId=String(row?.id || '').trim();
+    const materialCode=String(row?.material_code || '').trim();
+    const candidateVariance=normalizeInventoryReviewNumber(row?.inventory_variance);
+    if(!lineId || lineId===currentId || !materialCode || materialCode===currentMaterialCode) return result;
+    if(Math.abs(candidateVariance)<0.0005 || Math.sign(candidateVariance)===Math.sign(currentVariance)) return result;
+    const candidateAbs=Math.abs(candidateVariance);
+    const maximum=Math.max(currentAbs,candidateAbs);
+    if(maximum<=0) return result;
+    const matchPercentage=Math.min(currentAbs,candidateAbs) / maximum * 100;
+    result.push({
+      row,
+      variance:candidateVariance,
+      matchPercentage,
+      quantityDifference:Math.abs(currentAbs-candidateAbs),
+      matchLabel:getInventoryReviewMatchLabel(matchPercentage)
+    });
+    return result;
+  },[]);
+  candidates.sort((a,b)=>{
+    if(Math.abs(b.matchPercentage-a.matchPercentage)>0.0000001) return b.matchPercentage-a.matchPercentage;
+    if(Math.abs(a.quantityDifference-b.quantityDifference)>0.0000001) return a.quantityDifference-b.quantityDifference;
+    return String(a.row?.material_code || '').localeCompare(String(b.row?.material_code || ''),'en',{numeric:true,sensitivity:'base'});
+  });
+  return candidates[0] || null;
+}
+function getCurrentInventoryReviewerName(){
+  return String(CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'المراجع').trim() || 'المراجع';
+}
+function formatInventoryReviewQuantity(value,signed=false){
+  const number=normalizeInventoryReviewNumber(value);
+  return (signed && number>0 ? '+' : '')+number.toFixed(3);
+}
+function formatInventoryReviewPercentage(value){
+  return value===null || value===undefined ? 'غير مطبقة' : normalizeInventoryReviewNumber(value).toFixed(2)+'%';
+}
+function buildInventoryReviewRecommendations(row,lines=[],context={}){
+  const variance=normalizeInventoryReviewNumber(row?.inventory_variance);
+  const production=normalizeInventoryReviewNumber(row?.production_quantity);
+  const varianceIsZero=Math.abs(variance)<0.0005;
+  const tolerance=getInventoryReviewTolerance(production);
+  const varianceRate=varianceIsZero ? null : calculateInventoryVarianceRate(variance,production);
+  const direction=varianceIsZero ? 'مطابق' : (variance>0 ? 'فرق زيادة' : 'فرق عجز');
+  const directionKey=varianceIsZero ? 'match' : (variance>0 ? 'surplus' : 'shortage');
+  let classification='مطابق';
+  let summary='لا يوجد فرق جرد لهذا الصنف، ولا توجد إجراءات مراجعة إضافية مطلوبة حاليًا.';
+  let recommendations=[];
+  let notice='';
+  if(!varianceIsZero && production>0 && varianceRate<=tolerance){
+    classification='فرق مقبول نسبيًا';
+    summary='فرق الجرد مقبول نسبيًا وفق نسبة السماح المحددة لكمية إنتاج هذا الصنف، ولكن يجب التأكيد على تجميع العدادات وتسجيل الإنتاج وإجراء مراجعة سريعة لكارت الصنف.';
+    recommendations=[
+      'تأكد من تجميع عدادات الإنتاج خلال الورديات الثلاث.',
+      'تأكد من تسجيل كامل إنتاج الصنف.',
+      'نفّذ مراجعة سريعة لكارت الصنف.',
+      'راجع أي حركة بيع أو تحويل غير معتادة إن وجدت.'
+    ];
+  }else if(!varianceIsZero && production>0){
+    classification='فرق يحتاج مراجعة';
+    summary='فرق الجرد يتجاوز نسبة السماح المحددة لكمية إنتاج هذا الصنف.';
+    recommendations=[
+      'راجع تسجيلك للإنتاج؛ ربما تكون كمية الإنتاج المسجلة غير صحيحة.',
+      `يا ${context.currentUserName || 'المراجع'}، يوجد فرق جرد كبير في هذا الصنف مقارنة بكمية الإنتاج المسجلة. راجع تجميع الإنتاج من تقرير الإنتاج اليدوي، وجمّع عدادات الصنف خلال الورديات الثلاث؛ ربما يكون التجميع غير صحيح.`,
+      'راجع الكاميرات على إنتاج هذا الصنف خلال الورديات الثلاث؛ ربما توجد كمية تم إنتاجها ولم يتم تسجيلها، أو تم تسجيلها على صنف آخر.',
+      'راجع فروق الجرد الخاصة بالصنف في الأيام السابقة؛ ربما يكون الفرق متعلقًا بيوم سابق لم يكن الجرد فيه صحيحًا.'
+    ];
+    notice='إذا ثبت أن الفرق ناتج عن جرد يوم سابق، يجب عند تنفيذ التسوية تسجيل السبب بوضوح وذكر تاريخ اليوم الذي كان الجرد فيه غير صحيح.';
+  }else if(!varianceIsZero){
+    classification='لا يوجد إنتاج مسجل';
+    summary='لا يمكن تقييم فرق الجرد كنسبة من الإنتاج؛ لأنه لا توجد كمية إنتاج مسجلة لهذا الصنف في اليوم الحالي.';
+    recommendations=[
+      'راجع الرصيد الفعلي المدخل.',
+      'راجع كارت الصنف.',
+      'راجع حركات البيع.',
+      'راجع التحويلات الصادرة والواردة.',
+      'راجع المرتجعات والتسويات.',
+      'راجع فروق الجرد في الأيام السابقة.',
+      'ابحث عن صنف آخر يحتوي فرق جرد عكسي.'
+    ];
+  }
+  return {
+    row,
+    context,
+    variance,
+    production,
+    varianceIsZero,
+    varianceRate,
+    tolerance,
+    toleranceDifference:varianceRate===null || tolerance===null ? null : tolerance-varianceRate,
+    direction,
+    directionKey,
+    classification,
+    summary,
+    recommendations,
+    notice,
+    inverseCandidate:varianceIsZero ? null : findBestInverseInventoryVariance(row,lines)
+  };
+}
+function inventoryReviewCreateElement(tag,className='',text=''){
+  const element=document.createElement(tag);
+  if(className) element.className=className;
+  if(text!==undefined && text!==null) element.textContent=String(text);
+  return element;
+}
+function inventoryReviewAppendDetail(parent,label,value,className=''){
+  const item=inventoryReviewCreateElement('div','inventory-review-detail'+(className ? ' '+className : ''));
+  item.append(inventoryReviewCreateElement('span','inventory-review-detail-label',label));
+  item.append(inventoryReviewCreateElement('strong','inventory-review-detail-value',value));
+  parent.append(item);
+  return item;
+}
+function ensureInventoryReviewRecommendationsModal(){
+  let modal=$('#inventoryReviewRecommendationsModal');
+  if(modal) return modal;
+  modal=document.createElement('div');
+  modal.id='inventoryReviewRecommendationsModal';
+  modal.className='inventory-review-modal';
+  modal.innerHTML='<div class="inventory-review-backdrop" data-inventory-review-close></div><section class="inventory-review-card" role="dialog" aria-modal="true" aria-labelledby="inventoryReviewRecommendationsTitle"><header class="inventory-review-head"><div><span class="inventory-review-eyebrow">مراجعة مستند الجرد</span><h2 id="inventoryReviewRecommendationsTitle">توصيات المراجعة</h2></div><button type="button" class="inventory-review-icon-close" data-inventory-review-close aria-label="إغلاق نافذة توصيات المراجعة">×</button></header><div class="inventory-review-scroll"><div class="inventory-review-modal-body"></div></div><footer class="inventory-review-footer"><button type="button" class="secondary inventory-review-close-btn" data-inventory-review-close>إغلاق</button></footer></section>';
+  modal.addEventListener('click',event=>{
+    if(event.target.closest('[data-inventory-review-close]')) closeInventoryReviewRecommendationsModal();
+  });
+  modal.addEventListener('keydown',event=>{
+    if(event.key!=='Escape') return;
+    event.preventDefault();
+    event.stopPropagation();
+    closeInventoryReviewRecommendationsModal();
+  });
+  document.body.appendChild(modal);
+  return modal;
+}
+function renderInventoryReviewRecommendationsModal(modal,model){
+  const body=modal.querySelector('.inventory-review-modal-body');
+  if(!body) return;
+  body.replaceChildren();
+  const product=inventoryReviewCreateElement('section','inventory-review-product-card');
+  const productTitle=inventoryReviewCreateElement('div','inventory-review-product-title');
+  productTitle.append(inventoryReviewCreateElement('strong','inventory-review-material-code',model.row?.material_code || '—'));
+  productTitle.append(inventoryReviewCreateElement('span','inventory-review-material-name',model.row?.material_name || '—'));
+  product.append(productTitle);
+  const context=inventoryReviewCreateElement('div','inventory-review-context');
+  [
+    ['المصنع',model.context.plantCode || '—'],
+    ['المخزن',model.context.warehouseCode || '—'],
+    ['تاريخ الجرد',formatDisplayDate(model.context.inventoryDate,'—')]
+  ].forEach(([label,value])=>inventoryReviewAppendDetail(context,label,value));
+  product.append(context);
+  body.append(product);
+  const details=inventoryReviewCreateElement('section','inventory-review-details-grid');
+  inventoryReviewAppendDetail(details,'الإنتاج',formatInventoryReviewQuantity(model.production));
+  inventoryReviewAppendDetail(details,'الرصيد الدفتري',formatInventoryReviewQuantity(model.row?.book_balance));
+  inventoryReviewAppendDetail(details,'الرصيد الفعلي',formatInventoryReviewQuantity(model.row?.physical_balance));
+  inventoryReviewAppendDetail(details,'فرق الجرد',formatInventoryReviewQuantity(model.variance,true),'inventory-review-'+model.directionKey);
+  inventoryReviewAppendDetail(details,'اتجاه الفرق',model.direction,'inventory-review-'+model.directionKey);
+  inventoryReviewAppendDetail(details,'نسبة الفرق من الإنتاج',formatInventoryReviewPercentage(model.varianceRate));
+  inventoryReviewAppendDetail(details,'نسبة السماح',formatInventoryReviewPercentage(model.tolerance));
+  inventoryReviewAppendDetail(details,'تصنيف المراجعة',model.classification,'inventory-review-classification');
+  body.append(details);
+  const recommendations=inventoryReviewCreateElement('section','inventory-review-recommendations');
+  const recommendationHead=inventoryReviewCreateElement('div','inventory-review-section-head');
+  recommendationHead.append(inventoryReviewCreateElement('h3','',model.classification));
+  recommendationHead.append(inventoryReviewCreateElement('span','inventory-review-direction inventory-review-direction-'+model.directionKey,model.direction));
+  recommendations.append(recommendationHead);
+  recommendations.append(inventoryReviewCreateElement('p','inventory-review-summary',model.summary));
+  if(model.toleranceDifference!==null && model.classification==='فرق مقبول نسبيًا'){
+    recommendations.append(inventoryReviewCreateElement('p','inventory-review-rate-gap','هامش السماح المتبقي: '+model.toleranceDifference.toFixed(2)+'%'));
+  }
+  if(model.recommendations.length){
+    const list=inventoryReviewCreateElement('ol','inventory-review-list');
+    model.recommendations.forEach(text=>list.append(inventoryReviewCreateElement('li','',text)));
+    recommendations.append(list);
+  }
+  if(model.notice) recommendations.append(inventoryReviewCreateElement('div','inventory-review-notice',model.notice));
+  body.append(recommendations);
+  if(!model.varianceIsZero){
+    const inverse=inventoryReviewCreateElement('section','inventory-review-inverse-card');
+    inverse.append(inventoryReviewCreateElement('h3','','أقرب فرق جرد عكسي'));
+    if(model.inverseCandidate){
+      const candidate=model.inverseCandidate;
+      inverse.append(inventoryReviewCreateElement('span','inventory-review-match-badge',candidate.matchLabel));
+      const inverseDetails=inventoryReviewCreateElement('div','inventory-review-inverse-grid');
+      inventoryReviewAppendDetail(inverseDetails,'كود الصنف الآخر',candidate.row?.material_code || '—');
+      inventoryReviewAppendDetail(inverseDetails,'وصف الصنف الآخر',candidate.row?.material_name || '—');
+      inventoryReviewAppendDetail(inverseDetails,'فرق الصنف الحالي',formatInventoryReviewQuantity(model.variance,true));
+      inventoryReviewAppendDetail(inverseDetails,'فرق الصنف الآخر',formatInventoryReviewQuantity(candidate.variance,true));
+      inventoryReviewAppendDetail(inverseDetails,'فرق الكمية',formatInventoryReviewQuantity(candidate.quantityDifference));
+      inventoryReviewAppendDetail(inverseDetails,'نسبة التطابق',formatInventoryReviewPercentage(candidate.matchPercentage));
+      inventoryReviewAppendDetail(inverseDetails,'المصنع',model.context.plantCode || '—');
+      inventoryReviewAppendDetail(inverseDetails,'المخزن',model.context.warehouseCode || '—');
+      inventoryReviewAppendDetail(inverseDetails,'تاريخ الجرد',formatDisplayDate(model.context.inventoryDate,'—'));
+      inverse.append(inverseDetails);
+      inverse.append(inventoryReviewCreateElement('p','inventory-review-inverse-text',`يوجد فرق جرد عكسي في الصنف ${candidate.row?.material_code || '—'} — ${candidate.row?.material_name || '—'} بقيمة ${formatInventoryReviewQuantity(candidate.variance,true)} طن، بنسبة تطابق ${candidate.matchPercentage.toFixed(2)}%. راجع كارت الصنفين؛ ربما يكون الفرق ناتجًا عن خطأ في تسجيل البيع أو التحويلات أو تسجيل حركة على كود صنف غير صحيح.`));
+    }else{
+      inverse.append(inventoryReviewCreateElement('p','inventory-review-no-inverse','لم يتم العثور داخل نسخة الجرد الحالية على صنف آخر يحتوي فرق جرد عكسي يمكن مطابقته مع هذا الفرق.'));
+    }
+    body.append(inverse);
+  }
+}
+function inventoryReviewSavingSetHasLine(set,lineId){
+  return set instanceof Set && [...set].some(value=>String(value)===String(lineId));
+}
+function openInventoryReviewRecommendationsModal(lineId,versionId,triggerCell){
+  const requestedLineId=String(lineId || '').trim();
+  const requestedVersionId=String(versionId || '').trim();
+  const currentVersionId=String(INVENTORY_COUNT_STATE.versionId || '').trim();
+  if(!requestedLineId || !requestedVersionId || requestedVersionId!==currentVersionId) return;
+  if(inventoryReviewSavingSetHasLine(INVENTORY_COUNT_STATE.productionSaving,requestedLineId)
+     || inventoryReviewSavingSetHasLine(INVENTORY_COUNT_STATE.physicalBalanceSaving,requestedLineId)){
+    showInventoryCountToast('انتظر اكتمال حفظ بيانات الصنف.','warning');
+    return;
+  }
+  const latestRow=(INVENTORY_COUNT_STATE.lines || []).find(row=>String(row?.id || '')===requestedLineId);
+  if(!latestRow){ showInventoryCountToast('تعذر العثور على بيانات الصنف الحالية.','warning'); return; }
+  closeInventoryReviewRecommendationsModal({restoreFocus:false});
+  const contextValues=inventoryCountReadInputs();
+  const context={
+    ...contextValues,
+    versionId:currentVersionId,
+    currentUserName:getCurrentInventoryReviewerName()
+  };
+  const model=buildInventoryReviewRecommendations(latestRow,INVENTORY_COUNT_STATE.lines || [],context);
+  const modal=ensureInventoryReviewRecommendationsModal();
+  modal._inventoryReviewReturnFocus=triggerCell || null;
+  modal.dataset.inventoryReviewVersionId=currentVersionId;
+  renderInventoryReviewRecommendationsModal(modal,model);
+  document.body.classList.add('modal-open');
+  requestAnimationFrame(()=>modal.querySelector('.inventory-review-icon-close')?.focus({preventScroll:true}));
+}
+function closeInventoryReviewRecommendationsModal(options={}){
+  const modal=$('#inventoryReviewRecommendationsModal');
+  if(!modal) return;
+  const returnFocus=modal._inventoryReviewReturnFocus;
+  modal.replaceChildren();
+  modal.remove();
+  const hasOtherVisibleModal=[...document.querySelectorAll('[aria-modal="true"]')].some(dialog=>dialog.getClientRects().length>0);
+  if(!hasOtherVisibleModal) document.body.classList.remove('modal-open');
+  if(options.restoreFocus!==false && returnFocus?.isConnected){
+    requestAnimationFrame(()=>returnFocus.focus({preventScroll:true}));
+  }
+}
+function renderInventoryReviewTriggerCell(row,key,label){
+  const value=row?.[key];
+  const display=formatInventoryCountText(value);
+  if(value===null || value===undefined || String(value).trim()==='') return `<td>${display}</td>`;
+  const lineId=escapeHtml(String(row?.id || ''));
+  const versionId=escapeHtml(String(INVENTORY_COUNT_STATE.versionId || ''));
+  const ariaLabel=escapeHtml(`${label}: ${String(value)}. فتح توصيات المراجعة`);
+  return `<td data-inventory-review-line-id="${lineId}" data-inventory-review-version-id="${versionId}" tabindex="0" role="button" aria-label="${ariaLabel}">${display}</td>`;
+}
+function initInventoryReviewRecommendations(){
+  const table=$('#inventoryCountLinesTable');
+  if(!table || table.dataset.inventoryReviewBound==='1') return;
+  table.dataset.inventoryReviewBound='1';
+  const handleActivation=event=>{
+    if(event.target.closest('input,select,button,textarea,a')) return;
+    const cell=event.target.closest('tbody td[data-inventory-review-line-id][data-inventory-review-version-id]');
+    if(!cell || !table.contains(cell)) return;
+    if(event.type==='keydown'){
+      if(event.key!=='Enter' && event.key!==' ') return;
+      event.preventDefault();
+    }
+    openInventoryReviewRecommendationsModal(
+      cell.dataset.inventoryReviewLineId,
+      cell.dataset.inventoryReviewVersionId,
+      cell
+    );
+  };
+  table.addEventListener('click',handleActivation);
+  table.addEventListener('keydown',handleActivation);
+}
 function inventoryCountVarianceState(value){
   const n=Number(value);
   if(!Number.isFinite(n) || Math.abs(n)<0.0005) return 'match';
@@ -10895,8 +11195,8 @@ function renderInventoryCountLines(rows=[]){
     return;
   }
   tbody.innerHTML=displayRows.map(row=>`<tr>
-    <td>${formatInventoryCountText(row.material_code)}</td>
-    <td>${formatInventoryCountText(row.material_name)}</td>
+    ${renderInventoryReviewTriggerCell(row,'material_code','كود المادة')}
+    ${renderInventoryReviewTriggerCell(row,'material_name','وصف المادة')}
     <td>${formatInventoryCountText(row.uom)}</td>
     ${renderInventoryOpeningBalanceCell(row)}
     ${renderInventoryProductionQuantityCell(row)}
@@ -10936,6 +11236,7 @@ async function filterInventoryCountLinesByCurrentWarehouse(rows=[]){
   return rows.filter(row=>allowed.has(String(row.material_code||'').trim().toUpperCase()));
 }
 function resetInventoryCountView(message='لم يتم إنشاء جرد بعد.'){
+  closeInventoryReviewRecommendationsModal({restoreFocus:false});
   INVENTORY_COUNT_STATE.status='idle';
   INVENTORY_COUNT_STATE.documentId=null;
   INVENTORY_COUNT_STATE.versionId=null;
@@ -11013,6 +11314,7 @@ function setInventoryCountInputsFromResult(data){
   updateInventoryCountSelectedDateSummary();
 }
 async function openDefaultInventoryCountFromUi(options={}){
+  closeInventoryReviewRecommendationsModal({restoreFocus:false});
   const {showLoading=false}=options;
   const requestSeq=++INVENTORY_COUNT_STATE.requestSeq;
   if(!window.WarehouseDB?.ready){
@@ -11070,6 +11372,7 @@ async function openDefaultInventoryCountFromUi(options={}){
   }
 }
 async function openExistingInventoryCountFromUi(options={}){
+  closeInventoryReviewRecommendationsModal({restoreFocus:false});
   const {showLoading=false}=options;
   const {inventoryDate,plantCode,warehouseCode}=inventoryCountReadInputs();
   const requestSeq=++INVENTORY_COUNT_STATE.requestSeq;
@@ -11155,6 +11458,7 @@ async function openExistingInventoryCountFromUi(options={}){
   }
 }
 async function createInventoryCountFromUi(){
+  closeInventoryReviewRecommendationsModal({restoreFocus:false});
   if(INVENTORY_COUNT_STATE.creating || INVENTORY_COUNT_STATE.loading) return;
   if(INVENTORY_COUNT_STATE.versionId || INVENTORY_COUNT_STATE.status==='found') return;
   if(INVENTORY_COUNT_STATE.status==='no_current_version') return;
@@ -12199,6 +12503,7 @@ function initInventoryCountScreen(){
   initInventoryCountSearchSortControls();
   initInventoryCountMobilePanels();
   initInventoryCountColumnManager();
+  initInventoryReviewRecommendations();
   updateInventoryCountReviewerFooter();
   inventoryCountUpdateCreateButton();
   if(createBtn.dataset.inventoryCountCreateBound!=='1'){
@@ -12212,6 +12517,7 @@ function initInventoryCountScreen(){
   if(dateInput.dataset.inventoryCountOpenBound!=='1'){
     dateInput.dataset.inventoryCountOpenBound='1';
     dateInput.addEventListener('change',()=>{
+      closeInventoryReviewRecommendationsModal({restoreFocus:false});
       updateInventoryCountSelectedDateSummary();
       scheduleInventoryCountOpen();
     });
@@ -12219,6 +12525,7 @@ function initInventoryCountScreen(){
   if(plantSelect.dataset.inventoryCountWarehouseBound!=='1'){
     plantSelect.dataset.inventoryCountWarehouseBound='1';
     plantSelect.addEventListener('change',()=>{
+      closeInventoryReviewRecommendationsModal({restoreFocus:false});
       syncInventoryCountWarehouse();
       scheduleInventoryCountOpen();
     });

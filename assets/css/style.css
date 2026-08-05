@@ -4803,3 +4803,397 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
   .inventory-difference-replace-modal{align-items:end;padding:10px;}
   .inventory-difference-replace-dialog{width:100%;max-height:calc(100svh - 24px);overflow:auto;border-radius:22px 22px 16px 16px;}
 }
+
+/* INV-REVIEW-01: inventory review recommendations */
+#inventoryCountLinesTable tbody td[data-inventory-review-line-id][data-inventory-review-version-id] {
+  cursor: pointer;
+  transition: color .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+
+#inventoryCountLinesTable tbody td[data-inventory-review-line-id][data-inventory-review-version-id]:hover {
+  color: #0d6b49;
+  background-color: rgba(30, 132, 94, .07);
+  box-shadow: inset 0 0 0 1px rgba(30, 132, 94, .22);
+}
+
+#inventoryCountLinesTable tbody td[data-inventory-review-line-id][data-inventory-review-version-id]:focus-visible {
+  outline: none;
+  color: #075e3e;
+  box-shadow: inset 0 0 0 2px rgba(16, 121, 82, .72);
+}
+
+.inventory-review-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  direction: rtl;
+  color: #163c31;
+  overflow: hidden;
+}
+
+.inventory-review-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 35, 27, .54);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+}
+
+.inventory-review-card {
+  position: relative;
+  z-index: 1;
+  width: min(920px, calc(100vw - 32px));
+  max-height: min(90vh, 900px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .64);
+  border-radius: 24px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .94), rgba(235, 250, 243, .88)),
+    rgba(244, 252, 248, .92);
+  box-shadow: 0 28px 80px rgba(3, 44, 31, .28);
+  -webkit-backdrop-filter: blur(22px) saturate(135%);
+  backdrop-filter: blur(22px) saturate(135%);
+  overflow-wrap: anywhere;
+}
+
+.inventory-review-head,
+.inventory-review-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: rgba(255, 255, 255, .58);
+}
+
+.inventory-review-head {
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(31, 119, 85, .16);
+}
+
+.inventory-review-head h2,
+.inventory-review-section-head h3,
+.inventory-review-inverse-card h3 {
+  margin: 0;
+  color: #105c41;
+}
+
+.inventory-review-head h2 {
+  font-size: clamp(1.2rem, 2.5vw, 1.55rem);
+}
+
+.inventory-review-eyebrow {
+  display: block;
+  margin-bottom: 3px;
+  color: #548074;
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.inventory-review-icon-close,
+.inventory-review-close-btn {
+  min-width: 44px;
+  min-height: 44px;
+  touch-action: manipulation;
+}
+
+.inventory-review-icon-close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  padding: 0;
+  border: 1px solid rgba(30, 117, 83, .2);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .72);
+  color: #196d50;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.inventory-review-icon-close:hover,
+.inventory-review-icon-close:focus-visible {
+  outline: none;
+  background: rgba(217, 244, 232, .94);
+  box-shadow: 0 0 0 3px rgba(25, 128, 88, .18);
+}
+
+.inventory-review-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.inventory-review-modal-body {
+  display: grid;
+  gap: 14px;
+  padding: 18px 22px 22px;
+}
+
+.inventory-review-product-card,
+.inventory-review-details-grid,
+.inventory-review-recommendations,
+.inventory-review-inverse-card {
+  border: 1px solid rgba(28, 123, 86, .15);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .66);
+  box-shadow: 0 8px 24px rgba(13, 81, 58, .07);
+}
+
+.inventory-review-product-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.inventory-review-product-title {
+  display: grid;
+  gap: 5px;
+}
+
+.inventory-review-material-code {
+  color: #08704b;
+  font-size: 1.08rem;
+}
+
+.inventory-review-material-name {
+  color: #315f52;
+  line-height: 1.6;
+}
+
+.inventory-review-context,
+.inventory-review-details-grid,
+.inventory-review-inverse-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.inventory-review-details-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 14px;
+}
+
+.inventory-review-detail {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(224, 244, 235, .56);
+}
+
+.inventory-review-detail-label {
+  color: #58786f;
+  font-size: .76rem;
+  font-weight: 700;
+}
+
+.inventory-review-detail-value {
+  color: #173f34;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.45;
+}
+
+.inventory-review-details-grid .inventory-review-match .inventory-review-detail-value,
+.inventory-review-direction-match {
+  color: #50665f;
+}
+
+.inventory-review-details-grid .inventory-review-surplus .inventory-review-detail-value,
+.inventory-review-direction-surplus {
+  color: #087a4b;
+}
+
+.inventory-review-details-grid .inventory-review-shortage .inventory-review-detail-value,
+.inventory-review-direction-shortage {
+  color: #b43333;
+}
+
+.inventory-review-classification .inventory-review-detail-value {
+  color: #0c6848;
+}
+
+.inventory-review-recommendations,
+.inventory-review-inverse-card {
+  padding: 17px;
+}
+
+.inventory-review-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.inventory-review-direction,
+.inventory-review-match-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgba(224, 242, 234, .85);
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.inventory-review-direction-shortage {
+  background: rgba(255, 225, 225, .88);
+}
+
+.inventory-review-direction-surplus {
+  background: rgba(217, 247, 232, .9);
+}
+
+.inventory-review-summary,
+.inventory-review-inverse-text,
+.inventory-review-no-inverse {
+  margin: 0;
+  line-height: 1.75;
+}
+
+.inventory-review-list {
+  margin: 12px 0 0;
+  padding-inline-start: 24px;
+}
+
+.inventory-review-list li {
+  margin-block: 7px;
+  line-height: 1.65;
+}
+
+.inventory-review-rate-gap {
+  margin: 10px 0 0;
+  color: #176b4f;
+  font-weight: 800;
+}
+
+.inventory-review-notice {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-inline-start: 4px solid #cf8a18;
+  border-radius: 12px;
+  background: rgba(255, 243, 210, .78);
+  color: #68490d;
+  line-height: 1.65;
+}
+
+.inventory-review-inverse-card h3 {
+  margin-bottom: 10px;
+}
+
+.inventory-review-match-badge {
+  margin-bottom: 12px;
+  color: #0b6848;
+}
+
+.inventory-review-inverse-grid {
+  margin-bottom: 13px;
+}
+
+.inventory-review-footer {
+  justify-content: flex-end;
+  padding: 12px 22px;
+  border-top: 1px solid rgba(31, 119, 85, .16);
+}
+
+.inventory-review-close-btn {
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .inventory-review-modal {
+    padding: 12px;
+    align-items: center;
+  }
+
+  .inventory-review-card {
+    width: min(720px, calc(100vw - 24px));
+    max-height: calc(100svh - 24px);
+    border-radius: 20px;
+  }
+
+  .inventory-review-head {
+    padding: 14px 16px;
+  }
+
+  .inventory-review-modal-body {
+    padding: 14px;
+  }
+
+  .inventory-review-context,
+  .inventory-review-details-grid,
+  .inventory-review-inverse-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .inventory-review-section-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .inventory-review-footer {
+    padding: 10px 14px;
+  }
+
+  .inventory-review-close-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .inventory-review-modal {
+    padding: 8px;
+  }
+
+  .inventory-review-card {
+    width: calc(100vw - 16px);
+    max-height: calc(100svh - 16px);
+    border-radius: 17px;
+  }
+
+  .inventory-review-context,
+  .inventory-review-details-grid,
+  .inventory-review-inverse-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inventory-review-product-card,
+  .inventory-review-recommendations,
+  .inventory-review-inverse-card {
+    padding: 13px;
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .inventory-review-modal {
+    padding: 6px;
+  }
+
+  .inventory-review-card {
+    max-height: calc(100svh - 12px);
+  }
+
+  .inventory-review-head {
+    padding-block: 9px;
+  }
+
+  .inventory-review-footer {
+    padding-block: 7px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #inventoryCountLinesTable tbody td[data-inventory-review-line-id][data-inventory-review-version-id] {
+    transition: none;
+  }
+}
