@@ -5197,3 +5197,340 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
     transition: none;
   }
 }
+
+/* Phase INV-SETTLEMENT-01: isolated inventory line reconciliation UI */
+#inventoryCountLinesTable .inventory-settlement-btn:disabled {
+  cursor: not-allowed;
+  opacity: .66;
+  box-shadow: none;
+}
+
+#inventoryCountLinesTable .inventory-settlement-btn.is-reconciled {
+  color: #dff8e5;
+  background: rgba(38, 117, 65, .72);
+  border-color: rgba(133, 220, 148, .28);
+}
+
+#inventoryCountLinesTable .inventory-settlement-btn.is-stale {
+  color: #ffe8b4;
+  background: rgba(115, 72, 16, .72);
+  border-color: rgba(255, 197, 92, .3);
+}
+
+#inventoryCountLinesTable .inventory-settlement-btn.is-loading {
+  opacity: .78;
+}
+
+.inventory-settlement-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100010;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  direction: rtl;
+  overflow: hidden;
+  color: #173d32;
+}
+
+.inventory-settlement-modal[hidden] {
+  display: none !important;
+}
+
+.inventory-settlement-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(3, 31, 23, .62);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.inventory-settlement-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(760px, calc(100vw - 24px));
+  max-height: min(92dvh, 860px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .66);
+  border-radius: 24px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, .95), rgba(231, 249, 240, .9)),
+    rgba(242, 252, 247, .94);
+  box-shadow: 0 30px 90px rgba(1, 31, 22, .38);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(140%);
+  overflow-wrap: anywhere;
+}
+
+.inventory-settlement-header,
+.inventory-settlement-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, .58);
+}
+
+.inventory-settlement-header {
+  border-bottom: 1px solid rgba(28, 119, 82, .16);
+}
+
+.inventory-settlement-header h2,
+.inventory-settlement-preview h3 {
+  margin: 0;
+  color: #105c41;
+}
+
+.inventory-settlement-header h2 {
+  font-size: clamp(1.2rem, 3vw, 1.55rem);
+}
+
+.inventory-settlement-eyebrow {
+  margin: 0 0 3px;
+  color: #568176;
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.inventory-settlement-close {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  border: 1px solid rgba(24, 111, 76, .2);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .72);
+  color: #155f44;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.inventory-settlement-close:hover,
+.inventory-settlement-close:focus-visible {
+  outline: 2px solid rgba(22, 126, 82, .34);
+  outline-offset: 1px;
+  background: #fff;
+}
+
+.inventory-settlement-scroll {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 20px 20px;
+}
+
+.inventory-settlement-summary {
+  padding: 16px;
+  border: 1px solid rgba(25, 122, 81, .18);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .55);
+}
+
+.inventory-settlement-material {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-bottom: 14px;
+}
+
+.inventory-settlement-material span {
+  color: #0d6a49;
+  font-weight: 900;
+}
+
+.inventory-settlement-material strong {
+  min-width: 0;
+  color: #173d32;
+}
+
+.inventory-settlement-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.inventory-settlement-summary-grid > div {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 13px;
+  background: rgba(230, 247, 238, .72);
+}
+
+.inventory-settlement-summary-grid span {
+  display: block;
+  margin-bottom: 4px;
+  color: #618278;
+  font-size: .74rem;
+  font-weight: 700;
+}
+
+.inventory-settlement-summary-grid strong {
+  display: block;
+  color: #154f3d;
+  font-size: .9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.inventory-settlement-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.inventory-settlement-field {
+  display: grid;
+  gap: 7px;
+  color: #244d41;
+  font-weight: 800;
+}
+
+.inventory-settlement-field b {
+  color: #b33b35;
+}
+
+.inventory-settlement-field select,
+.inventory-settlement-field textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(24, 111, 76, .25);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .84);
+  color: #153e32;
+}
+
+.inventory-settlement-field select {
+  min-height: 46px;
+  padding: 8px 12px;
+}
+
+.inventory-settlement-field textarea {
+  min-height: 118px;
+  padding: 11px 12px;
+  resize: vertical;
+  line-height: 1.65;
+}
+
+.inventory-settlement-field select:focus,
+.inventory-settlement-field textarea:focus {
+  outline: 2px solid rgba(27, 132, 88, .3);
+  border-color: rgba(27, 132, 88, .58);
+}
+
+.inventory-settlement-field small {
+  color: #66847b;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
+.inventory-settlement-preview {
+  padding: 14px 15px;
+  border: 1px solid rgba(30, 132, 87, .2);
+  border-radius: 16px;
+  background: rgba(222, 246, 233, .68);
+}
+
+.inventory-settlement-preview h3 {
+  margin-bottom: 7px;
+  font-size: .95rem;
+}
+
+.inventory-settlement-preview p,
+.inventory-settlement-error {
+  margin: 0;
+  line-height: 1.75;
+}
+
+.inventory-settlement-preview.is-warning {
+  border-color: rgba(185, 55, 45, .34);
+  background: rgba(255, 226, 223, .76);
+}
+
+.inventory-settlement-preview.is-warning h3,
+.inventory-settlement-preview.is-warning p,
+.inventory-settlement-error {
+  color: #9b2f2a;
+}
+
+.inventory-settlement-error {
+  padding: 11px 13px;
+  border: 1px solid rgba(185, 55, 45, .26);
+  border-radius: 13px;
+  background: rgba(255, 230, 227, .72);
+  font-weight: 800;
+}
+
+.inventory-settlement-actions {
+  justify-content: flex-end;
+  border-top: 1px solid rgba(28, 119, 82, .16);
+}
+
+.inventory-settlement-actions button {
+  min-width: 132px;
+  min-height: 44px;
+}
+
+.inventory-settlement-modal.is-saving .inventory-settlement-dialog {
+  cursor: progress;
+}
+
+.inventory-settlement-modal.is-saving select,
+.inventory-settlement-modal.is-saving textarea {
+  opacity: .72;
+}
+
+@media (max-width: 700px) {
+  .inventory-settlement-modal {
+    padding: 12px 12px max(12px, env(safe-area-inset-bottom));
+    align-items: center;
+  }
+
+  .inventory-settlement-dialog {
+    width: min(760px, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px - env(safe-area-inset-bottom));
+    border-radius: 20px;
+  }
+
+  .inventory-settlement-header,
+  .inventory-settlement-actions {
+    padding: 13px 14px;
+  }
+
+  .inventory-settlement-scroll {
+    padding: 14px;
+  }
+
+  .inventory-settlement-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .inventory-settlement-actions button {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 46px;
+  }
+}
+
+@media (max-width: 430px) {
+  .inventory-settlement-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-settlement-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .inventory-settlement-dialog {
+    max-height: calc(100dvh - 16px);
+  }
+
+  .inventory-settlement-summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
