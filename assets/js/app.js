@@ -2390,6 +2390,98 @@ function updateFiltersVisibility(section){
   filters.setAttribute('aria-hidden',shouldShow?'false':'true');
 }
 let MOBILE_DASHBOARD_SHELL_BOUND=false;
+let DASHBOARD_PNG_EXPORT_BUSY=false;
+const DASHBOARD_PNG_BUTTON_SELECTOR='#mobileDashboardPeriodPngBtn,#mobileKpiGroupPngBtn,#dashboardFullPngBtn,.widget-png-btn';
+const DASHBOARD_PNG_CAPTURE_EXCLUDE_SELECTOR='.widget-png-btn,.mobile-kpi-group-png-btn,.mobile-period-png-btn,.dashboard-full-png-btn,.mobile-dashboard-shell,.mobile-dashboard-bottom-nav,.mobile-drawer-overlay,.mobile-side-drawer,.mobile-dashboard-filter-overlay';
+function dashboardPngButtons(){
+  return [...document.querySelectorAll(DASHBOARD_PNG_BUTTON_SELECTOR)];
+}
+function dashboardPngToastIcon(type){
+  return type==='success'
+    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>'
+    : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>';
+}
+function showDashboardPngToast(message,type='success',duration=3000){
+  const text=String(message||'').trim();
+  if(!text) return;
+  let stack=$('#dashboardPngToastStack');
+  if(!stack){
+    stack=document.createElement('div');
+    stack.id='dashboardPngToastStack';
+    stack.className='dashboard-png-toast-stack';
+    stack.setAttribute('aria-live','polite');
+    stack.setAttribute('aria-atomic','false');
+    document.body.appendChild(stack);
+  }
+  const toast=document.createElement('div');
+  toast.className=`dashboard-png-toast dashboard-png-toast-${type}`;
+  toast.setAttribute('role',type==='error'?'alert':'status');
+  toast.innerHTML=`<span class="dashboard-png-toast-icon">${dashboardPngToastIcon(type)}</span><span class="dashboard-png-toast-text"></span><button type="button" class="dashboard-png-toast-close" aria-label="إغلاق"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>`;
+  toast.querySelector('.dashboard-png-toast-text').textContent=text;
+  stack.appendChild(toast);
+  requestAnimationFrame(()=>toast.classList.add('is-visible'));
+  let timer=window.setTimeout(close,Math.max(1000,Number(duration)||3000));
+  function close(){
+    window.clearTimeout(timer);
+    toast.classList.remove('is-visible');
+    toast.classList.add('is-leaving');
+    window.setTimeout(()=>toast.remove(),220);
+  }
+  toast.querySelector('.dashboard-png-toast-close')?.addEventListener('click',close);
+}
+function syncDashboardPngButtonState(){
+  const allowed=hasPermission('dashboard','export_png');
+  dashboardPngButtons().forEach(btn=>{
+    if(!Object.prototype.hasOwnProperty.call(btn.dataset,'dashboardPngIdleHtml')) btn.dataset.dashboardPngIdleHtml=btn.innerHTML;
+    if(!Object.prototype.hasOwnProperty.call(btn.dataset,'dashboardPngIdleTitle')) btn.dataset.dashboardPngIdleTitle=btn.title||'';
+    btn.setAttribute('data-html2canvas-ignore','true');
+    btn.disabled=!allowed || DASHBOARD_PNG_EXPORT_BUSY;
+    btn.classList.toggle('permission-disabled',!allowed);
+    btn.classList.toggle('dashboard-png-loading',DASHBOARD_PNG_EXPORT_BUSY);
+    btn.setAttribute('aria-busy',DASHBOARD_PNG_EXPORT_BUSY?'true':'false');
+    if(DASHBOARD_PNG_EXPORT_BUSY){
+      btn.innerHTML='<span class="dashboard-png-loading-spinner" aria-hidden="true"></span><span>...</span>';
+      btn.title='جارٍ تصدير الصورة';
+    }else{
+      btn.innerHTML=btn.dataset.dashboardPngIdleHtml;
+      btn.title=allowed ? btn.dataset.dashboardPngIdleTitle : 'لا تملك صلاحية تصدير PNG';
+    }
+  });
+}
+function beginDashboardPngExport(){
+  if(DASHBOARD_PNG_EXPORT_BUSY) return false;
+  if(!hasPermission('dashboard','export_png')){
+    syncDashboardPngButtonState();
+    return false;
+  }
+  DASHBOARD_PNG_EXPORT_BUSY=true;
+  syncDashboardPngButtonState();
+  return true;
+}
+function endDashboardPngExport(){
+  DASHBOARD_PNG_EXPORT_BUSY=false;
+  syncDashboardPngButtonState();
+}
+function dashboardCanvasToPngBlob(canvas){
+  return new Promise((resolve,reject)=>{
+    canvas.toBlob(blob=>{
+      if(blob) resolve(blob);
+      else reject(new Error('PNG blob creation failed'));
+    },'image/png',1);
+  });
+}
+function markDashboardPngCaptureExclusions(element){
+  if(!element) return ()=>{};
+  const nodes=[];
+  if(element.matches?.(DASHBOARD_PNG_CAPTURE_EXCLUDE_SELECTOR)) nodes.push(element);
+  nodes.push(...element.querySelectorAll(DASHBOARD_PNG_CAPTURE_EXCLUDE_SELECTOR));
+  const previous=nodes.map(node=>({node,had:node.hasAttribute('data-html2canvas-ignore'),value:node.getAttribute('data-html2canvas-ignore')}));
+  nodes.forEach(node=>node.setAttribute('data-html2canvas-ignore','true'));
+  return ()=>previous.forEach(item=>{
+    if(item.had) item.node.setAttribute('data-html2canvas-ignore',item.value||'true');
+    else item.node.removeAttribute('data-html2canvas-ignore');
+  });
+}
 function currentActiveSection(){
   return $('.section.active-section')?.id || $('.nav-item.active')?.dataset.section || 'dashboard';
 }
@@ -2532,73 +2624,72 @@ function exportMobileDashboardPng(){
 }
 async function exportMobileKpiGroupPng(){
   const source=$('#kpiCards');
-  if(!source) return;
-  const Html2Canvas=window.html2canvas;
-  if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
-  const cards=[...source.querySelectorAll('.kpi')].slice(0,5);
-  if(!cards.length) return;
-  const from=normalizeDateISO($('#dashboardFromDate')?.value || '');
-  const to=normalizeDateISO($('#dashboardToDate')?.value || '');
-  const periodText=(from && to && from===to)
-    ? `تاريخ التقرير: ${formatMobileDashboardDateLabel(from)}`
-    : `الفترة: ${formatMobileDashboardDateLabel(from) || 'البداية'} → ${formatMobileDashboardDateLabel(to) || 'النهاية'}`;
-  const exportBox=document.createElement('section');
-  exportBox.className='mobile-kpi-export-box png-capturing-now';
-  exportBox.setAttribute('aria-hidden','true');
-  exportBox.style.cssText=[
-    'position:fixed',
-    'top:0',
-    'left:0',
-    'z-index:-1',
-    'width:820px',
-    'box-sizing:border-box',
-    'padding:24px',
-    'direction:rtl',
-    'background:radial-gradient(circle at 50% 0,#07392f 0,#001a15 45%,#00100e 100%)',
-    'pointer-events:none',
-    'opacity:1',
-    'overflow:visible'
-  ].join(';');
-  const header=document.createElement('header');
-  header.style.cssText='display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:0 0 18px;padding:0 0 16px;border-bottom:1px solid rgba(141,220,89,.22);';
-  const title=document.createElement('h2');
-  title.textContent='Total Key Stats';
-  title.style.cssText='margin:0;color:#f4fff5;font:900 30px/1.2 Cairo,Segoe UI,Tahoma,Arial,sans-serif;text-align:left;direction:ltr;letter-spacing:0;';
-  const period=document.createElement('div');
-  period.textContent=periodText;
-  period.style.cssText='margin-top:4px;color:#bdf29b;font:900 17px/1.45 Cairo,Segoe UI,Tahoma,Arial,sans-serif;text-align:right;white-space:nowrap;';
-  header.append(title,period);
-  const grid=document.createElement('div');
-  grid.className='cards mobile-kpi-export-grid';
-  grid.style.cssText='display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px!important;width:100%;overflow:visible!important;align-items:stretch;';
-  cards.forEach((card,index)=>{
-    const clone=card.cloneNode(true);
-    clone.querySelectorAll('.widget-png-btn,.mobile-kpi-group-png-btn,.mobile-period-png-btn,.mobile-dashboard-shell,.mobile-dashboard-bottom-nav,.mobile-drawer-overlay,.mobile-side-drawer').forEach(el=>el.remove());
-    clone.classList.remove('png-capturing-now');
-    clone.style.cssText=[
-      index===4 ? 'grid-column:1/-1!important' : 'grid-column:auto!important',
-      index===4 ? 'height:178px!important' : 'height:188px!important',
-      index===4 ? 'min-height:178px!important' : 'min-height:188px!important',
-      'padding:22px!important',
-      'border-radius:20px!important',
-      'overflow:hidden!important',
-      'position:relative!important'
-    ].join(';');
-    clone.querySelectorAll('*').forEach(child=>{ child.style.animation='none'; child.style.transition='none'; });
-    grid.appendChild(clone);
-  });
-  exportBox.append(header,grid);
-  document.body.appendChild(exportBox);
-  document.body.classList.add('dashboard-png-exporting');
+  if(!source || !beginDashboardPngExport()) return;
+  let exportBox=null;
   try{
-    if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
+    const Html2Canvas=window.html2canvas;
+    const cards=[...source.querySelectorAll('.kpi')].slice(0,5);
+    if(!Html2Canvas || !cards.length) throw new Error('PNG export is unavailable');
+    const from=normalizeDateISO($('#dashboardFromDate')?.value || '');
+    const to=normalizeDateISO($('#dashboardToDate')?.value || '');
+    const periodText=(from && to && from===to)
+      ? `تاريخ التقرير: ${formatMobileDashboardDateLabel(from)}`
+      : `الفترة: ${formatMobileDashboardDateLabel(from) || 'البداية'} → ${formatMobileDashboardDateLabel(to) || 'النهاية'}`;
+    exportBox=document.createElement('section');
+    exportBox.className='mobile-kpi-export-box png-capturing-now';
+    exportBox.setAttribute('aria-hidden','true');
+    exportBox.style.cssText=[
+      'position:fixed',
+      'top:0',
+      'left:0',
+      'z-index:-1',
+      'width:820px',
+      'box-sizing:border-box',
+      'padding:24px',
+      'direction:rtl',
+      'background:radial-gradient(circle at 50% 0,#07392f 0,#001a15 45%,#00100e 100%)',
+      'pointer-events:none',
+      'opacity:1',
+      'overflow:visible'
+    ].join(';');
+    const header=document.createElement('header');
+    header.style.cssText='display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:0 0 18px;padding:0 0 16px;border-bottom:1px solid rgba(141,220,89,.22);';
+    const title=document.createElement('h2');
+    title.textContent='Total Key Stats';
+    title.style.cssText='margin:0;color:#f4fff5;font:900 30px/1.2 Cairo,Segoe UI,Tahoma,Arial,sans-serif;text-align:left;direction:ltr;letter-spacing:0;';
+    const period=document.createElement('div');
+    period.textContent=periodText;
+    period.style.cssText='margin-top:4px;color:#bdf29b;font:900 17px/1.45 Cairo,Segoe UI,Tahoma,Arial,sans-serif;text-align:right;white-space:nowrap;';
+    header.append(title,period);
+    const grid=document.createElement('div');
+    grid.className='cards mobile-kpi-export-grid';
+    grid.style.cssText='display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px!important;width:100%;overflow:visible!important;align-items:stretch;';
+    cards.forEach((card,index)=>{
+      const clone=card.cloneNode(true);
+      clone.querySelectorAll(DASHBOARD_PNG_CAPTURE_EXCLUDE_SELECTOR).forEach(el=>el.remove());
+      clone.classList.remove('png-capturing-now');
+      clone.style.cssText=[
+        index===4 ? 'grid-column:1/-1!important' : 'grid-column:auto!important',
+        index===4 ? 'height:178px!important' : 'height:188px!important',
+        index===4 ? 'min-height:178px!important' : 'min-height:188px!important',
+        'padding:22px!important',
+        'border-radius:20px!important',
+        'overflow:hidden!important',
+        'position:relative!important'
+      ].join(';');
+      clone.querySelectorAll('*').forEach(child=>{ child.style.animation='none'; child.style.transition='none'; });
+      grid.appendChild(clone);
+    });
+    exportBox.append(header,grid);
+    document.body.appendChild(exportBox);
+    document.body.classList.add('dashboard-png-exporting');
+    if(document.fonts && document.fonts.ready) await document.fonts.ready;
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     const rect=exportBox.getBoundingClientRect();
-    if(rect.width<=0 || rect.height<=0){ alert('تعذر تحديد أبعاد صورة المؤشرات.'); return; }
     const width=Math.ceil(exportBox.scrollWidth);
     const height=Math.ceil(exportBox.scrollHeight);
     window.__lastKpiExportBoxSize={width,height,rectWidth:rect.width,rectHeight:rect.height,layout:'2-2-1'};
-    if(width<=1 || height<=1){ alert('تعذر تحديد أبعاد صورة المؤشرات.'); return; }
+    if(rect.width<=0 || rect.height<=0 || width<=1 || height<=1) throw new Error('Invalid KPI export dimensions');
     const canvas=await Html2Canvas(exportBox,{
       scale:2,
       useCORS:true,
@@ -2612,18 +2703,19 @@ async function exportMobileKpiGroupPng(){
       width,
       height
     });
-    canvas.toBlob(async blob=>{
-      if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
-      await saveBlobWithPicker(blob,`${safeFileName('Total Key Stats')}.png`,'image/png');
-    },'image/png',1);
+    const blob=await dashboardCanvasToPngBlob(canvas);
+    await saveBlobWithPicker(blob,`${safeFileName('Total Key Stats')}.png`,'image/png');
+    showDashboardPngToast('تم تصدير الصورة بنجاح.','success',3000);
   }catch(err){
-    console.error(err);
-    alert('تعذر تصدير صورة المؤشرات. حاول مرة أخرى.');
+    console.error('Dashboard KPI PNG export failed',err);
+    showDashboardPngToast('تعذر تصدير الصورة.','error',6000);
   }finally{
     document.body.classList.remove('dashboard-png-exporting');
-    exportBox.remove();
+    exportBox?.remove();
+    endDashboardPngExport();
   }
 }
+
 function triggerMobileDashboardLogout(){
   closeMobileDashboardPanels();
   $('#topLogoutBtn')?.click();
@@ -5864,14 +5956,25 @@ function showPermissionDenied(section){
   alert(`غير مسموح بالوصول إلى: ${label}\nراجع مدير النظام لتعديل الصلاحيات.`);
 }
 async function loadCurrentUserPermissions(){
-  if(isSuperAdmin()){ CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions('admin'); applySettingsSubPermissions(); return; }
+  if(isSuperAdmin()){
+    CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions('admin');
+    applySettingsSubPermissions();
+    syncDashboardPngButtonState();
+    return;
+  }
   const role=CURRENT_APP_PROFILE?.role || 'viewer';
-  if(!WarehouseDB?.ready){ CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions(role); applySettingsSubPermissions(); return; }
+  if(!WarehouseDB?.ready){
+    CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions(role);
+    applySettingsSubPermissions();
+    syncDashboardPngButtonState();
+    return;
+  }
   try{
     const {data,error}=await WarehouseDB.client.from('app_role_permissions').select('*').eq('role',role);
     CURRENT_ROLE_PERMISSIONS = error ? buildDefaultPermissions(role) : permissionsForRoleFromRows(role,data||[]);
   }catch(_){ CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions(role); }
   applySettingsSubPermissions();
+  syncDashboardPngButtonState();
 }
 function applyNavigationPermissions(){
   $$('.nav-item').forEach(btn=>{
@@ -5924,6 +6027,7 @@ function applyPermissionActionGuards(section){
   disableByPermission('.delete-user-btn,.delete-batch-btn,button[id*="Delete"],button.danger',section,'delete','لا تملك صلاحية الحذف');
   disableByPermission('button[id*="Upload"],button[id*="pick"],.upload-report-tab',section,'upload','لا تملك صلاحية الرفع');
   disableByPermission('button[id*="save"],button[id*="Save"],button[id*="edit"],.edit-user-btn',section,'edit','لا تملك صلاحية التعديل');
+  if(section==='dashboard') syncDashboardPngButtonState();
   if(section==='inventory_closing'){
     disableByPermission('#createInventoryCountBtn','inventory_count','add',"غير متاح للصلاحية الحالية");
     disableByPermission('#createInventoryDifferenceSnapshotBtn','inventory_count','add',"غير متاح للصلاحية الحالية");
@@ -9483,7 +9587,7 @@ function ensureDashboardPngButtons(){
     fullBtn.addEventListener('click',()=>exportDashboardElementAsPng(dashboard,'الشاشة الرئيسية'));
     filters.appendChild(fullBtn);
   }
-  dashboard.querySelectorAll('.panel.glass,.kpi.glass').forEach((box,idx)=>{
+  dashboard.querySelectorAll('.panel.glass,.kpi.glass').forEach(box=>{
     if(box.classList.contains('no-widget-png-export')) return;
     if(box.querySelector(':scope > .widget-png-btn')) return;
     box.classList.add('png-exportable-widget');
@@ -9493,29 +9597,34 @@ function ensureDashboardPngButtons(){
     btn.className='widget-png-btn';
     btn.title='تصدير هذا البوكس كصورة PNG';
     btn.setAttribute('aria-label','تصدير هذا البوكس كصورة PNG');
+    btn.setAttribute('data-html2canvas-ignore','true');
     btn.innerHTML='<span>PNG</span><span class="png-mini-icon" aria-hidden="true">'+modernIcon('image')+'</span>';
-    btn.addEventListener('click',(ev)=>{
+    btn.addEventListener('click',ev=>{
+      ev.preventDefault();
       ev.stopPropagation();
       exportDashboardElementAsPng(box,box.dataset.pngTitle||dashboardPngTitleFromElement(box));
     });
     box.prepend(btn);
   });
+  syncDashboardPngButtonState();
 }
+
 async function exportDashboardElementAsPng(element,title){
-  if(!element) return;
+  if(!element || !beginDashboardPngExport()) return;
   const Html2Canvas=window.html2canvas;
-  if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
   const previousActive=document.activeElement;
+  const restoreExclusions=markDashboardPngCaptureExclusions(element);
   element.classList.add('png-capturing-now');
   document.body.classList.add('dashboard-png-exporting');
   try{
-    if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
+    if(!Html2Canvas) throw new Error('PNG export is unavailable');
+    if(document.fonts && document.fonts.ready) await document.fonts.ready;
     await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     const rect=element.getBoundingClientRect();
-    const width=Math.ceil(Math.max(rect.width, element.scrollWidth, 1));
-    const height=Math.ceil(Math.max(rect.height, element.scrollHeight, 1));
+    const width=Math.ceil(Math.max(rect.width,element.scrollWidth,1));
+    const height=Math.ceil(Math.max(rect.height,element.scrollHeight,1));
     const canvas=await Html2Canvas(element,{
-      scale:Math.min(3, Math.max(2, window.devicePixelRatio||2)),
+      scale:Math.min(3,Math.max(2,window.devicePixelRatio||2)),
       useCORS:true,
       allowTaint:true,
       backgroundColor:'#001a15',
@@ -9527,16 +9636,17 @@ async function exportDashboardElementAsPng(element,title){
       width,
       height
     });
-    canvas.toBlob(async blob=>{
-      if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
-      await saveBlobWithPicker(blob,`${safeFileName(title||'dashboard')}.png`,'image/png');
-    },'image/png',1);
+    const blob=await dashboardCanvasToPngBlob(canvas);
+    await saveBlobWithPicker(blob,`${safeFileName(title||'dashboard')}.png`,'image/png');
+    showDashboardPngToast('تم تصدير الصورة بنجاح.','success',3000);
   }catch(err){
-    console.error(err);
-    alert('تعذر تصدير الصورة. حاول مرة أخرى.');
+    console.error('Dashboard PNG export failed',err);
+    showDashboardPngToast('تعذر تصدير الصورة.','error',6000);
   }finally{
+    restoreExclusions();
     element.classList.remove('png-capturing-now');
     document.body.classList.remove('dashboard-png-exporting');
+    endDashboardPngExport();
     try{ previousActive && previousActive.focus && previousActive.focus(); }catch(_){ }
   }
 }
@@ -11589,7 +11699,7 @@ const INVENTORY_DIFFERENCE_PLANTS = [
   {code:'EL02', name:'مصنع الإيمان للأعلاف - العامرية'},
   {code:'WF01', name:'مصنع الواحة للأعلاف'}
 ];
-const INVENTORY_DIFFERENCE_STATE = { snapshots: [], selectedSnapshotId: null, activePlantCode: '', loading: false, requestSeq: 0, replaceVersionId: null, replacing: false };
+const INVENTORY_DIFFERENCE_STATE = { snapshots: [], selectedSnapshotId: null, activePlantCode: '', loading: false, requestSeq: 0, listRequestSeq: 0, historyRequestSeq: 0, historySourceVersionId: null, historyLoading: false, replaceVersionId: null, replacing: false };
 function inventoryDifferencePlantName(code){
   const normalized=String(code||'').trim().toUpperCase();
   const plant=INVENTORY_DIFFERENCE_PLANTS.find(item=>item.code===normalized);
@@ -11628,13 +11738,21 @@ function renderInventoryDifferencePlantTabs(){
 function inventoryDifferenceShowEmpty(message='لم يتم إنشاء أي مستند فروق جرد بعد.'){
   const empty=$('#inventoryDifferenceEmptyState');
   const content=$('#inventoryDifferenceContent');
+  const meta=$('#inventoryDifferenceMetaGrid');
   const tbody=$('#inventoryDifferenceLinesTable tbody');
   const tfoot=$('#inventoryDifferenceLinesTable tfoot');
   if(empty){ empty.hidden=false; empty.textContent=message; }
   if(content) content.hidden=true;
+  if(meta) meta.innerHTML='';
   if(tbody) tbody.innerHTML='<tr><td colspan="18" class="empty-state">'+escapeHtml(message)+'</td></tr>';
   if(tfoot) tfoot.innerHTML='';
 }
+function inventoryDifferencePrepareSnapshotLoad(snapshotId){
+  const requested=String(snapshotId||'').trim();
+  INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=requested || null;
+  inventoryDifferenceShowEmpty('جاري تحميل مستند فروق الجرد...');
+}
+
 function renderInventoryDifferenceDocumentsTable(){
   const tbody=$('#inventoryDifferenceDocumentsTable tbody');
   if(!tbody) return;
@@ -11735,21 +11853,40 @@ function renderInventoryDifferenceLines(lines=[]){
   }
 }
 async function loadInventoryDifferenceSnapshot(snapshotId=null){
-  if(!WarehouseDB?.ready){ inventoryDifferenceShowEmpty('قاعدة البيانات غير متصلة.'); return; }
+  const requestedSnapshotId=String(snapshotId||'').trim();
+  if(!requestedSnapshotId){
+    ++INVENTORY_DIFFERENCE_STATE.requestSeq;
+    INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=null;
+    inventoryDifferenceShowEmpty('اختر مستند فروق الجرد.');
+    return;
+  }
+  if(!WarehouseDB?.ready){
+    ++INVENTORY_DIFFERENCE_STATE.requestSeq;
+    INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=null;
+    inventoryDifferenceShowEmpty('قاعدة البيانات غير متصلة.');
+    return;
+  }
   const requestSeq=++INVENTORY_DIFFERENCE_STATE.requestSeq;
+  inventoryDifferencePrepareSnapshotLoad(requestedSnapshotId);
   inventoryDifferenceSetLoading(true);
   try{
-    const {data,error}=await WarehouseDB.client.rpc('get_inventory_difference_snapshot',{p_snapshot_id: snapshotId || null});
+    const {data,error}=await WarehouseDB.client.rpc('get_inventory_difference_snapshot',{p_snapshot_id:requestedSnapshotId});
     if(error) throw error;
     if(requestSeq!==INVENTORY_DIFFERENCE_STATE.requestSeq) return;
-    if(data && data.status!=='inventory_difference_snapshot_found'){
+    if(!data || data.status!=='inventory_difference_snapshot_found'){
       INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=null;
-      inventoryDifferenceShowEmpty('لم يتم إنشاء أي مستند فروق جرد بعد.');
+      inventoryDifferenceShowEmpty('لم يتم العثور على مستند فروق الجرد المطلوب.');
       return;
     }
-    const header=data && data.header || {};
-    const lines=Array.isArray(data && data.lines) ? data.lines : [];
-    INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=header.snapshot_id || null;
+    const header=data.header || {};
+    const returnedSnapshotId=String(header.snapshot_id||'').trim();
+    if(!returnedSnapshotId || returnedSnapshotId.toLowerCase()!==requestedSnapshotId.toLowerCase()){
+      INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=null;
+      inventoryDifferenceShowEmpty('تعذر التحقق من مستند فروق الجرد المطلوب.');
+      return;
+    }
+    const lines=Array.isArray(data.lines) ? data.lines : [];
+    INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=returnedSnapshotId;
     const empty=$('#inventoryDifferenceEmptyState');
     const content=$('#inventoryDifferenceContent');
     if(empty) empty.hidden=true;
@@ -11757,16 +11894,26 @@ async function loadInventoryDifferenceSnapshot(snapshotId=null){
     renderInventoryDifferenceMeta(header);
     renderInventoryDifferenceLines(lines);
   }catch(err){
+    if(requestSeq!==INVENTORY_DIFFERENCE_STATE.requestSeq) return;
+    INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=null;
     inventoryDifferenceShowEmpty('تعذر تحميل مستند فروق الجرد.');
     showInventoryCountToast(err && err.message || 'تعذر تحميل مستند فروق الجرد.','error');
   }finally{
     if(requestSeq===INVENTORY_DIFFERENCE_STATE.requestSeq) inventoryDifferenceSetLoading(false);
   }
 }
-function hideInventoryDifferenceHistory(){
+function hideInventoryDifferenceHistory(options={}){
+  if(options.invalidate!==false){
+    ++INVENTORY_DIFFERENCE_STATE.historyRequestSeq;
+    INVENTORY_DIFFERENCE_STATE.historySourceVersionId=null;
+    INVENTORY_DIFFERENCE_STATE.historyLoading=false;
+  }
   const panel=$('#inventoryDifferenceHistoryPanel');
+  const tbody=$('#inventoryDifferenceHistoryTable tbody');
   if(panel) panel.hidden=true;
+  if(options.clear!==false && tbody) tbody.innerHTML='<tr><td colspan="7" class="empty-state">لا توجد نسخة مستبدلة</td></tr>';
 }
+
 function renderInventoryDifferenceHistory(rows=[]){
   const panel=$('#inventoryDifferenceHistoryPanel');
   const tbody=$('#inventoryDifferenceHistoryTable tbody');
@@ -11790,38 +11937,88 @@ function renderInventoryDifferenceHistory(rows=[]){
   }).join('');
 }
 async function loadInventoryDifferenceHistory(sourceVersionId){
+  const requestedSourceVersionId=String(sourceVersionId||'').trim();
+  if(!requestedSourceVersionId) return;
   if(!WarehouseDB?.ready){ showInventoryCountToast('قاعدة البيانات غير متصلة.','error'); return; }
+  const requestSeq=++INVENTORY_DIFFERENCE_STATE.historyRequestSeq;
+  INVENTORY_DIFFERENCE_STATE.historySourceVersionId=requestedSourceVersionId;
+  INVENTORY_DIFFERENCE_STATE.historyLoading=true;
+  const panel=$('#inventoryDifferenceHistoryPanel');
+  const tbody=$('#inventoryDifferenceHistoryTable tbody');
+  if(panel) panel.hidden=false;
+  if(tbody) tbody.innerHTML='<tr><td colspan="7" class="empty-state">جاري تحميل النسخ المستبدلة...</td></tr>';
   try{
-    const {data,error}=await WarehouseDB.client.rpc('list_replaced_inventory_difference_snapshots',{p_source_inventory_version_id: sourceVersionId});
+    const {data,error}=await WarehouseDB.client.rpc('list_replaced_inventory_difference_snapshots',{p_source_inventory_version_id:requestedSourceVersionId});
     if(error) throw error;
-    renderInventoryDifferenceHistory(Array.isArray(data) ? data : []);
+    if(requestSeq!==INVENTORY_DIFFERENCE_STATE.historyRequestSeq) return;
+    if(INVENTORY_DIFFERENCE_STATE.historySourceVersionId!==requestedSourceVersionId) return;
+    const rows=Array.isArray(data) ? data : [];
+    const responseMatches=rows.every(row=>String(row.source_inventory_version_id||'').trim().toLowerCase()===requestedSourceVersionId.toLowerCase());
+    if(!responseMatches){ hideInventoryDifferenceHistory({invalidate:false}); return; }
+    renderInventoryDifferenceHistory(rows);
   }catch(err){
+    if(requestSeq!==INVENTORY_DIFFERENCE_STATE.historyRequestSeq) return;
+    if(INVENTORY_DIFFERENCE_STATE.historySourceVersionId!==requestedSourceVersionId) return;
+    hideInventoryDifferenceHistory({invalidate:false});
     showInventoryCountToast(err && err.message || 'تعذر تحميل النسخ المستبدلة.','error');
+  }finally{
+    if(requestSeq===INVENTORY_DIFFERENCE_STATE.historyRequestSeq && INVENTORY_DIFFERENCE_STATE.historySourceVersionId===requestedSourceVersionId){
+      INVENTORY_DIFFERENCE_STATE.historyLoading=false;
+    }
   }
 }
-async function loadInventoryDifferenceScreen(){
-  if(!WarehouseDB?.ready){ inventoryDifferenceShowEmpty('قاعدة البيانات غير متصلة.'); return; }
-  inventoryDifferenceSetLoading(true);
+async function loadInventoryDifferenceScreen(options={}){
+  const listRequestSeq=++INVENTORY_DIFFERENCE_STATE.listRequestSeq;
+  ++INVENTORY_DIFFERENCE_STATE.requestSeq;
+  INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=null;
   hideInventoryDifferenceHistory();
+  inventoryDifferenceShowEmpty('جاري تحميل مستندات فروق الجرد...');
+  if(!WarehouseDB?.ready){
+    if(listRequestSeq===INVENTORY_DIFFERENCE_STATE.listRequestSeq) inventoryDifferenceShowEmpty('قاعدة البيانات غير متصلة.');
+    return [];
+  }
+  inventoryDifferenceSetLoading(true);
   try{
     const {data,error}=await WarehouseDB.client.rpc('list_inventory_difference_snapshots');
     if(error) throw error;
+    if(listRequestSeq!==INVENTORY_DIFFERENCE_STATE.listRequestSeq) return [];
     const rows=Array.isArray(data) ? data : [];
     INVENTORY_DIFFERENCE_STATE.snapshots=rows;
-    INVENTORY_DIFFERENCE_STATE.activePlantCode=inventoryDifferenceDefaultPlant(rows);
+    const preferredSnapshotId=String(options.preferredSnapshotId||'').trim();
+    const preferredPlantCode=String(options.preferredPlantCode||'').trim().toUpperCase();
+    const preferredRow=preferredSnapshotId
+      ? rows.find(row=>String(row.snapshot_id||'').trim().toLowerCase()===preferredSnapshotId.toLowerCase())
+      : null;
+    if(preferredRow){
+      INVENTORY_DIFFERENCE_STATE.activePlantCode=String(preferredRow.plant_code||'').trim().toUpperCase();
+    }else if(preferredPlantCode && INVENTORY_DIFFERENCE_PLANTS.some(plant=>plant.code===preferredPlantCode)){
+      INVENTORY_DIFFERENCE_STATE.activePlantCode=preferredPlantCode;
+    }else{
+      INVENTORY_DIFFERENCE_STATE.activePlantCode=inventoryDifferenceDefaultPlant(rows);
+    }
     renderInventoryDifferencePlantTabs();
     renderInventoryDifferenceDocumentsTable();
     const plantRows=inventoryDifferenceRowsForPlant(INVENTORY_DIFFERENCE_STATE.activePlantCode);
-    const target=plantRows[0] && plantRows[0].snapshot_id || rows[0] && rows[0].snapshot_id || null;
-    if(target) await loadInventoryDifferenceSnapshot(target);
-    else inventoryDifferenceShowEmpty('لم يتم إنشاء أي مستند فروق جرد بعد.');
+    const targetRow=preferredRow && String(preferredRow.plant_code||'').trim().toUpperCase()===INVENTORY_DIFFERENCE_STATE.activePlantCode
+      ? preferredRow
+      : plantRows[0] || null;
+    if(targetRow && targetRow.snapshot_id) await loadInventoryDifferenceSnapshot(targetRow.snapshot_id);
+    else{
+      INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=null;
+      inventoryDifferenceShowEmpty('لا توجد مستندات فروق جرد لهذا المصنع.');
+    }
+    return rows;
   }catch(err){
+    if(listRequestSeq!==INVENTORY_DIFFERENCE_STATE.listRequestSeq) return [];
+    INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=null;
     inventoryDifferenceShowEmpty('تعذر تحميل مستندات فروق الجرد.');
     showInventoryCountToast(err && err.message || 'تعذر تحميل مستندات فروق الجرد.','error');
+    return [];
   }finally{
-    inventoryDifferenceSetLoading(false);
+    if(listRequestSeq===INVENTORY_DIFFERENCE_STATE.listRequestSeq) inventoryDifferenceSetLoading(false);
   }
 }
+
 function ensureInventoryDifferenceReplaceModal(){
   let modal=$('#inventoryDifferenceReplaceModal');
   if(modal) return modal;
@@ -11874,16 +12071,19 @@ async function submitInventoryDifferenceReplacement(){
   const reason=String(modal.querySelector('#inventoryDifferenceReplaceReason')?.value || '').trim();
   if(reason.length<5){ showInventoryCountToast('سبب الاستبدال مطلوب.','warning',6000); return; }
   if(!INVENTORY_DIFFERENCE_STATE.replaceVersionId || INVENTORY_DIFFERENCE_STATE.replacing) return;
+  const sourceVersionId=INVENTORY_DIFFERENCE_STATE.replaceVersionId;
+  const sourceRow=(INVENTORY_DIFFERENCE_STATE.snapshots||[]).find(row=>String(row.source_inventory_version_id||'')===String(sourceVersionId));
   INVENTORY_DIFFERENCE_STATE.replacing=true;
   syncInventoryDifferenceReplaceReason();
   try{
-    const {data,error}=await WarehouseDB.client.rpc('replace_inventory_difference_snapshot',{p_inventory_version_id: INVENTORY_DIFFERENCE_STATE.replaceVersionId,p_replacement_reason: reason});
+    const {data,error}=await WarehouseDB.client.rpc('replace_inventory_difference_snapshot',{p_inventory_version_id:sourceVersionId,p_replacement_reason:reason});
     if(error) throw error;
     if(data && data.status==='snapshot_replaced'){
+      const newSnapshotId=String(data.new_snapshot_id || data.snapshot_id || '').trim();
+      const preferredPlantCode=String(data.plant_code || sourceRow?.plant_code || '').trim().toUpperCase();
       closeInventoryDifferenceReplaceModal();
       showInventoryCountToast('تم استبدال مستند فروق الجرد وحفظ النسخة السابقة بنجاح.','success');
-      INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=data.new_snapshot_id || data.snapshot_id || INVENTORY_DIFFERENCE_STATE.selectedSnapshotId;
-      if(currentActiveSection()==='inventory_differences') await loadInventoryDifferenceScreen();
+      await loadInventoryDifferenceScreen({preferredSnapshotId:newSnapshotId,preferredPlantCode});
       return;
     }
     throw new Error('تعذر استبدال مستند فروق الجرد.');
@@ -11894,6 +12094,7 @@ async function submitInventoryDifferenceReplacement(){
     syncInventoryDifferenceReplaceReason();
   }
 }
+
 async function createInventoryDifferenceSnapshotFromUi(){
   if(!WarehouseDB?.ready){ showInventoryCountToast('قاعدة البيانات غير متصلة.','error'); return; }
   if(!hasPermission('inventory_count','add')){ showInventoryCountToast('غير متاح للصلاحية الحالية','error'); return; }
@@ -11902,16 +12103,17 @@ async function createInventoryDifferenceSnapshotFromUi(){
   INVENTORY_COUNT_STATE.snapshotCreating=true;
   updateInventoryDifferenceSnapshotButton();
   try{
-    const {data,error}=await WarehouseDB.client.rpc('create_inventory_difference_snapshot',{p_inventory_version_id: INVENTORY_COUNT_STATE.versionId});
+    const {data,error}=await WarehouseDB.client.rpc('create_inventory_difference_snapshot',{p_inventory_version_id:INVENTORY_COUNT_STATE.versionId});
     if(error) throw error;
     if(data && data.status==='snapshot_already_exists'){
       openInventoryDifferenceReplaceConfirm(INVENTORY_COUNT_STATE.versionId);
       return;
     }
     if(data && data.status==='inventory_difference_snapshot_created'){
+      const newSnapshotId=String(data.snapshot_id||'').trim();
+      const preferredPlantCode=String(data.plant_code||'').trim().toUpperCase();
       showInventoryCountToast('تم إنشاء مستند فروق الجرد بنجاح.','success');
-      INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=data.snapshot_id || INVENTORY_DIFFERENCE_STATE.selectedSnapshotId;
-      if(currentActiveSection()==='inventory_differences') await loadInventoryDifferenceScreen();
+      await loadInventoryDifferenceScreen({preferredSnapshotId:newSnapshotId,preferredPlantCode});
       return;
     }
     showInventoryCountToast('تعذر إنشاء مستند فروق الجرد.','error');
@@ -11922,6 +12124,7 @@ async function createInventoryDifferenceSnapshotFromUi(){
     updateInventoryDifferenceSnapshotButton();
   }
 }
+
 function initInventoryDifferenceScreen(){
   const tabs=$('#inventoryDifferencePlantTabs');
   const table=$('#inventoryDifferenceDocumentsTable');
@@ -11933,12 +12136,15 @@ function initInventoryDifferenceScreen(){
     tabs.addEventListener('click',event=>{
       const btn=event.target.closest('[data-inventory-difference-plant]');
       if(!btn) return;
+      event.preventDefault();
+      ++INVENTORY_DIFFERENCE_STATE.requestSeq;
+      INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=null;
       INVENTORY_DIFFERENCE_STATE.activePlantCode=btn.dataset.inventoryDifferencePlant;
       hideInventoryDifferenceHistory();
       renderInventoryDifferencePlantTabs();
       renderInventoryDifferenceDocumentsTable();
       const row=inventoryDifferenceRowsForPlant(INVENTORY_DIFFERENCE_STATE.activePlantCode)[0];
-      if(row) loadInventoryDifferenceSnapshot(row.snapshot_id);
+      if(row && row.snapshot_id) loadInventoryDifferenceSnapshot(row.snapshot_id);
       else inventoryDifferenceShowEmpty('لا توجد مستندات فروق جرد لهذا المصنع.');
     });
   }
@@ -11946,23 +12152,38 @@ function initInventoryDifferenceScreen(){
     table.dataset.inventoryDifferenceBound='1';
     table.addEventListener('click',event=>{
       const current=event.target.closest('[data-inventory-difference-current]');
-      if(current){ event.preventDefault(); hideInventoryDifferenceHistory(); loadInventoryDifferenceSnapshot(current.dataset.inventoryDifferenceCurrent); return; }
+      if(current){
+        event.preventDefault();
+        hideInventoryDifferenceHistory();
+        loadInventoryDifferenceSnapshot(current.dataset.inventoryDifferenceCurrent);
+        return;
+      }
       const replaced=event.target.closest('[data-inventory-difference-replaced]');
-      if(replaced && !replaced.disabled){ event.preventDefault(); loadInventoryDifferenceHistory(replaced.dataset.inventoryDifferenceReplaced); }
+      if(replaced && !replaced.disabled){
+        event.preventDefault();
+        loadInventoryDifferenceHistory(replaced.dataset.inventoryDifferenceReplaced);
+      }
     });
   }
   if(history && history.dataset.inventoryDifferenceBound!=='1'){
     history.dataset.inventoryDifferenceBound='1';
     history.addEventListener('click',event=>{
       const btn=event.target.closest('[data-inventory-difference-history-view]');
-      if(btn){ event.preventDefault(); loadInventoryDifferenceSnapshot(btn.dataset.inventoryDifferenceHistoryView); }
+      if(btn){
+        event.preventDefault();
+        loadInventoryDifferenceSnapshot(btn.dataset.inventoryDifferenceHistoryView);
+      }
     });
   }
   if(historyClose && historyClose.dataset.inventoryDifferenceBound!=='1'){
     historyClose.dataset.inventoryDifferenceBound='1';
-    historyClose.addEventListener('click',hideInventoryDifferenceHistory);
+    historyClose.addEventListener('click',event=>{
+      event.preventDefault();
+      hideInventoryDifferenceHistory();
+    });
   }
 }
+
 function initInventoryCountScreen(){
   const dateInput=$('#inventoryCountDateInput');
   const plantSelect=$('#inventoryCountPlantSelect');
