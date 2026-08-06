@@ -3,6 +3,128 @@ function roundRect(ctx,x,y,w,h,r,fill,stroke){
   ctx.beginPath(); ctx.moveTo(x+rr,y); ctx.lineTo(x+w-rr,y); ctx.quadraticCurveTo(x+w,y,x+w,y+rr); ctx.lineTo(x+w,y+h-rr); ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h); ctx.lineTo(x+rr,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-rr); ctx.lineTo(x,y+rr); ctx.quadraticCurveTo(x,y,x+rr,y); ctx.closePath(); if(fill)ctx.fill(); if(stroke)ctx.stroke();
 }
 const $=s=>document.querySelector(s);const $$=s=>document.querySelectorAll(s);
+
+// Central application-modal stack and scroll lock. Each modal owns one token;
+// the underlying scroll root is restored only after the last token is released.
+const APP_MODAL_SCROLL_LOCKS=new Map();
+let APP_MODAL_SCROLL_SNAPSHOT=null;
+let APP_MODAL_SCROLL_OBSERVER=null;
+function getApplicationModalScrollRoot(){
+  if(document.body?.classList.contains('focus-mode-active')) return document.querySelector('.main') || document.scrollingElement || document.documentElement;
+  return document.scrollingElement || document.documentElement;
+}
+function captureApplicationModalScrollRoot(root){
+  if(!root) return null;
+  return {root,overflowY:root.style.overflowY};
+}
+function restoreApplicationModalScrollRoot(){
+  const snapshot=APP_MODAL_SCROLL_SNAPSHOT;
+  APP_MODAL_SCROLL_SNAPSHOT=null;
+  if(snapshot?.root) snapshot.root.style.overflowY=snapshot.overflowY;
+}
+function applyApplicationModalScrollRoot(){
+  const root=getApplicationModalScrollRoot();
+  if(!root) return;
+  if(APP_MODAL_SCROLL_SNAPSHOT?.root===root){root.style.overflowY='hidden';return;}
+  restoreApplicationModalScrollRoot();
+  APP_MODAL_SCROLL_SNAPSHOT=captureApplicationModalScrollRoot(root);
+  root.style.overflowY='hidden';
+}
+function hasActiveAppModalScrollLock(){return APP_MODAL_SCROLL_LOCKS.size>0;}
+function topApplicationModalLock(){
+  const entries=[...APP_MODAL_SCROLL_LOCKS.entries()];
+  return entries.length ? entries[entries.length-1] : null;
+}
+function cleanupDetachedAppModalLocks(){
+  let changed=false;
+  for(const [modalId,entry] of APP_MODAL_SCROLL_LOCKS){
+    if(entry?.element?.isConnected) continue;
+    APP_MODAL_SCROLL_LOCKS.delete(modalId);
+    changed=true;
+  }
+  if(!changed) return;
+  if(APP_MODAL_SCROLL_LOCKS.size) applyApplicationModalScrollRoot();
+  else{restoreApplicationModalScrollRoot();document.body?.classList.remove('modal-open');}
+}
+function ensureAppModalScrollObserver(){
+  if(APP_MODAL_SCROLL_OBSERVER || !document.body) return;
+  APP_MODAL_SCROLL_OBSERVER=new MutationObserver(()=>cleanupDetachedAppModalLocks());
+  APP_MODAL_SCROLL_OBSERVER.observe(document.body,{childList:true});
+}
+function lockAppModalScroll(modalId,modalElement){
+  const id=String(modalId || '').trim();
+  if(!id || !modalElement) return;
+  const existing=APP_MODAL_SCROLL_LOCKS.get(id);
+  if(existing) APP_MODAL_SCROLL_LOCKS.delete(id);
+  APP_MODAL_SCROLL_LOCKS.set(id,{element:modalElement,close:modalElement._appModalClose || existing?.close || null});
+  ensureAppModalScrollObserver();
+  document.body?.classList.add('modal-open');
+  applyApplicationModalScrollRoot();
+}
+function unlockAppModalScroll(modalId){
+  const id=String(modalId || '').trim();
+  if(id) APP_MODAL_SCROLL_LOCKS.delete(id);
+  cleanupDetachedAppModalLocks();
+  if(APP_MODAL_SCROLL_LOCKS.size){document.body?.classList.add('modal-open');applyApplicationModalScrollRoot();return;}
+  restoreApplicationModalScrollRoot();
+  document.body?.classList.remove('modal-open');
+}
+function resetAppModalScrollLocks(){
+  APP_MODAL_SCROLL_LOCKS.clear();
+  restoreApplicationModalScrollRoot();
+  document.body?.classList.remove('modal-open');
+}
+function syncApplicationModalScrollRoot(){if(APP_MODAL_SCROLL_LOCKS.size) applyApplicationModalScrollRoot();}
+function appModalFocusableElements(modalElement){
+  if(!modalElement) return [];
+  return [...modalElement.querySelectorAll('button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+    .filter(element=>element.getClientRects().length>0 && element.getAttribute('aria-hidden')!=='true');
+}
+function closeActiveApplicationModals(options={}){
+  const entries=[...APP_MODAL_SCROLL_LOCKS.entries()].reverse();
+  entries.forEach(([modalId,entry])=>{
+    try{
+      const close=entry?.element?._appModalClose || entry?.close;
+      if(typeof close==='function') close({...options,force:true});
+      else unlockAppModalScroll(modalId);
+    }catch(_){unlockAppModalScroll(modalId);}
+  });
+  resetAppModalScrollLocks();
+}
+document.addEventListener('keydown',event=>{
+  const top=topApplicationModalLock();
+  if(!top) return;
+  const [,entry]=top;
+  const modal=entry?.element;
+  if(event.key==='Escape'){
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    const close=modal?._appModalClose || entry?.close;
+    if(typeof close==='function') close();
+    return;
+  }
+  if(event.key!=='Tab' || !modal) return;
+  const focusable=appModalFocusableElements(modal);
+  if(!focusable.length){event.preventDefault();return;}
+  const first=focusable[0],last=focusable[focusable.length-1];
+  if(event.shiftKey && document.activeElement===first){event.preventDefault();last.focus();}
+  else if(!event.shiftKey && document.activeElement===last){event.preventDefault();first.focus();}
+},true);
+let APP_LIQUID_CONFIRM_SEQUENCE=0;
+function showAppLiquidConfirm(options={}){
+  const title=String(options.title || 'تأكيد الإجراء');const message=String(options.message || 'هل تريد المتابعة؟');const confirmText=String(options.confirmText || 'تأكيد');const cancelText=String(options.cancelText || 'إلغاء');const modalId=`appLiquidConfirmModal-${++APP_LIQUID_CONFIRM_SEQUENCE}`;
+  return new Promise(resolve=>{
+    const modal=document.createElement('div');modal.id=modalId;modal.className='app-liquid-confirm app-liquid-modal-backdrop';
+    modal.innerHTML='<section class="app-liquid-confirm__dialog app-liquid-modal" role="dialog" aria-modal="true"><header class="app-liquid-modal__header"><h2 class="app-liquid-modal__title"></h2><button type="button" class="app-liquid-modal__close" data-app-confirm-action="cancel" aria-label="إغلاق نافذة التأكيد">×</button></header><div class="app-liquid-confirm__body app-liquid-modal__body"><p></p></div><footer class="app-liquid-modal__footer"><button type="button" class="secondary" data-app-confirm-action="cancel"></button><button type="button" class="danger" data-app-confirm-action="confirm"></button></footer></section>';
+    const titleElement=modal.querySelector('.app-liquid-modal__title');const messageElement=modal.querySelector('.app-liquid-confirm__body p');const cancelButton=modal.querySelector('[data-app-confirm-action="cancel"]:not(.app-liquid-modal__close)');const confirmButton=modal.querySelector('[data-app-confirm-action="confirm"]');const dialog=modal.querySelector('[role="dialog"]');const labelId=`${modalId}-title`;
+    titleElement.id=labelId;titleElement.textContent=title;messageElement.textContent=message;cancelButton.textContent=cancelText;confirmButton.textContent=confirmText;dialog.setAttribute('aria-labelledby',labelId);
+    let settled=false;const close=(accepted=false)=>{if(settled)return;settled=true;unlockAppModalScroll(modalId);modal.remove();resolve(Boolean(accepted));};
+    modal._appModalClose=()=>close(false);modal.addEventListener('click',event=>{if(event.target===modal){close(false);return;}const action=event.target.closest('[data-app-confirm-action]')?.dataset.appConfirmAction;if(action==='confirm')close(true);else if(action==='cancel')close(false);});
+    document.body.appendChild(modal);lockAppModalScroll(modalId,modal);requestAnimationFrame(()=>confirmButton.focus({preventScroll:true}));
+  });
+}
+
 const ENTERPRISE_MULTI_SELECT_IDS=new Set([
   'dashboardPlantFilter','dashboardWarehouseFilter','reportPlantFilter','reportWarehouseFilter','itemAnalyticsItemFilter',
   'rawMaterialsPlantFilter','rawMaterialsWarehouseFilter','rawMaterialsWarehouseTypeFilter','rawMaterialsGroupFilter','rawMaterialsStatusFilter',
@@ -2517,6 +2639,7 @@ function syncInventoryAuditNavigation(section=currentActiveSection()){
   $$('.mobile-drawer-item[data-mobile-section]').forEach(item=>item.classList.toggle('active',item.dataset.mobileSection===section));
 }
 function switchSection(section){
+  closeActiveApplicationModals({restoreFocus:false});
   if(document.body.classList.contains('focus-mode-active')) exitFocusMode({restoreScroll:false});
   if(!canViewSection(section)){
     showPermissionDenied(section);
@@ -2836,6 +2959,7 @@ function enterFocusMode(section){
   FOCUS_MODE_SCROLL_Y=window.scrollY || document.documentElement.scrollTop || 0;
   document.body.classList.add('focus-mode-active');
   document.body.dataset.focusSection=section;
+  syncApplicationModalScrollRoot();
   setFocusModeButtonState();
   if(section==='inventory_closing') requestAnimationFrame(updateInventoryCountFreezePanes);
   requestAnimationFrame(()=>target.querySelector('[data-focus-close]')?.focus({preventScroll:true}));
@@ -2844,6 +2968,7 @@ function exitFocusMode(options={}){
   const wasActive=document.body.classList.contains('focus-mode-active');
   document.body.classList.remove('focus-mode-active');
   delete document.body.dataset.focusSection;
+  syncApplicationModalScrollRoot();
   setFocusModeButtonState();
   updateInventoryCountFreezePanes();
   if(wasActive && options.restoreScroll!==false) requestAnimationFrame(()=>window.scrollTo({top:FOCUS_MODE_SCROLL_Y,behavior:'auto'}));
@@ -3423,8 +3548,8 @@ async function handleSalesFile(file){
       .eq('status','active');
     if(existingError) throw existingError;
     if(existing?.length){
-      const ok=confirm(`يوجد تقرير مبيعات مرفوع بالفعل بتاريخ ${formatDisplayDate(reportDate,reportDate)}.
-هل تريد استبداله بالملف الجديد؟`);
+      const ok=await showAppLiquidConfirm({message:`يوجد تقرير مبيعات مرفوع بالفعل بتاريخ ${formatDisplayDate(reportDate,reportDate)}.
+هل تريد استبداله بالملف الجديد؟`});
       if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
       status.textContent='جاري حذف النسخة القديمة لنفس التاريخ...';
       const ids=existing.map(x=>x.id);
@@ -3528,7 +3653,7 @@ async function handleSalesBatchAction(btn){
     $('#salesExcelInput')?.click();
   }
   if(action==='delete'){
-    if(!confirm(`سيتم حذف تقرير المبيعات بتاريخ ${formatDisplayDate(date,date)} وكل بياناته الخام. هل أنت متأكد؟`)) return;
+    if(!await showAppLiquidConfirm({message:`سيتم حذف تقرير المبيعات بتاريخ ${formatDisplayDate(date,date)} وكل بياناته الخام. هل أنت متأكد؟`})) return;
     const {error:delError}=await WarehouseDB.client.from('sales_upload_batches').delete().eq('id',btn.dataset.id);
     if(delError){ alert('خطأ أثناء الحذف: '+delError.message); return; }
     clearUnifiedSalesRowsCache();
@@ -3571,8 +3696,8 @@ async function handleIncomingFile(file){
       .eq('status','active');
     if(existingError) throw existingError;
     if(existing?.length){
-      const ok=confirm(`يوجد تقرير وارد MB51 مرفوع بالفعل بتاريخ ${formatDisplayDate(reportDate,reportDate)}.
-هل تريد استبداله بالملف الجديد؟`);
+      const ok=await showAppLiquidConfirm({message:`يوجد تقرير وارد MB51 مرفوع بالفعل بتاريخ ${formatDisplayDate(reportDate,reportDate)}.
+هل تريد استبداله بالملف الجديد؟`});
       if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
       status.textContent='جاري حذف النسخة القديمة لنفس التاريخ...';
       const ids=existing.map(x=>x.id);
@@ -3650,7 +3775,7 @@ async function handleIncomingBatchAction(btn){
     $('#incomingExcelInput')?.click();
   }
   if(action==='delete'){
-    if(!confirm(`سيتم حذف تقرير الوارد بتاريخ ${formatDisplayDate(date,date)} وكل بياناته الخام. هل أنت متأكد؟`)) return;
+    if(!await showAppLiquidConfirm({message:`سيتم حذف تقرير الوارد بتاريخ ${formatDisplayDate(date,date)} وكل بياناته الخام. هل أنت متأكد؟`})) return;
     await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',date);
     const {error:rawDeleteError}=await WarehouseDB.client.from('incoming_raw_transactions').delete().eq('batch_id',btn.dataset.id);
     if(rawDeleteError){ alert('خطأ أثناء حذف بيانات الوارد: '+rawDeleteError.message); return; }
@@ -3686,7 +3811,7 @@ async function handleScaleFile(file){
       .eq('status','active');
     if(existingError) throw existingError;
     if(existing?.length){
-      const ok=confirm(`يوجد تقرير ميزان مرفوع بالفعل بتاريخ ${formatDisplayDate(reportDate,reportDate)}.\nهل تريد استبداله بالملف الجديد؟`);
+      const ok=await showAppLiquidConfirm({message:`يوجد تقرير ميزان مرفوع بالفعل بتاريخ ${formatDisplayDate(reportDate,reportDate)}.\nهل تريد استبداله بالملف الجديد؟`});
       if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
       status.textContent='جاري حذف نسخة الميزان القديمة لنفس التاريخ...';
       const ids=existing.map(x=>x.id);
@@ -3763,7 +3888,7 @@ async function handleScaleBatchAction(btn){
     $('#scaleExcelInput')?.click();
   }
   if(action==='delete'){
-    if(!confirm(`سيتم حذف تقرير الميزان بتاريخ ${formatDisplayDate(date,date)} وكل بياناته الخام ونتائج مراجعة الوارد المبنية عليه. هل أنت متأكد؟`)) return;
+    if(!await showAppLiquidConfirm({message:`سيتم حذف تقرير الميزان بتاريخ ${formatDisplayDate(date,date)} وكل بياناته الخام ونتائج مراجعة الوارد المبنية عليه. هل أنت متأكد؟`})) return;
     await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',date);
     const {error:rawDeleteError}=await WarehouseDB.client.from('scale_raw_transactions').delete().eq('batch_id',btn.dataset.id);
     if(rawDeleteError){ alert('خطأ أثناء حذف بيانات الميزان: '+rawDeleteError.message); return; }
@@ -3928,9 +4053,9 @@ async function handleFreightFile(file){
     if(!sourceRows.length) throw new Error('الملف لا يحتوي على بيانات.');
     const payloadPreview=mapFreightRows(sourceRows,'00000000-0000-0000-0000-000000000000');
     if(!payloadPreview.length) throw new Error('لم يتم العثور على صفوف نولون صالحة. راجع رؤوس الأعمدة.');
-    const ok=confirm(`سيتم تحديث مرجع نولون الوارد بالكامل بعدد ${payloadPreview.length} صف.
+    const ok=await showAppLiquidConfirm({message:`سيتم تحديث مرجع نولون الوارد بالكامل بعدد ${payloadPreview.length} صف.
 سيتم تعطيل الصفوف القديمة غير الموجودة في الملف الجديد.
-هل تريد المتابعة؟`);
+هل تريد المتابعة؟`});
     if(!ok){ status.textContent='تم إلغاء رفع مرجع النولون بدون تغيير البيانات.'; return; }
     status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء سجل تحديث مرجع النولون...`;
     const {data:batch,error:batchError}=await WarehouseDB.client.from('freight_upload_batches').insert({
@@ -4008,7 +4133,7 @@ async function handleFreightBatchAction(btn){
     await loadFreightRates();
   }
   if(action==='delete'){
-    if(!confirm('سيتم حذف هذا التحديث وتعطيل الصفوف المرتبطة به. هل أنت متأكد؟')) return;
+    if(!await showAppLiquidConfirm({message:'سيتم حذف هذا التحديث وتعطيل الصفوف المرتبطة به. هل أنت متأكد؟'})) return;
     const id=btn.dataset.id;
     const {error:disableError}=await WarehouseDB.client.from('incoming_freight_rates').update({is_active:false}).eq('batch_id',id);
     if(disableError){ alert('خطأ أثناء تعطيل صفوف النولون: '+disableError.message); return; }
@@ -5466,6 +5591,8 @@ function setMainAuthMessage(message,type=''){
   el.className='login-status '+(type||'');
 }
 function showLoginScreen(){
+  closeActiveApplicationModals({restoreFocus:false});
+  resetAppModalScrollLocks();
   $('#loginScreen')?.classList.remove('login-hidden');
   $('#appShell')?.classList.add('app-hidden');
   document.body.classList.remove('mobile-app-shell-active','mobile-dashboard-active','mobile-inbound-active','mobile-upload-reports-active','mobile-reports-active','mobile-dashboard-filter-open','mobile-dashboard-drawer-open','mobile-inbound-filter-open','mobile-reports-filter-open');
@@ -6334,18 +6461,27 @@ async function loadUsersManagement(){
 function openUserManagementModal(mode='create'){
   const modal=$('#userManagementModal');
   if(!modal) return;
+  modal.classList.add('app-liquid-modal-backdrop');
+  modal.querySelector('.users-modal-card')?.classList.add('app-liquid-modal');
+  modal.querySelector('.users-modal-head')?.classList.add('app-liquid-modal__header');
+  modal.querySelector('.modal-close')?.classList.add('app-liquid-modal__close');
+  modal.querySelector('.modal-close')?.setAttribute('aria-label','إغلاق نافذة إدارة المستخدمين');
+  modal._appModalClose=closeUserManagementModal;
+  modal._appModalReturnFocus=document.activeElement;
   modal.classList.add('open');
   modal.setAttribute('aria-hidden','false');
-  document.body.classList.add('modal-open');
+  lockAppModalScroll('userManagementModal',modal);
   if(mode==='create') resetUserManagementForm(false);
-  setTimeout(()=>$('#managedUserFullName')?.focus(),50);
+  setTimeout(()=>$('#managedUserFullName')?.focus({preventScroll:true}),50);
 }
-function closeUserManagementModal(){
+function closeUserManagementModal(options={}){
   const modal=$('#userManagementModal');
   if(!modal) return;
+  const returnFocus=modal._appModalReturnFocus;
   modal.classList.remove('open');
   modal.setAttribute('aria-hidden','true');
-  document.body.classList.remove('modal-open');
+  unlockAppModalScroll('userManagementModal');
+  if(options.restoreFocus!==false && returnFocus?.isConnected) requestAnimationFrame(()=>returnFocus.focus({preventScroll:true}));
 }
 function resetUserManagementForm(closeStatus=true){
   if($('#managedUserId')) $('#managedUserId').value='';
@@ -6470,13 +6606,13 @@ async function deleteManagedUserForever(userId){
   if(u.role==='super_admin'){ setUsersStatus('لا يمكن حذف حساب منشئ النظام.','err'); return; }
   if(u.is_current){ setUsersStatus('لا يمكن حذف حسابك الحالي.','err'); return; }
   const label=u.full_name || u.email || userId;
-  const ok=confirm(`تحذير نهائي
+  const ok=await showAppLiquidConfirm({message:`تحذير نهائي
 
 سيتم حذف المستخدم من Supabase Auth نهائيًا، وحذف ملفه من جدول المستخدمين.
 
 المستخدم: ${label}
 
-هل أنت متأكد؟`);
+هل أنت متأكد؟`});
   if(!ok) return;
   try{
     setUsersStatus('جاري حذف المستخدم نهائيًا من Supabase Auth...');
@@ -6827,7 +6963,7 @@ async function handleRawMaterialsReportFile(key,file){
     const arrayBuffer=await file.arrayBuffer();
     const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
     const rows=readRawMaterialsWorkbookRows(workbook,key);
-    const ok=confirm(`تم التحقق من ${rows.length} صف صالح في تقرير ${config.title}. سيتم رفع الصفوف على دفعات ثم استبدال النسخة الحالية لهذا التقرير فقط بعد اكتمال كل الدفعات. هل تريد المتابعة؟`);
+    const ok=await showAppLiquidConfirm({message:`تم التحقق من ${rows.length} صف صالح في تقرير ${config.title}. سيتم رفع الصفوف على دفعات ثم استبدال النسخة الحالية لهذا التقرير فقط بعد اكتمال كل الدفعات. هل تريد المتابعة؟`});
     if(!ok){ setRawMaterialsUploadStatus(key,'تم إلغاء الرفع بدون تغيير البيانات.'); return; }
     setRawMaterialsUploadStatus(key,`جاري بدء Batch الرفع لتقرير ${config.title}...`);
     const result=await replaceRawMaterialsReport(key,file,rows,userData,(uploaded,total)=>{
@@ -8698,28 +8834,33 @@ function ensureAuditScoreModal(){
   if(modal) return modal;
   modal=document.createElement('div');
   modal.id='auditScoreModal';
-  modal.className='audit-score-modal hidden';
-  modal.innerHTML=`<div class="audit-score-backdrop" data-close-audit-score></div><section class="audit-score-dialog glass" role="dialog" aria-modal="true" aria-labelledby="auditScoreModalTitle"><button class="audit-score-close" type="button" data-close-audit-score>أ—</button><div id="auditScoreModalBody"></div></section>`;
+  modal.className='audit-score-modal app-liquid-modal-backdrop hidden';
+  modal.innerHTML=`<div class="audit-score-backdrop" data-close-audit-score></div><section class="audit-score-dialog glass app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="auditScoreModalTitle"><button class="audit-score-close app-liquid-modal__close" type="button" data-close-audit-score aria-label="إغلاق نافذة تقييم المراجعة">×</button><div id="auditScoreModalBody" class="app-liquid-modal__body"></div></section>`;
   document.body.appendChild(modal);
+  modal._appModalClose=closeAuditScoreModal;
   modal.addEventListener('click',e=>{ if(e.target.closest('[data-close-audit-score]')) closeAuditScoreModal(); });
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeAuditScoreModal(); });
   return modal;
 }
-function closeAuditScoreModal(){
+function closeAuditScoreModal(options={}){
   const modal=$('#auditScoreModal'); if(!modal) return;
+  const returnFocus=modal._appModalReturnFocus;
   modal.classList.add('hidden');
-  document.body.classList.remove('modal-open');
+  unlockAppModalScroll('auditScoreModal');
+  if(options.restoreFocus!==false && returnFocus?.isConnected) requestAnimationFrame(()=>returnFocus.focus({preventScroll:true}));
 }
 function openAuditScoreModal(target){
   const data=scoreModalData(target||'overall');
   if(!data) return;
   const modal=ensureAuditScoreModal();
+  modal._appModalClose=closeAuditScoreModal;
+  modal._appModalReturnFocus=document.activeElement;
   const body=$('#auditScoreModalBody');
   const score=Math.round(data.score||0);
   const reasons=(data.reasons||[]).map(r=>`<li>${escapeHtml(r)}</li>`).join('');
   body.innerHTML=`<header class="score-modal-head"><div><h3 id="auditScoreModalTitle">${escapeHtml(data.title)}</h3><p>${escapeHtml(data.subtitle||'')}</p></div><div class="score-modal-gauge ${data.status?.cls||''}"><strong>${score}%</strong><span>${modernIcon(data.status?.icon||'shield')} ${escapeHtml(data.status?.label||'')}</span></div></header><div class="score-breakdown">${auditScorePartRows(data.parts||{})}</div><div class="score-reasons"><h4>سبب النتيجة</h4><ul>${reasons}</ul><p>${escapeHtml(data.extra||'')}</p></div>${data.table||''}`;
   modal.classList.remove('hidden');
-  document.body.classList.add('modal-open');
+  lockAppModalScroll('auditScoreModal',modal);
+  requestAnimationFrame(()=>modal.querySelector('[data-close-audit-score]')?.focus({preventScroll:true}));
 }
 function initAuditScoreDetails(){
   document.addEventListener('click',e=>{
@@ -9792,7 +9933,7 @@ const INVENTORY_COUNT_WAREHOUSE_BY_PLANT = {
   EL01: 'N401',
   EL02: 'E401'
 };
-let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, documentStatus: null, versionStatus: null, lines: [], creating: false, snapshotCreating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: '—', visibleColumnKeys: null, columnManagerDraftKeys: null, searchText: '', columnFilters: {}, sortKey: '', sortDirection: 'asc', settlementContextVersionId: null, settlementContextSnapshot: null, settlementContextByLine: new Map(), settlementContextLoading: false, settlementContextRequestSeq: 0, settlementSaving: new Set(), settlementModalLineId: null, settlementModalSnapshotId: null };
+let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, documentStatus: null, versionStatus: null, lines: [], creating: false, snapshotCreating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: '—', visibleColumnKeys: null, columnManagerDraftKeys: null, searchText: '', columnFilters: {}, sortKey: '', sortDirection: 'asc', settlementContextVersionId: null, settlementContextSnapshot: null, settlementContextByLine: new Map(), settlementContextLoading: false, settlementContextRequestSeq: 0, settlementSaving: new Set(), settlementModalLineId: null, settlementModalSnapshotId: null, reversalSaving: new Set(), reversalModalLineId: null, reversalModalSettlementId: null, auditHistoryRequestSeq: 0, auditHistoryLineId: null, auditHistoryVersionId: null };
 const INVENTORY_COUNT_VISIBLE_COLUMNS_STORAGE_KEY = 'inventory_count_visible_columns';
 const INVENTORY_COUNT_COLUMNS = [
   { key: 'material_code', label: 'كود المادة', required: true },
@@ -10100,16 +10241,16 @@ function ensureInventoryReviewRecommendationsModal(){
   if(modal) return modal;
   modal=document.createElement('div');
   modal.id='inventoryReviewRecommendationsModal';
-  modal.className='inventory-review-modal';
-  modal.innerHTML='<div class="inventory-review-backdrop" data-inventory-review-close></div><section class="inventory-review-card" role="dialog" aria-modal="true" aria-labelledby="inventoryReviewRecommendationsTitle"><header class="inventory-review-head"><div><span class="inventory-review-eyebrow">مراجعة مستند الجرد</span><h2 id="inventoryReviewRecommendationsTitle">توصيات المراجعة</h2></div><button type="button" class="inventory-review-icon-close" data-inventory-review-close aria-label="إغلاق نافذة توصيات المراجعة">×</button></header><div class="inventory-review-scroll"><div class="inventory-review-modal-body"></div></div><footer class="inventory-review-footer"><button type="button" class="secondary inventory-review-close-btn" data-inventory-review-close>إغلاق</button></footer></section>';
+  modal.className='inventory-review-modal app-liquid-modal-backdrop';
+  modal.innerHTML='<div class="inventory-review-backdrop" data-inventory-review-close></div><section class="inventory-review-card app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="inventoryReviewRecommendationsTitle"><header class="inventory-review-head app-liquid-modal__header"><div><span class="inventory-review-eyebrow">الجرد وتوثيق المخزون</span><h2 id="inventoryReviewRecommendationsTitle" class="app-liquid-modal__title">توصيات المراجعة</h2></div><button type="button" class="inventory-review-icon-close app-liquid-modal__close" data-inventory-review-close aria-label="إغلاق نافذة توصيات المراجعة">×</button></header><nav class="inventory-review-tabs app-liquid-modal__tabs" aria-label="تبويبات مراجعة الصنف"><button type="button" data-inventory-review-tab="recommendations" aria-selected="true">توصيات المراجعة</button><button type="button" data-inventory-review-tab="history" aria-selected="false">سجل التسويات والتراجعات</button></nav><div class="inventory-review-scroll app-liquid-modal__body"><div class="inventory-review-modal-body" data-inventory-review-panel="recommendations"></div><section class="inventory-review-history-panel" data-inventory-review-panel="history" hidden><p class="inventory-review-history-status" role="status">جاري تحميل سجل الصنف...</p><div class="inventory-review-timeline"></div></section></div><footer class="inventory-review-footer app-liquid-modal__footer"><button type="button" class="secondary inventory-review-close-btn" data-inventory-review-close>إغلاق</button></footer></section>';
   modal.addEventListener('click',event=>{
-    if(event.target.closest('[data-inventory-review-close]')) closeInventoryReviewRecommendationsModal();
+    if(event.target.closest('[data-inventory-review-close]')){closeInventoryReviewRecommendationsModal();return;}
+    const tab=event.target.closest('[data-inventory-review-tab]');
+    if(tab && modal.contains(tab)) activateInventoryReviewModalTab(modal,tab.dataset.inventoryReviewTab);
   });
   modal.addEventListener('keydown',event=>{
     if(event.key!=='Escape') return;
-    event.preventDefault();
-    event.stopPropagation();
-    closeInventoryReviewRecommendationsModal();
+    event.preventDefault();event.stopPropagation();closeInventoryReviewRecommendationsModal();
   });
   document.body.appendChild(modal);
   return modal;
@@ -10181,16 +10322,58 @@ function renderInventoryReviewRecommendationsModal(modal,model){
     body.append(inverse);
   }
 }
-function inventoryReviewSavingSetHasLine(set,lineId){
-  return set instanceof Set && [...set].some(value=>String(value)===String(lineId));
+function activateInventoryReviewModalTab(modal,tabName){
+  const selected=tabName==='history'?'history':'recommendations';
+  modal?.querySelectorAll('[data-inventory-review-tab]').forEach(tab=>{
+    const active=tab.dataset.inventoryReviewTab===selected;
+    tab.setAttribute('aria-selected',active?'true':'false');tab.classList.toggle('is-active',active);
+  });
+  modal?.querySelectorAll('[data-inventory-review-panel]').forEach(panel=>{panel.hidden=panel.dataset.inventoryReviewPanel!==selected;});
 }
+function inventoryAuditHistoryStatusMessage(status){
+  return ({not_authenticated:'يجب تسجيل الدخول أولًا.',inactive_user:'الحساب الحالي غير نشط.',permission_denied:'لا تملك صلاحية عرض سجل الصنف.',line_not_found:'تعذر العثور على الصنف في نسخة الجرد الحالية.'})[String(status || '')] || 'تعذر تحميل سجل التسويات والتراجعات.';
+}
+function inventoryAuditHistoryAppendValue(parent,label,value){
+  const item=inventoryReviewCreateElement('div','inventory-review-history-value');
+  item.append(inventoryReviewCreateElement('span','',label));item.append(inventoryReviewCreateElement('strong','',value));parent.append(item);
+}
+function renderInventoryCountLineAuditHistory(modal,data){
+  const panel=modal?.querySelector('.inventory-review-history-panel');const status=panel?.querySelector('.inventory-review-history-status');const timeline=panel?.querySelector('.inventory-review-timeline');
+  if(!panel || !status || !timeline) return;
+  timeline.replaceChildren();const events=Array.isArray(data?.timeline)?data.timeline:[];
+  status.textContent=events.length?'السجل مرتب من الأحدث إلى الأقدم.':'لم يتم تنفيذ أي تسوية أو تراجع على هذا الصنف حتى الآن.';status.classList.remove('is-error');
+  const labels={opening_balance:'رصيد أول',production_quantity:'الإنتاج',incoming_transfers:'التحويلات الواردة',actual_returns:'المرتجع الفعلي',adjustment_increase_z22:'تسوية زيادة Z22',adjustment_shortage_z21:'تسوية عجز Z21',sales_quantity:'كمية البيع',outgoing_transfers:'التحويلات الصادرة',rework_311:'إعادة التصنيع 311',book_balance:'الرصيد الدفتري',physical_balance:'الرصيد الفعلي',inventory_variance:'فرق الجرد',oldest_quantity:'كمية أقدم تاريخ',oldest_date:'أقدم تاريخ',inventory_counter_name_snapshot:'القائم بالجرد',inventory_counter_job_title_snapshot:'وظيفة القائم بالجرد'};
+  events.forEach((event,index)=>{
+    const reversal=event?.event_type==='reversal';const card=inventoryReviewCreateElement('article','inventory-review-timeline-event '+(reversal?'is-reversal':'is-settlement'));const header=inventoryReviewCreateElement('header','inventory-review-timeline-head');
+    header.append(inventoryReviewCreateElement('span','inventory-review-event-badge',reversal?'تراجع':'تسوية'));header.append(inventoryReviewCreateElement('strong','',`العملية ${events.length-index}`));header.append(inventoryReviewCreateElement('time','',formatDisplayDateTime(event?.occurred_at,'—')));card.append(header);
+    const meta=inventoryReviewCreateElement('div','inventory-review-history-meta');
+    inventoryAuditHistoryAppendValue(meta,'المنفذ',event?.performed_by || '—');inventoryAuditHistoryAppendValue(meta,'السبب',reversal?(event?.reversal_reason || '—'):(event?.reason_label || '—'));inventoryAuditHistoryAppendValue(meta,'الحقل المستهدف',inventorySettlementTargetFieldLabel(event?.target_field));inventoryAuditHistoryAppendValue(meta,'طريقة التسوية',inventorySettlementMethodLabel(event?.reconciliation_method));inventoryAuditHistoryAppendValue(meta,'إصدار السطر',`${event?.row_version_before ?? '—'} ← ${event?.row_version_after ?? '—'}`);inventoryAuditHistoryAppendValue(meta,'مستند الفروق',event?.snapshot_number || event?.snapshot_id || '—');card.append(meta);
+    if(!reversal && event?.action_text){const action=inventoryReviewCreateElement('p','inventory-review-history-action');action.append(inventoryReviewCreateElement('span','','الإجراء: '));action.append(document.createTextNode(String(event.action_text)));card.append(action);}
+    if(reversal) card.append(inventoryReviewCreateElement('p','inventory-review-history-related',`التسوية المرتبطة: ${event?.related_settlement_id || '—'}`));
+    const comparison=inventoryReviewCreateElement('div','inventory-review-history-comparison');const before=inventoryReviewCreateElement('section','');before.append(inventoryReviewCreateElement('h4','','قبل'));const after=inventoryReviewCreateElement('section','');after.append(inventoryReviewCreateElement('h4','','بعد'));
+    Object.entries(labels).forEach(([key,label])=>{inventoryAuditHistoryAppendValue(before,label,formatInventoryAuditHistoryValue(key,event?.before?.[key]));inventoryAuditHistoryAppendValue(after,label,formatInventoryAuditHistoryValue(key,event?.after?.[key]));});
+    comparison.append(before,after);card.append(comparison);timeline.append(card);
+  });
+}
+async function loadInventoryCountLineAuditHistory(lineId,versionId,modal){
+  const seq=++INVENTORY_COUNT_STATE.auditHistoryRequestSeq;INVENTORY_COUNT_STATE.auditHistoryLineId=String(lineId || '');INVENTORY_COUNT_STATE.auditHistoryVersionId=String(versionId || '');
+  const status=modal?.querySelector('.inventory-review-history-status');const timeline=modal?.querySelector('.inventory-review-timeline');if(status){status.textContent='جاري تحميل سجل الصنف...';status.classList.remove('is-error');}timeline?.replaceChildren();
+  try{
+    const {data,error}=await WarehouseDB.client.rpc('get_inventory_count_line_audit_history',{p_line_id:lineId,p_version_id:versionId});if(error) throw error;
+    if(seq!==INVENTORY_COUNT_STATE.auditHistoryRequestSeq || !modal?.isConnected) return;
+    if(String(INVENTORY_COUNT_STATE.versionId || '')!==String(versionId) || String(INVENTORY_COUNT_STATE.auditHistoryLineId || '')!==String(lineId) || String(modal.dataset.inventoryReviewVersionId || '')!==String(versionId)) return;
+    if(data?.status!=='ok') throw new Error(inventoryAuditHistoryStatusMessage(data?.status));if(String(data?.line?.id || '')!==String(lineId)) return;renderInventoryCountLineAuditHistory(modal,data);
+  }catch(err){
+    if(seq!==INVENTORY_COUNT_STATE.auditHistoryRequestSeq || !modal?.isConnected) return;const message=err?.message || 'تعذر تحميل سجل التسويات والتراجعات.';if(status){status.textContent=message;status.classList.add('is-error');}timeline?.replaceChildren();
+  }
+}
+
 function openInventoryReviewRecommendationsModal(lineId,versionId,triggerCell){
   const requestedLineId=String(lineId || '').trim();
   const requestedVersionId=String(versionId || '').trim();
   const currentVersionId=String(INVENTORY_COUNT_STATE.versionId || '').trim();
   if(!requestedLineId || !requestedVersionId || requestedVersionId!==currentVersionId) return;
-  if(inventoryReviewSavingSetHasLine(INVENTORY_COUNT_STATE.productionSaving,requestedLineId)
-     || inventoryReviewSavingSetHasLine(INVENTORY_COUNT_STATE.physicalBalanceSaving,requestedLineId)){
+  if(inventoryCountLineHasActiveSave(requestedLineId)){
     showInventoryCountToast('انتظر اكتمال حفظ بيانات الصنف.','warning');
     return;
   }
@@ -10208,17 +10391,26 @@ function openInventoryReviewRecommendationsModal(lineId,versionId,triggerCell){
   modal._inventoryReviewReturnFocus=triggerCell || null;
   modal.dataset.inventoryReviewVersionId=currentVersionId;
   renderInventoryReviewRecommendationsModal(modal,model);
-  document.body.classList.add('modal-open');
+  const settlementContext=inventorySettlementContextLine(requestedLineId);
+  const defaultTab=(settlementContext?.active_settlement_id || settlementContext?.latest_settlement_id)
+    ? 'history'
+    : 'recommendations';
+  activateInventoryReviewModalTab(modal,defaultTab);
+  loadInventoryCountLineAuditHistory(requestedLineId,currentVersionId,modal);
+  modal._appModalClose=closeInventoryReviewRecommendationsModal;
+  lockAppModalScroll('inventoryReviewRecommendationsModal',modal);
   requestAnimationFrame(()=>modal.querySelector('.inventory-review-icon-close')?.focus({preventScroll:true}));
 }
 function closeInventoryReviewRecommendationsModal(options={}){
   const modal=$('#inventoryReviewRecommendationsModal');
   if(!modal) return;
   const returnFocus=modal._inventoryReviewReturnFocus;
+  INVENTORY_COUNT_STATE.auditHistoryRequestSeq++;
+  INVENTORY_COUNT_STATE.auditHistoryLineId=null;
+  INVENTORY_COUNT_STATE.auditHistoryVersionId=null;
+  unlockAppModalScroll('inventoryReviewRecommendationsModal');
   modal.replaceChildren();
   modal.remove();
-  const hasOtherVisibleModal=[...document.querySelectorAll('[aria-modal="true"]')].some(dialog=>dialog.getClientRects().length>0);
-  if(!hasOtherVisibleModal) document.body.classList.remove('modal-open');
   if(options.restoreFocus!==false && returnFocus?.isConnected){
     requestAnimationFrame(()=>returnFocus.focus({preventScroll:true}));
   }
@@ -11189,14 +11381,16 @@ function inventoryCountLineHasActiveSave(lineId){
     INVENTORY_COUNT_STATE.oldestQuantitySaving,
     INVENTORY_COUNT_STATE.oldestDateSaving,
     INVENTORY_COUNT_STATE.inventoryCounterSaving,
-    INVENTORY_COUNT_STATE.settlementSaving
+    INVENTORY_COUNT_STATE.settlementSaving,
+    INVENTORY_COUNT_STATE.reversalSaving
   ].some(set=>set instanceof Set && set.has(id));
 }
 function inventorySettlementSnapshotMatchesLine(row,contextLine){
   if(!row || !contextLine) return false;
-  return String(contextLine.source_inventory_line_id || '')===String(row.id || '')
-    && String(contextLine.material_code || '')===String(row.material_code || '')
-    && Number(contextLine.source_row_version)===Number(row.row_version);
+  const identityMatches=String(contextLine.source_inventory_line_id || '')===String(row.id || '')
+    && String(contextLine.material_code || '')===String(row.material_code || '');
+  if(!identityMatches) return false;
+  return ['ready','ready_after_reversal'].includes(String(contextLine.eligibility_status || ''));
 }
 function clearInventoryCountSettlementContext(options={}){
   const {closeModal=true}=options;
@@ -11205,7 +11399,10 @@ function clearInventoryCountSettlementContext(options={}){
   INVENTORY_COUNT_STATE.settlementContextSnapshot=null;
   INVENTORY_COUNT_STATE.settlementContextByLine=new Map();
   INVENTORY_COUNT_STATE.settlementContextLoading=false;
-  if(closeModal) closeInventoryCountSettlementModal({restoreFocus:false,force:true});
+  if(closeModal){
+    closeInventoryCountSettlementModal({restoreFocus:false,force:true});
+    closeInventoryCountSettlementReversalModal({restoreFocus:false,force:true});
+  }
 }
 async function loadInventoryCountSettlementContext(versionId,inventoryRequestSeq=null){
   const normalizedVersionId=String(versionId || '');
@@ -11319,6 +11516,7 @@ function inventorySettlementStatusMessage(status,reasonCode=''){
     snapshot_not_current:'مستند فروق الجرد المحدد لم يعد المستند الحالي.',
     snapshot_line_not_found:'الصنف غير موجود داخل مستند فروق الجرد الحالي.',
     snapshot_stale:'تم تعديل بيانات الصنف بعد إعداد مستند فروق الجرد. استبدل مستند فروق الجرد ثم أعد المحاولة.',
+    post_reversal_snapshot_stale:'تم تعديل بيانات الصنف بعد التراجع. استبدل مستند فروق الجرد ثم أعد المحاولة.',
     material_code_mismatch:'كود المادة لا يطابق سطر مستند فروق الجرد.',
     physical_balance_required:'يجب إدخال الرصيد الفعلي للصنف قبل تنفيذ التسوية.',
     invalid_snapshot_values:'قيم مستند فروق الجرد غير صالحة للتسوية.',
@@ -11350,20 +11548,20 @@ function ensureInventoryCountSettlementModal(){
   if(modal) return modal;
   modal=document.createElement('div');
   modal.id='inventorySettlementModal';
-  modal.className='inventory-settlement-modal';
+  modal.className='inventory-settlement-modal app-liquid-modal-backdrop';
   modal.hidden=true;
   modal.setAttribute('aria-hidden','true');
   modal.innerHTML=`
     <div class="inventory-settlement-backdrop" data-inventory-settlement-close="backdrop"></div>
-    <section class="inventory-settlement-dialog" role="dialog" aria-modal="true" aria-labelledby="inventorySettlementModalTitle" dir="rtl">
-      <header class="inventory-settlement-header">
+    <section class="inventory-settlement-dialog app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="inventorySettlementModalTitle" dir="rtl">
+      <header class="inventory-settlement-header app-liquid-modal__header">
         <div>
           <p class="inventory-settlement-eyebrow">الجرد وتوثيق المخزون</p>
           <h2 id="inventorySettlementModalTitle">تسوية فرق الجرد</h2>
         </div>
-        <button type="button" class="inventory-settlement-close" data-inventory-settlement-close="button" aria-label="إغلاق">×</button>
+        <button type="button" class="inventory-settlement-close app-liquid-modal__close" data-inventory-settlement-close="button" aria-label="إغلاق">×</button>
       </header>
-      <div class="inventory-settlement-scroll">
+      <div class="inventory-settlement-scroll app-liquid-modal__body">
         <section class="inventory-settlement-summary" aria-label="بيانات الصنف">
           <div class="inventory-settlement-material">
             <span data-inventory-settlement-value="material_code">—</span>
@@ -11399,7 +11597,7 @@ function ensureInventoryCountSettlementModal(){
           <p id="inventorySettlementModalError" class="inventory-settlement-error" role="alert" hidden></p>
         </div>
       </div>
-      <footer class="inventory-settlement-actions">
+      <footer class="inventory-settlement-actions app-liquid-modal__footer">
         <button type="button" class="secondary" data-inventory-settlement-close="button">إلغاء</button>
         <button type="button" class="primary inventory-settlement-submit" id="inventorySettlementSubmitBtn" disabled>حفظ التسوية</button>
       </footer>
@@ -11454,10 +11652,10 @@ function closeInventoryCountSettlementModal(options={}){
   const lineId=String(INVENTORY_COUNT_STATE.settlementModalLineId || '');
   if(!force && lineId && INVENTORY_COUNT_STATE.settlementSaving.has(lineId)) return;
   const returnFocus=modal._inventorySettlementReturnFocus;
+  unlockAppModalScroll('inventorySettlementModal');
   modal.remove();
   INVENTORY_COUNT_STATE.settlementModalLineId=null;
   INVENTORY_COUNT_STATE.settlementModalSnapshotId=null;
-  if(!document.querySelector('[aria-modal="true"]:not([hidden])')) document.body.classList.remove('modal-open');
   if(restoreFocus && returnFocus?.isConnected){
     setTimeout(()=>returnFocus.focus({preventScroll:true}),0);
   }
@@ -11544,6 +11742,10 @@ function openInventoryCountSettlementModalFromButton(button){
     showInventoryCountToast('استبدل مستند فروق الجرد قبل تنفيذ التسوية.','warning');
     return;
   }
+  if(contextLine.physical_balance===null || contextLine.physical_balance===undefined){
+    showInventoryCountToast('يجب إدخال الرصيد الفعلي للصنف قبل تنفيذ التسوية.','warning');
+    return;
+  }
   if(Math.abs(normalizeInventorySettlementNumber(row.inventory_variance))<0.0005) return;
   if(!hasPermission('inventory_count','edit')){
     showInventoryCountToast('لا تملك صلاحية تعديل مستند الجرد.','error');
@@ -11561,7 +11763,8 @@ function openInventoryCountSettlementModalFromButton(button){
   if(action) action.value='';
   modal.hidden=false;
   modal.setAttribute('aria-hidden','false');
-  document.body.classList.add('modal-open');
+  modal._appModalClose=closeInventoryCountSettlementModal;
+  lockAppModalScroll('inventorySettlementModal',modal);
   syncInventoryCountSettlementModal(modal);
   setTimeout(()=>reason?.focus({preventScroll:true}),0);
 }
@@ -11582,7 +11785,7 @@ function setInventoryCountSettlementModalLoading(modal,loading){
 function inventorySettlementStatusFromError(err){
   const message=String(err?.message || err || '');
   const statuses=[
-    'line_already_reconciled','snapshot_stale','snapshot_not_current','current_snapshot_not_found',
+    'line_already_reconciled','post_reversal_snapshot_stale','snapshot_stale','snapshot_not_current','current_snapshot_not_found',
     'snapshot_line_not_found','material_code_mismatch','row_version_conflict','physical_balance_required',
     'production_reason_not_allowed','negative_result_not_allowed','inventory_count_read_only',
     'permission_denied','inactive_user','not_authenticated','line_not_found','version_not_current',
@@ -11644,6 +11847,230 @@ async function submitInventoryCountSettlement(){
   }
 }
 
+function inventorySettlementTargetFieldLabel(field){
+  return ({
+    production_quantity:'الإنتاج',incoming_transfers:'التحويلات الواردة',outgoing_transfers:'التحويلات الصادرة',
+    sales_quantity:'كمية البيع',physical_balance:'الرصيد الفعلي'
+  })[String(field || '')] || String(field || '—');
+}
+function inventorySettlementMethodLabel(method){
+  return ({
+    adjust_production:'تعديل الإنتاج',
+    adjust_incoming_transfers:'تعديل التحويلات الواردة',
+    adjust_outgoing_transfers:'تعديل التحويلات الصادرة',
+    adjust_sales_quantity:'تعديل كمية البيع',
+    align_physical_to_book:'مطابقة الرصيد الفعلي مع الرصيد الدفتري'
+  })[String(method || '')] || (method ? String(method) : '—');
+}
+function formatInventoryAuditHistoryValue(key,value){
+  if(value===null || value===undefined || value==='') return '—';
+  if(key==='oldest_date') return formatDisplayDate(value,'—');
+  if(key==='inventory_counter_name_snapshot' || key==='inventory_counter_job_title_snapshot') return String(value || '—');
+  const numeric=Number(value);
+  return Number.isFinite(numeric) ? formatInventoryCountThreeDecimalQuantity(numeric) : String(value);
+}
+function inventorySettlementTargetValues(contextLine){
+  const field=String(contextLine?.target_field || '');
+  const map={
+    production_quantity:['production_before','production_after'],
+    incoming_transfers:['incoming_transfers_before','incoming_transfers_after'],
+    outgoing_transfers:['outgoing_transfers_before','outgoing_transfers_after'],
+    sales_quantity:['sales_quantity_before','sales_quantity_after'],
+    physical_balance:['physical_balance_before','physical_balance_after']
+  };
+  const keys=map[field] || [];
+  return {before:contextLine?.[keys[0]],after:contextLine?.[keys[1]]};
+}
+function inventorySettlementReversalStatusMessage(status){
+  const messages={
+    not_authenticated:'يجب تسجيل الدخول قبل تنفيذ التراجع.',
+    inactive_user:'الحساب الحالي غير نشط.',
+    permission_denied:'لا تملك صلاحية تعديل مستند الجرد.',
+    reversal_reason_required:'سبب التراجع مطلوب.',
+    reversal_reason_too_long:'سبب التراجع يجب ألا يتجاوز 2000 حرف.',
+    settlement_not_found:'تعذر العثور على سجل التسوية.',
+    line_not_found:'تعذر العثور على سطر الجرد.',
+    version_not_found:'تعذر العثور على نسخة الجرد.',
+    version_not_current:'نسخة الجرد لم تعد النسخة الحالية.',
+    inventory_count_read_only:'نسخة الجرد الحالية لا تسمح بالتعديل.',
+    settlement_not_active:'هذه التسوية ليست التسوية الفعالة حاليًا.',
+    settlement_already_reversed:'تم التراجع عن هذه التسوية بالفعل.',
+    row_version_conflict:'تم تعديل بيانات الصنف من مستخدم آخر. أعد تحميل المستند.',
+    reversal_row_version_conflict:'تم تعديل بيانات الصنف من مستخدم آخر. أعد تحميل المستند.',
+    settlement_state_changed:'تم تعديل بيانات الصنف بعد التسوية، ولا يمكن التراجع قبل مراجعة حالة السطر.',
+    snapshot_line_not_found:'تعذر العثور على سطر الصنف في مستند فروق الجرد.',
+    reversal_postcondition_failed:'تعذر إكمال التراجع لأن القيم النهائية لم تطابق الحالة الأصلية.'
+  };
+  return messages[String(status || '')] || 'تعذر التراجع عن تسوية فرق الجرد.';
+}
+function ensureInventoryCountSettlementReversalModal(){
+  let modal=$('#inventorySettlementReversalModal');
+  if(modal) return modal;
+  modal=document.createElement('div');
+  modal.id='inventorySettlementReversalModal';
+  modal.className='inventory-settlement-reversal-modal app-liquid-modal-backdrop';
+  modal.innerHTML=`
+    <div class="inventory-settlement-reversal-backdrop" data-inventory-reversal-close="backdrop"></div>
+    <section class="inventory-settlement-reversal-dialog app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="inventorySettlementReversalTitle" dir="rtl">
+      <header class="inventory-settlement-reversal-header app-liquid-modal__header">
+        <div><p class="inventory-settlement-eyebrow">الجرد وتوثيق المخزون</p><h2 id="inventorySettlementReversalTitle" class="app-liquid-modal__title">التراجع عن تسوية فرق الجرد</h2></div>
+        <button type="button" class="inventory-settlement-reversal-close app-liquid-modal__close" data-inventory-reversal-close="button" aria-label="إغلاق نافذة التراجع">×</button>
+      </header>
+      <div class="inventory-settlement-reversal-body app-liquid-modal__body">
+        <section class="inventory-settlement-reversal-summary app-liquid-modal__section">
+          <h3 data-inventory-reversal-value="material"></h3>
+          <div class="inventory-settlement-reversal-grid">
+            <div><span>سبب التسوية</span><strong data-inventory-reversal-value="reason"></strong></div>
+            <div><span>منفذ التسوية</span><strong data-inventory-reversal-value="user"></strong></div>
+            <div><span>وقت التسوية</span><strong data-inventory-reversal-value="time"></strong></div>
+            <div><span>الحقل المستهدف</span><strong data-inventory-reversal-value="field"></strong></div>
+            <div><span>القيمة قبل التسوية</span><strong data-inventory-reversal-value="before"></strong></div>
+            <div><span>القيمة بعد التسوية</span><strong data-inventory-reversal-value="after"></strong></div>
+            <div><span>فرق الجرد قبل التسوية</span><strong data-inventory-reversal-value="variance_before"></strong></div>
+            <div><span>فرق الجرد بعد التسوية</span><strong data-inventory-reversal-value="variance_after"></strong></div>
+          </div>
+          <div class="inventory-settlement-reversal-action"><span>الإجراء المسجل</span><p data-inventory-reversal-value="action"></p></div>
+        </section>
+        <label class="inventory-settlement-field"><span>سبب التراجع <b aria-hidden="true">*</b></span><textarea id="inventorySettlementReversalReason" rows="5" maxlength="2000" placeholder="اكتب سبب التراجع..."></textarea><small><span id="inventorySettlementReversalCounter">0</span> / 2000</small></label>
+        <p id="inventorySettlementReversalError" class="inventory-settlement-error app-liquid-modal__error" role="alert" hidden></p>
+      </div>
+      <footer class="inventory-settlement-reversal-actions app-liquid-modal__footer"><button type="button" class="secondary" data-inventory-reversal-close="button">إلغاء</button><button type="button" class="danger inventory-settlement-reversal-submit" id="inventorySettlementReversalSubmit" disabled>تأكيد التراجع</button></footer>
+    </section>`;
+  modal.addEventListener('click',event=>{
+    const close=event.target.closest('[data-inventory-reversal-close]');
+    if(close && modal.contains(close)){
+      if(close.dataset.inventoryReversalClose==='backdrop' && event.target!==close) return;
+      event.preventDefault(); closeInventoryCountSettlementReversalModal(); return;
+    }
+    if(event.target.closest('#inventorySettlementReversalSubmit')){event.preventDefault();submitInventoryCountSettlementReversal();}
+  });
+  modal.addEventListener('input',event=>{
+    if(event.target.matches('#inventorySettlementReversalReason')){
+      modal.dataset.serverError=''; syncInventoryCountSettlementReversalModal(modal);
+    }
+  });
+  document.body.appendChild(modal);
+  return modal;
+}
+function setInventorySettlementReversalText(modal,key,value){
+  const el=modal?.querySelector(`[data-inventory-reversal-value="${key}"]`);
+  if(el) el.textContent=value===null || value===undefined || value==='' ? '—' : String(value);
+}
+function syncInventoryCountSettlementReversalModal(modal){
+  const reason=modal?.querySelector('#inventorySettlementReversalReason');
+  const text=String(reason?.value || '');
+  const trimmed=text.trim();
+  const counter=modal?.querySelector('#inventorySettlementReversalCounter');
+  if(counter) counter.textContent=String(text.length);
+  const errorBox=modal?.querySelector('#inventorySettlementReversalError');
+  const error=String(modal?.dataset.serverError || '');
+  if(errorBox){errorBox.textContent=error;errorBox.hidden=!error;}
+  const lineId=String(INVENTORY_COUNT_STATE.reversalModalLineId || '');
+  const settlementId=String(INVENTORY_COUNT_STATE.reversalModalSettlementId || '');
+  const busy=INVENTORY_COUNT_STATE.reversalSaving.has(lineId);
+  const submit=modal?.querySelector('#inventorySettlementReversalSubmit');
+  if(submit) submit.disabled=busy || !trimmed || text.length>2000 || !lineId || !settlementId;
+  return {valid:!busy && Boolean(trimmed) && text.length<=2000 && Boolean(lineId) && Boolean(settlementId),reason:trimmed,lineId,settlementId};
+}
+function setInventoryCountSettlementReversalLoading(modal,loading){
+  modal?.classList.toggle('is-saving',Boolean(loading));
+  modal?.querySelectorAll('textarea,[data-inventory-reversal-close]').forEach(el=>{el.disabled=Boolean(loading);});
+  const submit=modal?.querySelector('#inventorySettlementReversalSubmit');
+  if(submit){submit.disabled=Boolean(loading) || submit.disabled;submit.textContent=loading?'جاري تنفيذ التراجع...':'تأكيد التراجع';}
+}
+function openInventoryCountSettlementReversalModalFromButton(button){
+  if(!button || button.disabled) return;
+  const lineId=String(button.dataset.lineId || '');
+  const versionId=String(button.dataset.versionId || '');
+  const settlementId=String(button.dataset.settlementId || '');
+  if(!lineId || !settlementId || versionId!==String(INVENTORY_COUNT_STATE.versionId || '')) return;
+  const row=(INVENTORY_COUNT_STATE.lines || []).find(item=>String(item?.id || '')===lineId);
+  const contextLine=inventorySettlementContextLine(lineId);
+  if(!row || !contextLine || String(contextLine.active_settlement_id || contextLine.settlement_id || '')!==settlementId) return;
+  if(inventoryCountLineHasActiveSave(lineId)){showInventoryCountToast('انتظر اكتمال حفظ بيانات الصنف.','warning');return;}
+  if(!hasPermission('inventory_count','edit')){showInventoryCountToast('لا تملك صلاحية تعديل مستند الجرد.','error');return;}
+  const modal=ensureInventoryCountSettlementReversalModal();
+  modal._inventorySettlementReversalReturnFocus=button;
+  modal.dataset.serverError='';
+  modal.dataset.versionId=versionId;
+  modal.dataset.expectedRowVersion=String(row.row_version ?? '');
+  INVENTORY_COUNT_STATE.reversalModalLineId=lineId;
+  INVENTORY_COUNT_STATE.reversalModalSettlementId=settlementId;
+  const target=inventorySettlementTargetValues(contextLine);
+  setInventorySettlementReversalText(modal,'material',`${row.material_code || '—'} — ${row.material_name || '—'}`);
+  setInventorySettlementReversalText(modal,'reason',contextLine.reason_label || '—');
+  setInventorySettlementReversalText(modal,'action',contextLine.action_text || '—');
+  setInventorySettlementReversalText(modal,'user',contextLine.reconciled_by_name || '—');
+  setInventorySettlementReversalText(modal,'time',formatDisplayDateTime(contextLine.reconciled_at,'—'));
+  setInventorySettlementReversalText(modal,'field',inventorySettlementTargetFieldLabel(contextLine.target_field));
+  setInventorySettlementReversalText(modal,'before',formatInventorySettlementQuantity(target.before)+' طن');
+  setInventorySettlementReversalText(modal,'after',formatInventorySettlementQuantity(target.after)+' طن');
+  setInventorySettlementReversalText(modal,'variance_before',formatInventorySettlementQuantity(contextLine.variance_before)+' طن');
+  setInventorySettlementReversalText(modal,'variance_after',formatInventorySettlementQuantity(contextLine.variance_after)+' طن');
+  const reason=modal.querySelector('#inventorySettlementReversalReason'); if(reason) reason.value='';
+  modal._appModalClose=closeInventoryCountSettlementReversalModal;
+  lockAppModalScroll('inventorySettlementReversalModal',modal);
+  syncInventoryCountSettlementReversalModal(modal);
+  requestAnimationFrame(()=>reason?.focus({preventScroll:true}));
+}
+function closeInventoryCountSettlementReversalModal(options={}){
+  const {restoreFocus=true,force=false}=options;
+  const modal=$('#inventorySettlementReversalModal');
+  if(!modal) return;
+  const lineId=String(INVENTORY_COUNT_STATE.reversalModalLineId || '');
+  if(!force && lineId && INVENTORY_COUNT_STATE.reversalSaving.has(lineId)) return;
+  const returnFocus=modal._inventorySettlementReversalReturnFocus;
+  unlockAppModalScroll('inventorySettlementReversalModal');
+  modal.remove();
+  INVENTORY_COUNT_STATE.reversalModalLineId=null;
+  INVENTORY_COUNT_STATE.reversalModalSettlementId=null;
+  if(restoreFocus && returnFocus?.isConnected) requestAnimationFrame(()=>returnFocus.focus({preventScroll:true}));
+}
+function inventorySettlementReversalStatusFromError(err){
+  const message=String(err?.message || err || '');
+  const statuses=['settlement_already_reversed','settlement_not_active','settlement_state_changed','reversal_row_version_conflict','row_version_conflict','reversal_reason_required','reversal_reason_too_long','reversal_postcondition_failed','inventory_count_read_only','version_not_current','version_not_found','settlement_not_found','line_not_found','snapshot_line_not_found','permission_denied','inactive_user','not_authenticated'];
+  return statuses.find(status=>message.includes(status)) || '';
+}
+async function submitInventoryCountSettlementReversal(){
+  const modal=$('#inventorySettlementReversalModal');
+  const validation=syncInventoryCountSettlementReversalModal(modal);
+  if(!modal || !validation?.valid) return;
+  const {lineId,settlementId}=validation;
+  const versionId=String(modal.dataset.versionId || '');
+  const expectedRowVersion=Number(modal.dataset.expectedRowVersion);
+  const inventoryRequestSeq=INVENTORY_COUNT_STATE.requestSeq;
+  if(versionId!==String(INVENTORY_COUNT_STATE.versionId || '') || !Number.isFinite(expectedRowVersion)) return;
+  INVENTORY_COUNT_STATE.reversalSaving.add(lineId);
+  modal.dataset.serverError='';
+  setInventoryCountSettlementReversalLoading(modal,true);
+  renderInventoryCountLines(INVENTORY_COUNT_STATE.lines || []);
+  try{
+    const {data,error}=await WarehouseDB.client.rpc('reverse_inventory_count_line_settlement',{
+      p_settlement_id:settlementId,p_reversal_reason:validation.reason,p_expected_row_version:expectedRowVersion
+    });
+    if(error) throw error;
+    if(data?.status!=='inventory_line_settlement_reversed'){
+      const failure=new Error(inventorySettlementReversalStatusMessage(data?.status));
+      failure.inventorySettlementReversalStatus=String(data?.status || ''); throw failure;
+    }
+    if(versionId===String(INVENTORY_COUNT_STATE.versionId || '') && inventoryRequestSeq===INVENTORY_COUNT_STATE.requestSeq){
+      await loadInventoryCountLines(versionId,inventoryRequestSeq);
+    }
+    closeInventoryCountSettlementReversalModal({restoreFocus:false,force:true});
+    showInventoryCountToast('تم التراجع عن تسوية فرق الجرد بنجاح.','success');
+  }catch(err){
+    console.error('Inventory count settlement reversal failed',err);
+    const status=String(err?.inventorySettlementReversalStatus || inventorySettlementReversalStatusFromError(err));
+    const message=status?inventorySettlementReversalStatusMessage(status):(err?.message || 'تعذر التراجع عن تسوية فرق الجرد.');
+    if(modal.isConnected){modal.dataset.serverError=message;syncInventoryCountSettlementReversalModal(modal);}
+    showInventoryCountToast(message,'error');
+  }finally{
+    INVENTORY_COUNT_STATE.reversalSaving.delete(lineId);
+    if(modal.isConnected){setInventoryCountSettlementReversalLoading(modal,false);syncInventoryCountSettlementReversalModal(modal);}
+    if(versionId===String(INVENTORY_COUNT_STATE.versionId || '')) renderInventoryCountLines(INVENTORY_COUNT_STATE.lines || []);
+  }
+}
+
 function renderInventorySettlementCell(row){
   const empty='<td class="inventory-settlement-cell"></td>';
   const versionId=String(INVENTORY_COUNT_STATE.versionId || '');
@@ -11653,11 +12080,25 @@ function renderInventorySettlementCell(row){
     || !INVENTORY_COUNT_STATE.settlementContextSnapshot) return empty;
   const contextLine=inventorySettlementContextLine(row?.id);
   if(!contextLine) return empty;
-  if(contextLine.is_reconciled){
-    return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn is-reconciled" type="button" disabled title="تمت تسوية فرق الجرد لهذا الصنف.">تمت التسوية</button></td>';
+  if(contextLine.is_reconciled || contextLine.active_settlement_id){
+    const lineId=escapeHtml(String(row?.id || ''));
+    const settlementId=escapeHtml(String(contextLine.active_settlement_id || contextLine.settlement_id || ''));
+    if(!hasPermission('inventory_count','edit') || contextLine.can_reverse===false){
+      return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-reverse-btn" type="button" disabled title="لا تملك صلاحية تعديل مستند الجرد.">تراجع</button></td>';
+    }
+    if(inventoryCountLineHasActiveSave(row?.id)){
+      return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-reverse-btn is-loading" type="button" disabled title="جاري تنفيذ التراجع على السطر.">جاري التراجع...</button></td>';
+    }
+    return `<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-reverse-btn" type="button" title="التراجع عن تسوية فرق الجرد" data-line-id="${lineId}" data-version-id="${escapeHtml(versionId)}" data-settlement-id="${settlementId}" data-expected-row-version="${escapeHtml(row?.row_version ?? '')}">تراجع</button></td>`;
   }
   if(!inventorySettlementSnapshotMatchesLine(row,contextLine)){
-    return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn is-stale" type="button" disabled title="تم تعديل بيانات الصنف بعد إعداد مستند فروق الجرد.">استبدل مستند الفروق</button></td>';
+    const staleTitle=String(contextLine.current_state || '')==='reversed'
+      ? 'تم تعديل بيانات الصنف بعد التراجع. استبدل مستند فروق الجرد قبل تنفيذ تسوية جديدة.'
+      : 'تم تعديل بيانات الصنف بعد إعداد مستند فروق الجرد.';
+    return `<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn is-stale" type="button" disabled title="${escapeHtml(staleTitle)}">استبدل مستند الفروق</button></td>`;
+  }
+  if(contextLine.physical_balance===null || contextLine.physical_balance===undefined){
+    return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn" type="button" disabled title="يجب إدخال الرصيد الفعلي للصنف قبل تنفيذ التسوية.">تسوية الجرد</button></td>';
   }
   const variance=normalizeInventorySettlementNumber(row?.inventory_variance);
   if(Math.abs(variance)<0.0005){
@@ -11667,7 +12108,7 @@ function renderInventorySettlementCell(row){
     return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn" type="button" disabled title="لا تملك صلاحية تعديل مستند الجرد.">تسوية الجرد</button></td>';
   }
   if(inventoryCountLineHasActiveSave(row?.id)){
-    return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn is-loading" type="button" disabled title="جارٍ حفظ بيانات الصنف.">جارٍ الحفظ…</button></td>';
+    return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn is-loading" type="button" disabled title="جاري حفظ بيانات السطر.">جاري الحفظ...</button></td>';
   }
   const snapshotId=String(INVENTORY_COUNT_STATE.settlementContextSnapshot?.snapshot_id || '');
   return `<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn" type="button" title="تسوية فرق الجرد" data-line-id="${escapeHtml(row.id||'')}" data-version-id="${escapeHtml(versionId)}" data-snapshot-id="${escapeHtml(snapshotId)}" data-expected-row-version="${escapeHtml(row.row_version ?? '')}">تسوية الجرد</button></td>`;
@@ -11753,6 +12194,7 @@ async function filterInventoryCountLinesByCurrentWarehouse(rows=[]){
   return rows.filter(row=>allowed.has(String(row.material_code||'').trim().toUpperCase()));
 }
 function resetInventoryCountView(message='لم يتم إنشاء جرد بعد.'){
+  closeActiveApplicationModals({restoreFocus:false});
   closeInventoryReviewRecommendationsModal({restoreFocus:false});
   clearInventoryCountSettlementContext();
   INVENTORY_COUNT_STATE.status='idle';
@@ -12415,6 +12857,12 @@ function bindInventoryOpeningBalanceEvents(){
     if(oldestQuantityInput && table.contains(oldestQuantityInput)) updateInventoryOldestQuantityInputWidth(oldestQuantityInput);
   });
   table.addEventListener('click',event=>{
+    const reversalBtn=event.target.closest('.inventory-settlement-reverse-btn');
+    if(reversalBtn && table.contains(reversalBtn)){
+      event.preventDefault();
+      openInventoryCountSettlementReversalModalFromButton(reversalBtn);
+      return;
+    }
     const settlementBtn=event.target.closest('.inventory-settlement-btn');
     if(settlementBtn && table.contains(settlementBtn)){
       event.preventDefault();
@@ -12855,9 +13303,9 @@ function ensureInventoryDifferenceReplaceModal(){
   if(modal) return modal;
   modal=document.createElement('div');
   modal.id='inventoryDifferenceReplaceModal';
-  modal.className='inventory-difference-replace-modal';
+  modal.className='inventory-difference-replace-modal app-liquid-modal-backdrop';
   modal.hidden=true;
-  modal.innerHTML='<div class="inventory-difference-replace-dialog" role="dialog" aria-modal="true" aria-labelledby="inventoryDifferenceReplaceTitle"><h3 id="inventoryDifferenceReplaceTitle">استبدال مستند فروق الجرد</h3><div class="inventory-difference-replace-confirm"><p>تم إنشاء نسخة بالفعل لهذا الجرد.<br>هل تريد استبدال النسخة الحالية؟</p><div class="inventory-difference-replace-actions"><button type="button" class="primary" data-inventory-difference-replace-step="reason">نعم، استبدال</button><button type="button" class="secondary" data-inventory-difference-replace-cancel>إلغاء</button></div></div><div class="inventory-difference-replace-reason" hidden><label>سبب الاستبدال<textarea id="inventoryDifferenceReplaceReason" maxlength="500" rows="4"></textarea></label><small id="inventoryDifferenceReplaceCounter">0 / 500</small><div class="inventory-difference-replace-actions"><button type="button" class="primary" id="inventoryDifferenceReplaceSubmitBtn" disabled>تأكيد الاستبدال</button><button type="button" class="secondary" data-inventory-difference-replace-cancel>إلغاء</button></div></div></div>';
+  modal.innerHTML='<div class="inventory-difference-replace-dialog app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="inventoryDifferenceReplaceTitle"><button type="button" class="app-liquid-modal__close inventory-difference-replace-close" data-inventory-difference-replace-cancel aria-label="إغلاق نافذة استبدال مستند فروق الجرد">×</button><h3 id="inventoryDifferenceReplaceTitle">استبدال مستند فروق الجرد</h3><div class="inventory-difference-replace-confirm"><p>تم إنشاء نسخة بالفعل لهذا الجرد.<br>هل تريد استبدال النسخة الحالية؟</p><div class="inventory-difference-replace-actions"><button type="button" class="primary" data-inventory-difference-replace-step="reason">نعم، استبدال</button><button type="button" class="secondary" data-inventory-difference-replace-cancel>إلغاء</button></div></div><div class="inventory-difference-replace-reason" hidden><label>سبب الاستبدال<textarea id="inventoryDifferenceReplaceReason" maxlength="500" rows="4"></textarea></label><small id="inventoryDifferenceReplaceCounter">0 / 500</small><div class="inventory-difference-replace-actions"><button type="button" class="primary" id="inventoryDifferenceReplaceSubmitBtn" disabled>تأكيد الاستبدال</button><button type="button" class="secondary" data-inventory-difference-replace-cancel>إلغاء</button></div></div></div>';
   document.body.appendChild(modal);
   modal.addEventListener('click',event=>{ if(event.target===modal) closeInventoryDifferenceReplaceModal(); });
   modal.querySelector('[data-inventory-difference-replace-step="reason"]')?.addEventListener('click',()=>showInventoryDifferenceReplaceReasonStep());
@@ -12868,8 +13316,11 @@ function ensureInventoryDifferenceReplaceModal(){
 }
 function openInventoryDifferenceReplaceConfirm(versionId){
   const modal=ensureInventoryDifferenceReplaceModal();
+  modal._appModalClose=closeInventoryDifferenceReplaceModal;
+  modal._appModalReturnFocus=document.activeElement;
   INVENTORY_DIFFERENCE_STATE.replaceVersionId=versionId;
   modal.hidden=false;
+  lockAppModalScroll('inventoryDifferenceReplaceModal',modal);
   modal.querySelector('.inventory-difference-replace-confirm').hidden=false;
   modal.querySelector('.inventory-difference-replace-reason').hidden=true;
   const reason=modal.querySelector('#inventoryDifferenceReplaceReason');
@@ -12882,11 +13333,14 @@ function showInventoryDifferenceReplaceReasonStep(){
   modal.querySelector('.inventory-difference-replace-reason').hidden=false;
   setTimeout(()=>modal.querySelector('#inventoryDifferenceReplaceReason')?.focus({preventScroll:true}),0);
 }
-function closeInventoryDifferenceReplaceModal(){
+function closeInventoryDifferenceReplaceModal(options={}){
   const modal=$('#inventoryDifferenceReplaceModal');
+  const returnFocus=modal?._appModalReturnFocus;
   if(modal) modal.hidden=true;
+  unlockAppModalScroll('inventoryDifferenceReplaceModal');
   INVENTORY_DIFFERENCE_STATE.replaceVersionId=null;
   INVENTORY_DIFFERENCE_STATE.replacing=false;
+  if(options.restoreFocus!==false && returnFocus?.isConnected) requestAnimationFrame(()=>returnFocus.focus({preventScroll:true}));
 }
 function syncInventoryDifferenceReplaceReason(){
   const modal=ensureInventoryDifferenceReplaceModal();
@@ -13347,8 +13801,9 @@ async function openIcBatchViewModal(batchId, triggerBtn) {
   _icSetStatus('جاري تحميل البيانات...', '');
 
   // Open modal
+  overlay._appModalClose=closeIcBatchViewModal;
   overlay.classList.add('ic-batch-view-open');
-  document.body.classList.add('modal-open');
+  lockAppModalScroll('icBatchViewOverlay',overlay);
 
   // Focus close button for accessibility
   requestAnimationFrame(() => { closeBtn && closeBtn.focus(); });
@@ -13449,7 +13904,7 @@ function closeIcBatchViewModal() {
   if (!overlay) return;
 
   overlay.classList.remove('ic-batch-view-open');
-  document.body.classList.remove('modal-open');
+  unlockAppModalScroll('icBatchViewOverlay');
 
   // Clear tbody and status
   if (tbody) tbody.innerHTML = '';
@@ -13468,6 +13923,11 @@ function initIcBatchViewModal() {
   const modal    = document.getElementById('icBatchViewModal');
   const closeBtn = document.getElementById('icBatchViewCloseBtn');
   if (!overlay || !modal || !closeBtn) return;
+  overlay.classList.add('app-liquid-modal-backdrop');
+  modal.classList.add('app-liquid-modal');
+  modal.querySelector('.ic-batch-view-head')?.classList.add('app-liquid-modal__header');
+  closeBtn.classList.add('app-liquid-modal__close');
+  closeBtn.setAttribute('aria-label','إغلاق نافذة عرض دفعة التقفيل');
 
   // Close button
   closeBtn.addEventListener('click', closeIcBatchViewModal);
@@ -13477,13 +13937,6 @@ function initIcBatchViewModal() {
     if (e.target === overlay) closeIcBatchViewModal();
   });
   modal.addEventListener('click', (e) => e.stopPropagation());
-
-  // Close on Escape
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && overlay.classList.contains('ic-batch-view-open')) {
-      closeIcBatchViewModal();
-    }
-  });
 
   // Delegate click events for view-ic buttons (works for dynamically rendered buttons)
   document.addEventListener('click', (e) => {
@@ -13510,7 +13963,7 @@ function initIcBatchViewModal() {
   });
 }
 
-function handleReplaceIc(batchId) {
+async function handleReplaceIc(batchId) {
   const meta = inventoryClosingBatchMeta.get(String(batchId));
   if (!meta) return;
   
@@ -13523,7 +13976,7 @@ function handleReplaceIc(batchId) {
   
   const msg = `سيتم استبدال النسخة الحالية بملف جديد.\nالملف الحالي: ${meta.fileName}\nتاريخ التقرير: ${formatDisplayDate(meta.reportDate,meta.reportDate)}\nالتقرير: ${reportName}\n\nهل تريد المتابعة؟`;
 
-  if (!window.confirm(msg)) return;
+  if (!await showAppLiquidConfirm({message:msg})) return;
   
   const tab = document.querySelector(`.subtabs [data-inventory-closing-tab="${meta.tabKey}"]`);
   if (tab) tab.click();
@@ -13551,7 +14004,7 @@ async function handleDeleteIc(batchId) {
      return;
   }
   
-  if (!window.confirm(msg)) return;
+  if (!await showAppLiquidConfirm({message:msg})) return;
   
   try {
      const { error } = await WarehouseDB.client.rpc('delete_inventory_closing_batch', {
