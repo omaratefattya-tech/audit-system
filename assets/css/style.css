@@ -5695,3 +5695,22 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
   color:#fff;
 }
 .inventory-settlement-dialog.app-liquid-modal .inventory-settlement-field select option{background:#012b22;color:#fff}
+
+/* INV-SETTLEMENT-02.1 — settlement context recovery and post-settlement notes */
+.inventory-settlement-context-retry-btn.is-error{
+  border-color:rgba(239,68,68,.72);
+  color:#fecaca;
+  background:linear-gradient(135deg,rgba(127,29,29,.44),rgba(69,10,10,.26));
+  box-shadow:inset 0 0 0 1px rgba(248,113,113,.12),0 0 14px rgba(239,68,68,.12);
+}
+.inventory-settlement-context-retry-btn.is-error:hover,
+.inventory-settlement-context-retry-btn.is-error:focus-visible{
+  border-color:#f87171;
+  color:#fff;
+}
+.inventory-review-modal.is-post-settlement .inventory-review-head{
+  background:linear-gradient(135deg,rgba(16,185,129,.10),rgba(212,175,55,.08));
+}
+.inventory-review-modal.is-post-settlement .inventory-review-eyebrow{
+  color:var(--gold,#d4af37);
+}

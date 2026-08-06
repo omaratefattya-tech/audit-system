@@ -9933,7 +9933,7 @@ const INVENTORY_COUNT_WAREHOUSE_BY_PLANT = {
   EL01: 'N401',
   EL02: 'E401'
 };
-let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, documentStatus: null, versionStatus: null, lines: [], creating: false, snapshotCreating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: '—', visibleColumnKeys: null, columnManagerDraftKeys: null, searchText: '', columnFilters: {}, sortKey: '', sortDirection: 'asc', settlementContextVersionId: null, settlementContextSnapshot: null, settlementContextByLine: new Map(), settlementContextLoading: false, settlementContextRequestSeq: 0, settlementSaving: new Set(), settlementModalLineId: null, settlementModalSnapshotId: null, reversalSaving: new Set(), reversalModalLineId: null, reversalModalSettlementId: null, auditHistoryRequestSeq: 0, auditHistoryLineId: null, auditHistoryVersionId: null };
+let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, documentStatus: null, versionStatus: null, lines: [], creating: false, snapshotCreating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: '—', visibleColumnKeys: null, columnManagerDraftKeys: null, searchText: '', columnFilters: {}, sortKey: '', sortDirection: 'asc', settlementContextVersionId: null, settlementContextSnapshot: null, settlementContextByLine: new Map(), settlementContextLoading: false, settlementContextError: '', settlementContextRequestSeq: 0, settlementSaving: new Set(), settlementModalLineId: null, settlementModalSnapshotId: null, reversalSaving: new Set(), reversalModalLineId: null, reversalModalSettlementId: null, auditHistoryRequestSeq: 0, auditHistoryLineId: null, auditHistoryVersionId: null };
 const INVENTORY_COUNT_VISIBLE_COLUMNS_STORAGE_KEY = 'inventory_count_visible_columns';
 const INVENTORY_COUNT_COLUMNS = [
   { key: 'material_code', label: 'كود المادة', required: true },
@@ -10330,6 +10330,30 @@ function activateInventoryReviewModalTab(modal,tabName){
   });
   modal?.querySelectorAll('[data-inventory-review-panel]').forEach(panel=>{panel.hidden=panel.dataset.inventoryReviewPanel!==selected;});
 }
+function configureInventoryReviewModalMode(modal,hasSettlementHistory){
+  if(!modal) return;
+  const postSettlement=Boolean(hasSettlementHistory);
+  modal.classList.toggle('is-post-settlement',postSettlement);
+  const title=modal.querySelector('#inventoryReviewRecommendationsTitle');
+  const eyebrow=modal.querySelector('.inventory-review-eyebrow');
+  const close=modal.querySelector('.inventory-review-icon-close');
+  const recommendationsTab=modal.querySelector('[data-inventory-review-tab="recommendations"]');
+  const historyTab=modal.querySelector('[data-inventory-review-tab="history"]');
+  if(title) title.textContent=postSettlement ? 'ملاحظات بعد التسوية' : 'توصيات المراجعة';
+  if(eyebrow) eyebrow.textContent=postSettlement ? 'السجل الكامل للصنف' : 'الجرد وتوثيق المخزون';
+  if(close) close.setAttribute('aria-label',postSettlement ? 'إغلاق نافذة ملاحظات ما بعد التسوية' : 'إغلاق نافذة توصيات المراجعة');
+  if(recommendationsTab) recommendationsTab.textContent='توصيات المراجعة';
+  if(historyTab) historyTab.textContent=postSettlement ? 'ملاحظات بعد التسوية' : 'سجل التسويات والتراجعات';
+}
+function inventoryReviewLineHasSettlementHistory(contextLine){
+  if(!contextLine) return false;
+  return Boolean(
+    contextLine.active_settlement_id
+    || contextLine.latest_settlement_id
+    || contextLine.latest_reversal_id
+    || ['active','reversed'].includes(String(contextLine.current_state || ''))
+  );
+}
 function inventoryAuditHistoryStatusMessage(status){
   return ({not_authenticated:'يجب تسجيل الدخول أولًا.',inactive_user:'الحساب الحالي غير نشط.',permission_denied:'لا تملك صلاحية عرض سجل الصنف.',line_not_found:'تعذر العثور على الصنف في نسخة الجرد الحالية.'})[String(status || '')] || 'تعذر تحميل سجل التسويات والتراجعات.';
 }
@@ -10341,6 +10365,10 @@ function renderInventoryCountLineAuditHistory(modal,data){
   const panel=modal?.querySelector('.inventory-review-history-panel');const status=panel?.querySelector('.inventory-review-history-status');const timeline=panel?.querySelector('.inventory-review-timeline');
   if(!panel || !status || !timeline) return;
   timeline.replaceChildren();const events=Array.isArray(data?.timeline)?data.timeline:[];
+  if(events.length){
+    configureInventoryReviewModalMode(modal,true);
+    if(modal.dataset.inventoryReviewAutoHistory==='1') activateInventoryReviewModalTab(modal,'history');
+  }
   status.textContent=events.length?'السجل مرتب من الأحدث إلى الأقدم.':'لم يتم تنفيذ أي تسوية أو تراجع على هذا الصنف حتى الآن.';status.classList.remove('is-error');
   const labels={opening_balance:'رصيد أول',production_quantity:'الإنتاج',incoming_transfers:'التحويلات الواردة',actual_returns:'المرتجع الفعلي',adjustment_increase_z22:'تسوية زيادة Z22',adjustment_shortage_z21:'تسوية عجز Z21',sales_quantity:'كمية البيع',outgoing_transfers:'التحويلات الصادرة',rework_311:'إعادة التصنيع 311',book_balance:'الرصيد الدفتري',physical_balance:'الرصيد الفعلي',inventory_variance:'فرق الجرد',oldest_quantity:'كمية أقدم تاريخ',oldest_date:'أقدم تاريخ',inventory_counter_name_snapshot:'القائم بالجرد',inventory_counter_job_title_snapshot:'وظيفة القائم بالجرد'};
   events.forEach((event,index)=>{
@@ -10388,18 +10416,24 @@ function openInventoryReviewRecommendationsModal(lineId,versionId,triggerCell){
   };
   const model=buildInventoryReviewRecommendations(latestRow,INVENTORY_COUNT_STATE.lines || [],context);
   const modal=ensureInventoryReviewRecommendationsModal();
+  const settlementContext=inventorySettlementContextLine(requestedLineId);
+  const hasSettlementHistory=inventoryReviewLineHasSettlementHistory(settlementContext);
   modal._inventoryReviewReturnFocus=triggerCell || null;
   modal.dataset.inventoryReviewVersionId=currentVersionId;
+  modal.dataset.inventoryReviewLineId=requestedLineId;
+  modal.dataset.inventoryReviewAutoHistory=hasSettlementHistory ? '1' : '0';
   renderInventoryReviewRecommendationsModal(modal,model);
-  const settlementContext=inventorySettlementContextLine(requestedLineId);
-  const defaultTab=(settlementContext?.active_settlement_id || settlementContext?.latest_settlement_id)
-    ? 'history'
-    : 'recommendations';
-  activateInventoryReviewModalTab(modal,defaultTab);
+  configureInventoryReviewModalMode(modal,hasSettlementHistory);
+  activateInventoryReviewModalTab(modal,hasSettlementHistory ? 'history' : 'recommendations');
   loadInventoryCountLineAuditHistory(requestedLineId,currentVersionId,modal);
   modal._appModalClose=closeInventoryReviewRecommendationsModal;
   lockAppModalScroll('inventoryReviewRecommendationsModal',modal);
-  requestAnimationFrame(()=>modal.querySelector('.inventory-review-icon-close')?.focus({preventScroll:true}));
+  requestAnimationFrame(()=>{
+    const preferred=hasSettlementHistory
+      ? modal.querySelector('[data-inventory-review-tab="history"]')
+      : modal.querySelector('.inventory-review-icon-close');
+    preferred?.focus({preventScroll:true});
+  });
 }
 function closeInventoryReviewRecommendationsModal(options={}){
   const modal=$('#inventoryReviewRecommendationsModal');
@@ -11399,15 +11433,26 @@ function clearInventoryCountSettlementContext(options={}){
   INVENTORY_COUNT_STATE.settlementContextSnapshot=null;
   INVENTORY_COUNT_STATE.settlementContextByLine=new Map();
   INVENTORY_COUNT_STATE.settlementContextLoading=false;
+  INVENTORY_COUNT_STATE.settlementContextError='';
   if(closeModal){
     closeInventoryCountSettlementModal({restoreFocus:false,force:true});
     closeInventoryCountSettlementReversalModal({restoreFocus:false,force:true});
   }
 }
+function inventorySettlementContextErrorMessage(error){
+  const message=String(error?.message || error || '').trim();
+  if(/get_inventory_count_settlement_context|PGRST202|function .* does not exist/i.test(message)){
+    return 'تحديث قاعدة البيانات الخاص بالتسويات غير مُطبق. شغّل ملف التراجع وسجل التسويات ثم أعد تحميل الصفحة.';
+  }
+  if(/permission_denied/i.test(message)) return 'لا تملك صلاحية عرض حالة تسويات الجرد.';
+  if(/not_authenticated/i.test(message)) return 'انتهت جلسة الدخول. سجّل الدخول مرة أخرى.';
+  return 'تعذر تحميل حالة تسويات الجرد. اضغط لإعادة المحاولة.';
+}
 async function loadInventoryCountSettlementContext(versionId,inventoryRequestSeq=null){
   const normalizedVersionId=String(versionId || '');
   const contextRequestSeq=++INVENTORY_COUNT_STATE.settlementContextRequestSeq;
   INVENTORY_COUNT_STATE.settlementContextLoading=true;
+  INVENTORY_COUNT_STATE.settlementContextError='';
   INVENTORY_COUNT_STATE.settlementContextVersionId=null;
   INVENTORY_COUNT_STATE.settlementContextSnapshot=null;
   INVENTORY_COUNT_STATE.settlementContextByLine=new Map();
@@ -11430,6 +11475,7 @@ async function loadInventoryCountSettlementContext(versionId,inventoryRequestSeq
         .filter(line=>line?.source_inventory_line_id)
         .map(line=>[String(line.source_inventory_line_id),line])
     );
+    INVENTORY_COUNT_STATE.settlementContextError='';
     return true;
   }catch(err){
     if(contextRequestSeq===INVENTORY_COUNT_STATE.settlementContextRequestSeq
@@ -11437,6 +11483,7 @@ async function loadInventoryCountSettlementContext(versionId,inventoryRequestSeq
       INVENTORY_COUNT_STATE.settlementContextVersionId=normalizedVersionId;
       INVENTORY_COUNT_STATE.settlementContextSnapshot=null;
       INVENTORY_COUNT_STATE.settlementContextByLine=new Map();
+      INVENTORY_COUNT_STATE.settlementContextError=inventorySettlementContextErrorMessage(err);
       console.warn('Inventory settlement context load failed',err);
     }
     return false;
@@ -12074,13 +12121,14 @@ async function submitInventoryCountSettlementReversal(){
 function renderInventorySettlementCell(row){
   const empty='<td class="inventory-settlement-cell"></td>';
   const versionId=String(INVENTORY_COUNT_STATE.versionId || '');
-  if(INVENTORY_COUNT_STATE.settlementContextLoading
-    || !versionId
-    || String(INVENTORY_COUNT_STATE.settlementContextVersionId || '')!==versionId
-    || !INVENTORY_COUNT_STATE.settlementContextSnapshot) return empty;
-  const contextLine=inventorySettlementContextLine(row?.id);
-  if(!contextLine) return empty;
-  if(contextLine.is_reconciled || contextLine.active_settlement_id){
+  if(!versionId) return empty;
+
+  const contextVersionMatches=String(INVENTORY_COUNT_STATE.settlementContextVersionId || '')===versionId;
+  const contextLine=contextVersionMatches ? inventorySettlementContextLine(row?.id) : null;
+
+  // An active settlement must always expose its reversal action, even if the
+  // Current Snapshot was later replaced or temporarily unavailable.
+  if(contextLine && (contextLine.is_reconciled || contextLine.active_settlement_id)){
     const lineId=escapeHtml(String(row?.id || ''));
     const settlementId=escapeHtml(String(contextLine.active_settlement_id || contextLine.settlement_id || ''));
     if(!hasPermission('inventory_count','edit') || contextLine.can_reverse===false){
@@ -12091,6 +12139,26 @@ function renderInventorySettlementCell(row){
     }
     return `<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-reverse-btn" type="button" title="التراجع عن تسوية فرق الجرد" data-line-id="${lineId}" data-version-id="${escapeHtml(versionId)}" data-settlement-id="${settlementId}" data-expected-row-version="${escapeHtml(row?.row_version ?? '')}">تراجع</button></td>`;
   }
+
+  if(INVENTORY_COUNT_STATE.settlementContextLoading){
+    return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn is-loading" type="button" disabled title="جاري تحميل حالة التسويات.">جاري التحميل...</button></td>';
+  }
+
+  if(INVENTORY_COUNT_STATE.settlementContextError){
+    const message=escapeHtml(INVENTORY_COUNT_STATE.settlementContextError);
+    return `<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-context-retry-btn is-error" type="button" title="${message}" data-version-id="${escapeHtml(versionId)}">إعادة تحميل الحالة</button></td>`;
+  }
+
+  if(!contextVersionMatches){
+    return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn is-loading" type="button" disabled title="جاري مزامنة حالة التسويات.">جاري المزامنة...</button></td>';
+  }
+
+  // No Current Snapshot means settlement is intentionally unavailable.
+  if(!INVENTORY_COUNT_STATE.settlementContextSnapshot) return empty;
+  if(!contextLine){
+    return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn is-stale" type="button" disabled title="الصنف غير موجود داخل مستند فروق الجرد الحالي.">غير متاح</button></td>';
+  }
+
   if(!inventorySettlementSnapshotMatchesLine(row,contextLine)){
     const staleTitle=String(contextLine.current_state || '')==='reversed'
       ? 'تم تعديل بيانات الصنف بعد التراجع. استبدل مستند فروق الجرد قبل تنفيذ تسوية جديدة.'
@@ -12104,8 +12172,8 @@ function renderInventorySettlementCell(row){
   if(Math.abs(variance)<0.0005){
     return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn" type="button" disabled title="لا يوجد فرق جرد يحتاج إلى تسوية.">تسوية الجرد</button></td>';
   }
-  if(!hasPermission('inventory_count','edit')){
-    return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn" type="button" disabled title="لا تملك صلاحية تعديل مستند الجرد.">تسوية الجرد</button></td>';
+  if(!hasPermission('inventory_count','edit') || contextLine.can_settle===false){
+    return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn" type="button" disabled title="لا تملك صلاحية تعديل مستند الجرد أو أن السطر غير صالح للتسوية.">تسوية الجرد</button></td>';
   }
   if(inventoryCountLineHasActiveSave(row?.id)){
     return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn is-loading" type="button" disabled title="جاري حفظ بيانات السطر.">جاري الحفظ...</button></td>';
@@ -12857,6 +12925,12 @@ function bindInventoryOpeningBalanceEvents(){
     if(oldestQuantityInput && table.contains(oldestQuantityInput)) updateInventoryOldestQuantityInputWidth(oldestQuantityInput);
   });
   table.addEventListener('click',event=>{
+    const retryBtn=event.target.closest('.inventory-settlement-context-retry-btn');
+    if(retryBtn && table.contains(retryBtn)){
+      event.preventDefault();
+      refreshInventoryCountSettlementContextIfCurrent(retryBtn.dataset.versionId || INVENTORY_COUNT_STATE.versionId);
+      return;
+    }
     const reversalBtn=event.target.closest('.inventory-settlement-reverse-btn');
     if(reversalBtn && table.contains(reversalBtn)){
       event.preventDefault();
