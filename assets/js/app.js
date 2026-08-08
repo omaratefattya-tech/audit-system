@@ -10242,7 +10242,7 @@ function ensureInventoryReviewRecommendationsModal(){
   modal=document.createElement('div');
   modal.id='inventoryReviewRecommendationsModal';
   modal.className='inventory-review-modal app-liquid-modal-backdrop';
-  modal.innerHTML='<div class="inventory-review-backdrop" data-inventory-review-close></div><section class="inventory-review-card app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="inventoryReviewRecommendationsTitle"><header class="inventory-review-head app-liquid-modal__header"><div><span class="inventory-review-eyebrow">الجرد وتوثيق المخزون</span><h2 id="inventoryReviewRecommendationsTitle" class="app-liquid-modal__title">توصيات المراجعة</h2></div><button type="button" class="inventory-review-icon-close app-liquid-modal__close" data-inventory-review-close aria-label="إغلاق نافذة توصيات المراجعة">×</button></header><nav class="inventory-review-tabs app-liquid-modal__tabs" aria-label="تبويبات مراجعة الصنف"><button type="button" data-inventory-review-tab="recommendations" aria-selected="true">توصيات المراجعة</button><button type="button" data-inventory-review-tab="history" aria-selected="false">سجل التسويات والتراجعات</button></nav><div class="inventory-review-scroll app-liquid-modal__body"><div class="inventory-review-modal-body" data-inventory-review-panel="recommendations"></div><section class="inventory-review-history-panel" data-inventory-review-panel="history" hidden><p class="inventory-review-history-status" role="status">جاري تحميل سجل الصنف...</p><div class="inventory-review-timeline"></div></section></div><footer class="inventory-review-footer app-liquid-modal__footer"><button type="button" class="secondary inventory-review-close-btn" data-inventory-review-close>إغلاق</button></footer></section>';
+  modal.innerHTML='<div class="inventory-review-backdrop" data-inventory-review-close></div><section class="inventory-review-card app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="inventoryReviewRecommendationsTitle"><header class="inventory-review-head app-liquid-modal__header"><div><span class="inventory-review-eyebrow">الجرد وتوثيق المخزون</span><h2 id="inventoryReviewRecommendationsTitle" class="app-liquid-modal__title">توصيات المراجعة</h2></div><button type="button" class="inventory-review-icon-close app-liquid-modal__close" data-inventory-review-close aria-label="إغلاق نافذة توصيات المراجعة">×</button></header><nav class="inventory-review-tabs app-liquid-modal__tabs" aria-label="تبويبات مراجعة الصنف"><button type="button" data-inventory-review-tab="recommendations" aria-selected="true">توصيات المراجعة</button><button type="button" data-inventory-review-tab="history" aria-selected="false">سجل التسويات والتراجعات</button></nav><div class="inventory-review-product-summary-container"></div><div class="inventory-review-scroll app-liquid-modal__body"><div class="inventory-review-modal-body" data-inventory-review-panel="recommendations"></div><section class="inventory-review-history-panel" data-inventory-review-panel="history" hidden><p class="inventory-review-history-status" role="status">جاري تحميل سجل الصنف...</p><div class="inventory-review-timeline"></div></section></div><footer class="inventory-review-footer app-liquid-modal__footer"><button type="button" class="secondary inventory-review-close-btn" data-inventory-review-close>إغلاق</button></footer></section>';
   modal.addEventListener('click',event=>{
     if(event.target.closest('[data-inventory-review-close]')){closeInventoryReviewRecommendationsModal();return;}
     const tab=event.target.closest('[data-inventory-review-tab]');
@@ -10259,6 +10259,8 @@ function renderInventoryReviewRecommendationsModal(modal,model){
   const body=modal.querySelector('.inventory-review-modal-body');
   if(!body) return;
   body.replaceChildren();
+  const summaryContainer = modal.querySelector('.inventory-review-product-summary-container');
+  if(summaryContainer) summaryContainer.replaceChildren();
   const product=inventoryReviewCreateElement('section','inventory-review-product-card');
   const productTitle=inventoryReviewCreateElement('div','inventory-review-product-title');
   productTitle.append(inventoryReviewCreateElement('strong','inventory-review-material-code',model.row?.material_code || '—'));
@@ -10271,7 +10273,7 @@ function renderInventoryReviewRecommendationsModal(modal,model){
     ['تاريخ الجرد',formatDisplayDate(model.context.inventoryDate,'—')]
   ].forEach(([label,value])=>inventoryReviewAppendDetail(context,label,value));
   product.append(context);
-  body.append(product);
+  if(summaryContainer) summaryContainer.append(product); else body.append(product);
   const details=inventoryReviewCreateElement('section','inventory-review-details-grid');
   inventoryReviewAppendDetail(details,'الإنتاج',formatInventoryReviewQuantity(model.production));
   inventoryReviewAppendDetail(details,'الرصيد الدفتري',formatInventoryReviewQuantity(model.row?.book_balance));
@@ -10281,7 +10283,7 @@ function renderInventoryReviewRecommendationsModal(modal,model){
   inventoryReviewAppendDetail(details,'نسبة الفرق من الإنتاج',formatInventoryReviewPercentage(model.varianceRate));
   inventoryReviewAppendDetail(details,'نسبة السماح',formatInventoryReviewPercentage(model.tolerance));
   inventoryReviewAppendDetail(details,'تصنيف المراجعة',model.classification,'inventory-review-classification');
-  body.append(details);
+  if(summaryContainer) summaryContainer.append(details); else body.append(details);
   const recommendations=inventoryReviewCreateElement('section','inventory-review-recommendations');
   const recommendationHead=inventoryReviewCreateElement('div','inventory-review-section-head');
   recommendationHead.append(inventoryReviewCreateElement('h3','',model.classification));
@@ -10343,7 +10345,7 @@ function configureInventoryReviewModalMode(modal,hasSettlementHistory){
   if(eyebrow) eyebrow.textContent=postSettlement ? 'السجل الكامل للصنف' : 'الجرد وتوثيق المخزون';
   if(close) close.setAttribute('aria-label',postSettlement ? 'إغلاق نافذة ملاحظات ما بعد التسوية' : 'إغلاق نافذة توصيات المراجعة');
   if(recommendationsTab) recommendationsTab.textContent='توصيات المراجعة';
-  if(historyTab) historyTab.textContent=postSettlement ? 'ملاحظات بعد التسوية' : 'سجل التسويات والتراجعات';
+  if(historyTab) historyTab.textContent='سجل التسويات والتراجعات';
 }
 function inventoryReviewLineHasSettlementHistory(contextLine){
   if(!contextLine) return false;
@@ -10378,9 +10380,44 @@ function renderInventoryCountLineAuditHistory(modal,data){
     inventoryAuditHistoryAppendValue(meta,'المنفذ',event?.performed_by || '—');inventoryAuditHistoryAppendValue(meta,'السبب',reversal?(event?.reversal_reason || '—'):(event?.reason_label || '—'));inventoryAuditHistoryAppendValue(meta,'الحقل المستهدف',inventorySettlementTargetFieldLabel(event?.target_field));inventoryAuditHistoryAppendValue(meta,'طريقة التسوية',inventorySettlementMethodLabel(event?.reconciliation_method));inventoryAuditHistoryAppendValue(meta,'إصدار السطر',`${event?.row_version_before ?? '—'} ← ${event?.row_version_after ?? '—'}`);inventoryAuditHistoryAppendValue(meta,'مستند الفروق',event?.snapshot_number || event?.snapshot_id || '—');card.append(meta);
     if(!reversal && event?.action_text){const action=inventoryReviewCreateElement('p','inventory-review-history-action');action.append(inventoryReviewCreateElement('span','','الإجراء: '));action.append(document.createTextNode(String(event.action_text)));card.append(action);}
     if(reversal) card.append(inventoryReviewCreateElement('p','inventory-review-history-related',`التسوية المرتبطة: ${event?.related_settlement_id || '—'}`));
-    const comparison=inventoryReviewCreateElement('div','inventory-review-history-comparison');const before=inventoryReviewCreateElement('section','');before.append(inventoryReviewCreateElement('h4','','قبل'));const after=inventoryReviewCreateElement('section','');after.append(inventoryReviewCreateElement('h4','','بعد'));
-    Object.entries(labels).forEach(([key,label])=>{inventoryAuditHistoryAppendValue(before,label,formatInventoryAuditHistoryValue(key,event?.before?.[key]));inventoryAuditHistoryAppendValue(after,label,formatInventoryAuditHistoryValue(key,event?.after?.[key]));});
-    comparison.append(before,after);card.append(comparison);timeline.append(card);
+    const comparison=inventoryReviewCreateElement('div','inventory-review-history-comparison');
+    if(!reversal && event?.correction_quantity != null){
+      const primary=inventoryReviewCreateElement('section','');
+      primary.append(inventoryReviewCreateElement('h4','','تصحيح التحميل'));
+      inventoryAuditHistoryAppendValue(primary,'كمية التحميل الخاطئ',formatInventoryCountThreeDecimalQuantity(event.correction_quantity)+' طن');
+      inventoryAuditHistoryAppendValue(primary,'المرحلة الأولى',inventorySettlementMethodLabel(event.primary_reconciliation_method));
+      inventoryAuditHistoryAppendValue(primary,'الحقول المعدلة',inventorySettlementTargetFieldLabel(event.primary_target_field));
+      if(event.primary_target_field === 'outgoing_transfers+incoming_transfers' || event.primary_target_field === 'multiple'){
+        inventoryAuditHistoryAppendValue(primary,'التحويلات الصادرة',`${formatInventoryCountThreeDecimalQuantity(event.before?.outgoing_transfers)} ← ${formatInventoryCountThreeDecimalQuantity(event.after?.outgoing_transfers)}`);
+        inventoryAuditHistoryAppendValue(primary,'التحويلات الواردة',`${formatInventoryCountThreeDecimalQuantity(event.before?.incoming_transfers)} ← ${formatInventoryCountThreeDecimalQuantity(event.after?.incoming_transfers)}`);
+      } else if (event.primary_target_field === 'outgoing_transfers'){
+        inventoryAuditHistoryAppendValue(primary,'التحويلات الصادرة',`${formatInventoryCountThreeDecimalQuantity(event.before?.outgoing_transfers)} ← ${formatInventoryCountThreeDecimalQuantity(event.after?.outgoing_transfers)}`);
+      } else if (event.primary_target_field === 'sales_quantity'){
+        inventoryAuditHistoryAppendValue(primary,'كمية البيع',`${formatInventoryCountThreeDecimalQuantity(event.before?.sales_quantity)} ← ${formatInventoryCountThreeDecimalQuantity(event.after?.sales_quantity)}`);
+      }
+      inventoryAuditHistoryAppendValue(primary,'الرصيد الدفتري (قبل)',formatInventoryCountThreeDecimalQuantity(event.before?.book_balance));
+      inventoryAuditHistoryAppendValue(primary,'الرصيد الدفتري (بعد المرحلة الأولى)',formatInventoryCountThreeDecimalQuantity(event.book_balance_after_primary));
+      inventoryAuditHistoryAppendValue(primary,'فرق الجرد المتبقي',formatInventoryCountThreeDecimalQuantity(event.residual_variance_after_primary));
+      const secondary=inventoryReviewCreateElement('section','');
+      secondary.append(inventoryReviewCreateElement('h4','','تسوية الفرق المتبقي'));
+      inventoryAuditHistoryAppendValue(secondary,'المرحلة الثانية',inventorySettlementMethodLabel(event.secondary_reconciliation_method));
+      inventoryAuditHistoryAppendValue(secondary,'الحقل الثانوي',inventorySettlementTargetFieldLabel(event.secondary_target_field));
+      if(event.secondary_target_field === 'production_quantity'){
+        inventoryAuditHistoryAppendValue(secondary,'الإنتاج',`${formatInventoryCountThreeDecimalQuantity(event.before?.production_quantity)} ← ${formatInventoryCountThreeDecimalQuantity(event.after?.production_quantity)}`);
+      }else if(event.secondary_target_field === 'physical_balance'){
+        inventoryAuditHistoryAppendValue(secondary,'الرصيد الفعلي',`${formatInventoryCountThreeDecimalQuantity(event.before?.physical_balance)} ← ${formatInventoryCountThreeDecimalQuantity(event.after?.physical_balance)}`);
+      }
+      inventoryAuditHistoryAppendValue(secondary,'الرصيد الدفتري النهائي',formatInventoryCountThreeDecimalQuantity(event.after?.book_balance));
+      inventoryAuditHistoryAppendValue(secondary,'الرصيد الفعلي النهائي',formatInventoryCountThreeDecimalQuantity(event.after?.physical_balance));
+      inventoryAuditHistoryAppendValue(secondary,'فرق الجرد النهائي',formatInventoryCountThreeDecimalQuantity(event.after?.inventory_variance));
+      comparison.append(primary,secondary);
+    } else {
+      const before=inventoryReviewCreateElement('section','');before.append(inventoryReviewCreateElement('h4','','قبل'));
+      const after=inventoryReviewCreateElement('section','');after.append(inventoryReviewCreateElement('h4','','بعد'));
+      Object.entries(labels).forEach(([key,label])=>{inventoryAuditHistoryAppendValue(before,label,formatInventoryAuditHistoryValue(key,event?.before?.[key]));inventoryAuditHistoryAppendValue(after,label,formatInventoryAuditHistoryValue(key,event?.after?.[key]));});
+      comparison.append(before,after);
+    }
+    card.append(comparison);timeline.append(card);
   });
 }
 async function loadInventoryCountLineAuditHistory(lineId,versionId,modal){
@@ -11086,6 +11123,48 @@ function inventoryCountBuildExportSheet(){
   sheet.append(header,table,footer);
   return sheet;
 }
+function inventorySettlementStatusMessage(status,reasonCode=''){
+  const messages={
+    not_authenticated:'يجب تسجيل الدخول قبل تنفيذ التسوية.',
+    inactive_user:'الحساب الحالي غير نشط.',
+    permission_denied:'لا تملك صلاحية تعديل مستند الجرد.',
+    line_not_found:'تعذر العثور على سطر الجرد.',
+    version_not_current:'نسخة الجرد لم تعد النسخة الحالية.',
+    current_snapshot_not_found:'يجب إعداد مستند فروق الجرد قبل تنفيذ التسوية.',
+    snapshot_not_current:'مستند فروق الجرد المحدد لم يعد المستند الحالي.',
+    snapshot_line_not_found:'الصنف غير موجود داخل مستند فروق الجرد الحالي.',
+    snapshot_stale:'تم تعديل بيانات الصنف بعد إعداد مستند فروق الجرد. استبدل مستند فروق الجرد ثم أعد المحاولة.',
+    post_reversal_snapshot_stale:'تم تعديل بيانات الصنف بعد التراجع. استبدل مستند فروق الجرد ثم أعد المحاولة.',
+    material_code_mismatch:'كود المادة لا يطابق سطر مستند فروق الجرد.',
+    physical_balance_required:'يجب إدخال الرصيد الفعلي للصنف قبل تنفيذ التسوية.',
+    invalid_snapshot_values:'قيم مستند فروق الجرد غير صالحة للتسوية.',
+    zero_variance:'لا يوجد فرق جرد يحتاج إلى تسوية.',
+    invalid_reason:'سبب التسوية المحدد غير صالح.',
+    action_required:'الإجراء مطلوب.',
+    action_too_long:'الإجراء يجب ألا يتجاوز 2000 حرف.',
+    production_reason_not_allowed:'لا يمكن تسوية الفرق بسبب الإنتاج لأن الصنف لا يحتوي على إنتاج في هذا اليوم.',
+    row_version_conflict:'تم تعديل بيانات الصنف. أعد تحميل المستند واستبدل مستند فروق الجرد عند الحاجة.',
+    line_already_reconciled:'تمت تسوية فرق الجرد لهذا الصنف بالفعل.',
+    inventory_count_read_only:'نسخة الجرد الحالية لا تسمح بالتعديل.',
+    postcondition_failed:'تعذر إتمام التسوية لأن النتيجة النهائية لم تحقق تطابق الرصيد الدفتري والفعلي.',
+    settlement_state_changed:'تغيرت حالة تسوية الصنف. أعد تحميل المستند.',
+    // Stage 2 specific errors:
+    correction_quantity_required:'يجب إدخال كمية التحميل الخاطئ لتنفيذ هذا النوع من التسوية.',
+    invalid_correction_quantity:'كمية التحميل الخاطئ غير صالحة. تأكد من إدخال قيمة صحيحة أكبر من الصفر.',
+    insufficient_outgoing_transfers:'لا يمكن تنفيذ التصحيح لأن التحويلات الصادرة الحالية أقل من كمية التحميل الخاطئ المدخلة.',
+    insufficient_sales_quantity:'لا يمكن تنفيذ التصحيح لأن كمية البيع الحالية أقل من كمية التحميل الخاطئ المدخلة.',
+    negative_production_after_residual:'لا يمكن تسوية الفرق المتبقي؛ الكمية المحسوبة للإنتاج بعد التسوية ستصبح سالبة.',
+    negative_physical_result_not_allowed:'لا يمكن تسوية الفرق المتبقي؛ الرصيد الفعلي النهائي سيصبح سالبًا.'
+  };
+  if(status==='negative_result_not_allowed'){
+    if(reasonCode==='production_difference' || reasonCode==='damaged_bags' || reasonCode==='other') return 'لا يمكن تنفيذ هذه التسوية لأن كمية الإنتاج بعد التسوية ستصبح سالبة. اختر سببًا آخر أو راجع بيانات الصنف.';
+    if(reasonCode==='transfer_overloaded') return 'لا يمكن تنفيذ هذه التسوية لأن التحويلات الصادرة بعد التسوية ستصبح سالبة.';
+    if(reasonCode==='transfer_not_loaded') return 'لا يمكن تنفيذ هذه التسوية لأن التحويلات الواردة بعد التسوية ستصبح سالبة.';
+    if(reasonCode==='sales_overloaded' || reasonCode==='sales_not_loaded') return 'لا يمكن تنفيذ التسوية لأن كمية البيع بعد التسوية ستصبح سالبة.';
+    return 'لا يمكن تنفيذ التسوية لأن القيمة الناتجة ستصبح سالبة.';
+  }
+  return messages[String(status || '')] || 'تعذر حفظ تسوية فرق الجرد.';
+}
 async function inventoryCountCaptureExportSheet(){
   const Html2Canvas=window.html2canvas;
   if(!Html2Canvas) throw new Error('مكتبة تصدير الصور غير محملة.');
@@ -11507,7 +11586,7 @@ async function refreshInventoryCountSettlementContextIfCurrent(versionId){
 function getInventorySettlementReason(reasonCode){
   return INVENTORY_SETTLEMENT_REASONS.find(reason=>reason.code===String(reasonCode || '')) || null;
 }
-function calculateInventorySettlementPreview(contextLine,reasonCode){
+function calculateInventorySettlementPreview(contextLine,reasonCode,Q){
   const reason=getInventorySettlementReason(reasonCode);
   if(!reason) return {valid:false,message:'اختر سبب التسوية لعرض الإجراء الذي سينفذه النظام.'};
   if(!contextLine || contextLine.physical_balance===null || contextLine.physical_balance===undefined){
@@ -11520,6 +11599,52 @@ function calculateInventorySettlementPreview(contextLine,reasonCode){
   const incoming=roundInventorySettlementQuantity(contextLine.incoming_transfers);
   const outgoing=roundInventorySettlementQuantity(contextLine.outgoing_transfers);
   const sales=roundInventorySettlementQuantity(contextLine.sales_quantity);
+
+  if(['transfer_overloaded','transfer_not_loaded','sales_overloaded','sales_not_loaded'].includes(reason.code)){
+    if(!Q || Q<=0 || isNaN(Q)) return {valid:false,message:'أدخل كمية التحميل الخاطئ لعرض تفاصيل التسوية المتوقعة.'};
+    let stage1Message = '';
+    let B1 = 0;
+    const B0 = normalizeInventorySettlementNumber(contextLine.book_balance);
+    const P0 = normalizeInventorySettlementNumber(contextLine.physical_balance);
+    const Prod0 = normalizeInventorySettlementNumber(contextLine.production_quantity);
+
+    if(reason.code === 'transfer_overloaded') {
+      const out1 = outgoing + Q;
+      B1 = B0 - Q;
+      stage1Message = `تصحيح التحميل:\nكمية التحميل الخاطئ: ${formatInventorySettlementQuantity(Q)} طن.\nالتحويلات الصادرة: ${formatInventorySettlementQuantity(outgoing)} ← ${formatInventorySettlementQuantity(out1)} طن.\n`;
+    } else if(reason.code === 'transfer_not_loaded') {
+      const out1 = outgoing - Q;
+      const in1 = incoming + Q;
+      if (out1 < 0) return {valid:false, negative:true, message:'تحذير: لا يمكن تنفيذ التصحيح لأن كمية التحويلات الصادرة الحالية أقل من كمية التحميل الخاطئ المدخلة.'};
+      B1 = B0 + (2 * Q);
+      stage1Message = `تصحيح التحميل:\nكمية التحميل الخاطئ: ${formatInventorySettlementQuantity(Q)} طن.\nالتحويلات الصادرة: ${formatInventorySettlementQuantity(outgoing)} ← ${formatInventorySettlementQuantity(out1)} طن.\nالتحويلات الواردة: ${formatInventorySettlementQuantity(incoming)} ← ${formatInventorySettlementQuantity(in1)} طن.\n`;
+    } else if(reason.code === 'sales_overloaded') {
+      const s1 = sales + Q;
+      B1 = B0 - Q;
+      stage1Message = `تصحيح التحميل:\nكمية التحميل الخاطئ: ${formatInventorySettlementQuantity(Q)} طن.\nكمية البيع: ${formatInventorySettlementQuantity(sales)} ← ${formatInventorySettlementQuantity(s1)} طن.\n`;
+    } else if(reason.code === 'sales_not_loaded') {
+      const s1 = sales - Q;
+      if (s1 < 0) return {valid:false, negative:true, message:'تحذير: لا يمكن تنفيذ التصحيح لأن كمية البيع الحالية أقل من كمية التحميل الخاطئ المدخلة.'};
+      B1 = B0 + Q;
+      stage1Message = `تصحيح التحميل:\nكمية التحميل الخاطئ: ${formatInventorySettlementQuantity(Q)} طن.\nكمية البيع: ${formatInventorySettlementQuantity(sales)} ← ${formatInventorySettlementQuantity(s1)} طن.\n`;
+    }
+
+    const R = P0 - B1;
+    stage1Message += `الرصيد الدفتري (قبل): ${formatInventorySettlementQuantity(B0)} طن.\nالرصيد الدفتري (بعد المرحلة الأولى): ${formatInventorySettlementQuantity(B1)} طن.\nفرق الجرد المتبقي: ${formatInventorySettlementQuantity(R)} طن.\n\n`;
+
+    let stage2Message = '';
+    if(Prod0 > 0) {
+      const ProdFinal = Prod0 + R;
+      if (ProdFinal < 0) return {valid:false, negative:true, message: stage1Message + `تحذير: سيتم تسوية الفرق المتبقي في الإنتاج ولكن الإنتاج النهائي سيصبح سالبًا (${formatInventorySettlementQuantity(ProdFinal)} طن).`};
+      stage2Message = `تسوية الفرق المتبقي:\nسيتم تسوية فرق الجرد المتبقي في الإنتاج.\nالإنتاج: ${formatInventorySettlementQuantity(Prod0)} ← ${formatInventorySettlementQuantity(ProdFinal)} طن.\nالرصيد الدفتري النهائي: ${formatInventorySettlementQuantity(P0)} طن.\nالرصيد الفعلي النهائي: ${formatInventorySettlementQuantity(P0)} طن.\nفرق الجرد النهائي: 0.000 طن.`;
+    } else {
+      stage2Message = `تسوية الفرق المتبقي:\nلا يوجد إنتاج لهذا الصنف؛ لذلك لن يتم إنشاء إنتاج وهمي. بعد تصحيح التحميل سيتم تعديل الرصيد الفعلي ليطابق الرصيد الدفتري.\nالرصيد الفعلي النهائي: ${formatInventorySettlementQuantity(B1)} طن.\nالرصيد الدفتري النهائي: ${formatInventorySettlementQuantity(B1)} طن.\nفرق الجرد النهائي: 0.000 طن.`;
+      if (B1 < 0) return {valid:false, negative:true, message: stage1Message + `تحذير: لا يمكن إتمام التسوية لأن الرصيد الفعلي النهائي سيصبح سالبًا (${formatInventorySettlementQuantity(B1)} طن).`};
+    }
+    
+    return {valid:true, message: stage1Message + stage2Message, variance: R};
+  }
+
   let targetField='';
   let before=0;
   let after=0;
@@ -11528,15 +11653,6 @@ function calculateInventorySettlementPreview(contextLine,reasonCode){
     if(production<=0) return {valid:false,message:'لا يمكن تسوية الفرق بسبب الإنتاج لأن الصنف لا يحتوي على إنتاج في هذا اليوم.'};
     targetField='production_quantity'; before=production; after=roundInventorySettlementQuantity(production+variance);
     message=`سيتم تعديل كمية الإنتاج من ${formatInventorySettlementQuantity(before)} طن إلى ${formatInventorySettlementQuantity(after)} طن، ثم إعادة احتساب الرصيد الدفتري ليصبح مساويًا للرصيد الفعلي ويصبح فرق الجرد 0.000 طن.`;
-  }else if(reason.code==='transfer_overloaded'){
-    targetField='outgoing_transfers'; before=outgoing; after=roundInventorySettlementQuantity(outgoing-variance);
-    message=`سيتم تعديل التحويلات الصادرة من ${formatInventorySettlementQuantity(before)} طن إلى ${formatInventorySettlementQuantity(after)} طن، ثم يصبح الرصيد الدفتري مساويًا للرصيد الفعلي وفرق الجرد 0.000 طن.`;
-  }else if(reason.code==='transfer_not_loaded'){
-    targetField='incoming_transfers'; before=incoming; after=roundInventorySettlementQuantity(incoming+variance);
-    message=`سيتم تعديل التحويلات الواردة من ${formatInventorySettlementQuantity(before)} طن إلى ${formatInventorySettlementQuantity(after)} طن، ثم يصبح الرصيد الدفتري مساويًا للرصيد الفعلي وفرق الجرد 0.000 طن.`;
-  }else if(reason.code==='sales_overloaded' || reason.code==='sales_not_loaded'){
-    targetField='sales_quantity'; before=sales; after=roundInventorySettlementQuantity(sales-variance);
-    message=`سيتم تعديل كمية البيع من ${formatInventorySettlementQuantity(before)} طن إلى ${formatInventorySettlementQuantity(after)} طن، ثم يصبح الرصيد الدفتري مساويًا للرصيد الفعلي وفرق الجرد 0.000 طن.`;
   }else if(production>0){
     targetField='production_quantity'; before=production; after=roundInventorySettlementQuantity(production+variance);
     message=`يوجد إنتاج لهذا الصنف؛ لذلك ستتم التسوية من خلال تعديل الإنتاج من ${formatInventorySettlementQuantity(before)} طن إلى ${formatInventorySettlementQuantity(after)} طن، ثم يصبح فرق الجرد 0.000 طن.`;
@@ -11552,40 +11668,7 @@ function calculateInventorySettlementPreview(contextLine,reasonCode){
   return {valid:true,targetField,before,after,variance,message};
 }
 
-function inventorySettlementStatusMessage(status,reasonCode=''){
-  const messages={
-    not_authenticated:'يجب تسجيل الدخول قبل تنفيذ التسوية.',
-    inactive_user:'الحساب الحالي غير نشط.',
-    permission_denied:'لا تملك صلاحية تعديل مستند الجرد.',
-    line_not_found:'تعذر العثور على سطر الجرد.',
-    version_not_current:'نسخة الجرد لم تعد النسخة الحالية.',
-    current_snapshot_not_found:'يجب إعداد مستند فروق الجرد قبل تنفيذ التسوية.',
-    snapshot_not_current:'مستند فروق الجرد المحدد لم يعد المستند الحالي.',
-    snapshot_line_not_found:'الصنف غير موجود داخل مستند فروق الجرد الحالي.',
-    snapshot_stale:'تم تعديل بيانات الصنف بعد إعداد مستند فروق الجرد. استبدل مستند فروق الجرد ثم أعد المحاولة.',
-    post_reversal_snapshot_stale:'تم تعديل بيانات الصنف بعد التراجع. استبدل مستند فروق الجرد ثم أعد المحاولة.',
-    material_code_mismatch:'كود المادة لا يطابق سطر مستند فروق الجرد.',
-    physical_balance_required:'يجب إدخال الرصيد الفعلي للصنف قبل تنفيذ التسوية.',
-    invalid_snapshot_values:'قيم مستند فروق الجرد غير صالحة للتسوية.',
-    zero_variance:'لا يوجد فرق جرد يحتاج إلى تسوية.',
-    invalid_reason:'سبب التسوية المحدد غير صالح.',
-    action_required:'الإجراء مطلوب.',
-    action_too_long:'الإجراء يجب ألا يتجاوز 2000 حرف.',
-    production_reason_not_allowed:'لا يمكن تسوية الفرق بسبب الإنتاج لأن الصنف لا يحتوي على إنتاج في هذا اليوم.',
-    row_version_conflict:'تم تعديل بيانات الصنف. أعد تحميل المستند واستبدل مستند فروق الجرد عند الحاجة.',
-    line_already_reconciled:'تمت تسوية فرق الجرد لهذا الصنف بالفعل.',
-    inventory_count_read_only:'نسخة الجرد الحالية لا تسمح بالتعديل.',
-    postcondition_failed:'تعذر إتمام التسوية لأن النتيجة النهائية لم تحقق تطابق الرصيد الدفتري والفعلي.'
-  };
-  if(status==='negative_result_not_allowed'){
-    if(reasonCode==='production_difference' || reasonCode==='damaged_bags' || reasonCode==='other') return 'لا يمكن تنفيذ هذه التسوية لأن كمية الإنتاج بعد التسوية ستصبح سالبة. اختر سببًا آخر أو راجع بيانات الصنف.';
-    if(reasonCode==='transfer_overloaded') return 'لا يمكن تنفيذ هذه التسوية لأن التحويلات الصادرة بعد التسوية ستصبح سالبة.';
-    if(reasonCode==='transfer_not_loaded') return 'لا يمكن تنفيذ هذه التسوية لأن التحويلات الواردة بعد التسوية ستصبح سالبة.';
-    if(reasonCode==='sales_overloaded' || reasonCode==='sales_not_loaded') return 'لا يمكن تنفيذ هذه التسوية لأن كمية البيع بعد التسوية ستصبح سالبة.';
-    return 'لا يمكن تنفيذ التسوية لأن القيمة الناتجة ستصبح سالبة.';
-  }
-  return messages[String(status || '')] || 'تعذر حفظ تسوية فرق الجرد.';
-}
+
 function inventorySettlementModalSetText(modal,key,value){
   const element=modal?.querySelector(`[data-inventory-settlement-value="${key}"]`);
   if(element) element.textContent=value===null || value===undefined || value==='' ? '—' : String(value);
@@ -11631,6 +11714,10 @@ function ensureInventoryCountSettlementModal(){
             <select id="inventorySettlementReason" required>
               <option value="">اختر سبب التسوية</option>
             </select>
+          </label>
+          <label class="inventory-settlement-field" id="inventorySettlementCorrectionField" hidden>
+            <span>كمية التحميل الخاطئ (طن) <b aria-hidden="true">*</b></span>
+            <input type="number" id="inventorySettlementCorrectionQuantity" step="0.001" min="0.001" placeholder="أدخل كمية التحميل الخاطئ (Q)">
           </label>
           <label class="inventory-settlement-field">
             <span>الإجراء <b aria-hidden="true">*</b></span>
@@ -11683,6 +11770,12 @@ function ensureInventoryCountSettlementModal(){
       syncInventoryCountSettlementModal(modal);
     }
   });
+  modal.addEventListener('input',event=>{
+    if(event.target.matches('#inventorySettlementCorrectionQuantity')){
+      modal.dataset.serverError='';
+      syncInventoryCountSettlementModal(modal);
+    }
+  });
   modal.addEventListener('keydown',event=>{
     if(event.key==='Escape'){
       event.preventDefault();
@@ -11730,6 +11823,10 @@ function inventoryCountSettlementModalValidation(modal){
   const contextLine=inventorySettlementContextLine(lineId);
   const reasonCode=String(modal?.querySelector('#inventorySettlementReason')?.value || '');
   const actionText=String(modal?.querySelector('#inventorySettlementAction')?.value || '').trim();
+  const correctionInput=modal?.querySelector('#inventorySettlementCorrectionQuantity');
+  const rawQ=correctionInput?.value;
+  const correctionQty=rawQ ? normalizeInventorySettlementNumber(rawQ) : null;
+  const requiresQ = ['transfer_overloaded','transfer_not_loaded','sales_overloaded','sales_not_loaded'].includes(reasonCode);
   let status='';
   if(!lineId || !row || !contextLine) status='line_not_found';
   else if(String(INVENTORY_COUNT_STATE.settlementContextVersionId || '')!==versionId) status='version_not_current';
@@ -11743,9 +11840,10 @@ function inventoryCountSettlementModalValidation(modal){
   else if(!getInventorySettlementReason(reasonCode)) status='invalid_reason';
   else if(!actionText) status='action_required';
   else if(actionText.length>2000) status='action_too_long';
-  const preview=calculateInventorySettlementPreview(contextLine,reasonCode);
+  else if(requiresQ && (!correctionQty || correctionQty<=0 || isNaN(correctionQty))) status='invalid_correction_quantity';
+  const preview=calculateInventorySettlementPreview(contextLine,reasonCode,correctionQty);
   if(!status && !preview.valid) status=preview.negative ? 'negative_result_not_allowed' : (reasonCode==='production_difference' ? 'production_reason_not_allowed' : 'invalid_snapshot_values');
-  return {valid:!status,row,contextLine,reasonCode,actionText,preview,status,versionId,snapshotId,lineId};
+  return {valid:!status,row,contextLine,reasonCode,actionText,preview,status,versionId,snapshotId,lineId,correctionQty};
 }
 function syncInventoryCountSettlementModal(modal=$('#inventorySettlementModal')){
   if(!modal) return null;
@@ -11759,6 +11857,8 @@ function syncInventoryCountSettlementModal(modal=$('#inventorySettlementModal'))
   if(counter) counter.textContent=String(String(action?.value || '').length);
   if(previewText) previewText.textContent=validation.preview?.message || 'اختر سبب التسوية لعرض الإجراء الذي سينفذه النظام.';
   if(previewBox) previewBox.classList.toggle('is-warning',Boolean(validation.preview?.negative));
+  const correctionField=modal.querySelector('#inventorySettlementCorrectionField');
+  if(correctionField) correctionField.hidden=!['transfer_overloaded','transfer_not_loaded','sales_overloaded','sales_not_loaded'].includes(validation.reasonCode);
   const serverError=String(modal.dataset.serverError || '');
   const visibleError=serverError || (validation.status && !['invalid_reason','action_required'].includes(validation.status) ? inventorySettlementStatusMessage(validation.status,validation.reasonCode) : '');
   if(errorBox){
@@ -11806,8 +11906,10 @@ function openInventoryCountSettlementModalFromButton(button){
   renderInventoryCountSettlementModal(modal,row,contextLine);
   const reason=modal.querySelector('#inventorySettlementReason');
   const action=modal.querySelector('#inventorySettlementAction');
+  const correctionInput=modal.querySelector('#inventorySettlementCorrectionQuantity');
   if(reason) reason.value='';
   if(action) action.value='';
+  if(correctionInput) correctionInput.value='';
   modal.hidden=false;
   modal.setAttribute('aria-hidden','false');
   modal._appModalClose=closeInventoryCountSettlementModal;
@@ -11820,7 +11922,7 @@ function openInventoryCountSettlementModalFromButton(button){
 function setInventoryCountSettlementModalLoading(modal,loading){
   if(!modal) return;
   modal.classList.toggle('is-saving',Boolean(loading));
-  modal.querySelectorAll('select,textarea,[data-inventory-settlement-close]').forEach(control=>{
+  modal.querySelectorAll('select,textarea,input,[data-inventory-settlement-close]').forEach(control=>{
     control.disabled=Boolean(loading);
   });
   const submit=modal.querySelector('#inventorySettlementSubmitBtn');
@@ -11837,7 +11939,10 @@ function inventorySettlementStatusFromError(err){
     'production_reason_not_allowed','negative_result_not_allowed','inventory_count_read_only',
     'permission_denied','inactive_user','not_authenticated','line_not_found','version_not_current',
     'zero_variance','invalid_reason','action_required','action_too_long','postcondition_failed',
-    'invalid_snapshot_values'
+    'invalid_snapshot_values','settlement_state_changed',
+    'correction_quantity_required','invalid_correction_quantity',
+    'insufficient_outgoing_transfers','insufficient_sales_quantity',
+    'negative_production_after_residual','negative_physical_result_not_allowed'
   ];
   return statuses.find(status=>message.includes(status)) || '';
 }
@@ -11858,7 +11963,8 @@ async function submitInventoryCountSettlement(){
       p_snapshot_id:validation.snapshotId,
       p_reason_code:validation.reasonCode,
       p_action_text:validation.actionText,
-      p_expected_row_version:Number(validation.row.row_version)
+      p_expected_row_version:Number(validation.row.row_version),
+      p_correction_quantity:validation.correctionQty || null
     });
     if(error) throw error;
     if(data?.status!=='inventory_line_reconciled'){
@@ -11897,7 +12003,8 @@ async function submitInventoryCountSettlement(){
 function inventorySettlementTargetFieldLabel(field){
   return ({
     production_quantity:'الإنتاج',incoming_transfers:'التحويلات الواردة',outgoing_transfers:'التحويلات الصادرة',
-    sales_quantity:'كمية البيع',physical_balance:'الرصيد الفعلي'
+    sales_quantity:'كمية البيع',physical_balance:'الرصيد الفعلي',
+    multiple:'عدة حقول (تسوية على مرحلتين)', 'outgoing_transfers+incoming_transfers':'التحويلات الصادرة والواردة'
   })[String(field || '')] || String(field || '—');
 }
 function inventorySettlementMethodLabel(method){
@@ -11906,7 +12013,13 @@ function inventorySettlementMethodLabel(method){
     adjust_incoming_transfers:'تعديل التحويلات الواردة',
     adjust_outgoing_transfers:'تعديل التحويلات الصادرة',
     adjust_sales_quantity:'تعديل كمية البيع',
-    align_physical_to_book:'مطابقة الرصيد الفعلي مع الرصيد الدفتري'
+    align_physical_to_book:'مطابقة الرصيد الفعلي مع الرصيد الدفتري',
+    increase_outgoing_transfer:'زيادة التحويلات الصادرة',
+    shift_outgoing_to_incoming:'نقل كمية من التحويلات الصادرة إلى الواردة',
+    increase_sales:'زيادة كمية البيع',
+    decrease_sales:'خفض كمية البيع',
+    two_stage_reconciliation:'تسوية على مرحلتين',
+    none:'لا توجد تسوية متبقية'
   })[String(method || '')] || (method ? String(method) : '—');
 }
 function formatInventoryAuditHistoryValue(key,value){
@@ -11967,14 +12080,6 @@ function ensureInventoryCountSettlementReversalModal(){
         <section class="inventory-settlement-reversal-summary app-liquid-modal__section">
           <h3 data-inventory-reversal-value="material"></h3>
           <div class="inventory-settlement-reversal-grid">
-            <div><span>سبب التسوية</span><strong data-inventory-reversal-value="reason"></strong></div>
-            <div><span>منفذ التسوية</span><strong data-inventory-reversal-value="user"></strong></div>
-            <div><span>وقت التسوية</span><strong data-inventory-reversal-value="time"></strong></div>
-            <div><span>الحقل المستهدف</span><strong data-inventory-reversal-value="field"></strong></div>
-            <div><span>القيمة قبل التسوية</span><strong data-inventory-reversal-value="before"></strong></div>
-            <div><span>القيمة بعد التسوية</span><strong data-inventory-reversal-value="after"></strong></div>
-            <div><span>فرق الجرد قبل التسوية</span><strong data-inventory-reversal-value="variance_before"></strong></div>
-            <div><span>فرق الجرد بعد التسوية</span><strong data-inventory-reversal-value="variance_after"></strong></div>
           </div>
           <div class="inventory-settlement-reversal-action"><span>الإجراء المسجل</span><p data-inventory-reversal-value="action"></p></div>
         </section>
@@ -12043,17 +12148,67 @@ function openInventoryCountSettlementReversalModalFromButton(button){
   modal.dataset.expectedRowVersion=String(row.row_version ?? '');
   INVENTORY_COUNT_STATE.reversalModalLineId=lineId;
   INVENTORY_COUNT_STATE.reversalModalSettlementId=settlementId;
+  const grid=modal.querySelector('.inventory-settlement-reversal-grid');
+  const actionContainer=modal.querySelector('.inventory-settlement-reversal-action');
   const target=inventorySettlementTargetValues(contextLine);
-  setInventorySettlementReversalText(modal,'material',`${row.material_code || '—'} — ${row.material_name || '—'}`);
-  setInventorySettlementReversalText(modal,'reason',contextLine.reason_label || '—');
-  setInventorySettlementReversalText(modal,'action',contextLine.action_text || '—');
-  setInventorySettlementReversalText(modal,'user',contextLine.reconciled_by_name || '—');
-  setInventorySettlementReversalText(modal,'time',formatDisplayDateTime(contextLine.reconciled_at,'—'));
-  setInventorySettlementReversalText(modal,'field',inventorySettlementTargetFieldLabel(contextLine.target_field));
-  setInventorySettlementReversalText(modal,'before',formatInventorySettlementQuantity(target.before)+' طن');
-  setInventorySettlementReversalText(modal,'after',formatInventorySettlementQuantity(target.after)+' طن');
-  setInventorySettlementReversalText(modal,'variance_before',formatInventorySettlementQuantity(contextLine.variance_before)+' طن');
-  setInventorySettlementReversalText(modal,'variance_after',formatInventorySettlementQuantity(contextLine.variance_after)+' طن');
+
+  if(contextLine.correction_quantity != null){
+    if(actionContainer) actionContainer.hidden=true;
+    grid?.classList.add('is-two-stage');
+    const primaryChanges=[];
+    if(contextLine.primary_target_field==='outgoing_transfers+incoming_transfers' || contextLine.primary_target_field==='multiple'){
+      primaryChanges.push(`<div class="inventory-settlement-reversal-summary-row"><span>التحويلات الصادرة</span><strong>${formatInventorySettlementQuantity(contextLine.outgoing_transfers_before)} ← ${formatInventorySettlementQuantity(contextLine.outgoing_transfers_after)} طن</strong></div>`);
+      primaryChanges.push(`<div class="inventory-settlement-reversal-summary-row"><span>التحويلات الواردة</span><strong>${formatInventorySettlementQuantity(contextLine.incoming_transfers_before)} ← ${formatInventorySettlementQuantity(contextLine.incoming_transfers_after)} طن</strong></div>`);
+    }else if(contextLine.primary_target_field==='outgoing_transfers'){
+      primaryChanges.push(`<div class="inventory-settlement-reversal-summary-row"><span>التحويلات الصادرة</span><strong>${formatInventorySettlementQuantity(contextLine.outgoing_transfers_before)} ← ${formatInventorySettlementQuantity(contextLine.outgoing_transfers_after)} طن</strong></div>`);
+    }else if(contextLine.primary_target_field==='sales_quantity'){
+      primaryChanges.push(`<div class="inventory-settlement-reversal-summary-row"><span>كمية البيع</span><strong>${formatInventorySettlementQuantity(contextLine.sales_quantity_before)} ← ${formatInventorySettlementQuantity(contextLine.sales_quantity_after)} طن</strong></div>`);
+    }
+    const secondaryChange=contextLine.secondary_target_field==='production_quantity'
+      ? `<div class="inventory-settlement-reversal-summary-row"><span>الإنتاج</span><strong>${formatInventorySettlementQuantity(contextLine.production_before)} ← ${formatInventorySettlementQuantity(contextLine.production_after)} طن</strong></div>`
+      : contextLine.secondary_target_field==='physical_balance'
+        ? `<div class="inventory-settlement-reversal-summary-row"><span>الرصيد الفعلي</span><strong>${formatInventorySettlementQuantity(contextLine.physical_balance_before)} ← ${formatInventorySettlementQuantity(contextLine.physical_balance_after)} طن</strong></div>`
+        : '<div class="inventory-settlement-reversal-summary-row"><span>المرحلة الثانية</span><strong>لا توجد تسوية متبقية</strong></div>';
+    if(grid) grid.innerHTML=`
+      <div class="inventory-settlement-reversal-two-stage">
+        <div class="inventory-settlement-reversal-two-stage-meta">
+          <div class="inventory-settlement-reversal-summary-row"><span>سبب التسوية</span><strong>${escapeHtml(contextLine.reason_label || '—')}</strong></div>
+          <div class="inventory-settlement-reversal-summary-row"><span>الإجراء</span><strong>${escapeHtml(contextLine.action_text || '—')}</strong></div>
+          <div class="inventory-settlement-reversal-summary-row"><span>منفذ التسوية</span><strong>${escapeHtml(contextLine.reconciled_by_name || '—')}</strong></div>
+          <div class="inventory-settlement-reversal-summary-row"><span>وقت التسوية</span><strong>${escapeHtml(formatDisplayDateTime(contextLine.reconciled_at,'—'))}</strong></div>
+          <div class="inventory-settlement-reversal-summary-row is-accent"><span>كمية التحميل الخاطئ (Q)</span><strong>${formatInventorySettlementQuantity(contextLine.correction_quantity)} طن</strong></div>
+        </div>
+        <section class="inventory-settlement-reversal-stage-card">
+          <h4>المرحلة الأولى: ${escapeHtml(inventorySettlementMethodLabel(contextLine.primary_reconciliation_method))}</h4>
+          <div class="inventory-settlement-reversal-summary-row"><span>الحقول المعدلة</span><strong>${escapeHtml(inventorySettlementTargetFieldLabel(contextLine.primary_target_field))}</strong></div>
+          ${primaryChanges.join('')}
+          <div class="inventory-settlement-reversal-summary-row"><span>الرصيد الدفتري بعد المرحلة الأولى</span><strong>${formatInventorySettlementQuantity(contextLine.book_balance_after_primary)} طن</strong></div>
+          <div class="inventory-settlement-reversal-summary-row"><span>فرق الجرد المتبقي</span><strong>${formatInventorySettlementQuantity(contextLine.residual_variance_after_primary)} طن</strong></div>
+        </section>
+        <section class="inventory-settlement-reversal-stage-card">
+          <h4>المرحلة الثانية: ${escapeHtml(inventorySettlementMethodLabel(contextLine.secondary_reconciliation_method))}</h4>
+          <div class="inventory-settlement-reversal-summary-row"><span>الحقل الثانوي</span><strong>${escapeHtml(inventorySettlementTargetFieldLabel(contextLine.secondary_target_field))}</strong></div>
+          ${secondaryChange}
+          <div class="inventory-settlement-reversal-summary-row"><span>الرصيد الدفتري النهائي</span><strong>${formatInventorySettlementQuantity(contextLine.book_balance_after)} طن</strong></div>
+          <div class="inventory-settlement-reversal-summary-row"><span>الرصيد الفعلي النهائي</span><strong>${formatInventorySettlementQuantity(contextLine.physical_balance_after)} طن</strong></div>
+          <div class="inventory-settlement-reversal-summary-row"><span>فرق الجرد النهائي</span><strong>${formatInventorySettlementQuantity(contextLine.variance_after)} طن</strong></div>
+        </section>
+      </div>`;
+  }else{
+    if(actionContainer) actionContainer.hidden=false;
+    grid?.classList.remove('is-two-stage');
+    if(grid) grid.innerHTML=`
+      <div><span>سبب التسوية</span><strong>${escapeHtml(contextLine.reason_label || '—')}</strong></div>
+      <div><span>منفذ التسوية</span><strong>${escapeHtml(contextLine.reconciled_by_name || '—')}</strong></div>
+      <div><span>وقت التسوية</span><strong>${escapeHtml(formatDisplayDateTime(contextLine.reconciled_at,'—'))}</strong></div>
+      <div><span>الحقل المستهدف</span><strong>${escapeHtml(inventorySettlementTargetFieldLabel(contextLine.target_field))}</strong></div>
+      <div><span>القيمة قبل التسوية</span><strong>${formatInventorySettlementQuantity(target.before)} طن</strong></div>
+      <div><span>القيمة بعد التسوية</span><strong>${formatInventorySettlementQuantity(target.after)} طن</strong></div>
+      <div><span>فرق الجرد قبل التسوية</span><strong>${formatInventorySettlementQuantity(contextLine.variance_before)} طن</strong></div>
+      <div><span>فرق الجرد بعد التسوية</span><strong>${formatInventorySettlementQuantity(contextLine.variance_after)} طن</strong></div>`;
+    setInventorySettlementReversalText(modal,'action',contextLine.action_text || '—');
+  }
+
   const reason=modal.querySelector('#inventorySettlementReversalReason'); if(reason) reason.value='';
   modal._appModalClose=closeInventoryCountSettlementReversalModal;
   lockAppModalScroll('inventorySettlementReversalModal',modal);
@@ -12073,6 +12228,7 @@ function closeInventoryCountSettlementReversalModal(options={}){
   INVENTORY_COUNT_STATE.reversalModalSettlementId=null;
   if(restoreFocus && returnFocus?.isConnected) requestAnimationFrame(()=>returnFocus.focus({preventScroll:true}));
 }
+
 function inventorySettlementReversalStatusFromError(err){
   const message=String(err?.message || err || '');
   const statuses=['settlement_already_reversed','settlement_not_active','settlement_state_changed','reversal_row_version_conflict','row_version_conflict','reversal_reason_required','reversal_reason_too_long','reversal_postcondition_failed','inventory_count_read_only','version_not_current','version_not_found','settlement_not_found','line_not_found','snapshot_line_not_found','permission_denied','inactive_user','not_authenticated'];

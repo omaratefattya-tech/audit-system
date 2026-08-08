@@ -627,6 +627,75 @@ table{display:block;overflow-x:auto;white-space:nowrap}
   min-width:150px;
   border-radius:10px;
 }
+
+.inventory-review-product-summary-container {
+  padding: 14px 22px;
+  background: rgba(0, 43, 33, .72);
+  border-bottom: 1px solid rgba(141, 220, 89, .16);
+}
+
+.inventory-settlement-reversal-close {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(153, 225, 95, 0.4);
+  color: #fff;
+  font-size: 20px;
+  display: grid;
+  place-items: center;
+  transition: all 0.2s ease;
+  padding: 0;
+  appearance: none;
+  font-family: 'Cairo', sans-serif;
+}
+.inventory-settlement-reversal-close:hover {
+  background: rgba(153, 225, 95, 0.15);
+  border-color: rgba(153, 225, 95, 0.8);
+}
+.inventory-settlement-reversal-close:active {
+  background: rgba(153, 225, 95, 0.25);
+}
+.inventory-settlement-reversal-close:focus-visible {
+  outline: 2px solid rgba(153, 225, 95, 0.8);
+  outline-offset: 2px;
+}
+.inventory-settlement-reversal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inventory-settlement-reversal-submit {
+  background: rgba(220, 53, 69, 0.15);
+  border: 1px solid rgba(220, 53, 69, 0.5);
+  color: #ffb3b8;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  appearance: none;
+  font-family: 'Cairo', sans-serif;
+}
+.inventory-settlement-reversal-submit:hover:not(:disabled) {
+  background: rgba(220, 53, 69, 0.25);
+  border-color: rgba(220, 53, 69, 0.8);
+  color: #fff;
+}
+.inventory-settlement-reversal-submit:active:not(:disabled) {
+  background: rgba(220, 53, 69, 0.35);
+}
+.inventory-settlement-reversal-submit:focus-visible {
+  outline: 2px solid rgba(220, 53, 69, 0.8);
+  outline-offset: 2px;
+}
+.inventory-settlement-reversal-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 @media(max-width:1300px){
   #dashboard .grid-3{grid-template-columns:1fr}
   #dashboard .grid-3 .panel{min-height:390px}
@@ -4848,7 +4917,7 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
   width: min(920px, calc(100vw - 32px));
   max-height: min(90vh, 900px);
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, .64);
   border-radius: 24px;
@@ -5561,6 +5630,15 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .inventory-settlement-reversal-summary h3{margin:0 0 12px;color:#eaffdc;overflow-wrap:anywhere}
 .inventory-settlement-reversal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .inventory-settlement-reversal-grid>div{display:grid;gap:4px;padding:10px;border-radius:12px;background:rgba(0,31,25,.58);min-width:0}
+.inventory-settlement-reversal-grid.is-two-stage{grid-template-columns:1fr}
+.inventory-settlement-reversal-grid.is-two-stage>.inventory-settlement-reversal-two-stage{padding:0;background:transparent;display:grid;gap:10px}
+.inventory-settlement-reversal-two-stage-meta,.inventory-settlement-reversal-stage-card{display:grid;gap:8px;padding:12px;border:1px solid rgba(141,220,89,.18);border-radius:14px;background:rgba(0,31,25,.58)}
+.inventory-settlement-reversal-stage-card h4{margin:0;color:var(--yellow);font-size:14px}
+.inventory-settlement-reversal-summary-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-bottom:7px;border-bottom:1px solid rgba(255,255,255,.06)}
+.inventory-settlement-reversal-summary-row:last-child{padding-bottom:0;border-bottom:0}
+.inventory-settlement-reversal-summary-row span{font-size:12px;color:var(--muted)}
+.inventory-settlement-reversal-summary-row strong{text-align:left;overflow-wrap:anywhere;white-space:pre-wrap}
+.inventory-settlement-reversal-summary-row.is-accent strong{color:var(--ic-brand-accent,#9be650)}
 .inventory-settlement-reversal-grid span,.inventory-settlement-reversal-action>span{font-size:12px;color:var(--muted)}
 .inventory-settlement-reversal-grid strong,.inventory-settlement-reversal-action p{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}
 .inventory-settlement-reversal-action{margin-top:10px;padding:10px;border-radius:12px;background:rgba(0,31,25,.58)}
