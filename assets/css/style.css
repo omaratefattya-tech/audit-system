@@ -6008,3 +6008,88 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
   .inventory-count-post-close-footer{padding-inline:12px;}
   .inventory-count-post-close-footer{display:grid;grid-template-columns:1fr 1fr;}
 }
+
+/* Inventory Count finalization confirm — scoped Liquid Glass controls */
+.app-liquid-confirm__dialog .app-liquid-modal__close{
+  width:44px;
+  min-width:44px;
+  height:44px;
+  min-height:44px;
+  padding:0;
+  border:1px solid rgba(153,225,95,.46);
+  border-radius:50%;
+  background:linear-gradient(145deg,rgba(2,48,38,.92),rgba(0,24,20,.96));
+  color:#f3ffe9;
+  font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;
+  font-size:20px;
+  font-weight:900;
+  line-height:1;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 8px 22px rgba(0,0,0,.28);
+  appearance:none;
+  -webkit-appearance:none;
+  transition:transform .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease;
+}
+.app-liquid-confirm__dialog .app-liquid-modal__close:hover{
+  transform:translateY(-1px);
+  border-color:rgba(241,187,48,.82);
+  background:linear-gradient(145deg,rgba(8,67,48,.96),rgba(1,32,25,.98));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 10px 26px rgba(0,0,0,.34),0 0 0 1px rgba(241,187,48,.08);
+}
+.app-liquid-confirm__dialog .app-liquid-modal__close:active{
+  transform:translateY(0) scale(.96);
+}
+.app-liquid-confirm__dialog .app-liquid-modal__close:focus-visible{
+  outline:2px solid var(--yellow);
+  outline-offset:3px;
+}
+
+.app-liquid-confirm__dialog [data-app-confirm-action="confirm"]{
+  min-width:132px;
+  min-height:44px;
+  padding:10px 18px;
+  border:1px solid rgba(255,106,106,.72);
+  border-radius:12px;
+  background:linear-gradient(135deg,rgba(166,42,47,.96),rgba(102,18,25,.98));
+  color:#fff5f5;
+  font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:0;
+  cursor:pointer;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.11),0 8px 20px rgba(64,0,8,.26);
+  appearance:none;
+  -webkit-appearance:none;
+  transition:transform .16s ease,border-color .16s ease,background .16s ease,box-shadow .16s ease,filter .16s ease;
+}
+.app-liquid-confirm__dialog [data-app-confirm-action="confirm"]:hover:not(:disabled){
+  transform:translateY(-1px);
+  border-color:rgba(255,142,142,.94);
+  background:linear-gradient(135deg,rgba(190,49,55,.98),rgba(119,21,30,1));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 10px 24px rgba(64,0,8,.34);
+}
+.app-liquid-confirm__dialog [data-app-confirm-action="confirm"]:active:not(:disabled){
+  transform:translateY(0) scale(.98);
+}
+.app-liquid-confirm__dialog [data-app-confirm-action="confirm"]:focus-visible{
+  outline:2px solid rgba(255,180,180,.96);
+  outline-offset:3px;
+}
+.app-liquid-confirm__dialog [data-app-confirm-action="confirm"]:disabled{
+  cursor:not-allowed;
+  opacity:.48;
+  filter:saturate(.55);
+  transform:none;
+  box-shadow:none;
+}
+
+@media(max-width:700px){
+  .app-liquid-confirm__dialog .app-liquid-modal__close{
+    width:46px;
+    min-width:46px;
+    height:46px;
+    min-height:46px;
+  }
+  .app-liquid-confirm__dialog [data-app-confirm-action="confirm"]{
+    min-height:46px;
+  }
+}
