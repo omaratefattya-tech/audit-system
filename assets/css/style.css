@@ -5824,3 +5824,187 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .inventory-review-modal.is-post-settlement .inventory-review-eyebrow{
   color:var(--gold,#d4af37);
 }
+
+/* Inventory Count - finalization and post-close invoice adjustments */
+#inventory_closing .inventory-count-footer-bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  margin-top:12px;
+  padding-top:10px;
+  border-top:1px solid rgba(132,207,80,.34);
+}
+#inventory_closing .inventory-count-footer-bar .inventory-count-reviewer-footer{
+  flex:1 1 auto;
+  margin-top:0;
+  padding:0 12px;
+  border-top:0;
+}
+#inventory_closing .inventory-count-finish-btn{
+  min-width:190px;
+  min-height:42px;
+  border-color:rgba(237,76,76,.72);
+  color:#ffdede;
+  background:linear-gradient(145deg,rgba(115,21,24,.62),rgba(50,10,14,.72));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 7px 20px rgba(0,0,0,.18);
+}
+#inventory_closing .inventory-count-finish-btn:not(:disabled):hover{
+  border-color:rgba(255,111,111,.9);
+  background:linear-gradient(145deg,rgba(139,28,31,.78),rgba(67,12,17,.84));
+  transform:translateY(-1px);
+}
+#inventory_closing .inventory-count-finish-btn:disabled,
+#inventory_closing .inventory-count-post-close-btn:disabled{
+  cursor:not-allowed;
+  opacity:.5;
+  filter:saturate(.65);
+}
+#inventory_closing .inventory-count-post-close-btn{
+  min-height:40px;
+  padding:10px 14px;
+  border-color:rgba(238,187,55,.48);
+  color:#fff2bf;
+  background:linear-gradient(145deg,rgba(99,74,12,.38),rgba(35,38,12,.54));
+}
+#inventory_closing .inventory-count-post-close-btn:not(:disabled):hover{
+  border-color:rgba(255,208,78,.78);
+  background:linear-gradient(145deg,rgba(118,88,13,.55),rgba(46,49,15,.7));
+}
+#inventoryCountLinesTable .inventory-settlement-btn.is-finalized{
+  color:#d8ffd1;
+  border-color:rgba(132,207,80,.28);
+  background:rgba(6,61,43,.65);
+}
+
+.inventory-count-post-close-modal{
+  position:fixed;
+  inset:0;
+  z-index:155;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  background:rgba(0,18,14,.7);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+.inventory-count-post-close-dialog.app-liquid-modal{
+  width:min(1040px,calc(100vw - 36px));
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;
+}
+.inventory-count-post-close-header,
+.inventory-count-post-close-footer{
+  padding:16px 18px;
+}
+.inventory-count-post-close-body{
+  display:grid;
+  gap:16px;
+  padding:16px 18px 18px;
+}
+.inventory-count-post-close-eyebrow{
+  margin-bottom:4px;
+  color:#a7d5b1;
+  font-size:12px;
+  font-weight:800;
+}
+.inventory-count-post-close-close{
+  border:1px solid rgba(153,225,95,.42);
+  border-radius:14px;
+  color:#f1ffe9;
+  background:rgba(0,30,24,.65);
+}
+.inventory-count-post-close-table-wrap{
+  overflow:auto;
+  border:1px solid rgba(141,220,89,.24);
+  border-radius:16px;
+  background:rgba(0,30,24,.36);
+}
+.inventory-count-post-close-table{
+  width:100%;
+  min-width:820px;
+  border-collapse:collapse;
+}
+.inventory-count-post-close-table th,
+.inventory-count-post-close-table td{
+  padding:11px 9px;
+  border-bottom:1px solid rgba(255,255,255,.07);
+  text-align:center;
+  vertical-align:middle;
+}
+.inventory-count-post-close-table th{
+  color:#dcffd4;
+  background:rgba(5,74,49,.72);
+  font-weight:900;
+}
+.inventory-count-post-close-table input,
+.inventory-count-post-close-table select{
+  width:100%;
+  min-height:42px;
+  box-sizing:border-box;
+  border:1px solid rgba(132,207,80,.4);
+  border-radius:10px;
+  color:#f5fff5;
+  background:rgba(0,37,29,.78);
+}
+.inventory-count-post-close-table input[readonly]{
+  color:#bfe9c6;
+  background:rgba(0,26,21,.55);
+}
+.inventory-count-post-close-reason{
+  display:grid;
+  gap:8px;
+  color:#eaffdc;
+  font-weight:800;
+}
+.inventory-count-post-close-reason textarea{
+  width:100%;
+  box-sizing:border-box;
+  resize:vertical;
+  min-height:120px;
+  padding:12px 14px;
+  border:1px solid rgba(132,207,80,.42);
+  border-radius:14px;
+  color:#f5fff5;
+  background:rgba(0,37,29,.76);
+}
+.inventory-count-post-close-preview{
+  padding:14px 16px;
+  color:#dcffd4;
+  line-height:1.8;
+}
+.inventory-count-post-close-error{
+  padding:12px 14px;
+}
+.inventory-count-post-close-footer [data-post-close-submit]:disabled{
+  opacity:.48;
+  cursor:not-allowed;
+}
+@media(max-width:700px){
+  #inventory_closing .inventory-count-footer-bar{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  #inventory_closing .inventory-count-finish-btn{
+    width:100%;
+    min-width:0;
+    min-height:46px;
+  }
+  #inventory_closing .inventory-count-post-close-btn{
+    order:7;
+    flex:1 1 100%;
+    width:100%;
+    min-height:44px;
+  }
+  #inventory_closing #inventoryClosingFocusModeBtn{order:8;}
+  #inventory_closing #inventoryClosingFocusModeCloseBtn{order:9;}
+  .inventory-count-post-close-modal{padding:8px;}
+  .inventory-count-post-close-dialog.app-liquid-modal{
+    width:calc(100vw - 16px);
+    max-height:calc(100dvh - 16px);
+  }
+  .inventory-count-post-close-header,
+  .inventory-count-post-close-body,
+  .inventory-count-post-close-footer{padding-inline:12px;}
+  .inventory-count-post-close-footer{display:grid;grid-template-columns:1fr 1fr;}
+}

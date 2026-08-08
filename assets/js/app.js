@@ -6158,8 +6158,10 @@ function applyPermissionActionGuards(section){
   if(section==='inventory_closing'){
     disableByPermission('#createInventoryCountBtn','inventory_count','add',"غير متاح للصلاحية الحالية");
     disableByPermission('#createInventoryDifferenceSnapshotBtn','inventory_count','add',"غير متاح للصلاحية الحالية");
+    disableByPermission('#finishInventoryCountBtn,#inventoryCountPostCloseInvoiceBtn','inventory_count','edit',"لا تملك صلاحية تعديل مستند الجرد");
     if(typeof inventoryCountUpdateCreateButton === 'function') inventoryCountUpdateCreateButton();
     if(typeof updateInventoryDifferenceSnapshotButton === 'function') updateInventoryDifferenceSnapshotButton();
+    if(typeof updateInventoryCountFinalizationControls === 'function') updateInventoryCountFinalizationControls();
   }
 }
 function setPermissionsStatus(message,type=''){
@@ -9933,7 +9935,7 @@ const INVENTORY_COUNT_WAREHOUSE_BY_PLANT = {
   EL01: 'N401',
   EL02: 'E401'
 };
-let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, documentStatus: null, versionStatus: null, lines: [], creating: false, snapshotCreating: false, loading: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: '—', visibleColumnKeys: null, columnManagerDraftKeys: null, searchText: '', columnFilters: {}, sortKey: '', sortDirection: 'asc', settlementContextVersionId: null, settlementContextSnapshot: null, settlementContextByLine: new Map(), settlementContextLoading: false, settlementContextError: '', settlementContextRequestSeq: 0, settlementPhaseStarted: false, settlementSaving: new Set(), settlementModalLineId: null, settlementModalSnapshotId: null, reversalSaving: new Set(), reversalModalLineId: null, reversalModalSettlementId: null, auditHistoryRequestSeq: 0, auditHistoryLineId: null, auditHistoryVersionId: null };
+let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, documentStatus: null, versionStatus: null, lines: [], creating: false, snapshotCreating: false, loading: false, finalizing: false, postCloseInvoiceSaving: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: '—', visibleColumnKeys: null, columnManagerDraftKeys: null, searchText: '', columnFilters: {}, sortKey: '', sortDirection: 'asc', settlementContextVersionId: null, settlementContextSnapshot: null, settlementContextByLine: new Map(), settlementContextLoading: false, settlementContextError: '', settlementContextRequestSeq: 0, settlementPhaseStarted: false, settlementSaving: new Set(), settlementModalLineId: null, settlementModalSnapshotId: null, reversalSaving: new Set(), reversalModalLineId: null, reversalModalSettlementId: null, postCloseInvoiceModalLineId: null, auditHistoryRequestSeq: 0, auditHistoryLineId: null, auditHistoryVersionId: null };
 const INVENTORY_COUNT_VISIBLE_COLUMNS_STORAGE_KEY = 'inventory_count_visible_columns';
 const INVENTORY_COUNT_COLUMNS = [
   { key: 'material_code', label: 'كود المادة', required: true },
@@ -9989,12 +9991,23 @@ function inventoryCountSetStatus(message,type=''){
 function inventoryCountSettlementPhaseStarted(){
   return Boolean(INVENTORY_COUNT_STATE.settlementPhaseStarted);
 }
+function inventoryCountIsFinalized(){
+  return String(INVENTORY_COUNT_STATE.documentStatus || '').toLowerCase()==='locked'
+    && ['settled','approved','locked'].includes(String(INVENTORY_COUNT_STATE.versionStatus || '').toLowerCase());
+}
 function markInventoryCountSettlementPhaseStarted(){
   INVENTORY_COUNT_STATE.settlementPhaseStarted=true;
   updateInventoryDifferenceSnapshotButton();
+  updateInventoryCountFinalizationControls();
 }
 function inventoryCountSettlementPhaseLockMessage(){
   return 'بدأت مرحلة تسوية فروق الجرد لهذا المستند. تم إيقاف التعديلات اليدوية، وأي تعديل لاحق يجب أن يتم من خلال تسوية الجرد أو التراجع عنها.';
+}
+function inventoryCountFinalizedMessage(){
+  return 'تم إنهاء مستند الجرد نهائيًا. جميع خانات الجرد مقفلة، وأي تعديل فاتورة لاحق يتم من زر تعديل فواتير بعد إنهاء الجرد.';
+}
+function inventoryCountManualEditsLocked(){
+  return inventoryCountSettlementPhaseStarted() || inventoryCountIsFinalized();
 }
 function inventoryCountPhaseLockErrorMessage(error,fallback='حدث خطأ أثناء الحفظ.',versionId=INVENTORY_COUNT_STATE.versionId){
   const message=String(error?.message || error || '').trim();
@@ -10009,13 +10022,14 @@ function inventoryCountPhaseLockErrorMessage(error,fallback='حدث خطأ أث�
   return message || fallback;
 }
 function inventoryCountManualControlLockAttributes(){
-  if(!inventoryCountSettlementPhaseStarted()) return '';
-  const title=escapeHtml(inventoryCountSettlementPhaseLockMessage());
+  if(!inventoryCountManualEditsLocked()) return '';
+  const title=escapeHtml(inventoryCountIsFinalized() ? inventoryCountFinalizedMessage() : inventoryCountSettlementPhaseLockMessage());
   return ` disabled aria-disabled="true" title="${title}" data-inventory-settlement-phase-locked="1"`;
 }
 function inventoryCountBlockManualEditIfSettlementPhaseStarted(){
-  if(!inventoryCountSettlementPhaseStarted()) return false;
-  showInventoryCountToast(inventoryCountSettlementPhaseLockMessage(),'warning',6000);
+  if(!inventoryCountManualEditsLocked()) return false;
+  const message=inventoryCountIsFinalized() ? inventoryCountFinalizedMessage() : inventoryCountSettlementPhaseLockMessage();
+  showInventoryCountToast(message,'warning',6000);
   renderInventoryCountLines(INVENTORY_COUNT_STATE.lines || []);
   return true;
 }
@@ -10023,14 +10037,46 @@ function updateInventoryDifferenceSnapshotButton(){
   const btn=$('#createInventoryDifferenceSnapshotBtn');
   if(!btn) return;
   const canAdd=hasPermission('inventory_count','add');
-  const busy=!!INVENTORY_COUNT_STATE.loading || !!INVENTORY_COUNT_STATE.creating || !!INVENTORY_COUNT_STATE.snapshotCreating;
+  const busy=!!INVENTORY_COUNT_STATE.loading || !!INVENTORY_COUNT_STATE.creating || !!INVENTORY_COUNT_STATE.snapshotCreating || !!INVENTORY_COUNT_STATE.finalizing;
   const ready=!!INVENTORY_COUNT_STATE.documentId && !!INVENTORY_COUNT_STATE.versionId && (INVENTORY_COUNT_STATE.lines || []).length > 0 && INVENTORY_COUNT_STATE.documentStatus !== 'archived';
   const phaseLocked=inventoryCountSettlementPhaseStarted();
-  btn.disabled=busy || !canAdd || !ready || phaseLocked;
-  btn.classList.toggle('permission-disabled',!canAdd || !ready || phaseLocked);
-  btn.title=phaseLocked
-    ? 'بدأت مرحلة تسوية فروق الجرد؛ لا يمكن إعداد أو استبدال مستند فروق الجرد بعد أول تسوية.'
-    : (!canAdd ? "غير متاح للصلاحية الحالية" : (!ready ? "افتح مستند جرد يحتوي على أصناف أولاً" : "إنشاء نسخة مصمتة لعرضها في شاشة فروق الجرد"));
+  const finalized=inventoryCountIsFinalized();
+  btn.disabled=busy || !canAdd || !ready || phaseLocked || finalized;
+  btn.classList.toggle('permission-disabled',!canAdd || !ready || phaseLocked || finalized);
+  btn.title=finalized
+    ? 'تم إنهاء مستند الجرد؛ لا يمكن إعداد أو استبدال مستند فروق الجرد.'
+    : (phaseLocked
+      ? 'بدأت مرحلة تسوية فروق الجرد؛ لا يمكن إعداد أو استبدال مستند فروق الجرد بعد أول تسوية.'
+      : (!canAdd ? "غير متاح للصلاحية الحالية" : (!ready ? "افتح مستند جرد يحتوي على أصناف أولاً" : "إنشاء نسخة مصمتة لعرضها في شاشة فروق الجرد")));
+}
+function inventoryCountUnresolvedVarianceCount(){
+  return (INVENTORY_COUNT_STATE.lines || []).reduce((count,row)=>count+(Math.abs(normalizeInventorySettlementNumber(row?.inventory_variance))>=0.0005 ? 1 : 0),0);
+}
+function updateInventoryCountFinalizationControls(){
+  const finishBtn=$('#finishInventoryCountBtn');
+  const invoiceBtn=$('#inventoryCountPostCloseInvoiceBtn');
+  const canEdit=hasPermission('inventory_count','edit');
+  const finalized=inventoryCountIsFinalized();
+  const hasVersion=!!INVENTORY_COUNT_STATE.documentId && !!INVENTORY_COUNT_STATE.versionId && (INVENTORY_COUNT_STATE.lines || []).length>0;
+  const unresolved=inventoryCountUnresolvedVarianceCount();
+  const busy=!!INVENTORY_COUNT_STATE.loading || !!INVENTORY_COUNT_STATE.creating || !!INVENTORY_COUNT_STATE.snapshotCreating || !!INVENTORY_COUNT_STATE.finalizing || !!INVENTORY_COUNT_STATE.postCloseInvoiceSaving;
+  if(finishBtn){
+    finishBtn.textContent=finalized ? 'تم إنهاء الجرد' : (INVENTORY_COUNT_STATE.finalizing ? 'جارٍ إنهاء الجرد...' : 'إنهاء الجرد');
+    finishBtn.disabled=busy || !canEdit || !hasVersion || finalized || unresolved>0;
+    finishBtn.classList.toggle('permission-disabled',!canEdit || !hasVersion || finalized || unresolved>0);
+    finishBtn.title=finalized
+      ? 'تم إنهاء مستند الجرد نهائيًا.'
+      : (!canEdit ? 'لا تملك صلاحية تعديل مستند الجرد.'
+        : (!hasVersion ? 'افتح مستند جرد أولاً.'
+          : (unresolved>0 ? `لا يمكن إنهاء الجرد قبل تسوية جميع الفروق. عدد الأصناف المتبقية: ${unresolved}` : 'إنهاء مستند الجرد نهائيًا وقفل جميع الخانات.')));
+  }
+  if(invoiceBtn){
+    invoiceBtn.disabled=busy || !canEdit || !hasVersion || !finalized;
+    invoiceBtn.classList.toggle('permission-disabled',!canEdit || !hasVersion || !finalized);
+    invoiceBtn.title=finalized
+      ? (canEdit ? 'إضافة تعديل بيع أو مرتجع بعد إنهاء الجرد.' : 'لا تملك صلاحية تعديل مستند الجرد.')
+      : 'يصبح هذا الزر متاحًا بعد إنهاء الجرد.';
+  }
 }
 function inventoryCountUpdateCreateButton(){
   const btn=$('#createInventoryCountBtn');
@@ -10052,6 +10098,7 @@ function inventoryCountUpdateCreateButton(){
     btn.title=canAdd ? '' : "غير متاح للصلاحية الحالية";
   }
   updateInventoryDifferenceSnapshotButton();
+  updateInventoryCountFinalizationControls();
 }
 function inventoryCountSetLoading(active,message='جارٍ إنشاء الجرد...'){
   INVENTORY_COUNT_STATE.loading=!!active;
@@ -11559,7 +11606,9 @@ function clearInventoryCountSettlementContext(options={}){
   if(closeModal){
     closeInventoryCountSettlementModal({restoreFocus:false,force:true});
     closeInventoryCountSettlementReversalModal({restoreFocus:false,force:true});
+    closeInventoryCountPostCloseInvoiceModal({restoreFocus:false,force:true});
   }
+  updateInventoryCountFinalizationControls();
 }
 function inventorySettlementContextErrorMessage(error){
   const message=String(error?.message || error || '').trim();
@@ -12339,6 +12388,9 @@ function renderInventorySettlementCell(row){
   const empty='<td class="inventory-settlement-cell"></td>';
   const versionId=String(INVENTORY_COUNT_STATE.versionId || '');
   if(!versionId) return empty;
+  if(inventoryCountIsFinalized()){
+    return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn is-finalized" type="button" disabled title="تم إنهاء مستند الجرد نهائيًا.">تم إنهاء الجرد</button></td>';
+  }
 
   const contextVersionMatches=String(INVENTORY_COUNT_STATE.settlementContextVersionId || '')===versionId;
   const contextLine=contextVersionMatches ? inventorySettlementContextLine(row?.id) : null;
@@ -12467,6 +12519,7 @@ function renderInventoryCountLines(rows=[]){
   if(window.CustomDatePicker) window.CustomDatePicker.init(tbody);
   renderInventoryCountTotals(rows);
   updateInventoryCountFreezePanes();
+  updateInventoryCountFinalizationControls();
 }
 async function filterInventoryCountLinesByCurrentWarehouse(rows=[]){
   const warehouseCode=inventoryCountReadInputs().warehouseCode;
@@ -12552,6 +12605,7 @@ async function loadInventoryCountLines(versionId,requestSeq=null){
   renderInventoryCountLines(rows);
   const meta=$('#inventoryCountCurrentVersionMeta');
   if(meta) meta.textContent=`الإصدار: ${INVENTORY_COUNT_STATE.versionNo || 1} | عدد الأصناف: ${rows.length}`;
+  updateInventoryCountFinalizationControls();
 }
 function setInventoryCountInputsFromResult(data){
   const dateInput=$('#inventoryCountDateInput');
@@ -13778,12 +13832,269 @@ function initInventoryDifferenceScreen(){
   }
 }
 
+
+function inventoryCountFinalizationStatusMessage(status,data={}){
+  const map={
+    finalized:'تم إنهاء مستند الجرد بنجاح.',
+    already_finalized:'تم إنهاء مستند الجرد بالفعل.',
+    permission_denied:'لا تملك صلاحية إنهاء مستند الجرد.',
+    version_not_found:'تعذر العثور على نسخة الجرد الحالية.',
+    version_not_current:'نسخة الجرد لم تعد النسخة الحالية للمستند.',
+    inventory_count_read_only:'مستند الجرد غير قابل للإنهاء في حالته الحالية.',
+    unresolved_inventory_variance:'لا يمكن إنهاء الجرد قبل تسوية جميع فروق الجرد.',
+    no_inventory_lines:'لا يمكن إنهاء مستند جرد لا يحتوي على أصناف.'
+  };
+  const base=map[String(status||'')] || 'تعذر إنهاء مستند الجرد.';
+  const count=Number(data?.unresolved_lines || 0);
+  return status==='unresolved_inventory_variance' && count>0 ? `${base} عدد الأصناف المتبقية: ${count}.` : base;
+}
+function inventoryCountPostCloseStatusMessage(status){
+  const map={
+    post_close_invoice_adjustment_saved:'تم اعتماد تعديل الفاتورة بعد إنهاء الجرد.',
+    not_authenticated:'انتهت جلسة الدخول. سجّل الدخول مرة أخرى.',
+    inactive_user:'المستخدم الحالي غير نشط.',
+    permission_denied:'لا تملك صلاحية تعديل فواتير الجرد.',
+    version_not_found:'تعذر العثور على نسخة الجرد.',
+    inventory_not_finalized:'لا يمكن تعديل الفواتير قبل إنهاء الجرد.',
+    version_not_current:'نسخة الجرد لم تعد النسخة الحالية.',
+    line_not_found:'لم يتم العثور على الصنف داخل مستند الجرد.',
+    invalid_action:'اختر الإجراء: بيع أو مرتجع.',
+    invalid_quantity:'أدخل كمية صحيحة أكبر من صفر وبحد أقصى ثلاث خانات عشرية.',
+    reason_required:'يجب كتابة سبب التعديل وتفاصيل الفاتورة والعميل.',
+    reason_too_long:'تفاصيل التعديل لا يمكن أن تتجاوز 4000 حرف.',
+    insufficient_sales_quantity:'لا يمكن تنفيذ المرتجع لأن الكمية المدخلة أكبر من كمية البيع الحالية.',
+    row_version_conflict:'تم تعديل بيانات الصنف من مستخدم آخر. أعد تحميل المستند ثم حاول مرة أخرى.',
+    postcondition_failed:'تعذر تثبيت نتيجة تعديل الفاتورة بصورة صحيحة.'
+  };
+  return map[String(status||'')] || 'تعذر اعتماد تعديل الفاتورة بعد إنهاء الجرد.';
+}
+async function finishInventoryCountFromUi(){
+  if(INVENTORY_COUNT_STATE.finalizing || inventoryCountIsFinalized()) return;
+  if(!INVENTORY_COUNT_STATE.versionId || !INVENTORY_COUNT_STATE.documentId){
+    showInventoryCountToast('افتح مستند جرد أولاً.','warning');
+    return;
+  }
+  if(!hasPermission('inventory_count','edit')){
+    showInventoryCountToast('لا تملك صلاحية إنهاء مستند الجرد.','error');
+    return;
+  }
+  const unresolved=inventoryCountUnresolvedVarianceCount();
+  if(unresolved>0){
+    showInventoryCountToast(`لا يمكن إنهاء الجرد قبل تسوية جميع الفروق. عدد الأصناف المتبقية: ${unresolved}.`,'warning',6000);
+    return;
+  }
+  const confirmed=await showAppLiquidConfirm({
+    title:'إنهاء مستند الجرد',
+    message:'سيتم قفل مستند الجرد نهائيًا وإيقاف جميع خانات الجرد والتسويات والتراجعات. بعد الإنهاء ستكون تعديلات البيع والمرتجع متاحة فقط من زر «تعديل فواتير بعد إنهاء الجرد». هل تريد المتابعة؟',
+    confirmText:'إنهاء الجرد',
+    cancelText:'إلغاء',
+    tone:'danger'
+  });
+  if(!confirmed) return;
+  INVENTORY_COUNT_STATE.finalizing=true;
+  updateInventoryCountFinalizationControls();
+  try{
+    const {data,error}=await WarehouseDB.client.rpc('finalize_inventory_count',{p_version_id:INVENTORY_COUNT_STATE.versionId});
+    if(error) throw error;
+    const status=String(data?.status || '');
+    if(!['finalized','already_finalized'].includes(status)){
+      showInventoryCountToast(inventoryCountFinalizationStatusMessage(status,data),'error',6000);
+      return;
+    }
+    INVENTORY_COUNT_STATE.documentStatus=data?.document_status || 'locked';
+    INVENTORY_COUNT_STATE.versionStatus=data?.version_status || 'settled';
+    renderInventoryCountLines(INVENTORY_COUNT_STATE.lines || []);
+    inventoryCountUpdateCreateButton();
+    showInventoryCountToast(status==='already_finalized' ? 'تم إنهاء مستند الجرد بالفعل.' : 'تم إنهاء مستند الجرد بنجاح.','success',5000);
+  }catch(err){
+    console.error('Inventory count finalization failed',err);
+    showInventoryCountToast(err?.message || 'تعذر إنهاء مستند الجرد.','error',6000);
+  }finally{
+    INVENTORY_COUNT_STATE.finalizing=false;
+    updateInventoryCountFinalizationControls();
+  }
+}
+function inventoryCountPostCloseLineByCode(value){
+  const key=String(value||'').trim().toUpperCase();
+  if(!key) return null;
+  return (INVENTORY_COUNT_STATE.lines || []).find(row=>String(row?.material_code||'').trim().toUpperCase()===key) || null;
+}
+function inventoryCountPostCloseLineByName(value){
+  const key=String(value||'').trim().toLocaleLowerCase('ar');
+  if(!key) return null;
+  const rows=INVENTORY_COUNT_STATE.lines || [];
+  const exact=rows.find(row=>String(row?.material_name||'').trim().toLocaleLowerCase('ar')===key);
+  if(exact) return exact;
+  const matches=rows.filter(row=>String(row?.material_name||'').toLocaleLowerCase('ar').includes(key));
+  return matches.length===1 ? matches[0] : null;
+}
+function inventoryCountPostClosePreview(row,action,quantity){
+  const q=roundInventoryManualThreeDecimalValue(quantity);
+  if(!row || !['sale','return'].includes(action) || !Number.isFinite(q) || q<=0) return {valid:false};
+  const salesBefore=normalizeInventorySettlementNumber(row.sales_quantity);
+  const bookBefore=normalizeInventorySettlementNumber(row.book_balance);
+  const salesAfter=roundInventoryManualThreeDecimalValue(action==='sale' ? salesBefore+q : salesBefore-q);
+  if(action==='return' && salesAfter<0) return {valid:false,status:'insufficient_sales_quantity'};
+  const bookAfter=roundInventoryManualThreeDecimalValue(action==='sale' ? bookBefore-q : bookBefore+q);
+  return {valid:true,q,salesBefore,salesAfter,bookBefore,bookAfter,physicalAfter:bookAfter,varianceAfter:0};
+}
+function closeInventoryCountPostCloseInvoiceModal(options={}){
+  const modal=$('#inventoryCountPostCloseInvoiceModal');
+  if(!modal) return;
+  const returnFocus=modal._returnFocus;
+  unlockAppModalScroll('inventory-count-post-close-invoice');
+  modal.remove();
+  INVENTORY_COUNT_STATE.postCloseInvoiceModalLineId=null;
+  if(options.restoreFocus!==false && returnFocus?.isConnected) returnFocus.focus();
+}
+function syncInventoryCountPostCloseInvoiceModal(modal){
+  if(!modal) return;
+  const codeInput=modal.querySelector('[data-post-close-code]');
+  const nameInput=modal.querySelector('[data-post-close-name]');
+  const uom=modal.querySelector('[data-post-close-uom]');
+  const qtyInput=modal.querySelector('[data-post-close-quantity]');
+  const actionSelect=modal.querySelector('[data-post-close-action]');
+  const reason=modal.querySelector('[data-post-close-reason]');
+  const previewEl=modal.querySelector('[data-post-close-preview]');
+  const submit=modal.querySelector('[data-post-close-submit]');
+  const serverError=modal.querySelector('[data-post-close-error]');
+  let row=inventoryCountPostCloseLineByCode(codeInput?.value);
+  if(!row) row=inventoryCountPostCloseLineByName(nameInput?.value);
+  if(row){
+    INVENTORY_COUNT_STATE.postCloseInvoiceModalLineId=String(row.id||'');
+    if(codeInput && document.activeElement!==codeInput) codeInput.value=String(row.material_code||'');
+    if(nameInput && document.activeElement!==nameInput) nameInput.value=String(row.material_name||'');
+    if(uom) uom.value=String(row.uom||'');
+  }else{
+    INVENTORY_COUNT_STATE.postCloseInvoiceModalLineId=null;
+    if(uom) uom.value='';
+  }
+  const action=String(actionSelect?.value || '');
+  const quantity=String(qtyInput?.value || '').trim();
+  const preview=inventoryCountPostClosePreview(row,action,quantity);
+  const reasonText=String(reason?.value || '').trim();
+  const reasonValid=reasonText.length>0 && reasonText.length<=4000;
+  if(previewEl){
+    if(!row) previewEl.textContent='اختر الصنف بالكود أو ابحث بالاسم لعرض تأثير التعديل.';
+    else if(!action) previewEl.textContent='اختر الإجراء لعرض تأثير التعديل.';
+    else if(!preview.valid && preview.status==='insufficient_sales_quantity') previewEl.textContent='لا يمكن تنفيذ المرتجع لأن الكمية أكبر من كمية البيع الحالية.';
+    else if(!preview.valid) previewEl.textContent='أدخل كمية صحيحة أكبر من صفر.';
+    else previewEl.textContent=`البيع: ${formatInventoryCountThreeDecimalQuantity(preview.salesBefore)} → ${formatInventoryCountThreeDecimalQuantity(preview.salesAfter)} طن | الرصيد الدفتري: ${formatInventoryCountThreeDecimalQuantity(preview.bookBefore)} → ${formatInventoryCountThreeDecimalQuantity(preview.bookAfter)} طن | الرصيد الفعلي سيصبح ${formatInventoryCountThreeDecimalQuantity(preview.physicalAfter)} طن وفرق الجرد 0.000 طن.`;
+  }
+  const valid=inventoryCountIsFinalized() && !!row && preview.valid && reasonValid && !INVENTORY_COUNT_STATE.postCloseInvoiceSaving;
+  if(submit){submit.disabled=!valid;submit.setAttribute('aria-disabled',valid?'false':'true');}
+  if(serverError && !modal.dataset.serverError) serverError.hidden=true;
+}
+function openInventoryCountPostCloseInvoiceModal(){
+  if(!inventoryCountIsFinalized()){
+    showInventoryCountToast('يجب إنهاء مستند الجرد أولاً.','warning');
+    return;
+  }
+  if(!hasPermission('inventory_count','edit')){
+    showInventoryCountToast('لا تملك صلاحية تعديل فواتير الجرد.','error');
+    return;
+  }
+  closeInventoryCountPostCloseInvoiceModal({restoreFocus:false});
+  const modal=document.createElement('div');
+  modal.id='inventoryCountPostCloseInvoiceModal';
+  modal.className='inventory-count-post-close-modal app-liquid-modal-backdrop';
+  modal.setAttribute('role','dialog');
+  modal.setAttribute('aria-modal','true');
+  modal.setAttribute('aria-labelledby','inventoryCountPostCloseInvoiceTitle');
+  modal.innerHTML=`<div class="inventory-count-post-close-dialog app-liquid-modal">
+    <div class="inventory-count-post-close-header app-liquid-modal__header"><div><div class="inventory-count-post-close-eyebrow">الجرد وتوثيق المخزون</div><h2 class="app-liquid-modal__title" id="inventoryCountPostCloseInvoiceTitle">تعديل فواتير بعد إنهاء الجرد</h2></div><button class="app-liquid-modal__close inventory-count-post-close-close" type="button" aria-label="إغلاق">×</button></div>
+    <div class="inventory-count-post-close-body app-liquid-modal__body">
+      <div class="inventory-count-post-close-table-wrap"><table class="inventory-count-post-close-table"><thead><tr><th>كود المادة</th><th>وصف المادة</th><th>وحدة القياس</th><th>الكمية</th><th>الإجراء</th></tr></thead><tbody><tr><td><input type="text" data-post-close-code list="inventoryCountPostCloseCodeList" autocomplete="off" placeholder="أدخل كود المادة"></td><td><input type="text" data-post-close-name list="inventoryCountPostCloseNameList" autocomplete="off" placeholder="ابحث باسم الصنف"></td><td><input type="text" data-post-close-uom readonly aria-label="وحدة القياس"></td><td><input type="number" min="0.001" step="0.001" data-post-close-quantity placeholder="0.000"></td><td><select data-post-close-action><option value="">اختر الإجراء</option><option value="sale">بيع</option><option value="return">مرتجع</option></select></td></tr></tbody></table></div>
+      <datalist id="inventoryCountPostCloseCodeList"></datalist><datalist id="inventoryCountPostCloseNameList"></datalist>
+      <label class="inventory-count-post-close-reason"><span>سبب التعديل وتفاصيل الفاتورة والعميل *</span><textarea maxlength="4000" rows="5" data-post-close-reason placeholder="اكتب سبب التعديل ورقم/تفاصيل الفاتورة وبيانات العميل..."></textarea></label>
+      <div class="inventory-count-post-close-preview app-liquid-modal__section" data-post-close-preview>اختر الصنف وأدخل بيانات التعديل لعرض النتيجة.</div>
+      <div class="inventory-count-post-close-error app-liquid-modal__error" data-post-close-error hidden></div>
+    </div>
+    <div class="inventory-count-post-close-footer app-liquid-modal__footer"><button class="secondary" type="button" data-post-close-cancel>إلغاء</button><button class="primary" type="button" data-post-close-submit disabled>اعتماد التعديل</button></div>
+  </div>`;
+  const codeList=modal.querySelector('#inventoryCountPostCloseCodeList');
+  const nameList=modal.querySelector('#inventoryCountPostCloseNameList');
+  (INVENTORY_COUNT_STATE.lines || []).forEach(row=>{
+    const codeOption=document.createElement('option');codeOption.value=String(row.material_code||'');codeOption.label=String(row.material_name||'');codeList?.appendChild(codeOption);
+    const nameOption=document.createElement('option');nameOption.value=String(row.material_name||'');nameOption.label=String(row.material_code||'');nameList?.appendChild(nameOption);
+  });
+  modal._returnFocus=$('#inventoryCountPostCloseInvoiceBtn');
+  modal._appModalClose=closeInventoryCountPostCloseInvoiceModal;
+  modal.addEventListener('click',event=>{
+    if(event.target===modal || event.target.closest('.inventory-count-post-close-close') || event.target.closest('[data-post-close-cancel]')){event.preventDefault();closeInventoryCountPostCloseInvoiceModal();return;}
+    if(event.target.closest('[data-post-close-submit]')){event.preventDefault();submitInventoryCountPostCloseInvoiceAdjustment(modal);}
+  });
+  modal.addEventListener('input',()=>{modal.dataset.serverError='';syncInventoryCountPostCloseInvoiceModal(modal);});
+  modal.addEventListener('change',()=>{modal.dataset.serverError='';syncInventoryCountPostCloseInvoiceModal(modal);});
+  document.body.appendChild(modal);
+  lockAppModalScroll('inventory-count-post-close-invoice',modal);
+  syncInventoryCountPostCloseInvoiceModal(modal);
+  requestAnimationFrame(()=>modal.querySelector('[data-post-close-code]')?.focus());
+}
+async function submitInventoryCountPostCloseInvoiceAdjustment(modal){
+  if(!modal || INVENTORY_COUNT_STATE.postCloseInvoiceSaving) return;
+  syncInventoryCountPostCloseInvoiceModal(modal);
+  const lineId=String(INVENTORY_COUNT_STATE.postCloseInvoiceModalLineId || '');
+  const row=(INVENTORY_COUNT_STATE.lines || []).find(item=>String(item.id||'')===lineId);
+  const qty=roundInventoryManualThreeDecimalValue(modal.querySelector('[data-post-close-quantity]')?.value);
+  const action=String(modal.querySelector('[data-post-close-action]')?.value || '');
+  const reason=String(modal.querySelector('[data-post-close-reason]')?.value || '').trim();
+  const preview=inventoryCountPostClosePreview(row,action,qty);
+  if(!row || !preview.valid || !reason) return;
+  INVENTORY_COUNT_STATE.postCloseInvoiceSaving=true;
+  updateInventoryCountFinalizationControls();
+  modal.querySelectorAll('input,select,textarea,button').forEach(control=>control.disabled=true);
+  try{
+    const {data,error}=await WarehouseDB.client.rpc('apply_inventory_count_post_close_invoice_adjustment',{
+      p_version_id:INVENTORY_COUNT_STATE.versionId,
+      p_material_code:String(row.material_code||''),
+      p_quantity:qty,
+      p_action_code:action,
+      p_reason_details:reason,
+      p_expected_row_version:Number(row.row_version||0)
+    });
+    if(error) throw error;
+    const status=String(data?.status || '');
+    if(status!=='post_close_invoice_adjustment_saved'){
+      const message=inventoryCountPostCloseStatusMessage(status);
+      modal.dataset.serverError=message;
+      const errorBox=modal.querySelector('[data-post-close-error]');if(errorBox){errorBox.hidden=false;errorBox.textContent=message;}
+      return;
+    }
+    const returned=data?.line || {};
+    Object.assign(row,{
+      sales_quantity:returned.sales_quantity ?? row.sales_quantity,
+      book_balance:returned.book_balance ?? row.book_balance,
+      physical_balance:returned.physical_balance ?? row.physical_balance,
+      inventory_variance:returned.inventory_variance ?? row.inventory_variance,
+      row_version:returned.row_version ?? row.row_version
+    });
+    const versionId=String(INVENTORY_COUNT_STATE.versionId || '');
+    const requestSeq=INVENTORY_COUNT_STATE.requestSeq;
+    closeInventoryCountPostCloseInvoiceModal({restoreFocus:false});
+    if(versionId && versionId===String(INVENTORY_COUNT_STATE.versionId || '')) await loadInventoryCountLines(versionId,requestSeq);
+    showInventoryCountToast('تم اعتماد تعديل الفاتورة بعد إنهاء الجرد.','success',5000);
+  }catch(err){
+    console.error('Post-close invoice adjustment failed',err);
+    const message=err?.message || 'تعذر اعتماد تعديل الفاتورة بعد إنهاء الجرد.';
+    modal.dataset.serverError=message;
+    const errorBox=modal.querySelector('[data-post-close-error]');if(errorBox){errorBox.hidden=false;errorBox.textContent=message;}
+    showInventoryCountToast(message,'error',6000);
+  }finally{
+    INVENTORY_COUNT_STATE.postCloseInvoiceSaving=false;
+    if(modal.isConnected){modal.querySelectorAll('input,select,textarea,button').forEach(control=>control.disabled=false);syncInventoryCountPostCloseInvoiceModal(modal);}
+    updateInventoryCountFinalizationControls();
+  }
+}
+
 function initInventoryCountScreen(){
   const dateInput=$('#inventoryCountDateInput');
   const plantSelect=$('#inventoryCountPlantSelect');
   const warehouseSelect=$('#inventoryCountWarehouseSelect');
   const createBtn=$('#createInventoryCountBtn');
   const snapshotBtn=$('#createInventoryDifferenceSnapshotBtn');
+  const finishBtn=$('#finishInventoryCountBtn');
+  const postCloseInvoiceBtn=$('#inventoryCountPostCloseInvoiceBtn');
   if(!dateInput || !plantSelect || !createBtn) return;
   if(!dateInput.value) dateInput.value=inventoryCountTodayIso();
   if(window.CustomDatePicker) window.CustomDatePicker.init(dateInput.parentElement || document);
@@ -13804,6 +14115,14 @@ function initInventoryCountScreen(){
   if(snapshotBtn && snapshotBtn.dataset.inventoryDifferenceSnapshotBound!=='1'){
     snapshotBtn.dataset.inventoryDifferenceSnapshotBound='1';
     snapshotBtn.addEventListener('click',createInventoryDifferenceSnapshotFromUi);
+  }
+  if(finishBtn && finishBtn.dataset.inventoryCountFinishBound!=='1'){
+    finishBtn.dataset.inventoryCountFinishBound='1';
+    finishBtn.addEventListener('click',finishInventoryCountFromUi);
+  }
+  if(postCloseInvoiceBtn && postCloseInvoiceBtn.dataset.inventoryPostCloseBound!=='1'){
+    postCloseInvoiceBtn.dataset.inventoryPostCloseBound='1';
+    postCloseInvoiceBtn.addEventListener('click',openInventoryCountPostCloseInvoiceModal);
   }
   if(dateInput.dataset.inventoryCountOpenBound!=='1'){
     dateInput.dataset.inventoryCountOpenBound='1';
@@ -13845,6 +14164,7 @@ function initInventoryCountScreen(){
   });
   applyPermissionActionGuards('inventory_closing');
   inventoryCountUpdateCreateButton();
+  updateInventoryCountFinalizationControls();
 }
 document.addEventListener('DOMContentLoaded', initInventoryClosing);
 document.addEventListener('DOMContentLoaded', initInventoryCountScreen);

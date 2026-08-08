@@ -629,12 +629,13 @@
               <button class="secondary inventory-count-mobile-tool-btn" id="inventoryCountMobileSettingsBtn" type="button" aria-controls="inventoryCountSettingsBox" aria-expanded="false">إعدادات الجرد</button>
               <button class="secondary inventory-count-mobile-tool-btn" id="inventoryCountMobileExportBtn" type="button" aria-controls="inventoryCountMobileExportPanel" aria-expanded="false">تصدير</button>
               <button class="secondary inventory-count-mobile-tool-btn" id="inventoryCountMobileSearchBtn" type="button" aria-controls="inventoryCountMobileFilterPanel" aria-expanded="false">بحث وفلترة</button>
-              <button class="secondary focus-mode-btn" id="inventoryClosingFocusModeBtn" type="button" data-focus-target="inventory_closing">Focus Mode</button>
               <button class="secondary export-btn inventory-count-export-btn" id="createInventoryDifferenceSnapshotBtn" type="button">إنشاء مستند فروق الجرد</button>
               <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountColumnManagerBtn" type="button" aria-expanded="false" aria-controls="inventoryCountColumnManagerPanel">إدارة الأعمدة</button>
               <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountExportPngBtn" type="button">PNG</button>
               <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountExportPdfBtn" type="button">PDF</button>
               <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountExportExcelBtn" type="button">EXCEL</button>
+              <button class="secondary inventory-count-post-close-btn" id="inventoryCountPostCloseInvoiceBtn" type="button" disabled>تعديل فواتير بعد إنهاء الجرد</button>
+              <button class="secondary focus-mode-btn" id="inventoryClosingFocusModeBtn" type="button" data-focus-target="inventory_closing">Focus Mode</button>
               <button class="secondary focus-mode-close-btn" id="inventoryClosingFocusModeCloseBtn" type="button" data-focus-close hidden>إغلاق Focus Mode</button>
             </div>
           </div>
@@ -740,7 +741,10 @@
               <tfoot></tfoot>
             </table>
           </div>
-          <div id="inventoryCountReviewerFooter" class="inventory-count-reviewer-footer">القائم بالمراجعة / —</div>
+          <div class="inventory-count-footer-bar">
+            <div id="inventoryCountReviewerFooter" class="inventory-count-reviewer-footer">القائم بالمراجعة / —</div>
+            <button class="secondary inventory-count-finish-btn" id="finishInventoryCountBtn" type="button" disabled>إنهاء الجرد</button>
+          </div>
           <div id="inventoryCountColumnManagerPanel" class="inventory-count-column-panel" hidden aria-hidden="true"></div>
           <div id="inventoryCountToastStack" class="inventory-count-toast-stack" aria-live="polite" aria-atomic="false"></div>
 
