@@ -12546,6 +12546,7 @@ function resetInventoryCountView(message='لم يتم إنشاء جرد بعد.'
   INVENTORY_COUNT_STATE.versionNo=null;
   INVENTORY_COUNT_STATE.documentStatus=null;
   INVENTORY_COUNT_STATE.versionStatus=null;
+  INVENTORY_COUNT_STATE.openingBalanceMode='manual_first_day';
   INVENTORY_COUNT_STATE.reviewerUserId=null;
   INVENTORY_COUNT_STATE.reviewerName='—';
   renderInventoryCountLines([]);
@@ -12580,6 +12581,23 @@ async function loadInventoryCountCounterOptions(plantCode=inventoryCountReadInpu
     INVENTORY_COUNT_STATE.inventoryCounterLoading=false;
   }
 }
+async function loadInventoryCountOpeningBalanceContext(versionId,requestSeq=null){
+  if(!versionId){
+    INVENTORY_COUNT_STATE.openingBalanceMode='manual_first_day';
+    return;
+  }
+  if(!window.WarehouseDB?.ready) return;
+  try{
+    const {data,error}=await WarehouseDB.client.rpc('get_inventory_count_opening_balance_context',{p_version_id:versionId});
+    if(error) throw error;
+    if(requestSeq!==null && requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
+    if(String(INVENTORY_COUNT_STATE.versionId || '')!==String(versionId)) return;
+    INVENTORY_COUNT_STATE.openingBalanceMode=String(data?.opening_balance_mode || '')==='carried_forward' ? 'carried_forward' : 'manual_first_day';
+  }catch(err){
+    console.error('Inventory count opening-balance context load failed',err);
+  }
+}
+
 async function loadInventoryCountLines(versionId,requestSeq=null){
   if(!versionId) return;
   if(!window.WarehouseDB?.ready){
@@ -12587,12 +12605,14 @@ async function loadInventoryCountLines(versionId,requestSeq=null){
     return;
   }
   await loadInventoryCountCounterOptions(inventoryCountReadInputs().plantCode);
+  const openingBalanceContextPromise=loadInventoryCountOpeningBalanceContext(versionId,requestSeq);
   const {data,error}=await WarehouseDB.client
     .from('inventory_count_lines')
     .select('id,material_code,material_name,uom,opening_balance,row_version,production_quantity,physical_balance,oldest_quantity,oldest_date,inventory_counter_id,inventory_counter_name_snapshot,inventory_counter_job_title_snapshot,incoming_transfers,actual_returns,adjustment_increase_z22,adjustment_shortage_z21,sales_quantity,outgoing_transfers,rework_311,book_balance,inventory_variance')
     .eq('version_id',versionId)
     .order('material_code',{ascending:true});
   if(error) throw error;
+  await openingBalanceContextPromise;
   if(requestSeq!==null && requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
   const rows=await filterInventoryCountLinesByCurrentWarehouse(data||[]);
   if(requestSeq!==null && requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
@@ -13863,6 +13883,8 @@ function inventoryCountPostCloseStatusMessage(status){
     reason_required:'يجب كتابة سبب التعديل وتفاصيل الفاتورة والعميل.',
     reason_too_long:'تفاصيل التعديل لا يمكن أن تتجاوز 4000 حرف.',
     insufficient_sales_quantity:'لا يمكن تنفيذ المرتجع لأن الكمية المدخلة أكبر من كمية البيع الحالية.',
+    downstream_active_settlement_conflict:'يوجد جرد لاحق مفتوح يحتوي على تسوية فعالة لهذا الصنف. تراجع عن التسوية الفعالة أولاً ثم أعد تنفيذ تعديل الفاتورة حتى يمكن ترحيل الأثر بأمان.',
+    downstream_version_not_propagatable:'تعذر ترحيل أثر التعديل لأن إحدى نسخ الجرد اللاحقة في حالة لا تسمح بالتحديث الآلي.',
     row_version_conflict:'تم تعديل بيانات الصنف من مستخدم آخر. أعد تحميل المستند ثم حاول مرة أخرى.',
     postcondition_failed:'تعذر تثبيت نتيجة تعديل الفاتورة بصورة صحيحة.'
   };
@@ -14073,7 +14095,11 @@ async function submitInventoryCountPostCloseInvoiceAdjustment(modal){
     const requestSeq=INVENTORY_COUNT_STATE.requestSeq;
     closeInventoryCountPostCloseInvoiceModal({restoreFocus:false});
     if(versionId && versionId===String(INVENTORY_COUNT_STATE.versionId || '')) await loadInventoryCountLines(versionId,requestSeq);
-    showInventoryCountToast('تم اعتماد تعديل الفاتورة بعد إنهاء الجرد.','success',5000);
+    const propagatedDocuments=Number(data?.propagated_documents || 0);
+    const propagationMessage=propagatedDocuments>0
+      ? `تم اعتماد تعديل الفاتورة وترحيل أثر الرصيد تلقائيًا إلى ${propagatedDocuments} مستند جرد لاحق.`
+      : 'تم اعتماد تعديل الفاتورة بعد إنهاء الجرد.';
+    showInventoryCountToast(propagationMessage,'success',6000);
   }catch(err){
     console.error('Post-close invoice adjustment failed',err);
     const message=err?.message || 'تعذر اعتماد تعديل الفاتورة بعد إنهاء الجرد.';
