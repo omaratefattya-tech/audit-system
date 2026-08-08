@@ -5458,6 +5458,12 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
   font-weight: 800;
 }
 
+/* The author-level grid rule above overrides the browser's [hidden] rule,
+   so keep conditional settlement fields truly hidden unless JavaScript shows them. */
+.inventory-settlement-field[hidden] {
+  display: none !important;
+}
+
 .inventory-settlement-field b {
   color: #b33b35;
 }
@@ -5541,6 +5547,18 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .inventory-settlement-actions button {
   min-width: 132px;
   min-height: 44px;
+}
+
+.inventory-settlement-submit:disabled,
+.inventory-settlement-submit.is-disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  filter: grayscale(.35) saturate(.65);
+  box-shadow: none;
+}
+
+.inventory-settlement-submit:not(:disabled):not(.is-disabled) {
+  cursor: pointer;
 }
 
 .inventory-settlement-modal.is-saving .inventory-settlement-dialog {

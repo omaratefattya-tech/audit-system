@@ -11838,9 +11838,10 @@ function inventoryCountSettlementModalValidation(modal){
   else if(!hasPermission('inventory_count','edit')) status='permission_denied';
   else if(inventoryCountLineHasActiveSave(lineId) && !INVENTORY_COUNT_STATE.settlementSaving.has(lineId)) status='row_version_conflict';
   else if(!getInventorySettlementReason(reasonCode)) status='invalid_reason';
+  else if(requiresQ && (rawQ===null || rawQ===undefined || String(rawQ).trim()==='')) status='correction_quantity_required';
+  else if(requiresQ && (!Number.isFinite(Number(rawQ)) || correctionQty<=0)) status='invalid_correction_quantity';
   else if(!actionText) status='action_required';
   else if(actionText.length>2000) status='action_too_long';
-  else if(requiresQ && (!correctionQty || correctionQty<=0 || isNaN(correctionQty))) status='invalid_correction_quantity';
   const preview=calculateInventorySettlementPreview(contextLine,reasonCode,correctionQty);
   if(!status && !preview.valid) status=preview.negative ? 'negative_result_not_allowed' : (reasonCode==='production_difference' ? 'production_reason_not_allowed' : 'invalid_snapshot_values');
   return {valid:!status,row,contextLine,reasonCode,actionText,preview,status,versionId,snapshotId,lineId,correctionQty};
@@ -11865,7 +11866,12 @@ function syncInventoryCountSettlementModal(modal=$('#inventorySettlementModal'))
     errorBox.textContent=visibleError;
     errorBox.hidden=!visibleError;
   }
-  if(submit) submit.disabled=!validation.valid || INVENTORY_COUNT_STATE.settlementSaving.has(validation.lineId);
+  if(submit){
+    const disabled=!validation.valid || INVENTORY_COUNT_STATE.settlementSaving.has(validation.lineId);
+    submit.disabled=disabled;
+    submit.classList.toggle('is-disabled',disabled);
+    submit.setAttribute('aria-disabled',disabled ? 'true' : 'false');
+  }
   return validation;
 }
 function openInventoryCountSettlementModalFromButton(button){
@@ -11996,6 +12002,9 @@ async function submitInventoryCountSettlement(){
     if(modal.isConnected){
       setInventoryCountSettlementModalLoading(modal,false);
       syncInventoryCountSettlementModal(modal);
+    }
+    if(String(INVENTORY_COUNT_STATE.versionId || '')===versionId){
+      renderInventoryCountLines(INVENTORY_COUNT_STATE.lines || []);
     }
   }
 }
@@ -12285,13 +12294,17 @@ function renderInventorySettlementCell(row){
   // An active settlement must always expose its reversal action, even if the
   // Current Snapshot was later replaced or temporarily unavailable.
   if(contextLine && (contextLine.is_reconciled || contextLine.active_settlement_id)){
-    const lineId=escapeHtml(String(row?.id || ''));
+    const rawLineId=String(row?.id || '');
+    const lineId=escapeHtml(rawLineId);
     const settlementId=escapeHtml(String(contextLine.active_settlement_id || contextLine.settlement_id || ''));
     if(!hasPermission('inventory_count','edit') || contextLine.can_reverse===false){
       return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-reverse-btn" type="button" disabled title="لا تملك صلاحية تعديل مستند الجرد.">تراجع</button></td>';
     }
-    if(inventoryCountLineHasActiveSave(row?.id)){
+    if(INVENTORY_COUNT_STATE.reversalSaving instanceof Set && INVENTORY_COUNT_STATE.reversalSaving.has(rawLineId)){
       return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-reverse-btn is-loading" type="button" disabled title="جاري تنفيذ التراجع على السطر.">جاري التراجع...</button></td>';
+    }
+    if(INVENTORY_COUNT_STATE.settlementSaving instanceof Set && INVENTORY_COUNT_STATE.settlementSaving.has(rawLineId)){
+      return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-reverse-btn is-loading" type="button" disabled title="جاري إنهاء حفظ التسوية.">جارٍ حفظ التسوية...</button></td>';
     }
     return `<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-reverse-btn" type="button" title="التراجع عن تسوية فرق الجرد" data-line-id="${lineId}" data-version-id="${escapeHtml(versionId)}" data-settlement-id="${settlementId}" data-expected-row-version="${escapeHtml(row?.row_version ?? '')}">تراجع</button></td>`;
   }
