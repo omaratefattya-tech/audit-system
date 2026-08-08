@@ -3993,6 +3993,20 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
   min-height: 30px;
   margin: 0 auto;
 }
+
+/* Inventory Count - settlement phase lock for manual controls */
+#inventoryCountLinesTable [data-inventory-settlement-phase-locked="1"] {
+  cursor: not-allowed;
+  opacity: .72;
+  color: rgba(232, 255, 224, .78);
+  background: rgba(7, 53, 39, .72);
+  border-color: rgba(139, 207, 91, .28);
+  box-shadow: none;
+}
+#inventoryCountLinesTable [data-inventory-settlement-phase-locked="1"]:focus {
+  outline: none;
+  box-shadow: none;
+}
 /* Inventory Count - export controls, scoped toast and focus freeze panes */
 #inventory_closing .focus-mode-actions {
   align-items: center;
