@@ -5880,7 +5880,7 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .inventory-count-post-close-modal{
   position:fixed;
   inset:0;
-  z-index:155;
+  z-index:12050;
   display:grid;
   place-items:center;
   padding:18px;
@@ -5891,14 +5891,17 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .inventory-count-post-close-dialog.app-liquid-modal{
   width:min(1040px,calc(100vw - 36px));
   display:grid;
-  grid-template-rows:auto minmax(0,1fr) auto;
+  grid-template-rows:auto auto minmax(0,1fr) auto;
 }
 .inventory-count-post-close-header,
 .inventory-count-post-close-footer{
   padding:16px 18px;
 }
 .inventory-count-post-close-body{
+  min-height:0;
+  overflow:auto;
   display:grid;
+  align-content:start;
   gap:16px;
   padding:16px 18px 18px;
 }
@@ -6092,4 +6095,94 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
   .app-liquid-confirm__dialog [data-app-confirm-action="confirm"]{
     min-height:46px;
   }
+}
+
+
+/* Inventory Count post-close sales/transfers batch editor */
+.inventory-count-post-close-tabs{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 18px;
+  overflow-x:auto;
+  border-bottom:1px solid rgba(255,255,255,.09);
+  background:rgba(0,27,22,.42);
+}
+.inventory-count-post-close-tabs button{
+  min-height:42px;
+  padding:8px 16px;
+  border:1px solid rgba(141,220,89,.32);
+  border-radius:999px;
+  background:rgba(0,43,33,.72);
+  color:#eaffdf;
+  font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;
+  font-weight:800;
+  white-space:nowrap;
+  cursor:pointer;
+}
+.inventory-count-post-close-tabs button.is-active,
+.inventory-count-post-close-tabs button[aria-selected="true"]{
+  border-color:#9be650;
+  background:linear-gradient(135deg,#68ba45,#1e7432);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 6px 18px rgba(0,0,0,.18);
+}
+.inventory-count-post-close-panels{min-width:0;}
+.inventory-count-post-close-panel{display:grid;gap:10px;}
+.inventory-count-post-close-panel[hidden]{display:none!important;}
+.inventory-count-post-close-row-tools{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:2px 4px 0;
+}
+.inventory-count-post-close-row-tools span{
+  color:var(--muted);
+  font-size:12px;
+}
+.inventory-count-post-close-add-row{
+  min-height:38px;
+  padding:7px 14px;
+}
+.inventory-count-post-close-action-cell{
+  display:grid;
+  grid-template-columns:minmax(150px,1fr) 40px;
+  align-items:center;
+  gap:8px;
+}
+.inventory-count-post-close-remove{
+  width:40px;
+  min-width:40px;
+  height:40px;
+  padding:0;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(239,92,92,.48);
+  border-radius:11px;
+  background:rgba(92,18,25,.36);
+  color:#ffdada;
+  font:900 20px/1 "Cairo","Segoe UI",Tahoma,Arial,sans-serif;
+  cursor:pointer;
+}
+.inventory-count-post-close-remove:hover,
+.inventory-count-post-close-remove:focus-visible{
+  border-color:rgba(255,118,118,.82);
+  background:rgba(126,26,34,.52);
+  color:#fff;
+}
+.inventory-count-post-close-preview{
+  white-space:pre-line;
+  overflow-wrap:anywhere;
+}
+.inventory-count-post-close-dialog.app-liquid-modal{
+  max-height:calc(100dvh - 24px);
+}
+body.focus-mode-active .inventory-count-post-close-modal{
+  z-index:12050;
+}
+@media(max-width:700px){
+  .inventory-count-post-close-tabs{padding-inline:12px;}
+  .inventory-count-post-close-row-tools{align-items:stretch;flex-direction:column;}
+  .inventory-count-post-close-add-row{width:100%;}
+  .inventory-count-post-close-table{min-width:900px;}
 }
