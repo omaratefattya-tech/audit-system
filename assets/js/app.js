@@ -14211,6 +14211,7 @@ function inventoryCountPostCloseActionOptions(scope){
   const config=inventoryCountPostCloseScopeConfig(scope);
   return '<option value="">اختر الإجراء</option>'+(config?.actions || []).map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
 }
+const INVENTORY_COUNT_POST_CLOSE_UI_BUILD='inv-postclose-firstrow-runtime-20260812-1';
 let INVENTORY_COUNT_POST_CLOSE_ENTRY_SEQ=0;
 function inventoryCountPostCloseCreateEntry(scope){
   const tr=document.createElement('tr');
@@ -14367,6 +14368,7 @@ function openInventoryCountPostCloseInvoiceModal(){
   modal.setAttribute('role','dialog');
   modal.setAttribute('aria-modal','true');
   modal.setAttribute('aria-labelledby','inventoryCountPostCloseInvoiceTitle');
+  modal.dataset.postCloseUiBuild=INVENTORY_COUNT_POST_CLOSE_UI_BUILD;
   const panels=INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER.map(scope=>{
     const config=inventoryCountPostCloseScopeConfig(scope);
     return `<section class="inventory-count-post-close-panel" data-post-close-panel="${scope}" role="tabpanel"${scope==='sales'?'':' hidden'}><div class="inventory-count-post-close-table-wrap"><table class="inventory-count-post-close-table"><colgroup><col class="post-close-col-code"><col class="post-close-col-name"><col class="post-close-col-uom"><col class="post-close-col-quantity"><col class="post-close-col-action"></colgroup><thead><tr><th>كود المادة</th><th>وصف المادة</th><th>وحدة القياس</th><th>الكمية</th><th>الإجراء</th></tr></thead><tbody></tbody></table></div><div class="inventory-count-post-close-row-tools"><button class="secondary inventory-count-post-close-add-row" type="button" data-post-close-add="${scope}">إضافة صنف</button><span>يمكن إضافة أكثر من صنف في نفس العملية.</span></div></section>`;
