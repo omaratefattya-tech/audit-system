@@ -6213,6 +6213,7 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .inventory-count-post-close-table tr[data-post-close-primary="1"] .inventory-count-post-close-action-cell{
   grid-template-columns:minmax(150px,1fr);
 }
+.inventory-count-post-close-remove[hidden]{display:none!important;}
 .inventory-count-post-close-remove{
   width:40px;
   min-width:40px;

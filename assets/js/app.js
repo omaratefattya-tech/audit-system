@@ -14212,25 +14212,36 @@ function inventoryCountPostCloseActionOptions(scope){
   return '<option value="">اختر الإجراء</option>'+(config?.actions || []).map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
 }
 let INVENTORY_COUNT_POST_CLOSE_ENTRY_SEQ=0;
-function inventoryCountPostCloseCreateEntry(scope,{removable=true}={}){
+function inventoryCountPostCloseCreateEntry(scope){
   const tr=document.createElement('tr');
   const entrySeq=++INVENTORY_COUNT_POST_CLOSE_ENTRY_SEQ;
   tr.dataset.postCloseEntry='1';
   tr.dataset.postCloseScope=scope;
-  tr.dataset.postClosePrimary=removable ? '0' : '1';
-  const removeControl=removable
-    ? '<button class="inventory-count-post-close-remove" type="button" data-post-close-remove aria-label="حذف الصنف">×</button>'
-    : '';
-  tr.innerHTML=`<td><input type="text" name="post_close_code_${entrySeq}" data-post-close-code list="inventoryCountPostCloseCodeList" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="أدخل كود المادة"></td><td><input type="text" name="post_close_name_${entrySeq}" data-post-close-name list="inventoryCountPostCloseNameList" autocomplete="off" spellcheck="false" placeholder="ابحث باسم الصنف"></td><td><input type="text" data-post-close-uom readonly aria-label="وحدة القياس"></td><td><input type="number" min="0.001" step="0.001" inputmode="decimal" data-post-close-quantity placeholder="0.000"></td><td><div class="inventory-count-post-close-action-cell"><select data-post-close-action>${inventoryCountPostCloseActionOptions(scope)}</select>${removeControl}</div></td>`;
+  tr.innerHTML=`<td><input type="text" name="post_close_code_${entrySeq}" data-post-close-code list="inventoryCountPostCloseCodeList" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="أدخل كود المادة"></td><td><input type="text" name="post_close_name_${entrySeq}" data-post-close-name list="inventoryCountPostCloseNameList" autocomplete="off" spellcheck="false" placeholder="ابحث باسم الصنف"></td><td><input type="text" data-post-close-uom readonly aria-label="وحدة القياس"></td><td><input type="number" min="0.001" step="0.001" inputmode="decimal" data-post-close-quantity placeholder="0.000"></td><td><div class="inventory-count-post-close-action-cell"><select data-post-close-action>${inventoryCountPostCloseActionOptions(scope)}</select><button class="inventory-count-post-close-remove" type="button" data-post-close-remove aria-label="حذف الصنف">×</button></div></td>`;
   return tr;
 }
-function inventoryCountPostCloseAddRow(modal,scope,options={}){
+function inventoryCountPostCloseSyncRowControls(modal,scope){
+  const body=modal?.querySelector(`[data-post-close-panel="${scope}"] tbody`);
+  if(!body) return;
+  const entries=[...body.querySelectorAll('[data-post-close-entry]')];
+  entries.forEach((entry,index)=>{
+    const first=index===0;
+    entry.dataset.postClosePrimary=first?'1':'0';
+    const remove=entry.querySelector('[data-post-close-remove]');
+    if(remove){
+      remove.hidden=first;
+      remove.disabled=first;
+      remove.tabIndex=first?-1:0;
+      remove.setAttribute('aria-hidden',first?'true':'false');
+    }
+  });
+}
+function inventoryCountPostCloseAddRow(modal,scope){
   const body=modal?.querySelector(`[data-post-close-panel="${scope}"] tbody`);
   if(!body) return null;
-  const existingCount=body.querySelectorAll('[data-post-close-entry]').length;
-  const removable=options.removable ?? existingCount>0;
-  const row=inventoryCountPostCloseCreateEntry(scope,{removable});
+  const row=inventoryCountPostCloseCreateEntry(scope);
   body.appendChild(row);
+  inventoryCountPostCloseSyncRowControls(modal,scope);
   return row;
 }
 function inventoryCountPostCloseSetActiveTab(modal,scope){
@@ -14372,13 +14383,15 @@ function openInventoryCountPostCloseInvoiceModal(){
     </div>
     <div class="inventory-count-post-close-footer app-liquid-modal__footer"><button class="secondary" type="button" data-post-close-cancel>إلغاء</button><button class="primary" type="button" data-post-close-submit disabled>اعتماد التعديلات</button></div>
   </div>`;
+  document.body.appendChild(modal);
+  lockAppModalScroll('inventory-count-post-close-invoice',modal);
   const codeList=modal.querySelector('#inventoryCountPostCloseCodeList');
   const nameList=modal.querySelector('#inventoryCountPostCloseNameList');
   (INVENTORY_COUNT_STATE.lines || []).forEach(row=>{
     const codeOption=document.createElement('option');codeOption.value=String(row.material_code||'');codeOption.label=String(row.material_name||'');codeList?.appendChild(codeOption);
     const nameOption=document.createElement('option');nameOption.value=String(row.material_name||'');nameOption.label=String(row.material_code||'');nameList?.appendChild(nameOption);
   });
-  INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER.forEach(scope=>inventoryCountPostCloseAddRow(modal,scope,{removable:false}));
+  INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER.forEach(scope=>inventoryCountPostCloseAddRow(modal,scope));
   modal._returnFocus=$('#inventoryCountPostCloseInvoiceBtn');
   modal._appModalClose=closeInventoryCountPostCloseInvoiceModal;
   modal.addEventListener('click',event=>{
@@ -14391,10 +14404,13 @@ function openInventoryCountPostCloseInvoiceModal(){
     if(remove){
       event.preventDefault();
       const entry=remove.closest('[data-post-close-entry]');
-      if(!entry || entry.dataset.postClosePrimary==='1') return;
+      if(!entry) return;
       const scope=entry.dataset.postCloseScope || 'sales';
+      const entries=[...modal.querySelectorAll(`[data-post-close-panel="${scope}"] [data-post-close-entry]`)];
+      if(entries[0]===entry) return;
       entry.remove();
-      if(!modal.querySelector(`[data-post-close-panel="${scope}"] [data-post-close-entry]`)) inventoryCountPostCloseAddRow(modal,scope,{removable:false});
+      if(!modal.querySelector(`[data-post-close-panel="${scope}"] [data-post-close-entry]`)) inventoryCountPostCloseAddRow(modal,scope);
+      inventoryCountPostCloseSyncRowControls(modal,scope);
       syncInventoryCountPostCloseInvoiceModal(modal);
       return;
     }
@@ -14433,8 +14449,6 @@ function openInventoryCountPostCloseInvoiceModal(){
     modal.dataset.serverError='';
     syncInventoryCountPostCloseInvoiceModal(modal);
   });
-  document.body.appendChild(modal);
-  lockAppModalScroll('inventory-count-post-close-invoice',modal);
   syncInventoryCountPostCloseInvoiceModal(modal);
   requestAnimationFrame(()=>modal.querySelector('[data-post-close-panel="sales"] [data-post-close-code]')?.focus({preventScroll:true}));
 }
