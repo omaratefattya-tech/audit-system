@@ -14122,18 +14122,25 @@ async function finishInventoryCountFromUi(){
     updateInventoryCountFinalizationControls();
   }
 }
+function normalizeInventoryCountPostCloseLookup(value){
+  return String(value??'')
+    .replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/\s+/g,' ')
+    .trim();
+}
 function inventoryCountPostCloseLineByCode(value){
-  const key=String(value||'').trim().toUpperCase();
+  const key=normalizeInventoryCountPostCloseLookup(value).toUpperCase();
   if(!key) return null;
-  return (INVENTORY_COUNT_STATE.lines || []).find(row=>String(row?.material_code||'').trim().toUpperCase()===key) || null;
+  return (INVENTORY_COUNT_STATE.lines || []).find(row=>normalizeInventoryCountPostCloseLookup(row?.material_code).toUpperCase()===key) || null;
 }
 function inventoryCountPostCloseLineByName(value){
-  const key=String(value||'').trim().toLocaleLowerCase('ar');
+  const key=normalizeInventoryCountPostCloseLookup(value).toLocaleLowerCase('ar');
   if(!key) return null;
   const rows=INVENTORY_COUNT_STATE.lines || [];
-  const exact=rows.find(row=>String(row?.material_name||'').trim().toLocaleLowerCase('ar')===key);
+  const exact=rows.find(row=>normalizeInventoryCountPostCloseLookup(row?.material_name).toLocaleLowerCase('ar')===key);
   if(exact) return exact;
-  const matches=rows.filter(row=>String(row?.material_name||'').toLocaleLowerCase('ar').includes(key));
+  const matches=rows.filter(row=>normalizeInventoryCountPostCloseLookup(row?.material_name).toLocaleLowerCase('ar').includes(key));
   return matches.length===1 ? matches[0] : null;
 }
 const INVENTORY_COUNT_POST_CLOSE_SCOPES={
@@ -14204,17 +14211,25 @@ function inventoryCountPostCloseActionOptions(scope){
   const config=inventoryCountPostCloseScopeConfig(scope);
   return '<option value="">اختر الإجراء</option>'+(config?.actions || []).map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
 }
-function inventoryCountPostCloseCreateEntry(scope){
+let INVENTORY_COUNT_POST_CLOSE_ENTRY_SEQ=0;
+function inventoryCountPostCloseCreateEntry(scope,{removable=true}={}){
   const tr=document.createElement('tr');
+  const entrySeq=++INVENTORY_COUNT_POST_CLOSE_ENTRY_SEQ;
   tr.dataset.postCloseEntry='1';
   tr.dataset.postCloseScope=scope;
-  tr.innerHTML=`<td><input type="text" data-post-close-code list="inventoryCountPostCloseCodeList" autocomplete="off" placeholder="أدخل كود المادة"></td><td><input type="text" data-post-close-name list="inventoryCountPostCloseNameList" autocomplete="off" placeholder="ابحث باسم الصنف"></td><td><input type="text" data-post-close-uom readonly aria-label="وحدة القياس"></td><td><input type="number" min="0.001" step="0.001" inputmode="decimal" data-post-close-quantity placeholder="0.000"></td><td><div class="inventory-count-post-close-action-cell"><select data-post-close-action>${inventoryCountPostCloseActionOptions(scope)}</select><button class="inventory-count-post-close-remove" type="button" data-post-close-remove aria-label="حذف الصنف">×</button></div></td>`;
+  tr.dataset.postClosePrimary=removable ? '0' : '1';
+  const removeControl=removable
+    ? '<button class="inventory-count-post-close-remove" type="button" data-post-close-remove aria-label="حذف الصنف">×</button>'
+    : '';
+  tr.innerHTML=`<td><input type="text" name="post_close_code_${entrySeq}" data-post-close-code list="inventoryCountPostCloseCodeList" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="أدخل كود المادة"></td><td><input type="text" name="post_close_name_${entrySeq}" data-post-close-name list="inventoryCountPostCloseNameList" autocomplete="off" spellcheck="false" placeholder="ابحث باسم الصنف"></td><td><input type="text" data-post-close-uom readonly aria-label="وحدة القياس"></td><td><input type="number" min="0.001" step="0.001" inputmode="decimal" data-post-close-quantity placeholder="0.000"></td><td><div class="inventory-count-post-close-action-cell"><select data-post-close-action>${inventoryCountPostCloseActionOptions(scope)}</select>${removeControl}</div></td>`;
   return tr;
 }
-function inventoryCountPostCloseAddRow(modal,scope){
+function inventoryCountPostCloseAddRow(modal,scope,options={}){
   const body=modal?.querySelector(`[data-post-close-panel="${scope}"] tbody`);
   if(!body) return null;
-  const row=inventoryCountPostCloseCreateEntry(scope);
+  const existingCount=body.querySelectorAll('[data-post-close-entry]').length;
+  const removable=options.removable ?? existingCount>0;
+  const row=inventoryCountPostCloseCreateEntry(scope,{removable});
   body.appendChild(row);
   return row;
 }
@@ -14363,7 +14378,7 @@ function openInventoryCountPostCloseInvoiceModal(){
     const codeOption=document.createElement('option');codeOption.value=String(row.material_code||'');codeOption.label=String(row.material_name||'');codeList?.appendChild(codeOption);
     const nameOption=document.createElement('option');nameOption.value=String(row.material_name||'');nameOption.label=String(row.material_code||'');nameList?.appendChild(nameOption);
   });
-  INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER.forEach(scope=>inventoryCountPostCloseAddRow(modal,scope));
+  INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER.forEach(scope=>inventoryCountPostCloseAddRow(modal,scope,{removable:false}));
   modal._returnFocus=$('#inventoryCountPostCloseInvoiceBtn');
   modal._appModalClose=closeInventoryCountPostCloseInvoiceModal;
   modal.addEventListener('click',event=>{
@@ -14376,9 +14391,10 @@ function openInventoryCountPostCloseInvoiceModal(){
     if(remove){
       event.preventDefault();
       const entry=remove.closest('[data-post-close-entry]');
-      const scope=entry?.dataset.postCloseScope || 'sales';
-      entry?.remove();
-      if(!modal.querySelector(`[data-post-close-panel="${scope}"] [data-post-close-entry]`)) inventoryCountPostCloseAddRow(modal,scope);
+      if(!entry || entry.dataset.postClosePrimary==='1') return;
+      const scope=entry.dataset.postCloseScope || 'sales';
+      entry.remove();
+      if(!modal.querySelector(`[data-post-close-panel="${scope}"] [data-post-close-entry]`)) inventoryCountPostCloseAddRow(modal,scope,{removable:false});
       syncInventoryCountPostCloseInvoiceModal(modal);
       return;
     }
@@ -14405,6 +14421,15 @@ function openInventoryCountPostCloseInvoiceModal(){
     const entry=event.target.closest('[data-post-close-entry]');
     if(entry && event.target.matches('[data-post-close-code]')) inventoryCountPostCloseResolveEntry(entry,'code');
     else if(entry && event.target.matches('[data-post-close-name]')) inventoryCountPostCloseResolveEntry(entry,'name');
+    modal.dataset.serverError='';
+    syncInventoryCountPostCloseInvoiceModal(modal);
+  });
+  modal.addEventListener('focusout',event=>{
+    const entry=event.target.closest('[data-post-close-entry]');
+    if(!entry) return;
+    if(event.target.matches('[data-post-close-code]')) inventoryCountPostCloseResolveEntry(entry,'code');
+    else if(event.target.matches('[data-post-close-name]')) inventoryCountPostCloseResolveEntry(entry,'name');
+    else return;
     modal.dataset.serverError='';
     syncInventoryCountPostCloseInvoiceModal(modal);
   });

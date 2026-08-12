@@ -4194,29 +4194,29 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
   direction: rtl;
   background: #003b2d;
   color: #efffea;
-  font-size: 7px;
+  font-size: 7.4px;
   font-variant-numeric: tabular-nums;
 }
 
 .inventory-count-export-table th,
 .inventory-count-export-table td {
   border: 1px solid rgba(143,194,156,.42);
-  padding: 2px 2px;
-  height: 13px;
+  padding: 4px 3px;
+  height: 17px;
   box-sizing: border-box;
   text-align: center;
   vertical-align: middle;
-  line-height: 1.18;
+  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .inventory-count-export-table th {
-  height: 22px;
+  height: 26px;
   color: #f5ffef;
   background: linear-gradient(180deg, #076444, #034e39);
-  font-size: 7.2px;
+  font-size: 7.6px;
   font-weight: 900;
 }
 
@@ -4229,7 +4229,7 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
 }
 
 .inventory-count-export-table tfoot td {
-  height: 18px;
+  height: 22px;
   background: #0d5a38;
   color: #bfff7f;
   font-weight: 900;
@@ -6209,6 +6209,9 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
   grid-template-columns:minmax(150px,1fr) 40px;
   align-items:center;
   gap:8px;
+}
+.inventory-count-post-close-table tr[data-post-close-primary="1"] .inventory-count-post-close-action-cell{
+  grid-template-columns:minmax(150px,1fr);
 }
 .inventory-count-post-close-remove{
   width:40px;
