@@ -120,7 +120,7 @@ function showAppLiquidConfirm(options={}){
     const titleElement=modal.querySelector('.app-liquid-modal__title');const messageElement=modal.querySelector('.app-liquid-confirm__body p');const cancelButton=modal.querySelector('[data-app-confirm-action="cancel"]:not(.app-liquid-modal__close)');const confirmButton=modal.querySelector('[data-app-confirm-action="confirm"]');const dialog=modal.querySelector('[role="dialog"]');const labelId=`${modalId}-title`;
     titleElement.id=labelId;titleElement.textContent=title;messageElement.textContent=message;cancelButton.textContent=cancelText;confirmButton.textContent=confirmText;dialog.setAttribute('aria-labelledby',labelId);
     let settled=false;const close=(accepted=false)=>{if(settled)return;settled=true;unlockAppModalScroll(modalId);modal.remove();resolve(Boolean(accepted));};
-    modal._appModalClose=()=>close(false);modal.addEventListener('click',event=>{if(event.target===modal){close(false);return;}const action=event.target.closest('[data-app-confirm-action]')?.dataset.appConfirmAction;if(action==='confirm')close(true);else if(action==='cancel')close(false);});
+    modal._appModalClose=()=>close(false);modal.addEventListener('click',event=>{const action=event.target.closest('[data-app-confirm-action]')?.dataset.appConfirmAction;if(action==='confirm')close(true);else if(action==='cancel')close(false);});
     document.body.appendChild(modal);lockAppModalScroll(modalId,modal);requestAnimationFrame(()=>confirmButton.focus({preventScroll:true}));
   });
 }
@@ -6735,7 +6735,7 @@ function initUsersManagement(){
   document.querySelectorAll('.users-open-create').forEach(btn=>btn.addEventListener('click',()=>openUserManagementModal('create')));
   $('#closeUserModalBtn')?.addEventListener('click',closeUserManagementModal);
   $('#cancelUserModalBtn')?.addEventListener('click',closeUserManagementModal);
-  $('#userManagementModal')?.addEventListener('click',e=>{ if(e.target.id==='userManagementModal') closeUserManagementModal(); });
+  
   $('#usersQuickSearch')?.addEventListener('input',applyUsersFilters);
   $('#usersRoleFilter')?.addEventListener('change',applyUsersFilters);
   $('#usersStatusFilter')?.addEventListener('change',applyUsersFilters);
@@ -8912,10 +8912,10 @@ function ensureAuditScoreModal(){
   modal=document.createElement('div');
   modal.id='auditScoreModal';
   modal.className='audit-score-modal app-liquid-modal-backdrop hidden';
-  modal.innerHTML=`<div class="audit-score-backdrop" data-close-audit-score></div><section class="audit-score-dialog glass app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="auditScoreModalTitle"><button class="audit-score-close app-liquid-modal__close" type="button" data-close-audit-score aria-label="إغلاق نافذة تقييم المراجعة">×</button><div id="auditScoreModalBody" class="app-liquid-modal__body"></div></section>`;
+  modal.innerHTML=`<div class="audit-score-backdrop" aria-hidden="true"></div><section class="audit-score-dialog glass app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="auditScoreModalTitle"><button class="audit-score-close app-liquid-modal__close" type="button" data-close-audit-score aria-label="إغلاق نافذة تقييم المراجعة">×</button><div id="auditScoreModalBody" class="app-liquid-modal__body"></div></section>`;
   document.body.appendChild(modal);
   modal._appModalClose=closeAuditScoreModal;
-  modal.addEventListener('click',e=>{ if(e.target.closest('[data-close-audit-score]')) closeAuditScoreModal(); });
+  modal.addEventListener('click',e=>{ if(e.target.closest('button[data-close-audit-score]')) closeAuditScoreModal(); });
   return modal;
 }
 function closeAuditScoreModal(options={}){
@@ -10079,7 +10079,7 @@ function inventoryCountSettlementPhaseLockMessage(){
   return 'بدأت مرحلة تسوية فروق الجرد لهذا المستند. تم إيقاف التعديلات اليدوية، وأي تعديل لاحق يجب أن يتم من خلال تسوية الجرد أو التراجع عنها.';
 }
 function inventoryCountFinalizedMessage(){
-  return 'تم إنهاء مستند الجرد نهائيًا. جميع خانات الجرد مقفلة، وأي تعديل لاحق على البيع أو التحويلات يتم من زر تعديل فواتير وتحويلات بعد إنهاء الجرد.';
+  return 'تم إنهاء مستند الجرد نهائيًا. جميع خانات الجرد مقفلة، وأي تعديل لاحق على البيع أو التحويلات أو الإنتاج يتم من زر تعديلات بعد إنهاء الجرد.';
 }
 function inventoryCountManualEditsLocked(){
   return inventoryCountSettlementPhaseStarted() || inventoryCountIsFinalized();
@@ -10094,6 +10094,9 @@ function inventoryCountPhaseLockErrorMessage(error,fallback='حدث خطأ أث�
     }
     return inventoryCountSettlementPhaseLockMessage();
   }
+  if(message.includes('inventory_count_negative_production_not_allowed')) return 'الإنتاج لا يمكن أن يكون بقيمة سالبة.';
+  if(message.includes('inventory_count_negative_physical_balance_not_allowed')) return 'الرصيد الفعلي لا يمكن أن يكون بقيمة سالبة.';
+  if(message.includes('inventory_count_negative_oldest_quantity_not_allowed')) return 'كمية أقدم تاريخ لا يمكن أن تكون بقيمة سالبة.';
   return message || fallback;
 }
 function inventoryCountManualControlLockAttributes(){
@@ -10107,6 +10110,19 @@ function inventoryCountBlockManualEditIfSettlementPhaseStarted(){
   showInventoryCountToast(message,'warning',6000);
   renderInventoryCountLines(INVENTORY_COUNT_STATE.lines || []);
   return true;
+}
+function inventoryCountRejectNegativeManualValue(input,label,updateWidth){
+  if(!input) return false;
+  const raw=String(input.value ?? '').trim().replace(',','.');
+  if(raw==='') return false;
+  const value=Number(raw);
+  if(Number.isFinite(value) && value<0){
+    input.value=input.dataset.lastSaved || '';
+    if(typeof updateWidth==='function') updateWidth(input);
+    showInventoryCountToast(`${label} لا يمكن أن تكون قيمة سالبة.`,'warning',5000);
+    return true;
+  }
+  return false;
 }
 function updateInventoryDifferenceSnapshotButton(){
   const btn=$('#createInventoryDifferenceSnapshotBtn');
@@ -10149,7 +10165,7 @@ function updateInventoryCountFinalizationControls(){
     invoiceBtn.disabled=busy || !canEdit || !hasVersion || !finalized;
     invoiceBtn.classList.toggle('permission-disabled',!canEdit || !hasVersion || !finalized);
     invoiceBtn.title=finalized
-      ? (canEdit ? 'إضافة تعديل بيع أو تحويل بعد إنهاء الجرد.' : 'لا تملك صلاحية تعديل مستند الجرد.')
+      ? (canEdit ? 'إضافة تعديل بيع أو تحويل أو إنتاج بعد إنهاء الجرد.' : 'لا تملك صلاحية تعديل مستند الجرد.')
       : 'يصبح هذا الزر متاحًا بعد إنهاء الجرد.';
   }
 }
@@ -10400,9 +10416,9 @@ function ensureInventoryReviewRecommendationsModal(){
   modal=document.createElement('div');
   modal.id='inventoryReviewRecommendationsModal';
   modal.className='inventory-review-modal app-liquid-modal-backdrop';
-  modal.innerHTML='<div class="inventory-review-backdrop" data-inventory-review-close></div><section class="inventory-review-card app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="inventoryReviewRecommendationsTitle"><header class="inventory-review-head app-liquid-modal__header"><div><span class="inventory-review-eyebrow">الجرد وتوثيق المخزون</span><h2 id="inventoryReviewRecommendationsTitle" class="app-liquid-modal__title">توصيات المراجعة</h2></div><button type="button" class="inventory-review-icon-close app-liquid-modal__close" data-inventory-review-close aria-label="إغلاق نافذة توصيات المراجعة">×</button></header><nav class="inventory-review-tabs app-liquid-modal__tabs" aria-label="تبويبات مراجعة الصنف"><button type="button" data-inventory-review-tab="recommendations" aria-selected="true">توصيات المراجعة</button><button type="button" data-inventory-review-tab="history" aria-selected="false">سجل التسويات والتراجعات</button></nav><div class="inventory-review-product-summary-container"></div><div class="inventory-review-scroll app-liquid-modal__body"><div class="inventory-review-modal-body" data-inventory-review-panel="recommendations"></div><section class="inventory-review-history-panel" data-inventory-review-panel="history" hidden><p class="inventory-review-history-status" role="status">جاري تحميل سجل الصنف...</p><div class="inventory-review-timeline"></div></section></div><footer class="inventory-review-footer app-liquid-modal__footer"><button type="button" class="secondary inventory-review-close-btn" data-inventory-review-close>إغلاق</button></footer></section>';
+  modal.innerHTML='<div class="inventory-review-backdrop" aria-hidden="true"></div><section class="inventory-review-card app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="inventoryReviewRecommendationsTitle"><header class="inventory-review-head app-liquid-modal__header"><div><span class="inventory-review-eyebrow">الجرد وتوثيق المخزون</span><h2 id="inventoryReviewRecommendationsTitle" class="app-liquid-modal__title">توصيات المراجعة</h2></div><button type="button" class="inventory-review-icon-close app-liquid-modal__close" data-inventory-review-close aria-label="إغلاق نافذة توصيات المراجعة">×</button></header><nav class="inventory-review-tabs app-liquid-modal__tabs" aria-label="تبويبات مراجعة الصنف"><button type="button" data-inventory-review-tab="recommendations" aria-selected="true">توصيات المراجعة</button><button type="button" data-inventory-review-tab="history" aria-selected="false">سجل التسويات والتراجعات</button></nav><div class="inventory-review-product-summary-container"></div><div class="inventory-review-scroll app-liquid-modal__body"><div class="inventory-review-modal-body" data-inventory-review-panel="recommendations"></div><section class="inventory-review-history-panel" data-inventory-review-panel="history" hidden><p class="inventory-review-history-status" role="status">جاري تحميل سجل الصنف...</p><div class="inventory-review-timeline"></div></section></div><footer class="inventory-review-footer app-liquid-modal__footer"><button type="button" class="secondary inventory-review-close-btn" data-inventory-review-close>إغلاق</button></footer></section>';
   modal.addEventListener('click',event=>{
-    if(event.target.closest('[data-inventory-review-close]')){closeInventoryReviewRecommendationsModal();return;}
+    if(event.target.closest('button[data-inventory-review-close]')){closeInventoryReviewRecommendationsModal();return;}
     const tab=event.target.closest('[data-inventory-review-tab]');
     if(tab && modal.contains(tab)) activateInventoryReviewModalTab(modal,tab.dataset.inventoryReviewTab);
   });
@@ -11230,10 +11246,16 @@ function inventoryCountExportTotalRow(display=true){
 }
 function inventoryCountBuildExportSheet(){
   const rows=INVENTORY_COUNT_STATE.lines || [];
+  const visibleIndexes=inventoryCountVisibleColumnIndexes();
+  const visibleKeys=visibleIndexes.map(index=>INVENTORY_COUNT_COLUMNS[index]?.key || '');
   const sheet=document.createElement('section');
   sheet.className='inventory-count-export-sheet';
   sheet.dir='rtl';
   sheet.lang='ar';
+  sheet.dataset.exportRows=String(rows.length);
+  sheet.dataset.exportColumns=String(visibleKeys.length);
+  const content=document.createElement('div');
+  content.className='inventory-count-export-content';
   const header=document.createElement('header');
   header.className='inventory-count-export-header';
   const title=document.createElement('h1');
@@ -11250,18 +11272,23 @@ function inventoryCountBuildExportSheet(){
   table.className='inventory-count-export-table';
   const thead=document.createElement('thead');
   const headRow=document.createElement('tr');
-  inventoryCountFilterVisibleColumns(inventoryCountExportHeaders()).forEach(label=>{
+  visibleIndexes.forEach(index=>{
+    const key=INVENTORY_COUNT_COLUMNS[index]?.key || '';
     const th=document.createElement('th');
-    th.textContent=label;
+    th.textContent=inventoryCountExportHeaders()[index] || '';
+    if(key) th.classList.add(`inventory-count-export-col-${key}`);
     headRow.appendChild(th);
   });
   thead.appendChild(headRow);
   const tbody=document.createElement('tbody');
   rows.forEach(row=>{
+    const values=inventoryCountExportDisplayRow(row);
     const tr=document.createElement('tr');
-    inventoryCountFilterVisibleColumns(inventoryCountExportDisplayRow(row)).forEach(value=>{
+    visibleIndexes.forEach(index=>{
+      const key=INVENTORY_COUNT_COLUMNS[index]?.key || '';
       const td=document.createElement('td');
-      td.textContent=value;
+      td.textContent=values[index] ?? '';
+      if(key) td.classList.add(`inventory-count-export-col-${key}`);
       tr.appendChild(td);
     });
     tbody.appendChild(tr);
@@ -11269,16 +11296,20 @@ function inventoryCountBuildExportSheet(){
   const tfoot=document.createElement('tfoot');
   const totalRow=document.createElement('tr');
   totalRow.className='inventory-count-export-total-row';
-  inventoryCountFilterVisibleColumns(inventoryCountExportTotalRow(true)).forEach(value=>{
+  const totals=inventoryCountExportTotalRow(true);
+  visibleIndexes.forEach(index=>{
+    const key=INVENTORY_COUNT_COLUMNS[index]?.key || '';
     const td=document.createElement('td');
-    td.textContent=value;
+    td.textContent=totals[index] ?? '';
+    if(key) td.classList.add(`inventory-count-export-col-${key}`);
     totalRow.appendChild(td);
   });
   tfoot.appendChild(totalRow);
   table.append(thead,tbody,tfoot);
   const footer=document.createElement('footer');
   footer.textContent=`القائم بالمراجعة / ${inventoryCountReviewerName()}`;
-  sheet.append(header,table,footer);
+  content.append(header,table,footer);
+  sheet.appendChild(content);
   return sheet;
 }
 function inventorySettlementStatusMessage(status,reasonCode=''){
@@ -11331,9 +11362,24 @@ async function inventoryCountCaptureExportSheet(){
   try{
     if(document.fonts && document.fonts.ready) await document.fonts.ready;
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-    const width=Math.ceil(Math.max(sheet.scrollWidth,sheet.getBoundingClientRect().width,1));
-    const height=Math.ceil(Math.max(sheet.scrollHeight,sheet.getBoundingClientRect().height,1));
-    const canvas=await Html2Canvas(sheet,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+    const content=sheet.querySelector('.inventory-count-export-content');
+    const sheetStyles=getComputedStyle(sheet);
+    const horizontalPadding=(parseFloat(sheetStyles.paddingLeft)||0)+(parseFloat(sheetStyles.paddingRight)||0);
+    const verticalPadding=(parseFloat(sheetStyles.paddingTop)||0)+(parseFloat(sheetStyles.paddingBottom)||0);
+    const availableWidth=Math.max(1,sheet.clientWidth-horizontalPadding);
+    const availableHeight=Math.max(1,sheet.clientHeight-verticalPadding);
+    if(content){
+      content.style.transform='none';
+      const naturalWidth=Math.max(content.scrollWidth,content.getBoundingClientRect().width,1);
+      const naturalHeight=Math.max(content.scrollHeight,content.getBoundingClientRect().height,1);
+      const fitScale=Math.min(1,availableWidth/naturalWidth,availableHeight/naturalHeight);
+      content.style.setProperty('--inventory-export-fit-scale',String(fitScale));
+      content.style.transform=`scale(${fitScale})`;
+    }
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+    const width=Math.max(1,Math.ceil(sheet.clientWidth));
+    const height=Math.max(1,Math.ceil(sheet.clientHeight));
+    const canvas=await Html2Canvas(sheet,{scale:1,useCORS:true,allowTaint:true,backgroundColor:'#00291f',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
     return {canvas,width,height};
   }finally{
     sheet.remove();
@@ -11359,11 +11405,8 @@ async function exportInventoryCountPdf(){
   const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
   if(!JsPDF){ showInventoryCountToast('مكتبة PDF غير محملة.','error'); return; }
   try{
-    const {canvas,width,height}=await inventoryCountCaptureExportSheet();
-    const pageWidth=Math.max(1,Math.ceil(width));
-    const pageHeight=Math.max(1,Math.ceil(height));
-    const orientation=pageWidth>=pageHeight ? 'landscape' : 'portrait';
-    const pdf=new JsPDF({orientation,unit:'px',format:[pageWidth,pageHeight],compress:true});
+    const {canvas}=await inventoryCountCaptureExportSheet();
+    const pdf=new JsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
     const finalWidth=pdf.internal.pageSize.getWidth();
     const finalHeight=pdf.internal.pageSize.getHeight();
     pdf.addImage(canvas.toDataURL('image/png',1),'PNG',0,0,finalWidth,finalHeight,undefined,'FAST');
@@ -11570,17 +11613,17 @@ function renderInventoryOpeningBalanceCell(row){
 function renderInventoryProductionQuantityCell(row){
   const value=inventoryCountProductionInputValue(row.production_quantity);
   const lockAttrs=inventoryCountManualControlLockAttributes();
-  return `<td class="inventory-production-quantity-cell"><input class="inventory-production-quantity-input" type="number" step="0.001" inputmode="decimal" aria-label="الإنتاج" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
+  return `<td class="inventory-production-quantity-cell"><input class="inventory-production-quantity-input" type="number" min="0" step="0.001" inputmode="decimal" aria-label="الإنتاج" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
 }
 function renderInventoryPhysicalBalanceCell(row){
   const value=formatInventoryManualThreeDecimal(row.physical_balance);
   const lockAttrs=inventoryCountManualControlLockAttributes();
-  return `<td class="inventory-physical-balance-cell"><input class="inventory-physical-balance-input" type="number" step="0.001" inputmode="decimal" aria-label="الرصيد الفعلي" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
+  return `<td class="inventory-physical-balance-cell"><input class="inventory-physical-balance-input" type="number" min="0" step="0.001" inputmode="decimal" aria-label="الرصيد الفعلي" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
 }
 function renderInventoryOldestQuantityCell(row){
   const value=formatInventoryManualThreeDecimal(row.oldest_quantity);
   const lockAttrs=inventoryCountManualControlLockAttributes();
-  return `<td class="inventory-oldest-quantity-cell"><input class="inventory-oldest-quantity-input" type="number" step="0.001" inputmode="decimal" aria-label="كمية أقدم تاريخ" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
+  return `<td class="inventory-oldest-quantity-cell"><input class="inventory-oldest-quantity-input" type="number" min="0" step="0.001" inputmode="decimal" aria-label="كمية أقدم تاريخ" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
 }
 function renderInventoryOldestDateCell(row){
   const value=formatInventoryDateInputValue(row.oldest_date);
@@ -11856,7 +11899,7 @@ function ensureInventoryCountSettlementModal(){
   modal.hidden=true;
   modal.setAttribute('aria-hidden','true');
   modal.innerHTML=`
-    <div class="inventory-settlement-backdrop" data-inventory-settlement-close="backdrop"></div>
+    <div class="inventory-settlement-backdrop" aria-hidden="true"></div>
     <section class="inventory-settlement-dialog app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="inventorySettlementModalTitle" dir="rtl">
       <header class="inventory-settlement-header app-liquid-modal__header">
         <div>
@@ -11920,8 +11963,7 @@ function ensureInventoryCountSettlementModal(){
   });
   modal.addEventListener('click',event=>{
     const closeTarget=event.target.closest('[data-inventory-settlement-close]');
-    if(closeTarget && modal.contains(closeTarget)){
-      if(closeTarget.dataset.inventorySettlementClose==='backdrop' && event.target!==closeTarget) return;
+    if(closeTarget && modal.contains(closeTarget) && closeTarget.dataset.inventorySettlementClose==='button'){
       event.preventDefault();
       closeInventoryCountSettlementModal();
       return;
@@ -12255,7 +12297,7 @@ function ensureInventoryCountSettlementReversalModal(){
   modal.id='inventorySettlementReversalModal';
   modal.className='inventory-settlement-reversal-modal app-liquid-modal-backdrop';
   modal.innerHTML=`
-    <div class="inventory-settlement-reversal-backdrop" data-inventory-reversal-close="backdrop"></div>
+    <div class="inventory-settlement-reversal-backdrop" aria-hidden="true"></div>
     <section class="inventory-settlement-reversal-dialog app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="inventorySettlementReversalTitle" dir="rtl">
       <header class="inventory-settlement-reversal-header app-liquid-modal__header">
         <div><p class="inventory-settlement-eyebrow">الجرد وتوثيق المخزون</p><h2 id="inventorySettlementReversalTitle" class="app-liquid-modal__title">التراجع عن تسوية فرق الجرد</h2></div>
@@ -12275,8 +12317,7 @@ function ensureInventoryCountSettlementReversalModal(){
     </section>`;
   modal.addEventListener('click',event=>{
     const close=event.target.closest('[data-inventory-reversal-close]');
-    if(close && modal.contains(close)){
-      if(close.dataset.inventoryReversalClose==='backdrop' && event.target!==close) return;
+    if(close && modal.contains(close) && close.dataset.inventoryReversalClose==='button'){
       event.preventDefault(); closeInventoryCountSettlementReversalModal(); return;
     }
     if(event.target.closest('#inventorySettlementReversalSubmit')){event.preventDefault();submitInventoryCountSettlementReversal();}
@@ -12994,6 +13035,7 @@ async function saveInventoryProductionQuantityInput(input){
   if(!input) return;
   const lineId=input.dataset.lineId || '';
   if(!lineId) return;
+  if(inventoryCountRejectNegativeManualValue(input,'الإنتاج',updateInventoryProductionQuantityInputWidth)) return;
   if(input.validity && !input.validity.valid){
     input.value=input.dataset.lastSaved || '';
     updateInventoryProductionQuantityInputWidth(input);
@@ -13055,6 +13097,7 @@ async function saveInventoryPhysicalBalanceInput(input){
   if(!input) return;
   const lineId=input.dataset.lineId || '';
   if(!lineId) return;
+  if(inventoryCountRejectNegativeManualValue(input,'الرصيد الفعلي',updateInventoryPhysicalBalanceInputWidth)) return;
   if(input.validity && !input.validity.valid){
     input.value=input.dataset.lastSaved || '';
     updateInventoryPhysicalBalanceInputWidth(input);
@@ -13116,6 +13159,7 @@ async function saveInventoryOldestQuantityInput(input){
   if(!input) return;
   const lineId=input.dataset.lineId || '';
   if(!lineId) return;
+  if(inventoryCountRejectNegativeManualValue(input,'كمية أقدم تاريخ',updateInventoryOldestQuantityInputWidth)) return;
   if(input.validity && !input.validity.valid){
     input.value=input.dataset.lastSaved || '';
     updateInventoryOldestQuantityInputWidth(input);
@@ -13441,7 +13485,7 @@ function initInventoryCountMobilePanels(){
   settingsBtn.addEventListener('click',event=>{ event.preventDefault(); openInventoryCountMobilePanel('settings'); });
   $('#inventoryCountMobileExportBtn')?.addEventListener('click',event=>{ event.preventDefault(); openInventoryCountMobilePanel('export'); });
   $('#inventoryCountMobileSearchBtn')?.addEventListener('click',event=>{ event.preventDefault(); openInventoryCountMobilePanel('search'); });
-  $('#inventoryCountMobileSheetOverlay')?.addEventListener('click',event=>{ event.preventDefault(); closeInventoryCountMobilePanels(); });
+  $('#inventoryCountMobileSheetOverlay')?.addEventListener('click',event=>{ event.preventDefault(); });
   $('#inventoryCountMobileSettingsCloseBtn')?.addEventListener('click',event=>{ event.preventDefault(); closeInventoryCountMobilePanels(); });
   $('#inventoryCountMobileExportCloseBtn')?.addEventListener('click',event=>{ event.preventDefault(); closeInventoryCountMobilePanels(); });
   $('#inventoryCountMobileSearchCloseBtn')?.addEventListener('click',event=>{ event.preventDefault(); closeInventoryCountMobilePanels(); });
@@ -13814,7 +13858,7 @@ function ensureInventoryDifferenceReplaceModal(){
   modal.hidden=true;
   modal.innerHTML='<div class="inventory-difference-replace-dialog app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="inventoryDifferenceReplaceTitle"><button type="button" class="app-liquid-modal__close inventory-difference-replace-close" data-inventory-difference-replace-cancel aria-label="إغلاق نافذة استبدال مستند فروق الجرد">×</button><h3 id="inventoryDifferenceReplaceTitle">استبدال مستند فروق الجرد</h3><div class="inventory-difference-replace-confirm"><p>تم إنشاء نسخة بالفعل لهذا الجرد.<br>هل تريد استبدال النسخة الحالية؟</p><div class="inventory-difference-replace-actions"><button type="button" class="primary" data-inventory-difference-replace-step="reason">نعم، استبدال</button><button type="button" class="secondary" data-inventory-difference-replace-cancel>إلغاء</button></div></div><div class="inventory-difference-replace-reason" hidden><label>سبب الاستبدال<textarea id="inventoryDifferenceReplaceReason" maxlength="500" rows="4"></textarea></label><small id="inventoryDifferenceReplaceCounter">0 / 500</small><div class="inventory-difference-replace-actions"><button type="button" class="primary" id="inventoryDifferenceReplaceSubmitBtn" disabled>تأكيد الاستبدال</button><button type="button" class="secondary" data-inventory-difference-replace-cancel>إلغاء</button></div></div></div>';
   document.body.appendChild(modal);
-  modal.addEventListener('click',event=>{ if(event.target===modal) closeInventoryDifferenceReplaceModal(); });
+
   modal.querySelector('[data-inventory-difference-replace-step="reason"]')?.addEventListener('click',()=>showInventoryDifferenceReplaceReasonStep());
   modal.querySelectorAll('[data-inventory-difference-replace-cancel]').forEach(btn=>btn.addEventListener('click',closeInventoryDifferenceReplaceModal));
   modal.querySelector('#inventoryDifferenceReplaceReason')?.addEventListener('input',syncInventoryDifferenceReplaceReason);
@@ -14002,10 +14046,10 @@ function inventoryCountFinalizationStatusMessage(status,data={}){
 function inventoryCountPostCloseStatusMessage(status,data={}){
   const map={
     post_close_invoice_adjustment_saved:'تم اعتماد تعديل الفاتورة بعد إنهاء الجرد.',
-    post_close_adjustment_batch_saved:'تم اعتماد تعديلات الفواتير والتحويلات بعد إنهاء الجرد.',
+    post_close_adjustment_batch_saved:'تم اعتماد تعديلات ما بعد إنهاء الجرد.',
     not_authenticated:'انتهت جلسة الدخول. سجّل الدخول مرة أخرى.',
     inactive_user:'المستخدم الحالي غير نشط.',
-    permission_denied:'لا تملك صلاحية تعديل فواتير وتحويلات الجرد.',
+    permission_denied:'لا تملك صلاحية تنفيذ تعديلات ما بعد إنهاء الجرد.',
     version_not_found:'تعذر العثور على نسخة الجرد.',
     inventory_not_finalized:'لا يمكن تنفيذ التعديل قبل إنهاء الجرد.',
     version_not_current:'نسخة الجرد لم تعد النسخة الحالية.',
@@ -14020,12 +14064,14 @@ function inventoryCountPostCloseStatusMessage(status,data={}){
     insufficient_sales_quantity:'لا يمكن تنفيذ المرتجع لأن الكمية المدخلة أكبر من كمية البيع الحالية.',
     insufficient_incoming_transfers:'لا يمكن تنفيذ عجز التحويل الوارد لأن الكمية المدخلة أكبر من كمية التحويلات الواردة الحالية.',
     insufficient_outgoing_transfers:'لا يمكن تنفيذ عجز التحويل الصادر لأن الكمية المدخلة أكبر من كمية التحويلات الصادرة الحالية.',
+    insufficient_production_quantity:'لا يمكن خصم الإنتاج لأن الكمية المدخلة أكبر من كمية الإنتاج الحالية.',
+    negative_physical_result_not_allowed:'لا يمكن تنفيذ التعديل لأن الرصيد الدفتري الناتج سيجعل الرصيد الفعلي سالبًا.',
     downstream_active_settlement_conflict:'يوجد جرد لاحق مفتوح يحتوي على تسوية فعالة لهذا الصنف. تراجع عن التسوية الفعالة أولاً ثم أعد تنفيذ التعديل حتى يمكن ترحيل الأثر بأمان.',
     downstream_version_not_propagatable:'تعذر ترحيل أثر التعديل لأن إحدى نسخ الجرد اللاحقة في حالة لا تسمح بالتحديث الآلي.',
     row_version_conflict:'تم تعديل بيانات الصنف من مستخدم آخر. أعد تحميل المستند ثم حاول مرة أخرى.',
     postcondition_failed:'تعذر تثبيت نتيجة التعديل بصورة صحيحة.'
   };
-  const base=map[String(status||'')] || 'تعذر اعتماد تعديلات الفواتير والتحويلات بعد إنهاء الجرد.';
+  const base=map[String(status||'')] || 'تعذر اعتماد تعديلات ما بعد إنهاء الجرد.';
   const itemIndex=Number(data?.item_index || 0);
   const materialCode=String(data?.material_code || '').trim();
   return itemIndex>0 ? `${base} الصف رقم ${itemIndex}${materialCode ? ` — الصنف ${materialCode}` : ''}.` : base;
@@ -14047,7 +14093,7 @@ async function finishInventoryCountFromUi(){
   }
   const confirmed=await showAppLiquidConfirm({
     title:'إنهاء مستند الجرد',
-    message:'سيتم قفل مستند الجرد نهائيًا وإيقاف جميع خانات الجرد والتسويات والتراجعات. بعد الإنهاء ستكون تعديلات البيع والتحويلات متاحة فقط من زر «تعديل فواتير وتحويلات بعد إنهاء الجرد». هل تريد المتابعة؟',
+    message:'سيتم قفل مستند الجرد نهائيًا وإيقاف جميع خانات الجرد والتسويات والتراجعات. بعد الإنهاء ستكون تعديلات البيع والتحويلات والإنتاج متاحة فقط من زر «تعديلات بعد إنهاء الجرد». هل تريد المتابعة؟',
     confirmText:'إنهاء الجرد',
     cancelText:'إلغاء',
     tone:'danger'
@@ -14093,9 +14139,10 @@ function inventoryCountPostCloseLineByName(value){
 const INVENTORY_COUNT_POST_CLOSE_SCOPES={
   sales:{label:'البيع',actions:[['sale','بيع'],['return','مرتجع']]},
   incoming_transfer:{label:'التحويلات الواردة',actions:[['increase_transfer','زيادة في التحويل'],['shortage_transfer','عجز في التحويل']]},
-  outgoing_transfer:{label:'التحويلات الصادرة',actions:[['increase_transfer','زيادة في التحويل'],['shortage_transfer','عجز في التحويل']]}
+  outgoing_transfer:{label:'التحويلات الصادرة',actions:[['increase_transfer','زيادة في التحويل'],['shortage_transfer','عجز في التحويل']]},
+  production:{label:'الإنتاج',actions:[['add_production','إضافة إنتاج'],['deduct_production','خصم إنتاج']]}
 };
-const INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER=['sales','incoming_transfer','outgoing_transfer'];
+const INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER=['sales','incoming_transfer','outgoing_transfer','production'];
 function inventoryCountPostCloseScopeConfig(scope){return INVENTORY_COUNT_POST_CLOSE_SCOPES[String(scope||'')] || null;}
 function inventoryCountPostClosePreview(row,scope,action,quantity){
   const q=roundInventoryManualThreeDecimalValue(quantity);
@@ -14105,13 +14152,21 @@ function inventoryCountPostClosePreview(row,scope,action,quantity){
     sales_quantity:normalizeInventorySettlementNumber(row.sales_quantity),
     incoming_transfers:normalizeInventorySettlementNumber(row.incoming_transfers),
     outgoing_transfers:normalizeInventorySettlementNumber(row.outgoing_transfers),
+    production_quantity:normalizeInventorySettlementNumber(row.production_quantity),
     book_balance:normalizeInventorySettlementNumber(row.book_balance)
   };
   const after={...state};
   let fieldLabel='';
   let beforeValue=0;
   let afterValue=0;
-  if(scope==='sales'){
+  if(scope==='production'){
+    fieldLabel='الإنتاج';
+    beforeValue=state.production_quantity;
+    after.production_quantity=roundInventoryManualThreeDecimalValue(action==='add_production' ? state.production_quantity+q : state.production_quantity-q);
+    if(action==='deduct_production' && after.production_quantity<0) return {valid:false,status:'insufficient_production_quantity'};
+    after.book_balance=roundInventoryManualThreeDecimalValue(action==='add_production' ? state.book_balance+q : state.book_balance-q);
+    afterValue=after.production_quantity;
+  }else if(scope==='sales'){
     fieldLabel='كمية البيع';
     beforeValue=state.sales_quantity;
     after.sales_quantity=roundInventoryManualThreeDecimalValue(action==='sale' ? state.sales_quantity+q : state.sales_quantity-q);
@@ -14133,6 +14188,7 @@ function inventoryCountPostClosePreview(row,scope,action,quantity){
     after.book_balance=roundInventoryManualThreeDecimalValue(action==='increase_transfer' ? state.book_balance-q : state.book_balance+q);
     afterValue=after.outgoing_transfers;
   }
+  if(after.book_balance<0) return {valid:false,status:'negative_physical_result_not_allowed'};
   return {valid:true,q,scope,action,fieldLabel,beforeValue,afterValue,bookBefore:state.book_balance,bookAfter:after.book_balance,physicalAfter:after.book_balance,varianceAfter:0,stateAfter:after};
 }
 function closeInventoryCountPostCloseInvoiceModal(options={}){
@@ -14174,20 +14230,27 @@ function inventoryCountPostCloseSetActiveTab(modal,scope){
   modal.querySelectorAll('[data-post-close-panel]').forEach(panel=>{panel.hidden=panel.dataset.postClosePanel!==scope;});
   requestAnimationFrame(()=>modal.querySelector(`[data-post-close-panel="${scope}"] [data-post-close-code]`)?.focus({preventScroll:true}));
 }
-function inventoryCountPostCloseResolveEntry(entry){
+function inventoryCountPostCloseResolveEntry(entry,source='auto'){
   if(!entry) return null;
   const codeInput=entry.querySelector('[data-post-close-code]');
   const nameInput=entry.querySelector('[data-post-close-name]');
   const uom=entry.querySelector('[data-post-close-uom]');
-  let row=inventoryCountPostCloseLineByCode(codeInput?.value);
-  if(!row) row=inventoryCountPostCloseLineByName(nameInput?.value);
+  let row=null;
+  if(source==='code') row=inventoryCountPostCloseLineByCode(codeInput?.value);
+  else if(source==='name') row=inventoryCountPostCloseLineByName(nameInput?.value);
+  else{
+    row=inventoryCountPostCloseLineByCode(codeInput?.value);
+    if(!row) row=inventoryCountPostCloseLineByName(nameInput?.value);
+  }
   if(row){
     entry.dataset.lineId=String(row.id||'');
-    if(codeInput && document.activeElement!==codeInput) codeInput.value=String(row.material_code||'');
-    if(nameInput && document.activeElement!==nameInput) nameInput.value=String(row.material_name||'');
+    if(codeInput) codeInput.value=String(row.material_code||'');
+    if(nameInput) nameInput.value=String(row.material_name||'');
     if(uom) uom.value=String(row.uom||'');
   }else{
     delete entry.dataset.lineId;
+    if(source==='code' && nameInput) nameInput.value='';
+    if(source==='name' && codeInput) codeInput.value='';
     if(uom) uom.value='';
   }
   return row;
@@ -14219,6 +14282,7 @@ function inventoryCountPostCloseCollectItems(modal){
         sales_quantity:normalizeInventorySettlementNumber(row.sales_quantity),
         incoming_transfers:normalizeInventorySettlementNumber(row.incoming_transfers),
         outgoing_transfers:normalizeInventorySettlementNumber(row.outgoing_transfers),
+        production_quantity:normalizeInventorySettlementNumber(row.production_quantity),
         book_balance:normalizeInventorySettlementNumber(row.book_balance)
       };
       const preview=inventoryCountPostClosePreview(base,scope,action,quantity);
@@ -14267,7 +14331,7 @@ function openInventoryCountPostCloseInvoiceModal(){
     return;
   }
   if(!hasPermission('inventory_count','edit')){
-    showInventoryCountToast('لا تملك صلاحية تعديل فواتير وتحويلات الجرد.','error');
+    showInventoryCountToast('لا تملك صلاحية تنفيذ تعديلات ما بعد إنهاء الجرد.','error');
     return;
   }
   closeInventoryCountPostCloseInvoiceModal({restoreFocus:false});
@@ -14279,15 +14343,15 @@ function openInventoryCountPostCloseInvoiceModal(){
   modal.setAttribute('aria-labelledby','inventoryCountPostCloseInvoiceTitle');
   const panels=INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER.map(scope=>{
     const config=inventoryCountPostCloseScopeConfig(scope);
-    return `<section class="inventory-count-post-close-panel" data-post-close-panel="${scope}" role="tabpanel"${scope==='sales'?'':' hidden'}><div class="inventory-count-post-close-table-wrap"><table class="inventory-count-post-close-table"><thead><tr><th>كود المادة</th><th>وصف المادة</th><th>وحدة القياس</th><th>الكمية</th><th>الإجراء</th></tr></thead><tbody></tbody></table></div><div class="inventory-count-post-close-row-tools"><button class="secondary inventory-count-post-close-add-row" type="button" data-post-close-add="${scope}">إضافة صنف</button><span>يمكن إضافة أكثر من صنف في نفس العملية.</span></div></section>`;
+    return `<section class="inventory-count-post-close-panel" data-post-close-panel="${scope}" role="tabpanel"${scope==='sales'?'':' hidden'}><div class="inventory-count-post-close-table-wrap"><table class="inventory-count-post-close-table"><colgroup><col class="post-close-col-code"><col class="post-close-col-name"><col class="post-close-col-uom"><col class="post-close-col-quantity"><col class="post-close-col-action"></colgroup><thead><tr><th>كود المادة</th><th>وصف المادة</th><th>وحدة القياس</th><th>الكمية</th><th>الإجراء</th></tr></thead><tbody></tbody></table></div><div class="inventory-count-post-close-row-tools"><button class="secondary inventory-count-post-close-add-row" type="button" data-post-close-add="${scope}">إضافة صنف</button><span>يمكن إضافة أكثر من صنف في نفس العملية.</span></div></section>`;
   }).join('');
   modal.innerHTML=`<div class="inventory-count-post-close-dialog app-liquid-modal">
-    <div class="inventory-count-post-close-header app-liquid-modal__header"><div><div class="inventory-count-post-close-eyebrow">الجرد وتوثيق المخزون</div><h2 class="app-liquid-modal__title" id="inventoryCountPostCloseInvoiceTitle">تعديل فواتير وتحويلات بعد إنهاء الجرد</h2></div><button class="app-liquid-modal__close inventory-count-post-close-close" type="button" aria-label="إغلاق">×</button></div>
+    <div class="inventory-count-post-close-header app-liquid-modal__header"><div><div class="inventory-count-post-close-eyebrow">الجرد وتوثيق المخزون</div><h2 class="app-liquid-modal__title" id="inventoryCountPostCloseInvoiceTitle">تعديلات بعد إنهاء الجرد</h2></div><button class="app-liquid-modal__close inventory-count-post-close-close" type="button" aria-label="إغلاق">×</button></div>
     <div class="inventory-count-post-close-tabs" role="tablist" aria-label="نوع التعديل">${INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER.map(scope=>`<button type="button" role="tab" data-post-close-tab="${scope}" aria-selected="${scope==='sales'?'true':'false'}" class="${scope==='sales'?'is-active':''}">${inventoryCountPostCloseScopeConfig(scope).label}</button>`).join('')}</div>
     <div class="inventory-count-post-close-body app-liquid-modal__body">
       <div class="inventory-count-post-close-panels">${panels}</div>
       <datalist id="inventoryCountPostCloseCodeList"></datalist><datalist id="inventoryCountPostCloseNameList"></datalist>
-      <label class="inventory-count-post-close-reason"><span>سبب التعديل والتفاصيل *</span><textarea maxlength="4000" rows="5" data-post-close-reason placeholder="اكتب سبب التعديل وتفاصيل الفاتورة أو التحويل والعميل/الجهة المرتبطة..."></textarea></label>
+      <label class="inventory-count-post-close-reason"><span>سبب التعديل والتفاصيل *</span><textarea maxlength="4000" rows="5" data-post-close-reason placeholder="اكتب سبب التعديل وتفاصيل الفاتورة أو التحويل أو الإنتاج والعميل/الجهة المرتبطة..."></textarea></label>
       <div class="inventory-count-post-close-preview app-liquid-modal__section" data-post-close-preview>أضف صنفًا واحدًا على الأقل لعرض النتيجة.</div>
       <div class="inventory-count-post-close-error app-liquid-modal__error" data-post-close-error hidden></div>
     </div>
@@ -14303,7 +14367,7 @@ function openInventoryCountPostCloseInvoiceModal(){
   modal._returnFocus=$('#inventoryCountPostCloseInvoiceBtn');
   modal._appModalClose=closeInventoryCountPostCloseInvoiceModal;
   modal.addEventListener('click',event=>{
-    if(event.target===modal || event.target.closest('.inventory-count-post-close-close') || event.target.closest('[data-post-close-cancel]')){event.preventDefault();closeInventoryCountPostCloseInvoiceModal();return;}
+    if(event.target.closest('.inventory-count-post-close-close') || event.target.closest('[data-post-close-cancel]')){event.preventDefault();closeInventoryCountPostCloseInvoiceModal();return;}
     const tab=event.target.closest('[data-post-close-tab]');
     if(tab){event.preventDefault();inventoryCountPostCloseSetActiveTab(modal,tab.dataset.postCloseTab);return;}
     const add=event.target.closest('[data-post-close-add]');
@@ -14330,8 +14394,20 @@ function openInventoryCountPostCloseInvoiceModal(){
     inventoryCountPostCloseSetActiveTab(modal,INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER[next]);
     modal.querySelector(`[data-post-close-tab="${INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER[next]}"]`)?.focus({preventScroll:true});
   });
-  modal.addEventListener('input',()=>{modal.dataset.serverError='';syncInventoryCountPostCloseInvoiceModal(modal);});
-  modal.addEventListener('change',()=>{modal.dataset.serverError='';syncInventoryCountPostCloseInvoiceModal(modal);});
+  modal.addEventListener('input',event=>{
+    const entry=event.target.closest('[data-post-close-entry]');
+    if(entry && event.target.matches('[data-post-close-code]')) inventoryCountPostCloseResolveEntry(entry,'code');
+    else if(entry && event.target.matches('[data-post-close-name]')) inventoryCountPostCloseResolveEntry(entry,'name');
+    modal.dataset.serverError='';
+    syncInventoryCountPostCloseInvoiceModal(modal);
+  });
+  modal.addEventListener('change',event=>{
+    const entry=event.target.closest('[data-post-close-entry]');
+    if(entry && event.target.matches('[data-post-close-code]')) inventoryCountPostCloseResolveEntry(entry,'code');
+    else if(entry && event.target.matches('[data-post-close-name]')) inventoryCountPostCloseResolveEntry(entry,'name');
+    modal.dataset.serverError='';
+    syncInventoryCountPostCloseInvoiceModal(modal);
+  });
   document.body.appendChild(modal);
   lockAppModalScroll('inventory-count-post-close-invoice',modal);
   syncInventoryCountPostCloseInvoiceModal(modal);
@@ -14371,8 +14447,8 @@ async function submitInventoryCountPostCloseAdjustments(modal){
       : `تم اعتماد ${savedItems} تعديل بعد إنهاء الجرد.`;
     showInventoryCountToast(message,'success',6000);
   }catch(err){
-    console.error('Post-close sales/transfers adjustment failed',err);
-    const message=err?.message || 'تعذر اعتماد تعديلات الفواتير والتحويلات بعد إنهاء الجرد.';
+    console.error('Post-close adjustment failed',err);
+    const message=err?.message || 'تعذر اعتماد تعديلات ما بعد إنهاء الجرد.';
     modal.dataset.serverError=message;
     const errorBox=modal.querySelector('[data-post-close-error]');if(errorBox){errorBox.hidden=false;errorBox.textContent=message;}
     showInventoryCountToast(message,'error',6000);
@@ -14862,10 +14938,7 @@ function initIcBatchViewModal() {
   // Close button
   closeBtn.addEventListener('click', closeIcBatchViewModal);
 
-  // Close on Overlay click (but NOT on modal content click)
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) closeIcBatchViewModal();
-  });
+  // Backdrop clicks are intentionally ignored. Close only via Esc or explicit in-modal controls.
   modal.addEventListener('click', (e) => e.stopPropagation());
 
   // Delegate click events for view-ic buttons (works for dynamically rendered buttons)
