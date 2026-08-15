@@ -11247,7 +11247,7 @@ function inventoryCountExportTotalRow(display=true){
 function inventoryCountExportColumnLayout(visibleKeys=[]){
   const weights={
     material_code:2.3,
-    material_name:5.4,
+    material_name:6.8,
     uom:.75,
     oldest_date:1.75,
     inventory_counter:2.8,
@@ -11270,6 +11270,10 @@ function inventoryCountBuildExportSheet(){
   sheet.lang='ar';
   sheet.dataset.exportRows=String(rows.length);
   sheet.dataset.exportColumns=String(visibleKeys.length);
+  const exportRowHeight=Math.max(22,Math.min(28,Math.floor(1320/Math.max(rows.length,1))));
+  const exportFontSize=visibleKeys.length<=10 ? 11.2 : (visibleKeys.length<=15 ? 10.4 : 9.8);
+  sheet.style.setProperty('--inventory-export-row-height',`${exportRowHeight}px`);
+  sheet.style.setProperty('--inventory-export-font-size',`${exportFontSize}px`);
   const content=document.createElement('div');
   content.className='inventory-count-export-content';
   const header=document.createElement('header');
@@ -11432,7 +11436,7 @@ async function exportInventoryCountPdf(){
   if(!JsPDF){ showInventoryCountToast('مكتبة PDF غير محملة.','error'); return; }
   try{
     const {canvas}=await inventoryCountCaptureExportSheet();
-    const pdf=new JsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
+    const pdf=new JsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
     const finalWidth=pdf.internal.pageSize.getWidth();
     const finalHeight=pdf.internal.pageSize.getHeight();
     const margin=4;

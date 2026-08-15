@@ -186,7 +186,7 @@
     popup.addEventListener('click',event=>{
       const day=event.target.closest('[data-iso]');
       const action=event.target.closest('[data-cdp]')?.dataset.cdp;
-      if(day){active.previewIso=day.dataset.iso;const p=parseIso(active.previewIso);if(p){active.viewYear=p.year;active.viewMonth=p.month;}render(active);position(active);return;}
+      if(day){active.previewIso=day.dataset.iso;const p=parseIso(active.previewIso);if(p){active.viewYear=p.year;active.viewMonth=p.month;}if(event.detail>1 && active.input.closest('#inventory_closing')){close(true);return;}render(active);position(active);return;}
       if(action==='prev-month'){const next=monthAdd(active.viewYear,active.viewMonth,-1);active.viewYear=next.year;active.viewMonth=next.month;render(active);position(active);}
       if(action==='next-month'){const next=monthAdd(active.viewYear,active.viewMonth,1);active.viewYear=next.year;active.viewMonth=next.month;render(active);position(active);}
       if(action==='prev-year'){active.viewYear-=1;render(active);position(active);}

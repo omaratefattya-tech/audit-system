@@ -4125,10 +4125,10 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
   left: 0;
   top: 0;
   z-index: -1;
-  width: 1584px;
-  height: 1120px;
-  min-width: 1584px;
-  min-height: 1120px;
+  width: 1120px;
+  height: 1584px;
+  min-width: 1120px;
+  min-height: 1584px;
   padding: 22px;
   box-sizing: border-box;
   direction: rtl;
@@ -4194,29 +4194,29 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
   direction: rtl;
   background: #003b2d;
   color: #efffea;
-  font-size: 9.2px;
+  font-size: var(--inventory-export-font-size, 9.8px);
   font-variant-numeric: tabular-nums;
 }
 
 .inventory-count-export-table th,
 .inventory-count-export-table td {
   border: 1px solid rgba(143,194,156,.42);
-  padding: 2px 3px;
-  height: 18px;
+  padding: 3px;
+  height: var(--inventory-export-row-height, 24px);
   box-sizing: border-box;
   text-align: center;
   vertical-align: middle;
-  line-height: 1.2;
+  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: clip;
 }
 
 .inventory-count-export-table th {
-  height: 28px;
+  height: 34px;
   color: #f5ffef;
   background: linear-gradient(180deg, #076444, #034e39);
-  font-size: 9.4px;
+  font-size: 10.2px;
   font-weight: 900;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -4232,7 +4232,7 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
 }
 
 .inventory-count-export-table tfoot td {
-  height: 20px;
+  height: 28px;
   background: #0d5a38;
   color: #bfff7f;
   font-weight: 900;
