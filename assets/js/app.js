@@ -14451,6 +14451,7 @@ function openInventoryCountPostCloseInvoiceModal(){
     </div>
     <div class="inventory-count-post-close-footer app-liquid-modal__footer"><button class="secondary" type="button" data-post-close-cancel>إلغاء</button><button class="primary" type="button" data-post-close-submit disabled>اعتماد التعديلات</button></div>
   </div>`;
+  modal.querySelectorAll('.inventory-count-post-close-table').forEach(table=>{table.dataset.noUniversalTable='1';});
   document.body.appendChild(modal);
   lockAppModalScroll('inventory-count-post-close-invoice',modal);
   inventoryCountPostCloseBuildLookup(modal);
@@ -15558,5 +15559,4 @@ if (
     console.error('Failed to reload inventory count storekeepers:', error);
   }
 }
-
 
