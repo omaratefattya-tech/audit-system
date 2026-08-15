@@ -11368,18 +11368,20 @@ async function inventoryCountCaptureExportSheet(){
     const verticalPadding=(parseFloat(sheetStyles.paddingTop)||0)+(parseFloat(sheetStyles.paddingBottom)||0);
     const availableWidth=Math.max(1,sheet.clientWidth-horizontalPadding);
     const availableHeight=Math.max(1,sheet.clientHeight-verticalPadding);
+    let fitScale=1;
     if(content){
       content.style.transform='none';
       const naturalWidth=Math.max(content.scrollWidth,content.getBoundingClientRect().width,1);
       const naturalHeight=Math.max(content.scrollHeight,content.getBoundingClientRect().height,1);
-      const fitScale=Math.min(1,availableWidth/naturalWidth,availableHeight/naturalHeight);
+      fitScale=Math.min(1,availableWidth/naturalWidth,availableHeight/naturalHeight);
       content.style.setProperty('--inventory-export-fit-scale',String(fitScale));
       content.style.transform=`scale(${fitScale})`;
     }
     await new Promise(resolve=>requestAnimationFrame(resolve));
     const width=Math.max(1,Math.ceil(sheet.clientWidth));
     const height=Math.max(1,Math.ceil(sheet.clientHeight));
-    const canvas=await Html2Canvas(sheet,{scale:1,useCORS:true,allowTaint:true,backgroundColor:'#00291f',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+    const captureScale=Math.min(3,Math.max(2,1/Math.max(fitScale,.01)));
+    const canvas=await Html2Canvas(sheet,{scale:captureScale,useCORS:true,allowTaint:true,backgroundColor:'#00291f',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
     return {canvas,width,height};
   }finally{
     sheet.remove();
@@ -11409,7 +11411,18 @@ async function exportInventoryCountPdf(){
     const pdf=new JsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
     const finalWidth=pdf.internal.pageSize.getWidth();
     const finalHeight=pdf.internal.pageSize.getHeight();
-    pdf.addImage(canvas.toDataURL('image/png',1),'PNG',0,0,finalWidth,finalHeight,undefined,'FAST');
+    const margin=4;
+    const availableWidth=finalWidth-(margin*2);
+    const availableHeight=finalHeight-(margin*2);
+    const canvasRatio=canvas.width/canvas.height;
+    let imageWidth=availableWidth;
+    let imageHeight=imageWidth/canvasRatio;
+    if(imageHeight>availableHeight){imageHeight=availableHeight;imageWidth=imageHeight*canvasRatio;}
+    const imageX=(finalWidth-imageWidth)/2;
+    const imageY=(finalHeight-imageHeight)/2;
+    pdf.setFillColor(0,41,31);
+    pdf.rect(0,0,finalWidth,finalHeight,'F');
+    pdf.addImage(canvas.toDataURL('image/png',1),'PNG',imageX,imageY,imageWidth,imageHeight,undefined,'FAST');
     await saveBlobWithPicker(pdf.output('blob'),`${inventoryCountExportFileBase()}.pdf`,'application/pdf');
     showInventoryCountToast('تم التصدير بنجاح.','success');
   }catch(err){

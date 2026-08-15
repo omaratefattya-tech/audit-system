@@ -4218,6 +4218,9 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
   background: linear-gradient(180deg, #076444, #034e39);
   font-size: 7.6px;
   font-weight: 900;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
 }
 
 .inventory-count-export-table tbody tr:nth-child(even) td {
@@ -4240,6 +4243,11 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
   white-space: normal;
   overflow-wrap: anywhere;
   text-overflow: clip;
+}
+
+.inventory-count-export-table .inventory-count-export-col-material_name {
+  direction: rtl;
+  text-align: right;
 }
 
 .inventory-count-export-table .inventory-count-export-col-material_code { width: 7%; }
@@ -4652,7 +4660,7 @@ body.light-mode #inventory_closing .inventory-count-column-option {
   }
 
   body.inventory-count-settings-open #inventory_closing .inventory-count-settings-box,
-  body.inventory-count-export-open #inventory_closing .inventory-count-mobile-sheet {
+  body.inventory-count-export-open #inventory_closing #inventoryCountMobileExportPanel {
     display: grid !important;
     position: fixed;
     left: 10px;
