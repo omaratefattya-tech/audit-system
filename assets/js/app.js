@@ -11244,6 +11244,22 @@ function inventoryCountExportTotalRow(display=true){
     '', '', ''
   ];
 }
+function inventoryCountExportColumnLayout(visibleKeys=[]){
+  const weights={
+    material_code:2.3,
+    material_name:5.4,
+    uom:.75,
+    oldest_date:1.75,
+    inventory_counter:2.8,
+    inventory_settlement:2.1
+  };
+  const fallbackWeight=1.15;
+  const totalWeight=visibleKeys.reduce((sum,key)=>sum+(weights[key] || fallbackWeight),0);
+  return visibleKeys.map(key=>({
+    key,
+    width:totalWeight ? ((weights[key] || fallbackWeight)/totalWeight)*100 : 0
+  }));
+}
 function inventoryCountBuildExportSheet(){
   const rows=INVENTORY_COUNT_STATE.lines || [];
   const visibleIndexes=inventoryCountVisibleColumnIndexes();
@@ -11270,6 +11286,14 @@ function inventoryCountBuildExportSheet(){
   header.append(title,meta);
   const table=document.createElement('table');
   table.className='inventory-count-export-table';
+  const colgroup=document.createElement('colgroup');
+  inventoryCountExportColumnLayout(visibleKeys).forEach(column=>{
+    const col=document.createElement('col');
+    col.dataset.inventoryExportKey=column.key;
+    col.style.width=`${column.width}%`;
+    colgroup.appendChild(col);
+  });
+  table.appendChild(colgroup);
   const thead=document.createElement('thead');
   const headRow=document.createElement('tr');
   visibleIndexes.forEach(index=>{
@@ -11414,10 +11438,9 @@ async function exportInventoryCountPdf(){
     const margin=4;
     const availableWidth=finalWidth-(margin*2);
     const availableHeight=finalHeight-(margin*2);
-    const canvasRatio=canvas.width/canvas.height;
-    let imageWidth=availableWidth;
-    let imageHeight=imageWidth/canvasRatio;
-    if(imageHeight>availableHeight){imageHeight=availableHeight;imageWidth=imageHeight*canvasRatio;}
+    const fit=Math.min(availableWidth/canvas.width,availableHeight/canvas.height);
+    const imageWidth=canvas.width*fit;
+    const imageHeight=canvas.height*fit;
     const imageX=(finalWidth-imageWidth)/2;
     const imageY=(finalHeight-imageHeight)/2;
     pdf.setFillColor(0,41,31);
