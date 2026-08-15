@@ -14343,6 +14343,7 @@ function inventoryCountPostCloseSetActiveTab(modal,scope){
     button.tabIndex=active?0:-1;
   });
   modal.querySelectorAll('[data-post-close-panel]').forEach(panel=>{panel.hidden=panel.dataset.postClosePanel!==scope;});
+  syncInventoryCountPostCloseInvoiceModal(modal);
   requestAnimationFrame(()=>modal.querySelector(`[data-post-close-panel="${scope}"] [data-post-close-code]`)?.focus({preventScroll:true}));
 }
 function inventoryCountPostCloseResolveEntry(entry,source='auto'){
@@ -14496,6 +14497,8 @@ function openInventoryCountPostCloseInvoiceModal(){
     inventoryCountPostCloseSetActiveTab(modal,INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER[next]);
     modal.querySelector(`[data-post-close-tab="${INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER[next]}"]`)?.focus({preventScroll:true});
   });
+  const reason=modal.querySelector('[data-post-close-reason]');
+  ['input','change'].forEach(type=>reason?.addEventListener(type,()=>{modal.dataset.serverError='';syncInventoryCountPostCloseInvoiceModal(modal);}));
   syncInventoryCountPostCloseInvoiceModal(modal);
   requestAnimationFrame(()=>modal.querySelector('[data-post-close-panel="sales"] [data-post-close-code]')?.focus({preventScroll:true}));
 }
@@ -15559,4 +15562,3 @@ if (
     console.error('Failed to reload inventory count storekeepers:', error);
   }
 }
-
