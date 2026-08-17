@@ -2691,6 +2691,8 @@ function syncMobileDashboardShellState(){
 }
 const INVENTORY_AUDIT_SECTION_IDS = new Set(['inventory_closing','inventory_differences','inventory_expiry_tracking']);
 function isInventoryAuditSection(section){ return INVENTORY_AUDIT_SECTION_IDS.has(section); }
+const DEPARTMENT_PERSONNEL_SECTION_IDS = new Set(['department_storekeepers','department_weekly_leave_schedule','department_hr_reports']);
+function isDepartmentPersonnelSection(section){ return DEPARTMENT_PERSONNEL_SECTION_IDS.has(section); }
 function setInventoryAuditNavGroupOpen(group,open){
   if(!group) return;
   group.classList.toggle('is-open',!!open);
@@ -2705,6 +2707,19 @@ function syncInventoryAuditNavigation(section=currentActiveSection()){
   $$('[data-inventory-nav-toggle],[data-inventory-mobile-toggle]').forEach(toggle=>toggle.classList.toggle('active',active));
   $$('.mobile-drawer-item[data-mobile-section]').forEach(item=>item.classList.toggle('active',item.dataset.mobileSection===section));
 }
+function setDepartmentPersonnelNavGroupOpen(group,open){
+  if(!group) return;
+  group.classList.toggle('is-open',!!open);
+  const submenu=group.querySelector('.department-personnel-nav-submenu');
+  const toggle=group.querySelector('[data-department-personnel-nav-toggle]');
+  if(submenu) submenu.hidden=!open;
+  if(toggle) toggle.setAttribute('aria-expanded',open?'true':'false');
+}
+function syncDepartmentPersonnelNavigation(section=currentActiveSection()){
+  const active=isDepartmentPersonnelSection(section);
+  $$('[data-department-personnel-nav-group]').forEach(group=>{ if(active) setDepartmentPersonnelNavGroupOpen(group,true); });
+  $$('[data-department-personnel-nav-toggle]').forEach(toggle=>toggle.classList.toggle('active',active));
+}
 function switchSection(section,options={}){
   closeActiveApplicationModals({restoreFocus:false});
   if(document.body.classList.contains('focus-mode-active')) exitFocusMode({restoreScroll:false});
@@ -2714,6 +2729,7 @@ function switchSection(section,options={}){
   }
   $$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.section===section));
   syncInventoryAuditNavigation(section);
+  syncDepartmentPersonnelNavigation(section);
   $$('.section').forEach(s=>s.classList.remove('active-section'));
   const target=$('#'+section);
   if(target) target.classList.add('active-section');
@@ -3001,8 +3017,19 @@ function initMobileDashboardControls(){
 function nav(){
   $$('.nav-item[data-section]').forEach(b=>b.onclick=()=>switchSection(b.dataset.section));
   $$('[data-inventory-nav-toggle]').forEach(btn=>{ btn.onclick=()=>{ const group=btn.closest('[data-inventory-nav-group]'); setInventoryAuditNavGroupOpen(group,!group?.classList.contains('is-open')); }; });
+  $$('[data-department-personnel-nav-toggle]').forEach(btn=>{ btn.onclick=()=>{
+    const group=btn.closest('[data-department-personnel-nav-group]');
+    const shell=$('#appShell');
+    if(shell?.classList.contains('sidebar-collapsed')){
+      $('#sidebarToggleBtn')?.click();
+      setDepartmentPersonnelNavGroupOpen(group,true);
+      return;
+    }
+    setDepartmentPersonnelNavGroupOpen(group,!group?.classList.contains('is-open'));
+  }; });
   const active=$('.nav-item.active')?.dataset.section || 'dashboard';
   syncInventoryAuditNavigation(active);
+  syncDepartmentPersonnelNavigation(active);
   updateMobileDashboardState(active);
   updateFiltersVisibility(active);
 }
@@ -6142,7 +6169,11 @@ function permissionsForRoleFromRows(role, rows){
   return defaults;
 }
 function isSuperAdmin(){ return CURRENT_APP_PROFILE?.role === 'super_admin'; }
-function permissionKeyForSection(section){ return isInventoryAuditSection(section) ? 'inventory_count' : section; }
+function permissionKeyForSection(section){
+  if(isInventoryAuditSection(section)) return 'inventory_count';
+  if(isDepartmentPersonnelSection(section)) return 'reports';
+  return section;
+}
 function hasPermission(section, action='view'){
   if(isSuperAdmin()) return true;
   if(!section) return true;
@@ -6201,6 +6232,11 @@ function applyNavigationPermissions(){
   $$('.mobile-drawer-item[data-mobile-section="inventory_closing"],.mobile-drawer-item[data-mobile-section="inventory_differences"],.mobile-drawer-item[data-mobile-section="inventory_expiry_tracking"]').forEach(item=>{
     item.disabled=!inventoryAllowed;
     item.classList.toggle('permission-hidden',!inventoryAllowed);
+  });
+  const departmentPersonnelAllowed=canViewSection('department_storekeepers');
+  $$('[data-department-personnel-nav-group]').forEach(group=>{
+    group.classList.toggle('permission-hidden',!departmentPersonnelAllowed);
+    group.hidden=!departmentPersonnelAllowed;
   });
   const active=$('.nav-item.active');
   if(active && active.disabled){

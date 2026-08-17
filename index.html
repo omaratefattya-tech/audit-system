@@ -62,6 +62,14 @@
           </div>
         </div>
         <button class="nav-item" data-section="reports">التقارير <span class="nav-icon" data-icon="reports"></span></button>
+        <div class="nav-submenu-group inventory-audit-nav-group department-personnel-nav-group" data-department-personnel-nav-group>
+          <button class="nav-item inventory-audit-nav-parent department-personnel-nav-parent" data-label="إدارة أفراد القسم" type="button" data-department-personnel-nav-toggle aria-expanded="false">إدارة أفراد القسم <span class="inventory-audit-nav-chevron" aria-hidden="true">⌄</span> <span class="nav-icon" data-icon="users"></span></button>
+          <div class="nav-submenu inventory-audit-nav-submenu department-personnel-nav-submenu" hidden>
+            <button class="nav-item nav-subitem" data-section="department_storekeepers" type="button">جدول أمناء المخازن</button>
+            <button class="nav-item nav-subitem" data-section="department_weekly_leave_schedule" type="button">جدول الأجازات الأسبوعي</button>
+            <button class="nav-item nav-subitem" data-section="department_hr_reports" type="button">تقارير HR</button>
+          </div>
+        </div>
         <button class="nav-item" data-section="users">إدارة المستخدمين <span class="nav-icon" data-icon="users"></span></button>
         <button class="nav-item" data-section="permissions">إدارة الصلاحيات <span class="nav-icon" data-icon="shield"></span></button>
         <button class="nav-item" data-section="settings">الإعدادات <span class="nav-icon" data-icon="settings"></span></button>
@@ -1149,6 +1157,21 @@
           </div>
         </article>
       </section>
+      <section id="department_storekeepers" class="section">
+        <article class="panel glass">
+          <h2>جدول أمناء المخازن</h2>
+        </article>
+      </section>
+      <section id="department_weekly_leave_schedule" class="section">
+        <article class="panel glass">
+          <h2>جدول الأجازات الأسبوعي</h2>
+        </article>
+      </section>
+      <section id="department_hr_reports" class="section">
+        <article class="panel glass">
+          <h2>تقارير HR</h2>
+        </article>
+      </section>
       <section id="users" class="section">
         <article class="panel glass users-management-panel users-enterprise-panel" id="usersManagementCapture">
           <div class="users-hero">
@@ -1702,7 +1725,7 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=inv-postclose-firstrow-binding-20260813-1"></script>
+  <script src="assets/js/app.js?v=department-personnel-navigation-20260817-1"></script>
   <script src="assets/js/custom-date-picker.js?v=inv-04-1"></script>
   <script>
   </script>
