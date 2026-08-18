@@ -4751,6 +4751,8 @@ function initAllSettingsTableControls(){
   initSettingsTableControls('warehousesSettingsTable');
   initSettingsTableControls('salesProductsSettingsTable');
   initSettingsTableControls('storekeepersSettingsTable');
+  initSettingsTableControls('departmentPersonnelTable');
+  initSettingsTableControls('departmentStatusCodesTable');
 }
 
 const SETTINGS_TAB_PERMISSION_MAP={
@@ -4820,6 +4822,8 @@ function applySettingsSubPermissions(){
   setElementsDisabled('#salesProductWarehousesList input,#saveSalesProductWarehousesBtn',!canEditLinks,true);
 
   applyStorekeepersSettingsPermissions();
+  applyDepartmentPersonnelPermissions();
+  applyDepartmentStatusCodesPermissions();
 
   setElementsDisabled('#activityLogExportExcelBtn',!hasPermission('settings_activity_log','export_excel'),true);
   setElementsDisabled('#activityLogExportPdfBtn',!hasPermission('settings_activity_log','export_pdf'),true);
@@ -6075,6 +6079,8 @@ function initSettingsTabs(){
     if(key==='warehouses-settings') ensureWarehousesSettingsLoaded();
     if(key==='sales-products-settings') ensureSalesProductsSettingsLoaded();
     if(key==='storekeepers') ensureStorekeepersLoaded();
+    if(key==='department-personnel') ensureDepartmentPersonnelLoaded();
+    if(key==='department-status-codes') ensureDepartmentStatusCodesLoaded();
     if(key==='activity-log') ensureActivityLogLoaded();
     initAllSettingsTableControls();
     applySettingsSubPermissions();
@@ -15637,4 +15643,480 @@ if (
   } catch (error) {
     console.error('Failed to reload inventory count storekeepers:', error);
   }
+}
+
+
+// === Department personnel and shift/leave status coding settings ===
+const DEPARTMENT_PERSONNEL_TABLE = 'department_personnel';
+const DEPARTMENT_STATUS_CODES_TABLE = 'department_shift_status_codes';
+const DEPARTMENT_PERSONNEL_JOB_TITLES = new Set([
+  'مدير إدارة المخازن',
+  'مدير مخازن قطع الغيار',
+  'رئيس قسم',
+  'مشرف مخازن',
+  'أمين مخزن',
+  'مساعد أمين مخزن',
+  'عامل مخازن'
+]);
+const DEPARTMENT_PERSONNEL_DEPARTMENTS = new Set(['منتج تام','قطع غيار']);
+const DEPARTMENT_PERSONNEL_PLANTS = {
+  WF01:'مصنع الواحة',
+  EL01:'مصنع الإيمان للأعلاف - السواقي',
+  EL02:'مصنع الإيمان للأعلاف - العامرية'
+};
+let DEPARTMENT_PERSONNEL_ROWS = [];
+let DEPARTMENT_PERSONNEL_LOADED = false;
+let DEPARTMENT_PERSONNEL_LOADING = false;
+let DEPARTMENT_PERSONNEL_SAVING = false;
+const DEPARTMENT_PERSONNEL_STATUS_PENDING = new Set();
+let DEPARTMENT_STATUS_CODE_ROWS = [];
+let DEPARTMENT_STATUS_CODES_LOADED = false;
+let DEPARTMENT_STATUS_CODES_LOADING = false;
+let DEPARTMENT_STATUS_CODE_SAVING = false;
+const DEPARTMENT_STATUS_CODE_PENDING = new Set();
+
+function canAddDepartmentCodingSettings(){
+  return hasPermission('settings','add') || hasPermission('settings','manage');
+}
+function canEditDepartmentCodingSettings(){
+  return hasPermission('settings','edit') || hasPermission('settings','manage');
+}
+function setDepartmentPersonnelStatus(message,type=''){
+  const status=$('#departmentPersonnelStatus');
+  if(!status) return;
+  status.className='upload-status '+(type||'');
+  status.textContent=message||'';
+}
+function setDepartmentStatusCodesStatus(message,type=''){
+  const status=$('#departmentStatusCodesStatus');
+  if(!status) return;
+  status.className='upload-status '+(type||'');
+  status.textContent=message||'';
+}
+function departmentCodingErrorMessage(error,codeLabel){
+  const message=String(error?.message||error||'').trim();
+  if(error?.code==='23505' || /duplicate key|unique constraint/i.test(message)){
+    return codeLabel+' مستخدم بالفعل. أدخل كودًا مختلفًا.';
+  }
+  if(error?.code==='42501' || /row-level security|permission denied/i.test(message)){
+    return 'غير مسموح بتنفيذ العملية حسب صلاحية الإعدادات الحالية.';
+  }
+  if(error?.code==='42P01' || /does not exist|schema cache/i.test(message)){
+    return 'جداول التكويد غير متاحة. طبّق ملف department-coding-settings-migration.sql أولًا.';
+  }
+  return message ? 'تعذر تنفيذ العملية: '+message : 'تعذر تنفيذ العملية في Supabase.';
+}
+function applyDepartmentPersonnelPermissions(){
+  const canAdd=canAddDepartmentCodingSettings();
+  const canEdit=canEditDepartmentCodingSettings();
+  const editing=Boolean($('#departmentPersonnelIdInput')?.value);
+  const canUseForm=editing ? canEdit : canAdd;
+  const form=$('#departmentPersonnelForm');
+  if(form) form.classList.toggle('permission-hidden',!canUseForm);
+  setElementsDisabled('#departmentPersonnelForm input:not([type="hidden"]),#departmentPersonnelForm select,#saveDepartmentPersonnelBtn',!canUseForm,true);
+  setElementsDisabled('#cancelDepartmentPersonnelBtn',editing ? !canEdit : false,true);
+  setElementsDisabled('#departmentPersonnelTable [data-action="edit-department-personnel"],#departmentPersonnelTable [data-action="toggle-department-personnel"]',!canEdit,true);
+}
+function applyDepartmentStatusCodesPermissions(){
+  const canAdd=canAddDepartmentCodingSettings();
+  const canEdit=canEditDepartmentCodingSettings();
+  const editing=Boolean($('#departmentStatusCodeIdInput')?.value);
+  const canUseForm=editing ? canEdit : canAdd;
+  const form=$('#departmentStatusCodeForm');
+  if(form) form.classList.toggle('permission-hidden',!canUseForm);
+  setElementsDisabled('#departmentStatusCodeForm input:not([type="hidden"]),#saveDepartmentStatusCodeBtn',!canUseForm,true);
+  setElementsDisabled('#cancelDepartmentStatusCodeBtn',editing ? !canEdit : false,true);
+  setElementsDisabled('#departmentStatusCodesTable [data-action="edit-department-status"],#departmentStatusCodesTable [data-action="toggle-department-status"]',!canEdit,true);
+}
+function renderDepartmentPersonnelTable(rows=[]){
+  const tbody=$('#departmentPersonnelTable tbody');
+  if(!tbody) return;
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="7" class="empty-row">لا توجد بيانات لأفراد القسم.</td></tr>';
+  }else{
+    tbody.innerHTML=rows.map(row=>{
+      const id=escapeHtml(row.id||'');
+      const plantCode=String(row.plant_code||'');
+      const plantLabel=plantCode+(DEPARTMENT_PERSONNEL_PLANTS[plantCode] ? ' — '+DEPARTMENT_PERSONNEL_PLANTS[plantCode] : '');
+      return '<tr data-record-id="'+id+'">'
+        +'<td dir="ltr">'+escapeHtml(row.employee_code||'')+'</td>'
+        +'<td>'+escapeHtml(row.full_name||'')+'</td>'
+        +'<td>'+escapeHtml(row.job_title||'')+'</td>'
+        +'<td>'+escapeHtml(plantLabel)+'</td>'
+        +'<td>'+escapeHtml(row.department||'')+'</td>'
+        +'<td><span class="status-badge '+(row.is_active?'status-active':'status-inactive')+'">'+(row.is_active?'نشط':'غير نشط')+'</span></td>'
+        +'<td><div class="actions-cell">'
+        +'<button class="small-action edit" type="button" data-action="edit-department-personnel" data-record-id="'+id+'">تعديل</button>'
+        +'<button class="small-action '+(row.is_active?'delete':'view')+'" type="button" data-action="toggle-department-personnel" data-record-id="'+id+'" data-next-active="'+(!row.is_active)+'">'+(row.is_active?'إيقاف':'تفعيل')+'</button>'
+        +'</div></td></tr>';
+    }).join('');
+  }
+  refreshSettingsTableControls('departmentPersonnelTable');
+  applyDepartmentPersonnelPermissions();
+}
+async function loadDepartmentPersonnelTable(options={}){
+  const tbody=$('#departmentPersonnelTable tbody');
+  if(!tbody) return false;
+  if(!WarehouseDB?.ready){
+    tbody.innerHTML='<tr><td colspan="7" class="empty-row">Supabase غير متصل.</td></tr>';
+    setDepartmentPersonnelStatus('Supabase غير متصل. تعذر تحميل أفراد القسم.','err');
+    return false;
+  }
+  if(!options.silent){
+    tbody.innerHTML='<tr><td colspan="7" class="empty-row">جاري التحميل...</td></tr>';
+    setDepartmentPersonnelStatus('');
+  }
+  try{
+    const {data,error}=await WarehouseDB.client
+      .from(DEPARTMENT_PERSONNEL_TABLE)
+      .select('id,employee_code,full_name,job_title,plant_code,department,is_active,created_at,updated_at')
+      .order('created_at',{ascending:false});
+    if(error) throw error;
+    DEPARTMENT_PERSONNEL_ROWS=data||[];
+    renderDepartmentPersonnelTable(DEPARTMENT_PERSONNEL_ROWS);
+    return true;
+  }catch(error){
+    tbody.innerHTML='<tr><td colspan="7" class="empty-row">تعذر تحميل بيانات أفراد القسم.</td></tr>';
+    setDepartmentPersonnelStatus(departmentCodingErrorMessage(error,'الكود الوظيفي'),'err');
+    return false;
+  }
+}
+async function ensureDepartmentPersonnelLoaded(){
+  if(DEPARTMENT_PERSONNEL_LOADED || DEPARTMENT_PERSONNEL_LOADING) return;
+  DEPARTMENT_PERSONNEL_LOADING=true;
+  try{
+    DEPARTMENT_PERSONNEL_LOADED=await loadDepartmentPersonnelTable();
+  }finally{
+    DEPARTMENT_PERSONNEL_LOADING=false;
+  }
+}
+function resetDepartmentPersonnelForm(){
+  const form=$('#departmentPersonnelForm');
+  if(!form) return;
+  form.reset();
+  $('#departmentPersonnelIdInput').value='';
+  $('#departmentPersonnelActiveInput').checked=true;
+  $('#saveDepartmentPersonnelBtn').textContent='حفظ الموظف';
+  $('#cancelDepartmentPersonnelBtn').hidden=true;
+  applyDepartmentPersonnelPermissions();
+}
+function editDepartmentPersonnel(recordId){
+  if(!canEditDepartmentCodingSettings()){
+    setDepartmentPersonnelStatus('غير متاح للصلاحية الحالية.','err');
+    return;
+  }
+  const row=DEPARTMENT_PERSONNEL_ROWS.find(item=>String(item.id)===String(recordId));
+  if(!row){
+    setDepartmentPersonnelStatus('تعذر العثور على سجل الموظف. أعد تحميل الجدول.','err');
+    return;
+  }
+  $('#departmentPersonnelIdInput').value=row.id||'';
+  $('#departmentPersonnelCodeInput').value=row.employee_code||'';
+  $('#departmentPersonnelNameInput').value=row.full_name||'';
+  $('#departmentPersonnelJobTitleInput').value=row.job_title||'';
+  $('#departmentPersonnelPlantInput').value=row.plant_code||'';
+  $('#departmentPersonnelDepartmentInput').value=row.department||'';
+  $('#departmentPersonnelActiveInput').checked=row.is_active===true;
+  $('#saveDepartmentPersonnelBtn').textContent='تحديث الموظف';
+  $('#cancelDepartmentPersonnelBtn').hidden=false;
+  setDepartmentPersonnelStatus('');
+  applyDepartmentPersonnelPermissions();
+  $('#departmentPersonnelCodeInput')?.focus();
+}
+async function saveDepartmentPersonnel(event){
+  event.preventDefault();
+  const form=event.currentTarget;
+  if(DEPARTMENT_PERSONNEL_SAVING) return;
+  if(!form.checkValidity()){
+    setDepartmentPersonnelStatus('يرجى استكمال جميع الحقول الإجبارية.','err');
+    form.reportValidity();
+    return;
+  }
+  const id=String($('#departmentPersonnelIdInput')?.value||'').trim();
+  const canSave=id ? canEditDepartmentCodingSettings() : canAddDepartmentCodingSettings();
+  if(!canSave){
+    setDepartmentPersonnelStatus('غير متاح للصلاحية الحالية.','err');
+    applyDepartmentPersonnelPermissions();
+    return;
+  }
+  const payload={
+    employee_code:String($('#departmentPersonnelCodeInput')?.value||'').trim(),
+    full_name:String($('#departmentPersonnelNameInput')?.value||'').trim(),
+    job_title:String($('#departmentPersonnelJobTitleInput')?.value||'').trim(),
+    plant_code:String($('#departmentPersonnelPlantInput')?.value||'').trim(),
+    department:String($('#departmentPersonnelDepartmentInput')?.value||'').trim(),
+    is_active:Boolean($('#departmentPersonnelActiveInput')?.checked)
+  };
+  if(!payload.employee_code || !payload.full_name || !DEPARTMENT_PERSONNEL_JOB_TITLES.has(payload.job_title) || !DEPARTMENT_PERSONNEL_PLANTS[payload.plant_code] || !DEPARTMENT_PERSONNEL_DEPARTMENTS.has(payload.department)){
+    setDepartmentPersonnelStatus('يرجى إدخال قيم صحيحة في جميع الحقول الإجبارية.','err');
+    return;
+  }
+  if(!WarehouseDB?.ready){
+    setDepartmentPersonnelStatus('Supabase غير متصل. لم يتم حفظ البيانات.','err');
+    return;
+  }
+  const button=$('#saveDepartmentPersonnelBtn');
+  const originalText=button.textContent;
+  let succeeded=false;
+  DEPARTMENT_PERSONNEL_SAVING=true;
+  button.disabled=true;
+  button.textContent='جاري الحفظ...';
+  setDepartmentPersonnelStatus('');
+  try{
+    const query=id
+      ? WarehouseDB.client.from(DEPARTMENT_PERSONNEL_TABLE).update(payload).eq('id',id).select('id').maybeSingle()
+      : WarehouseDB.client.from(DEPARTMENT_PERSONNEL_TABLE).insert([payload]).select('id').single();
+    const {data,error}=await query;
+    if(error) throw error;
+    if(id && !data) throw new Error('لم يتم العثور على السجل المطلوب تعديله.');
+    resetDepartmentPersonnelForm();
+    const refreshed=await loadDepartmentPersonnelTable({silent:true});
+    setDepartmentPersonnelStatus(refreshed ? (id?'تم تعديل بيانات الموظف بنجاح.':'تمت إضافة الموظف بنجاح.') : 'تم الحفظ، لكن تعذر تحديث الجدول. أعد فتح التبويب.','ok');
+    succeeded=true;
+  }catch(error){
+    setDepartmentPersonnelStatus(departmentCodingErrorMessage(error,'الكود الوظيفي'),'err');
+  }finally{
+    DEPARTMENT_PERSONNEL_SAVING=false;
+    if(!succeeded) button.textContent=originalText;
+    button.disabled=false;
+    applyDepartmentPersonnelPermissions();
+  }
+}
+async function toggleDepartmentPersonnelStatus(recordId,nextActive){
+  if(DEPARTMENT_PERSONNEL_STATUS_PENDING.has(recordId)) return;
+  if(!canEditDepartmentCodingSettings()){
+    setDepartmentPersonnelStatus('غير متاح للصلاحية الحالية.','err');
+    return;
+  }
+  if(!WarehouseDB?.ready){
+    setDepartmentPersonnelStatus('Supabase غير متصل. لم يتم تحديث الحالة.','err');
+    return;
+  }
+  DEPARTMENT_PERSONNEL_STATUS_PENDING.add(recordId);
+  applyDepartmentPersonnelPermissions();
+  try{
+    const {data,error}=await WarehouseDB.client
+      .from(DEPARTMENT_PERSONNEL_TABLE)
+      .update({is_active:nextActive})
+      .eq('id',recordId)
+      .select('id')
+      .maybeSingle();
+    if(error) throw error;
+    if(!data) throw new Error('لم يتم العثور على سجل الموظف.');
+    const refreshed=await loadDepartmentPersonnelTable({silent:true});
+    setDepartmentPersonnelStatus(refreshed ? (nextActive?'تم تفعيل الموظف بنجاح.':'تم إيقاف الموظف بنجاح.') : 'تم تحديث الحالة، لكن تعذر تحديث الجدول.','ok');
+  }catch(error){
+    setDepartmentPersonnelStatus(departmentCodingErrorMessage(error,'الكود الوظيفي'),'err');
+  }finally{
+    DEPARTMENT_PERSONNEL_STATUS_PENDING.delete(recordId);
+    applyDepartmentPersonnelPermissions();
+  }
+}
+function renderDepartmentStatusCodesTable(rows=[]){
+  const tbody=$('#departmentStatusCodesTable tbody');
+  if(!tbody) return;
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="4" class="empty-row">لا توجد أكواد ورديات أو إجازات.</td></tr>';
+  }else{
+    tbody.innerHTML=rows.map(row=>{
+      const id=escapeHtml(row.id||'');
+      return '<tr data-record-id="'+id+'">'
+        +'<td dir="ltr">'+escapeHtml(row.shift_code||'')+'</td>'
+        +'<td>'+escapeHtml(row.description||'')+'</td>'
+        +'<td><span class="status-badge '+(row.is_active?'status-active':'status-inactive')+'">'+(row.is_active?'نشط':'غير نشط')+'</span></td>'
+        +'<td><div class="actions-cell">'
+        +'<button class="small-action edit" type="button" data-action="edit-department-status" data-record-id="'+id+'">تعديل</button>'
+        +'<button class="small-action '+(row.is_active?'delete':'view')+'" type="button" data-action="toggle-department-status" data-record-id="'+id+'" data-next-active="'+(!row.is_active)+'">'+(row.is_active?'إيقاف':'تفعيل')+'</button>'
+        +'</div></td></tr>';
+    }).join('');
+  }
+  refreshSettingsTableControls('departmentStatusCodesTable');
+  applyDepartmentStatusCodesPermissions();
+}
+async function loadDepartmentStatusCodesTable(options={}){
+  const tbody=$('#departmentStatusCodesTable tbody');
+  if(!tbody) return false;
+  if(!WarehouseDB?.ready){
+    tbody.innerHTML='<tr><td colspan="4" class="empty-row">Supabase غير متصل.</td></tr>';
+    setDepartmentStatusCodesStatus('Supabase غير متصل. تعذر تحميل أكواد الورديات والإجازات.','err');
+    return false;
+  }
+  if(!options.silent){
+    tbody.innerHTML='<tr><td colspan="4" class="empty-row">جاري التحميل...</td></tr>';
+    setDepartmentStatusCodesStatus('');
+  }
+  try{
+    const {data,error}=await WarehouseDB.client
+      .from(DEPARTMENT_STATUS_CODES_TABLE)
+      .select('id,shift_code,description,is_active,created_at,updated_at')
+      .order('created_at',{ascending:false});
+    if(error) throw error;
+    DEPARTMENT_STATUS_CODE_ROWS=data||[];
+    renderDepartmentStatusCodesTable(DEPARTMENT_STATUS_CODE_ROWS);
+    return true;
+  }catch(error){
+    tbody.innerHTML='<tr><td colspan="4" class="empty-row">تعذر تحميل أكواد الورديات والإجازات.</td></tr>';
+    setDepartmentStatusCodesStatus(departmentCodingErrorMessage(error,'كود الوردية'),'err');
+    return false;
+  }
+}
+async function ensureDepartmentStatusCodesLoaded(){
+  if(DEPARTMENT_STATUS_CODES_LOADED || DEPARTMENT_STATUS_CODES_LOADING) return;
+  DEPARTMENT_STATUS_CODES_LOADING=true;
+  try{
+    DEPARTMENT_STATUS_CODES_LOADED=await loadDepartmentStatusCodesTable();
+  }finally{
+    DEPARTMENT_STATUS_CODES_LOADING=false;
+  }
+}
+function resetDepartmentStatusCodeForm(){
+  const form=$('#departmentStatusCodeForm');
+  if(!form) return;
+  form.reset();
+  $('#departmentStatusCodeIdInput').value='';
+  $('#departmentStatusActiveInput').checked=true;
+  $('#saveDepartmentStatusCodeBtn').textContent='حفظ الكود';
+  $('#cancelDepartmentStatusCodeBtn').hidden=true;
+  applyDepartmentStatusCodesPermissions();
+}
+function editDepartmentStatusCode(recordId){
+  if(!canEditDepartmentCodingSettings()){
+    setDepartmentStatusCodesStatus('غير متاح للصلاحية الحالية.','err');
+    return;
+  }
+  const row=DEPARTMENT_STATUS_CODE_ROWS.find(item=>String(item.id)===String(recordId));
+  if(!row){
+    setDepartmentStatusCodesStatus('تعذر العثور على سجل الكود. أعد تحميل الجدول.','err');
+    return;
+  }
+  $('#departmentStatusCodeIdInput').value=row.id||'';
+  $('#departmentStatusCodeInput').value=row.shift_code||'';
+  $('#departmentStatusDescriptionInput').value=row.description||'';
+  $('#departmentStatusActiveInput').checked=row.is_active===true;
+  $('#saveDepartmentStatusCodeBtn').textContent='تحديث الكود';
+  $('#cancelDepartmentStatusCodeBtn').hidden=false;
+  setDepartmentStatusCodesStatus('');
+  applyDepartmentStatusCodesPermissions();
+  $('#departmentStatusCodeInput')?.focus();
+}
+async function saveDepartmentStatusCode(event){
+  event.preventDefault();
+  const form=event.currentTarget;
+  if(DEPARTMENT_STATUS_CODE_SAVING) return;
+  if(!form.checkValidity()){
+    setDepartmentStatusCodesStatus('يرجى استكمال جميع الحقول الإجبارية.','err');
+    form.reportValidity();
+    return;
+  }
+  const id=String($('#departmentStatusCodeIdInput')?.value||'').trim();
+  const canSave=id ? canEditDepartmentCodingSettings() : canAddDepartmentCodingSettings();
+  if(!canSave){
+    setDepartmentStatusCodesStatus('غير متاح للصلاحية الحالية.','err');
+    applyDepartmentStatusCodesPermissions();
+    return;
+  }
+  const payload={
+    shift_code:String($('#departmentStatusCodeInput')?.value||'').trim(),
+    description:String($('#departmentStatusDescriptionInput')?.value||'').trim(),
+    is_active:Boolean($('#departmentStatusActiveInput')?.checked)
+  };
+  if(!payload.shift_code || !payload.description){
+    setDepartmentStatusCodesStatus('يرجى استكمال جميع الحقول الإجبارية.','err');
+    return;
+  }
+  if(!WarehouseDB?.ready){
+    setDepartmentStatusCodesStatus('Supabase غير متصل. لم يتم حفظ البيانات.','err');
+    return;
+  }
+  const button=$('#saveDepartmentStatusCodeBtn');
+  const originalText=button.textContent;
+  let succeeded=false;
+  DEPARTMENT_STATUS_CODE_SAVING=true;
+  button.disabled=true;
+  button.textContent='جاري الحفظ...';
+  setDepartmentStatusCodesStatus('');
+  try{
+    const query=id
+      ? WarehouseDB.client.from(DEPARTMENT_STATUS_CODES_TABLE).update(payload).eq('id',id).select('id').maybeSingle()
+      : WarehouseDB.client.from(DEPARTMENT_STATUS_CODES_TABLE).insert([payload]).select('id').single();
+    const {data,error}=await query;
+    if(error) throw error;
+    if(id && !data) throw new Error('لم يتم العثور على السجل المطلوب تعديله.');
+    resetDepartmentStatusCodeForm();
+    const refreshed=await loadDepartmentStatusCodesTable({silent:true});
+    setDepartmentStatusCodesStatus(refreshed ? (id?'تم تعديل الكود والوصف بنجاح.':'تمت إضافة الكود بنجاح.') : 'تم الحفظ، لكن تعذر تحديث الجدول. أعد فتح التبويب.','ok');
+    succeeded=true;
+  }catch(error){
+    setDepartmentStatusCodesStatus(departmentCodingErrorMessage(error,'كود الوردية'),'err');
+  }finally{
+    DEPARTMENT_STATUS_CODE_SAVING=false;
+    if(!succeeded) button.textContent=originalText;
+    button.disabled=false;
+    applyDepartmentStatusCodesPermissions();
+  }
+}
+async function toggleDepartmentStatusCode(recordId,nextActive){
+  if(DEPARTMENT_STATUS_CODE_PENDING.has(recordId)) return;
+  if(!canEditDepartmentCodingSettings()){
+    setDepartmentStatusCodesStatus('غير متاح للصلاحية الحالية.','err');
+    return;
+  }
+  if(!WarehouseDB?.ready){
+    setDepartmentStatusCodesStatus('Supabase غير متصل. لم يتم تحديث الحالة.','err');
+    return;
+  }
+  DEPARTMENT_STATUS_CODE_PENDING.add(recordId);
+  applyDepartmentStatusCodesPermissions();
+  try{
+    const {data,error}=await WarehouseDB.client
+      .from(DEPARTMENT_STATUS_CODES_TABLE)
+      .update({is_active:nextActive})
+      .eq('id',recordId)
+      .select('id')
+      .maybeSingle();
+    if(error) throw error;
+    if(!data) throw new Error('لم يتم العثور على سجل الكود.');
+    const refreshed=await loadDepartmentStatusCodesTable({silent:true});
+    setDepartmentStatusCodesStatus(refreshed ? (nextActive?'تم تفعيل الكود بنجاح.':'تم إيقاف الكود بنجاح.') : 'تم تحديث الحالة، لكن تعذر تحديث الجدول.','ok');
+  }catch(error){
+    setDepartmentStatusCodesStatus(departmentCodingErrorMessage(error,'كود الوردية'),'err');
+  }finally{
+    DEPARTMENT_STATUS_CODE_PENDING.delete(recordId);
+    applyDepartmentStatusCodesPermissions();
+  }
+}
+function initDepartmentCodingSettings(){
+  const personnelForm=$('#departmentPersonnelForm');
+  if(personnelForm && personnelForm.dataset.bound!=='1'){
+    personnelForm.dataset.bound='1';
+    personnelForm.addEventListener('submit',saveDepartmentPersonnel);
+    personnelForm.addEventListener('invalid',()=>setDepartmentPersonnelStatus('يرجى استكمال جميع الحقول الإجبارية.','err'),true);
+    $('#cancelDepartmentPersonnelBtn')?.addEventListener('click',resetDepartmentPersonnelForm);
+    $('#departmentPersonnelTable')?.addEventListener('click',event=>{
+      const button=event.target.closest('button[data-action][data-record-id]');
+      if(!button) return;
+      const id=button.dataset.recordId;
+      if(button.dataset.action==='edit-department-personnel') editDepartmentPersonnel(id);
+      if(button.dataset.action==='toggle-department-personnel') toggleDepartmentPersonnelStatus(id,button.dataset.nextActive==='true');
+    });
+  }
+  const statusForm=$('#departmentStatusCodeForm');
+  if(statusForm && statusForm.dataset.bound!=='1'){
+    statusForm.dataset.bound='1';
+    statusForm.addEventListener('submit',saveDepartmentStatusCode);
+    statusForm.addEventListener('invalid',()=>setDepartmentStatusCodesStatus('يرجى استكمال جميع الحقول الإجبارية.','err'),true);
+    $('#cancelDepartmentStatusCodeBtn')?.addEventListener('click',resetDepartmentStatusCodeForm);
+    $('#departmentStatusCodesTable')?.addEventListener('click',event=>{
+      const button=event.target.closest('button[data-action][data-record-id]');
+      if(!button) return;
+      const id=button.dataset.recordId;
+      if(button.dataset.action==='edit-department-status') editDepartmentStatusCode(id);
+      if(button.dataset.action==='toggle-department-status') toggleDepartmentStatusCode(id,button.dataset.nextActive==='true');
+    });
+  }
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',initDepartmentCodingSettings);
+}else{
+  initDepartmentCodingSettings();
 }

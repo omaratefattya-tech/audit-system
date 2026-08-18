@@ -1385,6 +1385,8 @@
             <button class="settings-tab" id="settingsWarehousesTab" type="button" role="tab" aria-selected="false" aria-controls="settingsWarehousesPanel" data-settings-tab="warehouses-settings">&#x1F3EC; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x062E;&#x0627;&#x0632;&#x0646;</button>
             <button class="settings-tab" id="settingsSalesProductsTab" type="button" role="tab" aria-selected="false" aria-controls="settingsSalesProductsPanel" data-settings-tab="sales-products-settings">&#x1F4E6; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0623;&#x0635;&#x0646;&#x0627;&#x0641; &#x0627;&#x0644;&#x0628;&#x064A;&#x0639;</button>
             <button class="settings-tab" id="settingsStorekeepersTab" type="button" role="tab" aria-selected="false" aria-controls="settingsStorekeepersPanel" data-settings-tab="storekeepers">أمناء المخازن</button>
+            <button class="settings-tab" id="settingsDepartmentPersonnelTab" type="button" role="tab" aria-selected="false" aria-controls="settingsDepartmentPersonnelPanel" data-settings-tab="department-personnel">تكويد أفراد القسم</button>
+            <button class="settings-tab" id="settingsDepartmentStatusCodesTab" type="button" role="tab" aria-selected="false" aria-controls="settingsDepartmentStatusCodesPanel" data-settings-tab="department-status-codes">حالة الوردية/ موقف الإجازات</button>
             <button class="settings-tab" id="settingsActivityLogTab" type="button" role="tab" aria-selected="false" aria-controls="settingsActivityLogPanel" data-settings-tab="activity-log">&#x0633;&#x062C;&#x0644; &#x0627;&#x0644;&#x062D;&#x0631;&#x0643;&#x0627;&#x062A;</button>
           </div>
           <div class="settings-mobile-tab-select" id="settingsMobileTabSelectWrap">
@@ -1398,6 +1400,8 @@
                 <option value="warehouses-settings">إعدادات المخازن</option>
                 <option value="sales-products-settings">إعدادات أصناف البيع</option>
                 <option value="storekeepers">أمناء المخازن</option>
+                <option value="department-personnel">تكويد أفراد القسم</option>
+                <option value="department-status-codes">حالة الوردية/ موقف الإجازات</option>
                 <option value="activity-log">سجل الحركات</option>
               </select>
               <span class="settings-mobile-select-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m7 10 5 5 5-5"/></svg></span>
@@ -1691,6 +1695,79 @@
                 </div>
               </div>
             </section>
+            <section class="settings-tab-panel" id="settingsDepartmentPersonnelPanel" role="tabpanel" aria-labelledby="settingsDepartmentPersonnelTab" data-settings-panel="department-personnel">
+              <div class="settings-sales-products-wrap">
+                <form id="departmentPersonnelForm" class="sales-product-settings-form">
+                  <input type="hidden" id="departmentPersonnelIdInput" />
+                  <label>الكود الوظيفي
+                    <input type="text" id="departmentPersonnelCodeInput" required autocomplete="off" />
+                  </label>
+                  <label>الاسم
+                    <input type="text" id="departmentPersonnelNameInput" required autocomplete="off" />
+                  </label>
+                  <label>الوظيفة
+                    <select id="departmentPersonnelJobTitleInput" required>
+                      <option value="" selected disabled>اختر الوظيفة</option>
+                      <option value="مدير إدارة المخازن">مدير إدارة المخازن</option>
+                      <option value="مدير مخازن قطع الغيار">مدير مخازن قطع الغيار</option>
+                      <option value="رئيس قسم">رئيس قسم</option>
+                      <option value="مشرف مخازن">مشرف مخازن</option>
+                      <option value="أمين مخزن">أمين مخزن</option>
+                      <option value="مساعد أمين مخزن">مساعد أمين مخزن</option>
+                      <option value="عامل مخازن">عامل مخازن</option>
+                    </select>
+                  </label>
+                  <label>الموقع الوظيفي
+                    <select id="departmentPersonnelPlantInput" required>
+                      <option value="" selected disabled>اختر الموقع</option>
+                      <option value="WF01">WF01 — مصنع الواحة</option>
+                      <option value="EL01">EL01 — مصنع الإيمان للأعلاف - السواقي</option>
+                      <option value="EL02">EL02 — مصنع الإيمان للأعلاف - العامرية</option>
+                    </select>
+                  </label>
+                  <label>القسم
+                    <select id="departmentPersonnelDepartmentInput" required>
+                      <option value="" selected disabled>اختر القسم</option>
+                      <option value="منتج تام">منتج تام</option>
+                      <option value="قطع غيار">قطع غيار</option>
+                    </select>
+                  </label>
+                  <label class="settings-check sales-product-flag-check"><input type="checkbox" id="departmentPersonnelActiveInput" checked /> <span>نشط</span></label>
+                  <button class="primary" id="saveDepartmentPersonnelBtn" type="submit">حفظ الموظف</button>
+                  <button class="secondary" id="cancelDepartmentPersonnelBtn" type="button" hidden>إلغاء</button>
+                </form>
+                <div class="upload-status" id="departmentPersonnelStatus" aria-live="polite"></div>
+                <div class="table-wrap sales-products-settings-table-wrap">
+                  <table id="departmentPersonnelTable" data-no-universal-table="1">
+                    <thead><tr><th>الكود الوظيفي</th><th>الاسم</th><th>الوظيفة</th><th>الموقع الوظيفي</th><th>القسم</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+                    <tbody><tr><td colspan="7" class="empty-row">يتم تحميل البيانات عند فتح التبويب.</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+            <section class="settings-tab-panel" id="settingsDepartmentStatusCodesPanel" role="tabpanel" aria-labelledby="settingsDepartmentStatusCodesTab" data-settings-panel="department-status-codes">
+              <div class="settings-plants-wrap">
+                <form id="departmentStatusCodeForm" class="plant-settings-form">
+                  <input type="hidden" id="departmentStatusCodeIdInput" />
+                  <label>كود الوردية
+                    <input type="text" id="departmentStatusCodeInput" required autocomplete="off" />
+                  </label>
+                  <label>وصف الوردية
+                    <input type="text" id="departmentStatusDescriptionInput" required autocomplete="off" />
+                  </label>
+                  <label class="settings-check plant-active-check"><input type="checkbox" id="departmentStatusActiveInput" checked /> <span>نشط</span></label>
+                  <button class="primary" id="saveDepartmentStatusCodeBtn" type="submit">حفظ الكود</button>
+                  <button class="secondary" id="cancelDepartmentStatusCodeBtn" type="button" hidden>إلغاء</button>
+                </form>
+                <div class="upload-status" id="departmentStatusCodesStatus" aria-live="polite"></div>
+                <div class="table-wrap plants-settings-table-wrap">
+                  <table id="departmentStatusCodesTable" data-no-universal-table="1">
+                    <thead><tr><th>كود الوردية</th><th>وصف الوردية</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+                    <tbody><tr><td colspan="4" class="empty-row">يتم تحميل البيانات عند فتح التبويب.</td></tr></tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
             <section class="settings-tab-panel" id="settingsActivityLogPanel" role="tabpanel" aria-labelledby="settingsActivityLogTab" data-settings-panel="activity-log">
               <div class="settings-activity-log-wrap">
                 <div class="activity-log-toolbar glass-soft">
@@ -1725,7 +1802,7 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=department-personnel-navigation-20260817-1"></script>
+  <script src="assets/js/app.js?v=department-coding-settings-20260817-1"></script>
   <script src="assets/js/custom-date-picker.js?v=inv-04-1"></script>
   <script>
   </script>
