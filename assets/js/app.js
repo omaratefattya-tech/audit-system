@@ -2691,7 +2691,7 @@ function syncMobileDashboardShellState(){
 }
 const INVENTORY_AUDIT_SECTION_IDS = new Set(['inventory_closing','inventory_differences','inventory_expiry_tracking']);
 function isInventoryAuditSection(section){ return INVENTORY_AUDIT_SECTION_IDS.has(section); }
-const DEPARTMENT_PERSONNEL_SECTION_IDS = new Set(['department_storekeepers','department_weekly_leave_schedule','department_hr_reports']);
+const DEPARTMENT_PERSONNEL_SECTION_IDS = new Set(['department_storekeepers','department_weekly_leave_schedule','department_hr_reports','department_evaluations']);
 function isDepartmentPersonnelSection(section){ return DEPARTMENT_PERSONNEL_SECTION_IDS.has(section); }
 function setInventoryAuditNavGroupOpen(group,open){
   if(!group) return;
@@ -2710,15 +2710,16 @@ function syncInventoryAuditNavigation(section=currentActiveSection()){
 function setDepartmentPersonnelNavGroupOpen(group,open){
   if(!group) return;
   group.classList.toggle('is-open',!!open);
-  const submenu=group.querySelector('.department-personnel-nav-submenu');
-  const toggle=group.querySelector('[data-department-personnel-nav-toggle]');
+  const submenu=group.querySelector('.department-personnel-nav-submenu,.department-personnel-mobile-submenu');
+  const toggle=group.querySelector('[data-department-personnel-nav-toggle],[data-department-personnel-mobile-toggle]');
   if(submenu) submenu.hidden=!open;
   if(toggle) toggle.setAttribute('aria-expanded',open?'true':'false');
 }
 function syncDepartmentPersonnelNavigation(section=currentActiveSection()){
   const active=isDepartmentPersonnelSection(section);
-  $$('[data-department-personnel-nav-group]').forEach(group=>{ if(active) setDepartmentPersonnelNavGroupOpen(group,true); });
-  $$('[data-department-personnel-nav-toggle]').forEach(toggle=>toggle.classList.toggle('active',active));
+  $$('[data-department-personnel-nav-group],[data-department-personnel-mobile-nav-group]').forEach(group=>{ if(active) setDepartmentPersonnelNavGroupOpen(group,true); });
+  $$('[data-department-personnel-nav-toggle],[data-department-personnel-mobile-toggle]').forEach(toggle=>toggle.classList.toggle('active',active));
+  $$('.mobile-drawer-item[data-mobile-section]').forEach(item=>item.classList.toggle('active',item.dataset.mobileSection===section));
 }
 function switchSection(section,options={}){
   closeActiveApplicationModals({restoreFocus:false});
@@ -2746,6 +2747,7 @@ function switchSection(section,options={}){
     setTimeout(()=>openSelected ? openExistingInventoryCountFromUi({showLoading:true}) : openDefaultInventoryCountFromUi({showLoading:true}),50);
   }
   if(section==='inventory_differences') setTimeout(()=>loadInventoryDifferenceScreen(),50);
+  if(section==='department_evaluations') setTimeout(()=>loadDepartmentEvaluations(),50);
   setTimeout(()=>applyPermissionActionGuards(section),80);
 }
 function closeMobileDashboardPanels(){
@@ -2999,6 +3001,13 @@ function initMobileDashboardShell(){
       event.preventDefault();
       const group=inventoryMobileToggle.closest('[data-inventory-mobile-nav-group]');
       setInventoryAuditNavGroupOpen(group,!group?.classList.contains('is-open'));
+      return;
+    }
+    const departmentPersonnelMobileToggle=event.target.closest('[data-department-personnel-mobile-toggle]');
+    if(departmentPersonnelMobileToggle){
+      event.preventDefault();
+      const group=departmentPersonnelMobileToggle.closest('[data-department-personnel-mobile-nav-group]');
+      setDepartmentPersonnelNavGroupOpen(group,!group?.classList.contains('is-open'));
       return;
     }
     const drawerItem=event.target.closest('.mobile-drawer-item[data-mobile-section]');
@@ -6240,9 +6249,13 @@ function applyNavigationPermissions(){
     item.classList.toggle('permission-hidden',!inventoryAllowed);
   });
   const departmentPersonnelAllowed=canViewSection('department_storekeepers');
-  $$('[data-department-personnel-nav-group]').forEach(group=>{
+  $$('[data-department-personnel-nav-group],[data-department-personnel-mobile-nav-group]').forEach(group=>{
     group.classList.toggle('permission-hidden',!departmentPersonnelAllowed);
     group.hidden=!departmentPersonnelAllowed;
+  });
+  $$('.mobile-drawer-item[data-mobile-section="department_storekeepers"],.mobile-drawer-item[data-mobile-section="department_weekly_leave_schedule"],.mobile-drawer-item[data-mobile-section="department_hr_reports"],.mobile-drawer-item[data-mobile-section="department_evaluations"]').forEach(item=>{
+    item.disabled=!departmentPersonnelAllowed;
+    item.classList.toggle('permission-hidden',!departmentPersonnelAllowed);
   });
   const active=$('.nav-item.active');
   if(active && active.disabled){
@@ -15653,6 +15666,7 @@ const DEPARTMENT_PERSONNEL_JOB_TITLES = new Set([
   'مدير إدارة المخازن',
   'مدير مخازن قطع الغيار',
   'رئيس قسم',
+  'مسئول جرد وتوثيق المخزون',
   'مشرف مخازن',
   'أمين مخزن',
   'مساعد أمين مخزن',
@@ -16119,4 +16133,110 @@ if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',initDepartmentCodingSettings);
 }else{
   initDepartmentCodingSettings();
+}
+// === Department evaluations: read-only personnel distribution ===
+const DEPARTMENT_EVALUATION_TABS = Object.freeze({
+  'wf01-finished':{plantCode:'WF01',department:'منتج تام'},
+  'wf01-spare-parts':{plantCode:'WF01',department:'قطع غيار'},
+  'el01-finished':{plantCode:'EL01',department:'منتج تام'},
+  'el01-spare-parts':{plantCode:'EL01',department:'قطع غيار'},
+  'el02-finished':{plantCode:'EL02',department:'منتج تام'},
+  'el02-spare-parts':{plantCode:'EL02',department:'قطع غيار'}
+});
+const DEPARTMENT_EVALUATION_EXCLUDED_JOB_TITLES = new Set([
+  'مدير إدارة المخازن',
+  'مدير مخازن قطع الغيار',
+  'رئيس قسم'
+]);
+let ACTIVE_DEPARTMENT_EVALUATION_TAB='wf01-finished';
+let DEPARTMENT_EVALUATION_REQUEST_TOKEN=0;
+
+function setDepartmentEvaluationsStatus(message,type=''){
+  const status=$('#departmentEvaluationsStatus');
+  if(!status) return;
+  status.className='upload-status '+(type||'');
+  status.textContent=message||'';
+}
+function setActiveDepartmentEvaluationTab(tabKey){
+  if(!DEPARTMENT_EVALUATION_TABS[tabKey]) return false;
+  ACTIVE_DEPARTMENT_EVALUATION_TAB=tabKey;
+  $$('[data-department-evaluation-tab]').forEach(tab=>{
+    const active=tab.dataset.departmentEvaluationTab===tabKey;
+    tab.classList.toggle('active',active);
+    tab.setAttribute('aria-selected',active?'true':'false');
+  });
+  return true;
+}
+function renderDepartmentEvaluationRows(rows=[]){
+  const tbody=$('#departmentEvaluationsTable tbody');
+  if(!tbody) return;
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="3" class="empty-row">لا يوجد أفراد نشطون مطابقون لهذا الموقع والقسم.</td></tr>';
+    return;
+  }
+  tbody.innerHTML=rows.map(row=>'<tr>'
+    +'<td data-label="الكود الوظيفي" dir="ltr">'+escapeHtml(row.employee_code||'')+'</td>'
+    +'<td data-label="اسم الموظف">'+escapeHtml(row.full_name||'')+'</td>'
+    +'<td data-label="الوظيفة">'+escapeHtml(row.job_title||'')+'</td>'
+    +'</tr>').join('');
+}
+function departmentEvaluationsErrorMessage(error){
+  const message=String(error?.message||error||'').trim();
+  if(error?.code==='42501' || /row-level security|permission denied/i.test(message)) return 'غير مسموح بعرض أفراد التقييمات حسب الصلاحية الحالية.';
+  if(error?.code==='42P01' || /does not exist|schema cache/i.test(message)) return 'مصدر بيانات أفراد القسم غير متاح حاليًا.';
+  return message ? 'تعذر تحميل أفراد التقييمات: '+message : 'تعذر تحميل أفراد التقييمات من Supabase.';
+}
+async function loadDepartmentEvaluations(tabKey=ACTIVE_DEPARTMENT_EVALUATION_TAB){
+  if(!setActiveDepartmentEvaluationTab(tabKey)) return false;
+  const config=DEPARTMENT_EVALUATION_TABS[tabKey];
+  const requestToken=++DEPARTMENT_EVALUATION_REQUEST_TOKEN;
+  const tbody=$('#departmentEvaluationsTable tbody');
+  const retry=$('#departmentEvaluationsRetryBtn');
+  if(!tbody) return false;
+  tbody.innerHTML='<tr><td colspan="3" class="empty-row department-evaluations-loading">جاري تحميل الأفراد...</td></tr>';
+  setDepartmentEvaluationsStatus('جاري تحميل الأفراد...');
+  if(retry) retry.hidden=true;
+  if(!WarehouseDB?.ready){
+    if(requestToken!==DEPARTMENT_EVALUATION_REQUEST_TOKEN) return false;
+    tbody.innerHTML='<tr><td colspan="3" class="empty-row">تعذر الاتصال بـSupabase.</td></tr>';
+    setDepartmentEvaluationsStatus('Supabase غير متصل. تعذر تحميل أفراد التقييمات.','err');
+    if(retry) retry.hidden=false;
+    return false;
+  }
+  try{
+    const {data,error}=await WarehouseDB.client
+      .from(DEPARTMENT_PERSONNEL_TABLE)
+      .select('id,employee_code,full_name,job_title')
+      .eq('plant_code',config.plantCode)
+      .eq('department',config.department)
+      .eq('is_active',true)
+      .order('full_name',{ascending:true});
+    if(error) throw error;
+    if(requestToken!==DEPARTMENT_EVALUATION_REQUEST_TOKEN || tabKey!==ACTIVE_DEPARTMENT_EVALUATION_TAB) return false;
+    const rows=(data||[])
+      .filter(row=>!DEPARTMENT_EVALUATION_EXCLUDED_JOB_TITLES.has(String(row.job_title||'').trim()))
+      .sort((a,b)=>String(a.full_name||'').localeCompare(String(b.full_name||''),'ar',{sensitivity:'base'}));
+    renderDepartmentEvaluationRows(rows);
+    setDepartmentEvaluationsStatus(rows.length ? 'تم تحميل '+rows.length+' من أفراد القسم النشطين.' : '');
+    return true;
+  }catch(error){
+    if(requestToken!==DEPARTMENT_EVALUATION_REQUEST_TOKEN || tabKey!==ACTIVE_DEPARTMENT_EVALUATION_TAB) return false;
+    tbody.innerHTML='<tr><td colspan="3" class="empty-row">تعذر تحميل أفراد هذا التبويب.</td></tr>';
+    setDepartmentEvaluationsStatus(departmentEvaluationsErrorMessage(error),'err');
+    if(retry) retry.hidden=false;
+    return false;
+  }
+}
+function initDepartmentEvaluations(){
+  const panel=$('#department_evaluations');
+  if(!panel || panel.dataset.departmentEvaluationsBound==='1') return;
+  panel.dataset.departmentEvaluationsBound='1';
+  $$('[data-department-evaluation-tab]').forEach(tab=>tab.addEventListener('click',()=>loadDepartmentEvaluations(tab.dataset.departmentEvaluationTab)));
+  $('#departmentEvaluationsRetryBtn')?.addEventListener('click',()=>loadDepartmentEvaluations(ACTIVE_DEPARTMENT_EVALUATION_TAB));
+  setActiveDepartmentEvaluationTab('wf01-finished');
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',initDepartmentEvaluations);
+}else{
+  initDepartmentEvaluations();
 }

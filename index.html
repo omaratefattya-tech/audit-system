@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=inv-postclose-firstrow-runtime-20260812-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=department-evaluations-20260818-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ir-hotfix-2-20260726" />
 </head>
 <body>
@@ -68,6 +68,7 @@
             <button class="nav-item nav-subitem" data-section="department_storekeepers" type="button">جدول أمناء المخازن</button>
             <button class="nav-item nav-subitem" data-section="department_weekly_leave_schedule" type="button">جدول الأجازات الأسبوعي</button>
             <button class="nav-item nav-subitem" data-section="department_hr_reports" type="button">تقارير HR</button>
+            <button class="nav-item nav-subitem" data-section="department_evaluations" type="button">التقييمات</button>
           </div>
         </div>
         <button class="nav-item" data-section="users">إدارة المستخدمين <span class="nav-icon" data-icon="users"></span></button>
@@ -151,6 +152,15 @@
                 <button class="mobile-drawer-item mobile-drawer-subitem" data-mobile-section="inventory_closing" type="button"><span>مستند الجرد</span></button>
                 <button class="mobile-drawer-item mobile-drawer-subitem" data-mobile-section="inventory_differences" type="button"><span>فروق الجرد</span></button>
                 <button class="mobile-drawer-item mobile-drawer-subitem" data-mobile-section="inventory_expiry_tracking" type="button"><span>تتبع تواريخ الانتهاء</span></button>
+              </div>
+            </div>
+            <div class="mobile-drawer-submenu-group inventory-audit-mobile-group department-personnel-mobile-group" data-department-personnel-mobile-nav-group>
+              <button class="mobile-drawer-item inventory-audit-mobile-parent department-personnel-mobile-parent" type="button" data-department-personnel-mobile-toggle aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M5 21a7 7 0 0 1 14 0"/><path d="M18 8a3 3 0 0 1 3 3"/></svg><span>إدارة أفراد القسم</span><b class="inventory-audit-nav-chevron" aria-hidden="true">⌄</b></button>
+              <div class="mobile-drawer-submenu inventory-audit-mobile-submenu department-personnel-mobile-submenu" hidden>
+                <button class="mobile-drawer-item mobile-drawer-subitem" data-mobile-section="department_storekeepers" type="button"><span>جدول أمناء المخازن</span></button>
+                <button class="mobile-drawer-item mobile-drawer-subitem" data-mobile-section="department_weekly_leave_schedule" type="button"><span>جدول الأجازات الأسبوعي</span></button>
+                <button class="mobile-drawer-item mobile-drawer-subitem" data-mobile-section="department_hr_reports" type="button"><span>تقارير HR</span></button>
+                <button class="mobile-drawer-item mobile-drawer-subitem" data-mobile-section="department_evaluations" type="button"><span>التقييمات</span></button>
               </div>
             </div>
             <button class="mobile-drawer-item" data-mobile-section="users" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M5 21a7 7 0 0 1 14 0"/><path d="M18 8a3 3 0 0 1 3 3"/></svg><span>إدارة المستخدمين</span></button>
@@ -1172,6 +1182,29 @@
           <h2>تقارير HR</h2>
         </article>
       </section>
+      <section id="department_evaluations" class="section">
+        <article class="panel glass department-evaluations-panel">
+          <div class="department-evaluations-head">
+            <div><h2>التقييمات</h2><p class="hint">الأفراد النشطون الموزعون حسب الموقع الوظيفي والقسم.</p></div>
+            <button class="secondary" id="departmentEvaluationsRetryBtn" type="button" hidden>إعادة المحاولة</button>
+          </div>
+          <div class="department-evaluation-tabs" role="tablist" aria-label="تبويبات التقييمات">
+            <button class="department-evaluation-tab active" id="departmentEvaluationWf01FinishedTab" type="button" role="tab" aria-selected="true" data-department-evaluation-tab="wf01-finished">منتج تام الواحة - <b dir="ltr">WF01</b></button>
+            <button class="department-evaluation-tab" id="departmentEvaluationWf01SpareTab" type="button" role="tab" aria-selected="false" data-department-evaluation-tab="wf01-spare-parts">قطع غيار الواحة - <b dir="ltr">WF01</b></button>
+            <button class="department-evaluation-tab" id="departmentEvaluationEl01FinishedTab" type="button" role="tab" aria-selected="false" data-department-evaluation-tab="el01-finished">منتج تام الرئيسي - <b dir="ltr">EL01</b></button>
+            <button class="department-evaluation-tab" id="departmentEvaluationEl01SpareTab" type="button" role="tab" aria-selected="false" data-department-evaluation-tab="el01-spare-parts">قطع غيار الرئيسي - <b dir="ltr">EL01</b></button>
+            <button class="department-evaluation-tab" id="departmentEvaluationEl02FinishedTab" type="button" role="tab" aria-selected="false" data-department-evaluation-tab="el02-finished">منتج تام العامرية - <b dir="ltr">EL02</b></button>
+            <button class="department-evaluation-tab" id="departmentEvaluationEl02SpareTab" type="button" role="tab" aria-selected="false" data-department-evaluation-tab="el02-spare-parts">قطع غيار العامرية - <b dir="ltr">EL02</b></button>
+          </div>
+          <div class="upload-status" id="departmentEvaluationsStatus" aria-live="polite"></div>
+          <div class="table-wrap department-evaluations-table-wrap">
+            <table id="departmentEvaluationsTable" data-no-universal-table="1">
+              <thead><tr><th>الكود الوظيفي</th><th>اسم الموظف</th><th>الوظيفة</th></tr></thead>
+              <tbody><tr><td colspan="3" class="empty-row">يتم تحميل الأفراد عند فتح الشاشة.</td></tr></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
       <section id="users" class="section">
         <article class="panel glass users-management-panel users-enterprise-panel" id="usersManagementCapture">
           <div class="users-hero">
@@ -1711,6 +1744,7 @@
                       <option value="مدير إدارة المخازن">مدير إدارة المخازن</option>
                       <option value="مدير مخازن قطع الغيار">مدير مخازن قطع الغيار</option>
                       <option value="رئيس قسم">رئيس قسم</option>
+                      <option value="مسئول جرد وتوثيق المخزون">مسئول جرد وتوثيق المخزون</option>
                       <option value="مشرف مخازن">مشرف مخازن</option>
                       <option value="أمين مخزن">أمين مخزن</option>
                       <option value="مساعد أمين مخزن">مساعد أمين مخزن</option>
@@ -1802,7 +1836,7 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=department-coding-settings-20260817-1"></script>
+  <script src="assets/js/app.js?v=department-evaluations-20260818-1"></script>
   <script src="assets/js/custom-date-picker.js?v=inv-04-1"></script>
   <script>
   </script>

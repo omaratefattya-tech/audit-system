@@ -6258,3 +6258,35 @@ body.focus-mode-active .inventory-count-post-close-modal{
   .inventory-count-post-close-add-row{width:100%;}
   .inventory-count-post-close-table{min-width:820px;}
 }
+/* Department evaluations - read-only personnel distribution */
+#department_evaluations{min-width:0;max-width:100%;overflow-x:hidden}
+.department-evaluations-panel{min-width:0;max-width:100%}
+.department-evaluations-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}
+.department-evaluations-head h2{margin:0 0 5px}
+.department-evaluation-tabs{display:flex;align-items:center;gap:9px;max-width:100%;margin:0 0 14px;padding:2px 0 8px;overflow-x:auto;overflow-y:hidden;direction:rtl;scrollbar-width:thin;scrollbar-color:rgba(155,230,80,.58) rgba(0,35,27,.42)}
+.department-evaluation-tab{flex:0 0 auto;min-height:44px;padding:9px 15px;border:1px solid rgba(141,220,89,.38);border-radius:12px;background:rgba(0,55,38,.72);color:#eaffdf;font-family:inherit;font-weight:900;white-space:nowrap;cursor:pointer;transition:background .18s ease,border-color .18s ease,box-shadow .18s ease}
+.department-evaluation-tab:hover{border-color:rgba(155,230,80,.72);background:rgba(28,111,49,.72)}
+.department-evaluation-tab.active,.department-evaluation-tab[aria-selected="true"]{background:linear-gradient(135deg,#68ba45,#1e7432);border-color:#9be650;color:#fff;box-shadow:0 0 0 1px rgba(155,230,80,.22),0 8px 22px rgba(104,186,69,.2)}
+.department-evaluation-tab b{font:inherit;direction:ltr;unicode-bidi:isolate}
+.department-evaluations-table-wrap{max-width:100%;border:1px solid rgba(141,220,89,.22);border-radius:14px;background:rgba(0,35,27,.3)}
+#departmentEvaluationsTable{min-width:640px}
+#departmentEvaluationsTable td[dir="ltr"]{text-align:right;unicode-bidi:isolate}
+.department-personnel-mobile-parent.active{border-color:rgba(155,230,80,.65);background:rgba(119,210,75,.16);color:#9be650}
+
+@media(max-width:650px){
+  #department_evaluations.active-section{width:100%;max-width:100%;min-width:0;padding-bottom:calc(24px + env(safe-area-inset-bottom));overflow-x:hidden}
+  .department-evaluations-panel{width:100%;padding:15px 12px 18px;border-radius:20px;overflow:hidden}
+  .department-evaluations-head{align-items:stretch;flex-direction:column}
+  .department-evaluations-head .secondary{width:100%}
+  .department-evaluation-tabs{width:100%;margin-inline:0;overscroll-behavior-inline:contain;scroll-snap-type:x proximity}
+  .department-evaluation-tab{min-height:46px;scroll-snap-align:start}
+  .department-evaluations-table-wrap{width:100%;overflow:visible;border:0;background:transparent}
+  #departmentEvaluationsTable{display:block;width:100%;min-width:0}
+  #departmentEvaluationsTable thead{display:none}
+  #departmentEvaluationsTable tbody{display:grid;gap:10px;width:100%}
+  #departmentEvaluationsTable tbody tr{display:grid;gap:7px;width:100%;padding:12px;border:1px solid rgba(141,220,89,.22);border-radius:14px;background:rgba(0,38,30,.62)}
+  #departmentEvaluationsTable tbody td{display:grid;grid-template-columns:minmax(108px,.72fr) minmax(0,1fr);gap:10px;align-items:start;width:100%;padding:5px 0;border:0;white-space:normal;overflow-wrap:anywhere;text-align:right}
+  #departmentEvaluationsTable tbody td::before{content:attr(data-label);color:#aeea9a;font-size:12px;font-weight:900}
+  #departmentEvaluationsTable tbody .empty-row{display:block;padding:18px 12px;text-align:center}
+  #departmentEvaluationsTable tbody .empty-row::before{content:none}
+}
