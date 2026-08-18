@@ -6829,6 +6829,62 @@ function initLoginPasswordToggle(){
     input.focus();
   });
 }
+let MOBILE_APPLICATION_RELOAD_PENDING=false;
+function isMobileApplicationRefreshViewport(){
+  return window.matchMedia ? window.matchMedia('(max-width: 768px)').matches : window.innerWidth<=768;
+}
+function hasApplicationUnsavedChanges(){
+  const departmentDirty=typeof window.hasUnsavedDepartmentPersonnelWork==='function' && window.hasUnsavedDepartmentPersonnelWork();
+  const permissionsDirty=Boolean(typeof PERMISSIONS_MANAGEMENT_STATE!=='undefined' && PERMISSIONS_MANAGEMENT_STATE?.dirty);
+  return Boolean(departmentDirty || permissionsDirty);
+}
+function requestSafeApplicationReload(){
+  if(MOBILE_APPLICATION_RELOAD_PENDING || !isMobileApplicationRefreshViewport()) return false;
+  const authenticatedView=!$('#appShell')?.classList.contains('app-hidden');
+  if(authenticatedView && hasApplicationUnsavedChanges()){
+    const confirmed=window.confirm('توجد تعديلات غير محفوظة. سيؤدي تحديث البرنامج إلى فقدها. هل تريد المتابعة؟');
+    if(!confirmed) return false;
+  }
+  if(authenticatedView && typeof window.approveDepartmentPersonnelReloadOnce==='function') window.approveDepartmentPersonnelReloadOnce();
+  MOBILE_APPLICATION_RELOAD_PENDING=true;
+  window.location.reload();
+  return true;
+}
+function syncMobileApplicationRefreshControls(){
+  const mobile=isMobileApplicationRefreshViewport();
+  const loginRefresh=$('#loginLogoRefreshBtn');
+  const appRefresh=$('#mobileDashboardRefreshBtn');
+  if(loginRefresh){
+    loginRefresh.disabled=!mobile;
+    loginRefresh.tabIndex=mobile?0:-1;
+    loginRefresh.setAttribute('aria-disabled',mobile?'false':'true');
+  }
+  if(appRefresh){
+    appRefresh.disabled=!mobile;
+    appRefresh.tabIndex=mobile?0:-1;
+    appRefresh.setAttribute('aria-disabled',mobile?'false':'true');
+  }
+}
+function initMobileApplicationRefresh(){
+  const bind=element=>{
+    if(!element || element.dataset.refreshBound==='1') return;
+    element.dataset.refreshBound='1';
+    element.addEventListener('click',event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      requestSafeApplicationReload();
+    });
+  };
+  bind($('#loginLogoRefreshBtn'));
+  bind($('#mobileDashboardRefreshBtn'));
+  if(document.documentElement.dataset.mobileRefreshResizeBound!=='1'){
+    document.documentElement.dataset.mobileRefreshResizeBound='1';
+    window.addEventListener('resize',syncMobileApplicationRefreshControls,{passive:true});
+  }
+  syncMobileApplicationRefreshControls();
+}
+window.requestSafeApplicationReload=requestSafeApplicationReload;
+
 function initMainLoginGate(){
   const loginBtn=$('#mainLoginBtn');
   const emailInput=$('#mainLoginEmail');
@@ -6864,7 +6920,7 @@ function initMainLoginGate(){
   }
   checkMainSession();
 }
-document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initAllSettingsTableControls();initActivityLogSettings();applySettingsSubPermissions();initUsersManagement();initPermissionsManagement();});
+document.addEventListener('DOMContentLoaded',()=>{initMobileApplicationRefresh();initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initAllSettingsTableControls();initActivityLogSettings();applySettingsSubPermissions();initUsersManagement();initPermissionsManagement();});
 
 // Raw materials report upload helpers
 const RAW_MATERIALS_UPLOAD_CHUNK_SIZE=250;
@@ -15700,6 +15756,57 @@ let DEPARTMENT_STATUS_CODES_LOADED = false;
 let DEPARTMENT_STATUS_CODES_LOADING = false;
 let DEPARTMENT_STATUS_CODE_SAVING = false;
 const DEPARTMENT_STATUS_CODE_PENDING = new Set();
+const DEPARTMENT_STATUS_BLOCKING_FIXED_CODES = new Set(['0','4','5','8','9']);
+const DEPARTMENT_STATUS_COLOR_PALETTE = [
+  {value:'#64748B',label:'رمادي مزرق'},
+  {value:'#2563EB',label:'أزرق'},
+  {value:'#059669',label:'أخضر زمردي'},
+  {value:'#7C3AED',label:'بنفسجي'},
+  {value:'#D97706',label:'كهرماني'},
+  {value:'#DB2777',label:'وردي داكن'},
+  {value:'#0891B2',label:'سماوي داكن'},
+  {value:'#65A30D',label:'أخضر ليموني'},
+  {value:'#EA580C',label:'برتقالي'},
+  {value:'#DC2626',label:'أحمر'},
+  {value:'#0F766E',label:'تركواز'},
+  {value:'#9333EA',label:'أرجواني'},
+  {value:'#4F46E5',label:'نيلي'},
+  {value:'#BE123C',label:'قرمزي'},
+  {value:'#15803D',label:'أخضر غامق'},
+  {value:'#A16207',label:'بني ذهبي'}
+];
+function departmentStatusTextColor(color){
+  const hex=String(color||'').replace('#','');
+  if(!/^[0-9A-Fa-f]{6}$/.test(hex)) return '#FFFFFF';
+  const values=[0,2,4].map(index=>parseInt(hex.slice(index,index+2),16)/255).map(value=>value<=.03928?value/12.92:Math.pow((value+.055)/1.055,2.4));
+  const luminance=.2126*values[0]+.7152*values[1]+.0722*values[2];
+  return luminance>.48?'#041A13':'#FFFFFF';
+}
+function firstAvailableDepartmentStatusColor(editingId=''){
+  const used=new Set(DEPARTMENT_STATUS_CODE_ROWS.filter(row=>row.is_active && String(row.id)!==String(editingId)).map(row=>String(row.display_color||'').toUpperCase()));
+  return DEPARTMENT_STATUS_COLOR_PALETTE.find(item=>!used.has(item.value))?.value || DEPARTMENT_STATUS_COLOR_PALETTE[0].value;
+}
+function renderDepartmentStatusColorPalette(selectedColor,editingId=''){
+  const palette=$('#departmentStatusColorPalette');
+  const input=$('#departmentStatusDisplayColorInput');
+  if(!palette || !input) return;
+  const selected=String(selectedColor||input.value||firstAvailableDepartmentStatusColor(editingId)).toUpperCase();
+  input.value=selected;
+  const used=new Set(DEPARTMENT_STATUS_CODE_ROWS.filter(row=>row.is_active && String(row.id)!==String(editingId)).map(row=>String(row.display_color||'').toUpperCase()));
+  palette.innerHTML=DEPARTMENT_STATUS_COLOR_PALETTE.map(item=>{
+    const disabled=used.has(item.value) && item.value!==selected;
+    return '<button type="button" class="department-status-color-option '+(item.value===selected?'selected':'')+'" data-status-color="'+item.value+'" role="radio" aria-checked="'+(item.value===selected)+'" aria-label="'+escapeHtml(item.label)+'" title="'+escapeHtml(item.label)+'" style="--status-option-color:'+item.value+';--status-option-text:'+departmentStatusTextColor(item.value)+'" '+(disabled?'disabled':'')+'><span>'+escapeHtml(item.label)+'</span></button>';
+  }).join('');
+}
+function syncDepartmentStatusBlockingField(){
+  const code=String($('#departmentStatusCodeInput')?.value||'').trim();
+  const input=$('#departmentStatusBlocksEvaluationInput');
+  if(!input) return;
+  const fixed=DEPARTMENT_STATUS_BLOCKING_FIXED_CODES.has(code);
+  if(fixed) input.checked=true;
+  input.disabled=fixed || !(Boolean($('#departmentStatusCodeIdInput')?.value)?canEditDepartmentCodingSettings():canAddDepartmentCodingSettings());
+  input.title=fixed?'هذا الكود يمنع التقييم حسب القواعد المعتمدة.':'حدد ما إذا كانت الحالة تمنع التقييم.';
+}
 
 function canAddDepartmentCodingSettings(){
   return hasPermission('settings','add') || hasPermission('settings','manage');
@@ -15721,6 +15828,9 @@ function setDepartmentStatusCodesStatus(message,type=''){
 }
 function departmentCodingErrorMessage(error,codeLabel){
   const message=String(error?.message||error||'').trim();
+  if(error?.code==='23505' && /active_display_color|display_color/i.test(message)){
+    return 'لون العرض مستخدم بالفعل لحالة نشطة أخرى. اختر لونًا مختلفًا.';
+  }
   if(error?.code==='23505' || /duplicate key|unique constraint/i.test(message)){
     return codeLabel+' مستخدم بالفعل. أدخل كودًا مختلفًا.';
   }
@@ -15728,7 +15838,7 @@ function departmentCodingErrorMessage(error,codeLabel){
     return 'غير مسموح بتنفيذ العملية حسب صلاحية الإعدادات الحالية.';
   }
   if(error?.code==='42P01' || /does not exist|schema cache/i.test(message)){
-    return 'جداول التكويد غير متاحة. طبّق ملف department-coding-settings-migration.sql أولًا.';
+    return 'حقول تكويد الحالات غير متاحة. تحقّق من تطبيق أحدث Migration إضافية خاصة بإدارة أفراد القسم.';
   }
   return message ? 'تعذر تنفيذ العملية: '+message : 'تعذر تنفيذ العملية في Supabase.';
 }
@@ -15750,7 +15860,8 @@ function applyDepartmentStatusCodesPermissions(){
   const canUseForm=editing ? canEdit : canAdd;
   const form=$('#departmentStatusCodeForm');
   if(form) form.classList.toggle('permission-hidden',!canUseForm);
-  setElementsDisabled('#departmentStatusCodeForm input:not([type="hidden"]),#saveDepartmentStatusCodeBtn',!canUseForm,true);
+  setElementsDisabled('#departmentStatusCodeForm input:not([type="hidden"]),#departmentStatusCodeForm button:not(#cancelDepartmentStatusCodeBtn),#saveDepartmentStatusCodeBtn',!canUseForm,true);
+  syncDepartmentStatusBlockingField();
   setElementsDisabled('#cancelDepartmentStatusCodeBtn',editing ? !canEdit : false,true);
   setElementsDisabled('#departmentStatusCodesTable [data-action="edit-department-status"],#departmentStatusCodesTable [data-action="toggle-department-status"]',!canEdit,true);
 }
@@ -15954,13 +16065,16 @@ function renderDepartmentStatusCodesTable(rows=[]){
   const tbody=$('#departmentStatusCodesTable tbody');
   if(!tbody) return;
   if(!rows.length){
-    tbody.innerHTML='<tr><td colspan="4" class="empty-row">لا توجد أكواد ورديات أو إجازات.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="6" class="empty-row">لا توجد أكواد ورديات أو إجازات.</td></tr>';
   }else{
     tbody.innerHTML=rows.map(row=>{
       const id=escapeHtml(row.id||'');
+      const color=String(row.display_color||'#0F766E').toUpperCase();
       return '<tr data-record-id="'+id+'">'
         +'<td dir="ltr">'+escapeHtml(row.shift_code||'')+'</td>'
         +'<td>'+escapeHtml(row.description||'')+'</td>'
+        +'<td><span class="department-status-color-badge" style="--status-color:'+escapeHtml(color)+';--status-text:'+departmentStatusTextColor(color)+'"><i aria-hidden="true"></i>'+escapeHtml(color)+'</span></td>'
+        +'<td><span class="status-badge '+(row.blocks_evaluation?'status-inactive':'status-active')+'">'+(row.blocks_evaluation?'نعم':'لا')+'</span></td>'
         +'<td><span class="status-badge '+(row.is_active?'status-active':'status-inactive')+'">'+(row.is_active?'نشط':'غير نشط')+'</span></td>'
         +'<td><div class="actions-cell">'
         +'<button class="small-action edit" type="button" data-action="edit-department-status" data-record-id="'+id+'">تعديل</button>'
@@ -15969,31 +16083,32 @@ function renderDepartmentStatusCodesTable(rows=[]){
     }).join('');
   }
   refreshSettingsTableControls('departmentStatusCodesTable');
+  renderDepartmentStatusColorPalette($('#departmentStatusDisplayColorInput')?.value,$('#departmentStatusCodeIdInput')?.value);
   applyDepartmentStatusCodesPermissions();
 }
 async function loadDepartmentStatusCodesTable(options={}){
   const tbody=$('#departmentStatusCodesTable tbody');
   if(!tbody) return false;
   if(!WarehouseDB?.ready){
-    tbody.innerHTML='<tr><td colspan="4" class="empty-row">Supabase غير متصل.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="6" class="empty-row">Supabase غير متصل.</td></tr>';
     setDepartmentStatusCodesStatus('Supabase غير متصل. تعذر تحميل أكواد الورديات والإجازات.','err');
     return false;
   }
   if(!options.silent){
-    tbody.innerHTML='<tr><td colspan="4" class="empty-row">جاري التحميل...</td></tr>';
+    tbody.innerHTML='<tr><td colspan="6" class="empty-row">جاري التحميل...</td></tr>';
     setDepartmentStatusCodesStatus('');
   }
   try{
     const {data,error}=await WarehouseDB.client
       .from(DEPARTMENT_STATUS_CODES_TABLE)
-      .select('id,shift_code,description,is_active,created_at,updated_at')
+      .select('id,shift_code,description,blocks_evaluation,display_color,is_active,created_at,updated_at')
       .order('created_at',{ascending:false});
     if(error) throw error;
     DEPARTMENT_STATUS_CODE_ROWS=data||[];
     renderDepartmentStatusCodesTable(DEPARTMENT_STATUS_CODE_ROWS);
     return true;
   }catch(error){
-    tbody.innerHTML='<tr><td colspan="4" class="empty-row">تعذر تحميل أكواد الورديات والإجازات.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="6" class="empty-row">تعذر تحميل أكواد الورديات والإجازات.</td></tr>';
     setDepartmentStatusCodesStatus(departmentCodingErrorMessage(error,'كود الوردية'),'err');
     return false;
   }
@@ -16013,6 +16128,9 @@ function resetDepartmentStatusCodeForm(){
   form.reset();
   $('#departmentStatusCodeIdInput').value='';
   $('#departmentStatusActiveInput').checked=true;
+  $('#departmentStatusBlocksEvaluationInput').checked=false;
+  renderDepartmentStatusColorPalette(firstAvailableDepartmentStatusColor());
+  syncDepartmentStatusBlockingField();
   $('#saveDepartmentStatusCodeBtn').textContent='حفظ الكود';
   $('#cancelDepartmentStatusCodeBtn').hidden=true;
   applyDepartmentStatusCodesPermissions();
@@ -16030,7 +16148,10 @@ function editDepartmentStatusCode(recordId){
   $('#departmentStatusCodeIdInput').value=row.id||'';
   $('#departmentStatusCodeInput').value=row.shift_code||'';
   $('#departmentStatusDescriptionInput').value=row.description||'';
+  $('#departmentStatusBlocksEvaluationInput').checked=row.blocks_evaluation===true;
   $('#departmentStatusActiveInput').checked=row.is_active===true;
+  renderDepartmentStatusColorPalette(row.display_color,row.id);
+  syncDepartmentStatusBlockingField();
   $('#saveDepartmentStatusCodeBtn').textContent='تحديث الكود';
   $('#cancelDepartmentStatusCodeBtn').hidden=false;
   setDepartmentStatusCodesStatus('');
@@ -16056,9 +16177,12 @@ async function saveDepartmentStatusCode(event){
   const payload={
     shift_code:String($('#departmentStatusCodeInput')?.value||'').trim(),
     description:String($('#departmentStatusDescriptionInput')?.value||'').trim(),
+    blocks_evaluation:Boolean($('#departmentStatusBlocksEvaluationInput')?.checked),
+    display_color:String($('#departmentStatusDisplayColorInput')?.value||'').trim().toUpperCase(),
     is_active:Boolean($('#departmentStatusActiveInput')?.checked)
   };
-  if(!payload.shift_code || !payload.description){
+  if(DEPARTMENT_STATUS_BLOCKING_FIXED_CODES.has(payload.shift_code)) payload.blocks_evaluation=true;
+  if(!payload.shift_code || !payload.description || !DEPARTMENT_STATUS_COLOR_PALETTE.some(item=>item.value===payload.display_color)){
     setDepartmentStatusCodesStatus('يرجى استكمال جميع الحقول الإجبارية.','err');
     return;
   }
@@ -16144,6 +16268,16 @@ function initDepartmentCodingSettings(){
     statusForm.addEventListener('submit',saveDepartmentStatusCode);
     statusForm.addEventListener('invalid',()=>setDepartmentStatusCodesStatus('يرجى استكمال جميع الحقول الإجبارية.','err'),true);
     $('#cancelDepartmentStatusCodeBtn')?.addEventListener('click',resetDepartmentStatusCodeForm);
+    $('#departmentStatusCodeInput')?.addEventListener('input',syncDepartmentStatusBlockingField);
+    $('#departmentStatusColorPalette')?.addEventListener('click',event=>{
+      const option=event.target.closest('[data-status-color]');
+      if(!option || option.disabled) return;
+      $('#departmentStatusDisplayColorInput').value=option.dataset.statusColor||'';
+      renderDepartmentStatusColorPalette(option.dataset.statusColor,$('#departmentStatusCodeIdInput')?.value);
+      applyDepartmentStatusCodesPermissions();
+    });
+    renderDepartmentStatusColorPalette(firstAvailableDepartmentStatusColor());
+    syncDepartmentStatusBlockingField();
     $('#departmentStatusCodesTable')?.addEventListener('click',event=>{
       const button=event.target.closest('button[data-action][data-record-id]');
       if(!button) return;

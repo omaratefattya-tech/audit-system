@@ -6319,3 +6319,211 @@ body.focus-mode-active .inventory-count-post-close-modal{
   .department-weekly-input{min-width:116px;height:48px;font-size:15px}
   .department-weekly-table th,.department-weekly-table td{min-width:146px}
 }
+/* Department final evaluations, status colors, stable sorting, and mobile-only reload */
+.login-logo-refresh{
+  display:inline-grid;
+  place-items:center;
+  margin:0 0 12px;
+  padding:0;
+  border:0;
+  border-radius:28px;
+  background:transparent;
+  color:inherit;
+  line-height:0;
+  cursor:default;
+  pointer-events:none;
+}
+.login-logo-refresh:disabled{opacity:1}
+.login-logo-refresh .login-logo{display:block;margin:0}
+.mobile-dashboard-session-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+.mobile-dashboard-refresh{display:none}
+.department-status-color-field{grid-column:1/-1}
+.department-status-color-palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:7px}
+.department-status-color-option{
+  min-width:86px;
+  min-height:42px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:7px 10px;
+  border:2px solid transparent;
+  border-radius:11px;
+  background:var(--status-option-color);
+  color:var(--status-option-text);
+  font:800 11px/1.35 inherit;
+  cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);
+}
+.department-status-color-option.selected{border-color:#fff;box-shadow:0 0 0 2px rgba(155,230,80,.72),inset 0 0 0 1px rgba(255,255,255,.22)}
+.department-status-color-option:focus-visible{outline:3px solid rgba(155,230,80,.72);outline-offset:2px}
+.department-status-color-option:disabled{cursor:not-allowed;filter:saturate(.55);opacity:.58}
+.department-status-color-badge{display:inline-flex;align-items:center;gap:7px;direction:ltr;unicode-bidi:isolate}
+.department-status-color-badge i{width:30px;height:22px;border:1px solid rgba(255,255,255,.32);border-radius:7px;background:var(--status-color);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+#departmentStorekeepersTable{min-width:1860px}
+.department-sort-button{
+  width:100%;
+  min-width:44px;
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:6px 8px;
+  border:0;
+  border-radius:8px;
+  background:transparent;
+  color:inherit;
+  font:inherit;
+  font-weight:900;
+  text-align:center;
+  cursor:pointer;
+  box-shadow:none;
+}
+.department-sort-button:hover,.department-sort-button:focus-visible{background:rgba(155,230,80,.12);color:#fff;outline:none}
+.department-sort-indicator{min-width:14px;color:#c9f5b2;font-size:14px;line-height:1}
+.department-day-sort{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto}
+.department-day-sort > span:first-child{grid-column:1;grid-row:1}
+.department-day-sort > small{grid-column:1;grid-row:2}
+.department-day-sort .department-sort-indicator{grid-column:2;grid-row:1/3;align-self:center}
+.department-status-visual{
+  width:100%;
+  min-height:38px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:7px 9px;
+  border:1px solid color-mix(in srgb,var(--status-color),#fff 25%);
+  border-radius:9px;
+  background:var(--status-color);
+  color:var(--status-text);
+  font-weight:900;
+  line-height:1.35;
+  white-space:normal;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.11);
+}
+.department-status-cell-display{
+  width:100%;
+  min-width:108px;
+  min-height:42px;
+  padding:0;
+  border:0;
+  border-radius:9px;
+  background:transparent;
+  color:inherit;
+  cursor:text;
+  box-shadow:none;
+}
+.department-status-cell-display:disabled{opacity:1;cursor:not-allowed}
+.department-status-code-input{display:none}
+.department-weekly-cell.editing .department-status-cell-display{display:none}
+.department-weekly-cell.editing .department-status-code-input{display:block}
+.department-status-invalid-value{display:flex;align-items:center;justify-content:center;min-height:40px;border:1px solid #ff7272;border-radius:9px;background:rgba(108,20,27,.7);color:#ffd0d0;font-weight:900;direction:ltr}
+.department-weekly-cell.locked{background:rgba(35,111,69,.22)}
+.department-locked-evaluation{
+  width:100%;
+  min-height:58px;
+  display:grid;
+  grid-template-columns:auto auto;
+  align-content:center;
+  justify-content:center;
+  gap:1px 4px;
+  padding:7px;
+  border:1px solid rgba(155,230,80,.45);
+  border-radius:10px;
+  background:linear-gradient(145deg,rgba(40,126,71,.72),rgba(8,66,48,.88));
+  color:#f5fff1;
+  font-family:inherit;
+  cursor:pointer;
+}
+.department-locked-evaluation strong{font-size:17px}
+.department-locked-evaluation small{grid-column:1/-1;color:#c9f5b2;font-size:10px}
+.department-locked-evaluation:focus-visible{outline:3px solid rgba(155,230,80,.72);outline-offset:2px}
+.department-weekly-cell.blocked{background:rgba(74,83,79,.2)}
+.department-evaluation-blocked-note{display:block;margin-top:4px;color:#d8e5dc;font-size:10px;font-weight:800}
+.department-evaluation-modal{
+  position:fixed;
+  inset:0;
+  z-index:12100;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(0,12,10,.76);
+  backdrop-filter:blur(10px);
+}
+.department-evaluation-modal[hidden]{display:none}
+.department-evaluation-dialog{
+  width:min(680px,100%);
+  max-height:calc(100dvh - 40px);
+  overflow:auto;
+  padding:20px;
+  border:1px solid rgba(141,220,89,.25);
+  border-radius:22px;
+  background:linear-gradient(145deg,rgba(0,65,47,.98),rgba(0,24,20,.99));
+  color:#f4fff5;
+  box-shadow:0 30px 80px rgba(0,0,0,.48);
+}
+.department-evaluation-modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.department-evaluation-modal-head h3{margin:0}
+.department-evaluation-close{
+  width:44px;
+  height:44px;
+  padding:0;
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:13px;
+  background:rgba(255,255,255,.07);
+  color:#fff;
+  font-size:25px;
+  line-height:1;
+  cursor:pointer;
+}
+.department-evaluation-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:0 0 14px}
+.department-evaluation-details div{min-width:0;padding:10px;border:1px solid rgba(141,220,89,.15);border-radius:11px;background:rgba(0,28,22,.52)}
+.department-evaluation-details dt{margin-bottom:4px;color:#aeea9a;font-size:11px;font-weight:800}
+.department-evaluation-details dd{margin:0;overflow-wrap:anywhere;font-weight:900}
+.department-evaluation-reason-label{display:grid;gap:7px;color:#eaffdf;font-weight:900}
+.department-evaluation-reason-label textarea{width:100%;min-height:112px;resize:vertical}
+.department-evaluation-reason-label textarea[readonly]{background:rgba(0,25,20,.65);color:#fff}
+.department-evaluation-modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:14px}
+.department-evaluation-modal-actions button{min-width:130px}
+@media(max-width:768px){
+  .login-logo-refresh{
+    margin:0 0 10px;
+    border-radius:20px;
+    cursor:pointer;
+    pointer-events:auto;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .login-logo-refresh:not(:disabled):active{transform:scale(.96)}
+  .login-logo-refresh:not(:disabled):focus-visible{outline:3px solid rgba(155,230,80,.72);outline-offset:4px}
+  .login-logo-refresh .login-logo{margin:0}
+  body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-session-actions{display:flex;align-items:center;gap:7px}
+  body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-refresh{
+    width:40px;
+    height:40px;
+    min-width:40px;
+    display:grid;
+    place-items:center;
+    padding:0;
+    border:1px solid rgba(141,220,89,.26);
+    border-radius:14px;
+    background:rgba(255,255,255,.055);
+    color:#f4fff5;
+    box-shadow:none;
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+  body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-refresh svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-refresh:active{transform:scale(.96)}
+  body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-refresh:focus-visible{outline:3px solid rgba(155,230,80,.72);outline-offset:2px}
+  .department-evaluation-modal{align-items:flex-end;padding:12px 10px calc(12px + env(safe-area-inset-bottom))}
+  .department-evaluation-dialog{max-height:calc(100dvh - 18px);padding:16px 13px;border-radius:20px}
+  .department-evaluation-details{grid-template-columns:1fr}
+  .department-evaluation-modal-actions{display:grid;grid-template-columns:1fr}
+  .department-evaluation-modal-actions button{width:100%;min-height:48px}
+  .department-sort-button{min-height:48px}
+  .department-status-cell-display{min-height:48px}
+  .department-status-visual{min-height:46px}
+  .department-status-color-option{min-height:46px;min-width:100px;flex:1 1 100px}
+}

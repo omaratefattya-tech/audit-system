@@ -14,13 +14,13 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=department-weekly-operations-20260818-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=department-final-evaluations-20260818-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ir-hotfix-2-20260726" />
 </head>
 <body>
   <section id="loginScreen" class="login-screen">
     <div class="login-card glass">
-      <img class="login-logo" src="assets/img/logo.png" alt="شعار البرنامج" />
+      <button class="login-logo-refresh" id="loginLogoRefreshBtn" type="button" aria-label="تحديث البرنامج" title="تحديث البرنامج" disabled tabindex="-1"><img class="login-logo" src="assets/img/logo.png" alt="شعار البرنامج" /></button>
       <h1>برنامج مراجعة المخازن</h1>
       <p>سجل الدخول للمتابعة إلى نظام مراجعة المخازن</p>
       <label>البريد الإلكتروني
@@ -115,9 +115,14 @@
                 <small id="mobileDashboardUserRole">--</small>
               </div>
             </div>
-            <button class="mobile-dashboard-logout" id="mobileDashboardLogoutBtn" type="button" aria-label="تسجيل الخروج">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M7.2 6.8a7 7 0 1 0 9.6 0"/></svg>
-            </button>
+            <div class="mobile-dashboard-session-actions">
+              <button class="mobile-dashboard-refresh" id="mobileDashboardRefreshBtn" type="button" aria-label="تحديث البرنامج" title="تحديث البرنامج">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5"/><path d="M19 11a7.5 7.5 0 1 0 1 5"/></svg>
+              </button>
+              <button class="mobile-dashboard-logout" id="mobileDashboardLogoutBtn" type="button" aria-label="تسجيل الخروج">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M7.2 6.8a7 7 0 1 0 9.6 0"/></svg>
+              </button>
+            </div>
           </header>
           <nav class="mobile-dashboard-tabs" aria-label="اختصارات الشاشة الرئيسية" aria-hidden="true">
             <button class="mobile-dashboard-tab nav-item active" data-section="dashboard" type="button" aria-label="الرئيسية" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10.5V20h13v-9.5"/></svg></button>
@@ -1191,8 +1196,8 @@
           <div class="upload-status" id="departmentStorekeepersStatus" aria-live="polite"></div>
           <div class="table-wrap department-operational-table-wrap">
             <table id="departmentStorekeepersTable" data-no-universal-table="1">
-              <thead><tr><th>الكود الوظيفي</th><th>اسم أمين المخزن</th><th>الوظيفة</th><th>الموقع</th><th>القسم</th><th>رقم التليفون</th><th>تاريخ التعيين</th><th>الوردية الحالية</th><th>عدد الراحات</th><th>عدد أيام الشهر</th><th>عدد أيام العيد</th></tr></thead>
-              <tbody><tr><td colspan="11" class="empty-row">يتم تحميل البيانات عند فتح الشاشة.</td></tr></tbody>
+              <thead><tr><th>الكود الوظيفي</th><th>اسم أمين المخزن</th><th>الوظيفة</th><th>الموقع</th><th>القسم</th><th>رقم التليفون</th><th>تاريخ التعيين</th><th>الوردية الحالية</th><th>عدد الراحات</th><th>عدد أيام الشهر</th><th>عدد أيام العيد</th><th>أيام بالخصم</th><th>غياب بدون إذن</th></tr></thead>
+              <tbody><tr><td colspan="13" class="empty-row">يتم تحميل البيانات عند فتح الشاشة.</td></tr></tbody>
             </table>
           </div>
         </article>
@@ -1802,6 +1807,11 @@
                   <label>وصف الوردية
                     <input type="text" id="departmentStatusDescriptionInput" required autocomplete="off" />
                   </label>
+                  <label class="department-status-color-field">لون العرض
+                    <input type="hidden" id="departmentStatusDisplayColorInput" required />
+                    <span class="department-status-color-palette" id="departmentStatusColorPalette" role="radiogroup" aria-label="لون عرض الحالة"></span>
+                  </label>
+                  <label class="settings-check plant-active-check"><input type="checkbox" id="departmentStatusBlocksEvaluationInput" /> <span>يمنع التقييم</span></label>
                   <label class="settings-check plant-active-check"><input type="checkbox" id="departmentStatusActiveInput" checked /> <span>نشط</span></label>
                   <button class="primary" id="saveDepartmentStatusCodeBtn" type="submit">حفظ الكود</button>
                   <button class="secondary" id="cancelDepartmentStatusCodeBtn" type="button" hidden>إلغاء</button>
@@ -1809,8 +1819,8 @@
                 <div class="upload-status" id="departmentStatusCodesStatus" aria-live="polite"></div>
                 <div class="table-wrap plants-settings-table-wrap">
                   <table id="departmentStatusCodesTable" data-no-universal-table="1">
-                    <thead><tr><th>كود الوردية</th><th>وصف الوردية</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
-                    <tbody><tr><td colspan="4" class="empty-row">يتم تحميل البيانات عند فتح التبويب.</td></tr></tbody>
+                    <thead><tr><th>كود الوردية</th><th>وصف الوردية</th><th>لون العرض</th><th>يمنع التقييم</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+                    <tbody><tr><td colspan="6" class="empty-row">يتم تحميل البيانات عند فتح التبويب.</td></tr></tbody>
                   </table>
                 </div>
               </div>
@@ -1849,8 +1859,8 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=department-weekly-operations-20260818-1"></script>
-  <script src="assets/js/department-weekly-operations.js?v=department-weekly-operations-20260818-1"></script>
+  <script src="assets/js/app.js?v=department-final-evaluations-20260818-1"></script>
+  <script src="assets/js/department-weekly-operations.js?v=department-final-evaluations-20260818-1"></script>
   <script src="assets/js/custom-date-picker.js?v=inv-04-1"></script>
   <script>
   </script>
