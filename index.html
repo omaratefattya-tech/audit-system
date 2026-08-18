@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=department-evaluations-20260818-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=department-weekly-operations-20260818-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ir-hotfix-2-20260726" />
 </head>
 <body>
@@ -1168,13 +1168,39 @@
         </article>
       </section>
       <section id="department_storekeepers" class="section">
-        <article class="panel glass">
-          <h2>جدول أمناء المخازن</h2>
+        <article class="panel glass department-storekeepers-panel">
+          <div class="department-screen-head">
+            <div><h2>جدول أمناء المخازن</h2><p class="hint">جميع أفراد القسم النشطين وبيانات الوردية الحالية وملخص السنة الميلادية.</p></div>
+            <button class="secondary" id="departmentStorekeepersRetryBtn" type="button" hidden>إعادة المحاولة</button>
+          </div>
+          <div class="department-admin-alert" id="departmentStorekeepersCodesAlert" hidden></div>
+          <div class="department-storekeepers-toolbar glass-soft">
+            <label>بحث
+              <input id="departmentStorekeepersSearch" type="search" autocomplete="off" placeholder="الكود أو الاسم أو الوظيفة أو الهاتف..." />
+            </label>
+            <label>الموقع
+              <select id="departmentStorekeepersPlantFilter"><option value="">كل المواقع</option><option value="WF01">WF01 — مصنع الواحة</option><option value="EL01">EL01 — مصنع الإيمان للأعلاف - السواقي</option><option value="EL02">EL02 — مصنع الإيمان للأعلاف - العامرية</option></select>
+            </label>
+            <label>القسم
+              <select id="departmentStorekeepersDepartmentFilter"><option value="">كل الأقسام</option><option value="منتج تام">منتج تام</option><option value="قطع غيار">قطع غيار</option></select>
+            </label>
+            <label>الوظيفة
+              <select id="departmentStorekeepersJobFilter"><option value="">كل الوظائف</option><option value="مدير إدارة المخازن">مدير إدارة المخازن</option><option value="مدير مخازن قطع الغيار">مدير مخازن قطع الغيار</option><option value="رئيس قسم">رئيس قسم</option><option value="مسئول جرد وتوثيق المخزون">مسئول جرد وتوثيق المخزون</option><option value="مشرف مخازن">مشرف مخازن</option><option value="أمين مخزن">أمين مخزن</option><option value="مساعد أمين مخزن">مساعد أمين مخزن</option><option value="عامل مخازن">عامل مخازن</option></select>
+            </label>
+          </div>
+          <div class="upload-status" id="departmentStorekeepersStatus" aria-live="polite"></div>
+          <div class="table-wrap department-operational-table-wrap">
+            <table id="departmentStorekeepersTable" data-no-universal-table="1">
+              <thead><tr><th>الكود الوظيفي</th><th>اسم أمين المخزن</th><th>الوظيفة</th><th>الموقع</th><th>القسم</th><th>رقم التليفون</th><th>تاريخ التعيين</th><th>الوردية الحالية</th><th>عدد الراحات</th><th>عدد أيام الشهر</th><th>عدد أيام العيد</th></tr></thead>
+              <tbody><tr><td colspan="11" class="empty-row">يتم تحميل البيانات عند فتح الشاشة.</td></tr></tbody>
+            </table>
+          </div>
         </article>
       </section>
       <section id="department_weekly_leave_schedule" class="section">
-        <article class="panel glass">
-          <h2>جدول الأجازات الأسبوعي</h2>
+        <article class="panel glass department-weekly-panel">
+          <div class="department-screen-head"><div><h2>جدول الأجازات الأسبوعي</h2><p class="hint">إدخال أكواد الورديات والإجازات من الجمعة إلى الخميس.</p></div></div>
+          <div id="departmentWeeklyScheduleApp" class="department-weekly-workspace" data-department-weekly-kind="statuses"></div>
         </article>
       </section>
       <section id="department_hr_reports" class="section">
@@ -1183,29 +1209,11 @@
         </article>
       </section>
       <section id="department_evaluations" class="section">
-        <article class="panel glass department-evaluations-panel">
-          <div class="department-evaluations-head">
-            <div><h2>التقييمات</h2><p class="hint">الأفراد النشطون الموزعون حسب الموقع الوظيفي والقسم.</p></div>
-            <button class="secondary" id="departmentEvaluationsRetryBtn" type="button" hidden>إعادة المحاولة</button>
-          </div>
-          <div class="department-evaluation-tabs" role="tablist" aria-label="تبويبات التقييمات">
-            <button class="department-evaluation-tab active" id="departmentEvaluationWf01FinishedTab" type="button" role="tab" aria-selected="true" data-department-evaluation-tab="wf01-finished">منتج تام الواحة - <b dir="ltr">WF01</b></button>
-            <button class="department-evaluation-tab" id="departmentEvaluationWf01SpareTab" type="button" role="tab" aria-selected="false" data-department-evaluation-tab="wf01-spare-parts">قطع غيار الواحة - <b dir="ltr">WF01</b></button>
-            <button class="department-evaluation-tab" id="departmentEvaluationEl01FinishedTab" type="button" role="tab" aria-selected="false" data-department-evaluation-tab="el01-finished">منتج تام الرئيسي - <b dir="ltr">EL01</b></button>
-            <button class="department-evaluation-tab" id="departmentEvaluationEl01SpareTab" type="button" role="tab" aria-selected="false" data-department-evaluation-tab="el01-spare-parts">قطع غيار الرئيسي - <b dir="ltr">EL01</b></button>
-            <button class="department-evaluation-tab" id="departmentEvaluationEl02FinishedTab" type="button" role="tab" aria-selected="false" data-department-evaluation-tab="el02-finished">منتج تام العامرية - <b dir="ltr">EL02</b></button>
-            <button class="department-evaluation-tab" id="departmentEvaluationEl02SpareTab" type="button" role="tab" aria-selected="false" data-department-evaluation-tab="el02-spare-parts">قطع غيار العامرية - <b dir="ltr">EL02</b></button>
-          </div>
-          <div class="upload-status" id="departmentEvaluationsStatus" aria-live="polite"></div>
-          <div class="table-wrap department-evaluations-table-wrap">
-            <table id="departmentEvaluationsTable" data-no-universal-table="1">
-              <thead><tr><th>الكود الوظيفي</th><th>اسم الموظف</th><th>الوظيفة</th></tr></thead>
-              <tbody><tr><td colspan="3" class="empty-row">يتم تحميل الأفراد عند فتح الشاشة.</td></tr></tbody>
-            </table>
-          </div>
+        <article class="panel glass department-weekly-panel department-evaluations-panel">
+          <div class="department-screen-head"><div><h2>التقييمات</h2><p class="hint">التقييم اليومي للأفراد المؤهلين من الجمعة إلى الخميس.</p></div></div>
+          <div id="departmentEvaluationsApp" class="department-weekly-workspace" data-department-weekly-kind="evaluations"></div>
         </article>
-      </section>
-      <section id="users" class="section">
+      </section>      <section id="users" class="section">
         <article class="panel glass users-management-panel users-enterprise-panel" id="usersManagementCapture">
           <div class="users-hero">
             <div>
@@ -1766,15 +1774,20 @@
                       <option value="قطع غيار">قطع غيار</option>
                     </select>
                   </label>
-                  <label class="settings-check sales-product-flag-check"><input type="checkbox" id="departmentPersonnelActiveInput" checked /> <span>نشط</span></label>
+                  <label>رقم التليفون
+                    <input type="tel" id="departmentPersonnelPhoneInput" autocomplete="tel" inputmode="tel" placeholder="اختياري" />
+                  </label>
+                  <label>تاريخ التعيين
+                    <input type="date" id="departmentPersonnelHireDateInput" data-custom-date-picker data-custom-date-picker-label="تاريخ التعيين" />
+                  </label>                  <label class="settings-check sales-product-flag-check"><input type="checkbox" id="departmentPersonnelActiveInput" checked /> <span>نشط</span></label>
                   <button class="primary" id="saveDepartmentPersonnelBtn" type="submit">حفظ الموظف</button>
                   <button class="secondary" id="cancelDepartmentPersonnelBtn" type="button" hidden>إلغاء</button>
                 </form>
                 <div class="upload-status" id="departmentPersonnelStatus" aria-live="polite"></div>
                 <div class="table-wrap sales-products-settings-table-wrap">
                   <table id="departmentPersonnelTable" data-no-universal-table="1">
-                    <thead><tr><th>الكود الوظيفي</th><th>الاسم</th><th>الوظيفة</th><th>الموقع الوظيفي</th><th>القسم</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
-                    <tbody><tr><td colspan="7" class="empty-row">يتم تحميل البيانات عند فتح التبويب.</td></tr></tbody>
+                    <thead><tr><th>الكود الوظيفي</th><th>الاسم</th><th>الوظيفة</th><th>الموقع الوظيفي</th><th>القسم</th><th>رقم التليفون</th><th>تاريخ التعيين</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+                    <tbody><tr><td colspan="9" class="empty-row">يتم تحميل البيانات عند فتح التبويب.</td></tr></tbody>
                   </table>
                 </div>
               </div>
@@ -1836,7 +1849,8 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=department-evaluations-20260818-1"></script>
+  <script src="assets/js/app.js?v=department-weekly-operations-20260818-1"></script>
+  <script src="assets/js/department-weekly-operations.js?v=department-weekly-operations-20260818-1"></script>
   <script src="assets/js/custom-date-picker.js?v=inv-04-1"></script>
   <script>
   </script>

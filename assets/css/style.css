@@ -6258,35 +6258,64 @@ body.focus-mode-active .inventory-count-post-close-modal{
   .inventory-count-post-close-add-row{width:100%;}
   .inventory-count-post-close-table{min-width:820px;}
 }
-/* Department evaluations - read-only personnel distribution */
-#department_evaluations{min-width:0;max-width:100%;overflow-x:hidden}
-.department-evaluations-panel{min-width:0;max-width:100%}
-.department-evaluations-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}
-.department-evaluations-head h2{margin:0 0 5px}
-.department-evaluation-tabs{display:flex;align-items:center;gap:9px;max-width:100%;margin:0 0 14px;padding:2px 0 8px;overflow-x:auto;overflow-y:hidden;direction:rtl;scrollbar-width:thin;scrollbar-color:rgba(155,230,80,.58) rgba(0,35,27,.42)}
-.department-evaluation-tab{flex:0 0 auto;min-height:44px;padding:9px 15px;border:1px solid rgba(141,220,89,.38);border-radius:12px;background:rgba(0,55,38,.72);color:#eaffdf;font-family:inherit;font-weight:900;white-space:nowrap;cursor:pointer;transition:background .18s ease,border-color .18s ease,box-shadow .18s ease}
-.department-evaluation-tab:hover{border-color:rgba(155,230,80,.72);background:rgba(28,111,49,.72)}
-.department-evaluation-tab.active,.department-evaluation-tab[aria-selected="true"]{background:linear-gradient(135deg,#68ba45,#1e7432);border-color:#9be650;color:#fff;box-shadow:0 0 0 1px rgba(155,230,80,.22),0 8px 22px rgba(104,186,69,.2)}
-.department-evaluation-tab b{font:inherit;direction:ltr;unicode-bidi:isolate}
-.department-evaluations-table-wrap{max-width:100%;border:1px solid rgba(141,220,89,.22);border-radius:14px;background:rgba(0,35,27,.3)}
-#departmentEvaluationsTable{min-width:640px}
-#departmentEvaluationsTable td[dir="ltr"]{text-align:right;unicode-bidi:isolate}
-.department-personnel-mobile-parent.active{border-color:rgba(155,230,80,.65);background:rgba(119,210,75,.16);color:#9be650}
-
+/* Department personnel daily operations */
+#department_storekeepers,#department_weekly_leave_schedule,#department_evaluations{min-width:0;max-width:100%;overflow-x:hidden}
+.department-storekeepers-panel,.department-weekly-panel,.department-weekly-workspace{min-width:0;max-width:100%}
+.department-screen-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}
+.department-screen-head h2{margin:0 0 5px}
+.department-admin-alert{margin:0 0 13px;padding:11px 13px;border:1px solid rgba(255,190,70,.48);border-radius:12px;background:rgba(120,75,0,.2);color:#ffe2a2;font-weight:800;line-height:1.7}
+.department-storekeepers-toolbar{display:grid;grid-template-columns:minmax(220px,1.4fr) repeat(3,minmax(150px,1fr));gap:10px;margin-bottom:13px;padding:12px;border-radius:14px}
+.department-storekeepers-toolbar label,.department-weekly-period label{display:grid;gap:6px;color:#dfffd5;font-size:12px;font-weight:900}
+.department-storekeepers-toolbar input,.department-storekeepers-toolbar select,.department-weekly-period input{width:100%;min-width:0;height:42px;border-radius:10px}
+.department-operational-table-wrap,.department-weekly-table-wrap{width:100%;max-width:100%;overflow:auto;border:1px solid rgba(141,220,89,.22);border-radius:14px;background:rgba(0,35,27,.3);overscroll-behavior-inline:contain}
+#departmentStorekeepersTable{min-width:1560px}
+#departmentStorekeepersTable thead th,.department-weekly-table thead th{position:sticky;top:0;z-index:2;background:#00412f}
+#departmentStorekeepersTable td,#departmentStorekeepersTable th{white-space:nowrap}
+.department-current-shift{display:grid;gap:2px;justify-items:center}
+.department-current-shift b{direction:ltr;unicode-bidi:isolate;color:#caffad}
+.department-current-shift small{max-width:150px;color:#b8d8c6;font-size:10px;white-space:normal}
+.department-weekly-tabs{display:flex;align-items:center;gap:9px;width:100%;max-width:100%;margin:0 0 14px;padding:2px 0 8px;overflow-x:auto;overflow-y:hidden;direction:rtl;scrollbar-width:thin;scrollbar-color:rgba(155,230,80,.58) rgba(0,35,27,.42)}
+.department-weekly-tab{flex:0 0 auto;min-height:44px;padding:9px 15px;border:1px solid rgba(141,220,89,.38);border-radius:12px;background:rgba(0,55,38,.72);color:#eaffdf;font-family:inherit;font-weight:900;white-space:nowrap;cursor:pointer;transition:background .18s ease,border-color .18s ease,box-shadow .18s ease}
+.department-weekly-tab:hover{border-color:rgba(155,230,80,.72);background:rgba(28,111,49,.72)}
+.department-weekly-tab.active,.department-weekly-tab[aria-selected="true"]{background:linear-gradient(135deg,#68ba45,#1e7432);border-color:#9be650;color:#fff;box-shadow:0 0 0 1px rgba(155,230,80,.22),0 8px 22px rgba(104,186,69,.2)}
+.department-weekly-period{display:grid;grid-template-columns:minmax(160px,.85fr) minmax(160px,.85fr) minmax(330px,1.6fr) minmax(210px,1fr);align-items:end;gap:11px;margin-bottom:12px;padding:12px;border-radius:14px}
+.department-weekly-period .custom-date-picker{width:100%}
+.department-weekly-navigation{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.department-weekly-navigation button{min-height:42px;padding-inline:10px;white-space:nowrap}
+.department-weekly-label{align-self:center;color:#eaffdf;text-align:center;font-size:13px;line-height:1.7}
+.department-weekly-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:9px;padding-top:2px}
+.department-weekly-actions button{min-width:145px}
+.department-weekly-help{min-height:22px;margin-bottom:6px}
+.department-weekly-table{width:100%;min-width:1760px;border-collapse:separate;border-spacing:0}
+#departmentEvaluationsApp .department-weekly-table{min-width:1480px}
+.department-weekly-table th,.department-weekly-table td{min-width:138px;text-align:center;vertical-align:middle}
+.department-weekly-table th:nth-child(-n+4),.department-weekly-table td:nth-child(-n+4){min-width:160px}
+#departmentEvaluationsApp .department-weekly-table th:nth-child(-n+3),#departmentEvaluationsApp .department-weekly-table td:nth-child(-n+3){min-width:165px}
+.department-day-heading span,.department-day-heading small{display:block}
+.department-day-heading small{margin-top:4px;color:#b8d8c6;font-size:10px;direction:ltr;unicode-bidi:isolate}
+.department-weekly-cell{padding:6px}
+.department-weekly-input{width:100%;min-width:108px;height:42px;padding:7px 8px;border:1px solid rgba(141,220,89,.28);border-radius:9px;background:rgba(0,24,20,.76);color:#fff;font:900 14px/1.2 inherit;text-align:center;direction:ltr;unicode-bidi:isolate}
+.department-weekly-input:focus{outline:2px solid rgba(155,230,80,.72);outline-offset:1px;border-color:#9be650}
+.department-weekly-cell.dirty{background:rgba(255,190,70,.1)}
+.department-weekly-input.dirty{border-color:#ffc35b;box-shadow:inset 0 0 0 1px rgba(255,195,91,.2)}
+.department-weekly-cell.invalid{background:rgba(255,86,86,.12)}
+.department-weekly-input.invalid{border-color:#ff7272;color:#ffd0d0;box-shadow:inset 0 0 0 1px rgba(255,114,114,.25)}
+.department-weekly-table .outside-range{background:repeating-linear-gradient(135deg,rgba(75,94,84,.15),rgba(75,94,84,.15) 7px,rgba(18,39,32,.32) 7px,rgba(18,39,32,.32) 14px);color:#8ea69a}
+.department-weekly-input:disabled{opacity:.5;cursor:not-allowed;background:rgba(20,36,31,.6)}
+@media(max-width:900px){.department-storekeepers-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}.department-weekly-period{grid-template-columns:repeat(2,minmax(0,1fr))}.department-weekly-navigation{grid-column:1/-1}.department-weekly-label{grid-column:1/-1}}
 @media(max-width:650px){
-  #department_evaluations.active-section{width:100%;max-width:100%;min-width:0;padding-bottom:calc(24px + env(safe-area-inset-bottom));overflow-x:hidden}
-  .department-evaluations-panel{width:100%;padding:15px 12px 18px;border-radius:20px;overflow:hidden}
-  .department-evaluations-head{align-items:stretch;flex-direction:column}
-  .department-evaluations-head .secondary{width:100%}
-  .department-evaluation-tabs{width:100%;margin-inline:0;overscroll-behavior-inline:contain;scroll-snap-type:x proximity}
-  .department-evaluation-tab{min-height:46px;scroll-snap-align:start}
-  .department-evaluations-table-wrap{width:100%;overflow:visible;border:0;background:transparent}
-  #departmentEvaluationsTable{display:block;width:100%;min-width:0}
-  #departmentEvaluationsTable thead{display:none}
-  #departmentEvaluationsTable tbody{display:grid;gap:10px;width:100%}
-  #departmentEvaluationsTable tbody tr{display:grid;gap:7px;width:100%;padding:12px;border:1px solid rgba(141,220,89,.22);border-radius:14px;background:rgba(0,38,30,.62)}
-  #departmentEvaluationsTable tbody td{display:grid;grid-template-columns:minmax(108px,.72fr) minmax(0,1fr);gap:10px;align-items:start;width:100%;padding:5px 0;border:0;white-space:normal;overflow-wrap:anywhere;text-align:right}
-  #departmentEvaluationsTable tbody td::before{content:attr(data-label);color:#aeea9a;font-size:12px;font-weight:900}
-  #departmentEvaluationsTable tbody .empty-row{display:block;padding:18px 12px;text-align:center}
-  #departmentEvaluationsTable tbody .empty-row::before{content:none}
+  #department_storekeepers.active-section,#department_weekly_leave_schedule.active-section,#department_evaluations.active-section{width:100%;max-width:100%;min-width:0;padding-bottom:calc(28px + env(safe-area-inset-bottom));overflow-x:hidden}
+  .department-storekeepers-panel,.department-weekly-panel{width:100%;min-width:0;padding:15px 12px 18px;border-radius:20px;overflow:hidden}
+  .department-screen-head{align-items:stretch;flex-direction:column}
+  .department-screen-head .secondary{width:100%}
+  .department-storekeepers-toolbar,.department-weekly-period{grid-template-columns:1fr}
+  .department-weekly-navigation,.department-weekly-label,.department-weekly-actions{grid-column:auto}
+  .department-weekly-navigation{grid-template-columns:1fr}
+  .department-weekly-actions{display:grid;grid-template-columns:1fr}
+  .department-weekly-actions button{width:100%;min-height:46px}
+  .department-weekly-tabs{width:100%;margin-inline:0;overscroll-behavior-inline:contain;scroll-snap-type:x proximity}
+  .department-weekly-tab{min-height:46px;scroll-snap-align:start}
+  .department-operational-table-wrap,.department-weekly-table-wrap{max-width:100%;-webkit-overflow-scrolling:touch}
+  .department-weekly-input{min-width:116px;height:48px;font-size:15px}
+  .department-weekly-table th,.department-weekly-table td{min-width:146px}
 }
