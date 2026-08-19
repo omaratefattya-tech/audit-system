@@ -6622,7 +6622,9 @@ body.focus-mode-active .inventory-count-post-close-modal{
 }
 .department-status-color-badge{display:inline-flex;align-items:center;gap:7px;direction:ltr;unicode-bidi:isolate}
 .department-status-color-badge i{width:30px;height:22px;border:1px solid rgba(255,255,255,.32);border-radius:7px;background:var(--status-color);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
-#departmentStorekeepersTable{min-width:1860px}
+#departmentStorekeepersTable{min-width:2030px}
+#departmentStorekeepersTable .department-work-duration-heading,
+#departmentStorekeepersTable .department-work-duration-cell{min-width:170px;white-space:normal;line-height:1.65}
 .department-sort-button{
   width:100%;
   min-width:44px;

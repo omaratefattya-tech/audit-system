@@ -826,6 +826,71 @@
     if(!status) return;
     status.className='upload-status '+(type||'');status.textContent=message||'';
   }
+  function storekeeperDaysInMonth(year,month){
+    if(month<1 || month>12) return 0;
+    if(month===2) return (year%4===0 && (year%100!==0 || year%400===0))?29:28;
+    return [4,6,9,11].includes(month)?30:31;
+  }
+  function storekeeperDateOnlyParts(value){
+    if(value && typeof value==='object'){
+      const parts={year:Number(value.year),month:Number(value.month),day:Number(value.day)};
+      return Number.isInteger(parts.year) && Number.isInteger(parts.month) && Number.isInteger(parts.day)
+        && parts.year>=1 && parts.month>=1 && parts.month<=12 && parts.day>=1 && parts.day<=storekeeperDaysInMonth(parts.year,parts.month)
+        ? parts:null;
+    }
+    const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value||'').trim());
+    if(!match) return null;
+    const parts={year:Number(match[1]),month:Number(match[2]),day:Number(match[3])};
+    return parts.year>=1 && parts.month>=1 && parts.month<=12 && parts.day>=1 && parts.day<=storekeeperDaysInMonth(parts.year,parts.month)?parts:null;
+  }
+  function compareStorekeeperDateOnly(left,right){
+    if(left.year!==right.year) return left.year-right.year;
+    if(left.month!==right.month) return left.month-right.month;
+    return left.day-right.day;
+  }
+  function addStorekeeperCalendarMonths(parts,months){
+    const monthIndex=(parts.year*12)+(parts.month-1)+months;
+    const year=Math.floor(monthIndex/12);
+    const month=(monthIndex-(year*12))+1;
+    return {year,month,day:Math.min(parts.day,storekeeperDaysInMonth(year,month))};
+  }
+  function storekeeperDateOnlyOrdinal(parts){
+    const date=new Date(0);
+    date.setUTCHours(0,0,0,0);
+    date.setUTCFullYear(parts.year,parts.month-1,parts.day);
+    return Math.floor(date.getTime()/86400000);
+  }
+  function formatStorekeeperWorkDuration(years,months,days){
+    const parts=[];
+    if(years===1) parts.push('سنة');
+    else if(years===2) parts.push('سنتان');
+    else if(years>0) parts.push(years+' '+(years%100>=3 && years%100<=10?'سنوات':'سنة'));
+    if(months===1) parts.push('شهر');
+    else if(months===2) parts.push('شهران');
+    else if(months>0) parts.push(months+' '+(months%100>=3 && months%100<=10?'أشهر':'شهرًا'));
+    if(days===1) parts.push('يوم');
+    else if(days===2) parts.push('يومان');
+    else if(days>0) parts.push(days+' '+(days%100>=3 && days%100<=10?'أيام':'يومًا'));
+    return parts.length?parts.join(' و'):'0 يوم';
+  }
+  function storekeeperWorkDuration(hireDate,currentDate){
+    const hire=storekeeperDateOnlyParts(hireDate);
+    let now=storekeeperDateOnlyParts(currentDate);
+    if(!currentDate){
+      const localNow=new Date();
+      now=storekeeperDateOnlyParts({year:localNow.getFullYear(),month:localNow.getMonth()+1,day:localNow.getDate()});
+    }
+    if(!hire || !now || compareStorekeeperDateOnly(hire,now)>0) return null;
+    let years=now.year-hire.year;
+    let yearAnchor=addStorekeeperCalendarMonths(hire,years*12);
+    if(compareStorekeeperDateOnly(yearAnchor,now)>0){years-=1;yearAnchor=addStorekeeperCalendarMonths(hire,years*12);}
+    let months=((now.year-yearAnchor.year)*12)+(now.month-yearAnchor.month);
+    let monthAnchor=addStorekeeperCalendarMonths(yearAnchor,months);
+    if(compareStorekeeperDateOnly(monthAnchor,now)>0){months-=1;monthAnchor=addStorekeeperCalendarMonths(yearAnchor,months);}
+    const days=storekeeperDateOnlyOrdinal(now)-storekeeperDateOnlyOrdinal(monthAnchor);
+    const totalDays=storekeeperDateOnlyOrdinal(now)-storekeeperDateOnlyOrdinal(hire);
+    return {years,months,days,totalDays,label:formatStorekeeperWorkDuration(years,months,days)};
+  }
   function buildStorekeepersRows(personnel,statuses,validSummaryCodes){
     const today=localTodayIso();
     return personnel.map(person=>{
@@ -847,6 +912,7 @@
   function storekeepersSortValue(row,key){
     const numericKeys=new Set(['restCount','monthCount','eidCount','deductionCount','absenceCount']);
     if(numericKeys.has(key)) return {value:row[key],type:'number'};
+    if(key==='workDuration') return {value:storekeeperWorkDuration(row.hire_date)?.totalDays??null,type:'number'};
     if(key==='hire_date') return {value:row.hire_date,type:'date'};
     if(key==='plant_code') return {value:[row.plant_code,PLANT_LABELS[row.plant_code]].filter(Boolean).join(' '),type:'text'};
     if(key==='currentShift') return {value:row.currentShiftDescription||row.currentShift,type:'text'};
@@ -880,12 +946,12 @@
     const headers=[
       ['employee_code','الكود الوظيفي'],['full_name','اسم أمين المخزن'],['job_title','الوظيفة'],
       ['plant_code','الموقع'],['department','القسم'],['phone_number','رقم التليفون'],['hire_date','تاريخ التعيين'],
-      ['currentShift','الوردية الحالية'],['restCount','عدد الراحات'],['monthCount','عدد أيام الشهر'],
+      ['workDuration','مدة العمل'],['currentShift','الوردية الحالية'],['restCount','عدد الراحات'],['monthCount','عدد أيام الشهر'],
       ['eidCount','عدد أيام العيد'],['deductionCount','أيام بالخصم'],['absenceCount','غياب بدون إذن']
     ];
     head.innerHTML='<tr>'+headers.map(([key,label])=>{
       const active=STOREKEEPERS_STATE.sortKey===key;
-      return '<th><button type="button" class="department-sort-button" data-storekeeper-sort="'+key+'" aria-label="ترتيب حسب '+escapeHtml(label)+'" aria-sort="'+(active?(STOREKEEPERS_STATE.sortDirection==='desc'?'descending':'ascending'):'none')+'"><span>'+escapeHtml(label)+'</span>'+sortIndicator(active,active?STOREKEEPERS_STATE.sortDirection:'')+'</button></th>';
+      return '<th'+(key==='workDuration'?' class="department-work-duration-heading"':'')+'><button type="button" class="department-sort-button" data-storekeeper-sort="'+key+'" aria-label="ترتيب حسب '+escapeHtml(label)+'" aria-sort="'+(active?(STOREKEEPERS_STATE.sortDirection==='desc'?'descending':'ascending'):'none')+'"><span>'+escapeHtml(label)+'</span>'+sortIndicator(active,active?STOREKEEPERS_STATE.sortDirection:'')+'</button></th>';
     }).join('')+'</tr>';
   }
   function renderDepartmentStorekeepers(){
@@ -893,13 +959,15 @@
     if(!tbody) return;
     renderStorekeepersHeader();
     const rows=filteredStorekeepersRows();
-    if(!rows.length){tbody.innerHTML='<tr><td colspan="13" class="empty-row">لا يوجد أفراد نشطون مطابقون للبحث والفلاتر.</td></tr>';return;}
+    if(!rows.length){tbody.innerHTML='<tr><td colspan="14" class="empty-row">لا يوجد أفراد نشطون مطابقون للبحث والفلاتر.</td></tr>';return;}
     tbody.innerHTML=rows.map(row=>{
       const plant=String(row.plant_code||'');
       const shift=row.currentShift?'<span class="department-current-shift"><b dir="ltr">'+escapeHtml(row.currentShift)+'</b>'+statusVisual(row.currentShiftDescription,row.currentShift,row.currentShiftColor)+'</span>':'—';
+      const workDuration=storekeeperWorkDuration(row.hire_date);
       return '<tr><td dir="ltr">'+escapeHtml(row.employee_code||'')+'</td><td>'+escapeHtml(row.full_name||'')+'</td><td>'+escapeHtml(row.job_title||'')+'</td>'
         +'<td>'+escapeHtml(plant+(PLANT_LABELS[plant]?' — '+PLANT_LABELS[plant]:''))+'</td><td>'+escapeHtml(row.department||'')+'</td>'
-        +'<td dir="ltr">'+escapeHtml(row.phone_number||'—')+'</td><td>'+escapeHtml(displayDate(row.hire_date))+'</td><td>'+shift+'</td>'
+        +'<td dir="ltr">'+escapeHtml(row.phone_number||'—')+'</td><td>'+escapeHtml(displayDate(row.hire_date))+'</td>'
+        +'<td class="department-work-duration-cell" data-sort-value="'+escapeHtml(workDuration?.totalDays??'')+'">'+escapeHtml(workDuration?.label||'—')+'</td><td>'+shift+'</td>'
         +'<td>'+escapeHtml(row.restCount===null?'—':row.restCount)+'</td><td>'+escapeHtml(row.monthCount===null?'—':row.monthCount)+'</td><td>'+escapeHtml(row.eidCount===null?'—':row.eidCount)+'</td>'
         +'<td>'+escapeHtml(row.deductionCount===null?'—':row.deductionCount)+'</td><td>'+escapeHtml(row.absenceCount===null?'—':row.absenceCount)+'</td></tr>';
     }).join('');
@@ -908,7 +976,7 @@
     const retry=document.getElementById('departmentStorekeepersRetryBtn');
     if(!tbody) return false;
     const token=++STOREKEEPERS_STATE.requestToken;
-    STOREKEEPERS_STATE.loading=true;tbody.innerHTML='<tr><td colspan="13" class="empty-row">جاري تحميل أفراد القسم والملخص السنوي...</td></tr>';
+    STOREKEEPERS_STATE.loading=true;tbody.innerHTML='<tr><td colspan="14" class="empty-row">جاري تحميل أفراد القسم والملخص السنوي...</td></tr>';
     setStorekeepersStatus('جاري التحميل...');if(retry) retry.hidden=true;
     if(!WarehouseDB?.ready){setStorekeepersStatus('Supabase غير متصل. تعذر تحميل الجدول.','err');if(retry) retry.hidden=false;return false;}
     const year=new Date().getFullYear();const range=yearRange(year);
@@ -937,7 +1005,7 @@
       STOREKEEPERS_STATE.loading=false;return true;
     }catch(error){
       if(token!==STOREKEEPERS_STATE.requestToken) return false;
-      tbody.innerHTML='<tr><td colspan="13" class="empty-row">تعذر تحميل جدول أفراد القسم.</td></tr>';
+      tbody.innerHTML='<tr><td colspan="14" class="empty-row">تعذر تحميل جدول أفراد القسم.</td></tr>';
       setStorekeepersStatus(weeklyErrorMessage(error,'load'),'err');if(retry) retry.hidden=false;
       STOREKEEPERS_STATE.loading=false;return false;
     }
