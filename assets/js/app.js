@@ -11382,6 +11382,344 @@ function inventoryCountExportColumnLayout(visibleKeys=[]){
     width:totalWeight ? ((weights[key] || fallbackWeight)/totalWeight)*100 : 0
   }));
 }
+const INVENTORY_COUNT_PDF_LAYOUT=Object.freeze({
+  pageWidthMm:210,
+  pageHeightMm:297,
+  marginMm:5,
+  pageNumberReserveMm:6,
+  preferredCaptureScale:2
+});
+function inventoryCountPdfMmToPx(value){
+  return (Number(value) || 0) * (96 / 25.4);
+}
+function inventoryCountPdfCellValue(key,displayValue,rawValue){
+  if(INVENTORY_COUNT_SORT_COLUMNS[key]==='number' && rawValue!==null && rawValue!==undefined && rawValue!==''){
+    const numericValue=Number(rawValue);
+    if(Number.isFinite(numericValue) && numericValue===0) return '_';
+  }
+  return displayValue ?? '';
+}
+function inventoryCountPdfColumnBounds(key){
+  if(key==='material_name') return {minMm:34,maxMm:58};
+  if(key==='inventory_counter') return {minMm:25,maxMm:42};
+  if(key==='inventory_settlement') return {minMm:22,maxMm:36};
+  if(key==='material_code') return {minMm:18,maxMm:28};
+  if(key==='oldest_date') return {minMm:28,maxMm:36};
+  if(key==='uom') return {minMm:13,maxMm:20};
+  if(INVENTORY_COUNT_SORT_COLUMNS[key]==='number') return {minMm:12,maxMm:21};
+  return {minMm:15,maxMm:28};
+}
+function inventoryCountPdfMeasureText(context,text){
+  const normalized=String(text ?? '').trim();
+  if(!normalized || !context) return 0;
+  return context.measureText(normalized).width;
+}
+function inventoryCountPdfColumnLayout(visibleIndexes=[],rows=[],printableWidthMm=INVENTORY_COUNT_PDF_LAYOUT.pageWidthMm-(INVENTORY_COUNT_PDF_LAYOUT.marginMm*2)){
+  const context=document.createElement('canvas').getContext('2d');
+  if(context) context.font='800 10px Cairo, Arial, sans-serif';
+  const displayRows=(rows || []).slice(0,120).map(row=>inventoryCountExportDisplayRow(row));
+  const desired=visibleIndexes.map(index=>{
+    const key=INVENTORY_COUNT_COLUMNS[index]?.key || '';
+    const bounds=inventoryCountPdfColumnBounds(key);
+    const headerWidth=inventoryCountPdfMeasureText(context,inventoryCountExportHeaders()[index]);
+    const contentWidth=displayRows.reduce((maximum,values)=>Math.max(maximum,inventoryCountPdfMeasureText(context,values[index])),0);
+    const paddingPx=key==='material_name' || key==='inventory_counter' || key==='inventory_settlement' ? 18 : 12;
+    const measuredMm=(Math.max(headerWidth,contentWidth)+paddingPx) * (25.4/96);
+    return {key,index,desiredMm:Math.min(bounds.maxMm,Math.max(bounds.minMm,measuredMm))};
+  });
+  const desiredTotal=desired.reduce((sum,column)=>sum+column.desiredMm,0) || 1;
+  let consumed=0;
+  return desired.map((column,index)=>{
+    const widthMm=index===desired.length-1
+      ? Math.max(0,printableWidthMm-consumed)
+      : (column.desiredMm/desiredTotal)*printableWidthMm;
+    consumed+=widthMm;
+    return {...column,widthMm};
+  });
+}
+function inventoryCountPdfCreateHeader(rowCount){
+  const header=document.createElement('header');
+  header.className='inventory-count-export-header inventory-count-pdf-report-header';
+  const title=document.createElement('h1');
+  title.textContent='الجرد وتوثيق المخزون';
+  const meta=document.createElement('div');
+  meta.className='inventory-count-export-meta';
+  inventoryCountExportMetaRows().slice(1,-1).forEach(row=>{
+    const item=document.createElement('span');
+    item.textContent=row[0]+': '+(row[0]==='عدد الأصناف' ? rowCount : row[1]);
+    meta.appendChild(item);
+  });
+  header.append(title,meta);
+  return header;
+}
+function inventoryCountPdfCreateTable(options={}){
+  const rows=Array.isArray(options.rows) ? options.rows : [];
+  const totalSourceRows=Array.isArray(options.totalSourceRows) ? options.totalSourceRows : rows;
+  const visibleIndexes=options.visibleIndexes || [];
+  const columnLayout=options.columnLayout || [];
+  const table=document.createElement('table');
+  table.className='inventory-count-export-table inventory-count-pdf-table';
+  table.dataset.noUniversalTable='1';
+  const colgroup=document.createElement('colgroup');
+  columnLayout.forEach(column=>{
+    const col=document.createElement('col');
+    col.dataset.inventoryExportKey=column.key;
+    col.style.width=column.widthMm.toFixed(4)+'mm';
+    colgroup.appendChild(col);
+  });
+  table.appendChild(colgroup);
+  const thead=document.createElement('thead');
+  const headRow=document.createElement('tr');
+  visibleIndexes.forEach(index=>{
+    const key=INVENTORY_COUNT_COLUMNS[index]?.key || '';
+    const th=document.createElement('th');
+    th.scope='col';
+    th.textContent=inventoryCountExportHeaders()[index] || '';
+    if(key) th.classList.add('inventory-count-export-col-'+key);
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+  const tbody=document.createElement('tbody');
+  if(rows.length){
+    rows.forEach((row,rowIndex)=>{
+      const values=inventoryCountExportDisplayRow(row);
+      const tr=document.createElement('tr');
+      tr.dataset.inventoryPdfRow=String(rowIndex);
+      visibleIndexes.forEach(index=>{
+        const key=INVENTORY_COUNT_COLUMNS[index]?.key || '';
+        const td=document.createElement('td');
+        td.textContent=inventoryCountPdfCellValue(key,values[index],row?.[key]);
+        if(key) td.classList.add('inventory-count-export-col-'+key);
+        if(INVENTORY_COUNT_SORT_COLUMNS[key]==='number') td.classList.add('inventory-count-export-numeric');
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+  }else if(options.showEmptyState){
+    const tr=document.createElement('tr');
+    tr.className='inventory-count-pdf-empty-row';
+    const td=document.createElement('td');
+    td.colSpan=Math.max(1,visibleIndexes.length);
+    td.textContent='لا توجد بيانات مطابقة للتصدير.';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  }
+  table.append(thead,tbody);
+  if(options.includeTotals){
+    const tfoot=document.createElement('tfoot');
+    const totalRow=document.createElement('tr');
+    totalRow.className='inventory-count-export-total-row';
+    const totals=inventoryCountExportTotalRow(true,totalSourceRows);
+    const rawTotals=inventoryCountExportTotalRow(false,totalSourceRows);
+    visibleIndexes.forEach(index=>{
+      const key=INVENTORY_COUNT_COLUMNS[index]?.key || '';
+      const td=document.createElement('td');
+      td.textContent=inventoryCountPdfCellValue(key,totals[index],rawTotals[index]);
+      if(key) td.classList.add('inventory-count-export-col-'+key);
+      if(INVENTORY_COUNT_SORT_COLUMNS[key]==='number') td.classList.add('inventory-count-export-numeric');
+      totalRow.appendChild(td);
+    });
+    tfoot.appendChild(totalRow);
+    table.appendChild(tfoot);
+  }
+  return table;
+}
+function inventoryCountBuildPdfPage(options={}){
+  const sheet=document.createElement('section');
+  sheet.className='inventory-count-export-sheet inventory-count-export-sheet-pdf';
+  sheet.dir='rtl';
+  sheet.lang='ar';
+  sheet.dataset.exportTarget='pdf';
+  sheet.dataset.exportRows=String((options.rows || []).length);
+  sheet.dataset.exportColumns=String((options.visibleIndexes || []).length);
+  sheet.dataset.pdfPage=String(options.pageNumber || 1);
+  const columnCount=(options.visibleIndexes || []).length;
+  const fontSize=columnCount<=5 ? 11.4 : (columnCount<=10 ? 10.2 : 9.1);
+  sheet.style.setProperty('--inventory-export-font-size',fontSize+'px');
+  sheet.style.setProperty('--inventory-pdf-header-font-size',Math.max(9.4,fontSize+.3)+'px');
+  const content=document.createElement('div');
+  content.className='inventory-count-export-content inventory-count-pdf-content';
+  if(options.includeReportHeader) content.appendChild(inventoryCountPdfCreateHeader(options.totalRowCount || 0));
+  content.appendChild(inventoryCountPdfCreateTable({
+    rows:options.rows,
+    totalSourceRows:options.totalSourceRows,
+    visibleIndexes:options.visibleIndexes,
+    columnLayout:options.columnLayout,
+    includeTotals:Boolean(options.includeTotals),
+    showEmptyState:Boolean(options.showEmptyState)
+  }));
+  if(options.includeFooter){
+    const footer=document.createElement('footer');
+    footer.className='inventory-count-pdf-reviewer-footer';
+    footer.textContent='القائم بالمراجعة / '+inventoryCountReviewerName();
+    content.appendChild(footer);
+  }
+  const pageNumber=document.createElement('div');
+  pageNumber.className='inventory-count-pdf-page-number';
+  pageNumber.textContent=(options.pageNumber || 1)+' / '+(options.totalPages || 1);
+  sheet.append(content,pageNumber);
+  inventoryCountPdfAssertCleanExportDom(sheet);
+  return sheet;
+}
+function inventoryCountPdfAssertCleanExportDom(root){
+  const forbidden=root?.querySelector?.('input, select, button, textarea, .inventory-count-filter-row, .column-filter-row, .sort-btn, .inventory-count-sort-btn');
+  if(forbidden) throw new Error('تعذر إنشاء PDF نظيف من عناصر البحث والترتيب.');
+  const tables=[...(root?.querySelectorAll?.('table') || [])];
+  if(tables.some(table=>table.dataset.noUniversalTable!=='1')) throw new Error('جدول PDF غير مستثنى من أدوات الجدول التفاعلية.');
+}
+function inventoryCountPdfOuterHeight(element){
+  if(!element) return 0;
+  const styles=getComputedStyle(element);
+  return element.getBoundingClientRect().height+(parseFloat(styles.marginTop)||0)+(parseFloat(styles.marginBottom)||0);
+}
+async function inventoryCountPdfMeasureLayout(context){
+  const measurement=inventoryCountBuildPdfPage({
+    rows:context.rows,
+    totalSourceRows:context.rows,
+    visibleIndexes:context.visibleIndexes,
+    columnLayout:context.columnLayout,
+    includeReportHeader:true,
+    includeTotals:true,
+    includeFooter:true,
+    showEmptyState:!context.rows.length,
+    totalRowCount:context.rows.length,
+    pageNumber:1,
+    totalPages:1
+  });
+  measurement.classList.add('inventory-count-export-sheet-pdf-measure');
+  document.body.appendChild(measurement);
+  try{
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    inventoryCountPdfAssertCleanExportDom(measurement);
+    const styles=getComputedStyle(measurement);
+    const verticalPadding=(parseFloat(styles.paddingTop)||0)+(parseFloat(styles.paddingBottom)||0);
+    const table=measurement.querySelector('.inventory-count-pdf-table');
+    const rowHeights=[...(table?.tBodies?.[0]?.rows || [])].map(row=>row.getBoundingClientRect().height);
+    return {
+      pageContentHeight:Math.max(1,measurement.clientHeight-verticalPadding-inventoryCountPdfMmToPx(INVENTORY_COUNT_PDF_LAYOUT.pageNumberReserveMm)),
+      reportHeaderHeight:inventoryCountPdfOuterHeight(measurement.querySelector('.inventory-count-pdf-report-header')),
+      tableHeaderHeight:table?.tHead?.getBoundingClientRect().height || 0,
+      rowHeights:context.rows.length ? rowHeights : [],
+      emptyRowHeight:context.rows.length ? 0 : (rowHeights[0] || inventoryCountPdfMmToPx(6)),
+      totalsHeight:table?.tFoot?.getBoundingClientRect().height || 0,
+      footerHeight:inventoryCountPdfOuterHeight(measurement.querySelector('.inventory-count-pdf-reviewer-footer'))
+    };
+  }finally{
+    measurement.remove();
+  }
+}
+function inventoryCountPdfPaginateRows(rows=[],metrics={}){
+  if(!rows.length) return [[]];
+  const pages=[];
+  const rowHeights=metrics.rowHeights || [];
+  const finalExtras=(metrics.totalsHeight || 0)+(metrics.footerHeight || 0);
+  let rowIndex=0;
+  while(rowIndex<rows.length){
+    const pageIndex=pages.length;
+    const capacity=Math.max(1,(metrics.pageContentHeight || 1)-(metrics.tableHeaderHeight || 0)-(pageIndex===0 ? (metrics.reportHeaderHeight || 0) : 0));
+    const remainingHeight=rowHeights.slice(rowIndex).reduce((sum,height)=>sum+height,0);
+    if(remainingHeight+finalExtras<=capacity){
+      pages.push(rows.slice(rowIndex));
+      rowIndex=rows.length;
+      break;
+    }
+    const pageRows=[];
+    let usedHeight=0;
+    while(rowIndex<rows.length){
+      const nextHeight=rowHeights[rowIndex] || inventoryCountPdfMmToPx(6);
+      if(pageRows.length && usedHeight+nextHeight>capacity) break;
+      pageRows.push(rows[rowIndex]);
+      usedHeight+=nextHeight;
+      rowIndex+=1;
+      if(usedHeight>=capacity) break;
+    }
+    if(rowIndex===rows.length && usedHeight+finalExtras>capacity && pageRows.length>1){
+      pageRows.pop();
+      rowIndex-=1;
+    }
+    pages.push(pageRows);
+  }
+  return pages;
+}
+async function inventoryCountPreparePdfPages(){
+  if(document.fonts?.ready) await document.fonts.ready;
+  const rows=inventoryCountDisplayRows(INVENTORY_COUNT_STATE.lines || []);
+  const visibleIndexes=inventoryCountVisibleColumnIndexes();
+  const printableWidthMm=INVENTORY_COUNT_PDF_LAYOUT.pageWidthMm-(INVENTORY_COUNT_PDF_LAYOUT.marginMm*2);
+  const columnLayout=inventoryCountPdfColumnLayout(visibleIndexes,rows,printableWidthMm);
+  const metrics=await inventoryCountPdfMeasureLayout({rows,visibleIndexes,columnLayout});
+  const groups=inventoryCountPdfPaginateRows(rows,metrics);
+  const pages=groups.map((pageRows,index)=>inventoryCountBuildPdfPage({
+    rows:pageRows,
+    totalSourceRows:rows,
+    visibleIndexes,
+    columnLayout,
+    includeReportHeader:index===0,
+    includeTotals:index===groups.length-1,
+    includeFooter:index===groups.length-1,
+    showEmptyState:!rows.length,
+    totalRowCount:rows.length,
+    pageNumber:index+1,
+    totalPages:groups.length
+  }));
+  return {pages,rows,visibleIndexes,columnLayout,metrics};
+}
+function inventoryCountPdfCaptureScale(width,height){
+  const maximumDimension=8192;
+  const maximumPixels=32000000;
+  const dimensionScale=Math.min(maximumDimension/Math.max(width,1),maximumDimension/Math.max(height,1));
+  const pixelScale=Math.sqrt(maximumPixels/Math.max(width*height,1));
+  return Math.max(1,Math.min(INVENTORY_COUNT_PDF_LAYOUT.preferredCaptureScale,dimensionScale,pixelScale));
+}
+async function inventoryCountCapturePdfPages(){
+  const Html2Canvas=window.html2canvas;
+  if(!Html2Canvas) throw new Error('مكتبة تصدير الصور غير محملة.');
+  const prepared=await inventoryCountPreparePdfPages();
+  const canvases=[];
+  try{
+    for(const page of prepared.pages){
+      document.body.appendChild(page);
+      try{
+        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        inventoryCountPdfAssertCleanExportDom(page);
+        const width=Math.max(1,Math.ceil(page.clientWidth));
+        const height=Math.max(1,Math.ceil(page.clientHeight));
+        const scale=inventoryCountPdfCaptureScale(width,height);
+        const canvas=await Html2Canvas(page,{scale,useCORS:true,allowTaint:true,backgroundColor:'#00291f',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+        canvases.push(canvas);
+      }finally{
+        page.remove();
+      }
+    }
+    return {...prepared,canvases};
+  }catch(error){
+    prepared.pages.forEach(page=>page.remove());
+    canvases.forEach(canvas=>{canvas.width=1;canvas.height=1;});
+    throw error;
+  }
+}
+async function inventoryCountCreatePdfDocument(){
+  const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+  if(!JsPDF) throw new Error('مكتبة PDF غير محملة.');
+  const captured=await inventoryCountCapturePdfPages();
+  const pdf=new JsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
+  const pageWidth=pdf.internal.pageSize.getWidth();
+  const pageHeight=pdf.internal.pageSize.getHeight();
+  try{
+    captured.canvases.forEach((canvas,index)=>{
+      if(index>0) pdf.addPage('a4','portrait');
+      pdf.setFillColor(0,41,31);
+      pdf.rect(0,0,pageWidth,pageHeight,'F');
+      pdf.addImage(canvas.toDataURL('image/png',1),'PNG',0,0,pageWidth,pageHeight,'inventory-count-pdf-page-'+(index+1),'FAST');
+      canvas.width=1;
+      canvas.height=1;
+    });
+    return {pdf,pageCount:captured.canvases.length,rowCount:captured.rows.length,visibleColumnKeys:captured.visibleIndexes.map(index=>INVENTORY_COUNT_COLUMNS[index]?.key || '')};
+  }catch(error){
+    captured.canvases.forEach(canvas=>{canvas.width=1;canvas.height=1;});
+    throw error;
+  }
+}
 function inventoryCountBuildExportSheet(options={}){
   const target=options.target==='png' ? 'png' : 'document';
   const rows=target==='png' ? inventoryCountDisplayRows(INVENTORY_COUNT_STATE.lines || []) : (INVENTORY_COUNT_STATE.lines || []);
@@ -11621,26 +11959,9 @@ async function exportInventoryCountPng(){
   }
 }
 async function exportInventoryCountPdf(){
-  if(!(INVENTORY_COUNT_STATE.lines || []).length){ showInventoryCountToast('لا توجد بيانات للتصدير.','warning'); return; }
-  const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-  if(!JsPDF){ showInventoryCountToast('مكتبة PDF غير محملة.','error'); return; }
   try{
-    const {canvas}=await inventoryCountCaptureExportSheet();
-    const pdf=new JsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
-    const finalWidth=pdf.internal.pageSize.getWidth();
-    const finalHeight=pdf.internal.pageSize.getHeight();
-    const margin=4;
-    const availableWidth=finalWidth-(margin*2);
-    const availableHeight=finalHeight-(margin*2);
-    const fit=Math.min(availableWidth/canvas.width,availableHeight/canvas.height);
-    const imageWidth=canvas.width*fit;
-    const imageHeight=canvas.height*fit;
-    const imageX=(finalWidth-imageWidth)/2;
-    const imageY=(finalHeight-imageHeight)/2;
-    pdf.setFillColor(0,41,31);
-    pdf.rect(0,0,finalWidth,finalHeight,'F');
-    pdf.addImage(canvas.toDataURL('image/png',1),'PNG',imageX,imageY,imageWidth,imageHeight,undefined,'FAST');
-    await saveBlobWithPicker(pdf.output('blob'),`${inventoryCountExportFileBase()}.pdf`,'application/pdf');
+    const {pdf}=await inventoryCountCreatePdfDocument();
+    await saveBlobWithPicker(pdf.output('blob'),inventoryCountExportFileBase()+'.pdf','application/pdf');
     showInventoryCountToast('تم التصدير بنجاح.','success');
   }catch(err){
     console.error('Inventory count PDF export failed',err);

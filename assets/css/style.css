@@ -4267,6 +4267,114 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
   text-align: right;
 }
 
+.inventory-count-export-sheet.inventory-count-export-sheet-pdf {
+  width: 210mm;
+  height: 297mm;
+  min-width: 210mm;
+  min-height: 297mm;
+  padding: 5mm;
+  overflow: hidden;
+}
+
+.inventory-count-export-sheet-pdf .inventory-count-pdf-content {
+  width: 100%;
+  height: auto;
+  transform: none;
+  transform-origin: top right;
+}
+
+.inventory-count-export-sheet-pdf .inventory-count-export-header {
+  gap: 2mm;
+  margin-bottom: 2.2mm;
+  padding: 2mm 2.5mm 2.4mm;
+  border-radius: 3mm;
+}
+
+.inventory-count-export-sheet-pdf .inventory-count-export-header h1 {
+  font-size: 19px;
+  line-height: 1.35;
+}
+
+.inventory-count-export-sheet-pdf .inventory-count-export-meta {
+  gap: 1.2mm;
+  font-size: 8.8px;
+  line-height: 1.45;
+}
+
+.inventory-count-export-sheet-pdf .inventory-count-export-meta span {
+  padding: .9mm 1.7mm;
+}
+
+.inventory-count-export-sheet-pdf .inventory-count-pdf-table {
+  width: 100%;
+  table-layout: fixed;
+  font-size: var(--inventory-export-font-size, 9.1px);
+}
+
+.inventory-count-export-sheet-pdf .inventory-count-pdf-table th,
+.inventory-count-export-sheet-pdf .inventory-count-pdf-table td {
+  height: auto;
+  padding: 1.1mm .75mm;
+  line-height: 1.48;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  line-break: auto;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.inventory-count-export-sheet-pdf .inventory-count-pdf-table th {
+  min-height: 7mm;
+  font-size: var(--inventory-pdf-header-font-size, 9.4px);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.inventory-count-export-sheet-pdf .inventory-count-pdf-table tbody td {
+  height: 6mm;
+}
+
+.inventory-count-export-sheet-pdf .inventory-count-pdf-table tbody .inventory-count-export-numeric,
+.inventory-count-export-sheet-pdf .inventory-count-pdf-table tbody .inventory-count-export-col-material_code,
+.inventory-count-export-sheet-pdf .inventory-count-pdf-table tbody .inventory-count-export-col-oldest_date {
+  direction: ltr;
+  padding-inline: .25mm;
+  font-size: calc(var(--inventory-export-font-size, 9.1px) - 1.2px);
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.inventory-count-export-sheet-pdf .inventory-count-pdf-table tfoot td {
+  height: 6mm;
+}
+
+.inventory-count-export-sheet-pdf .inventory-count-pdf-empty-row td {
+  height: 12mm;
+  color: #d8f5d2;
+  font-weight: 800;
+}
+
+.inventory-count-export-sheet-pdf .inventory-count-pdf-reviewer-footer {
+  margin-top: 2.4mm;
+  padding: 1.8mm 2.5mm 0;
+  font-size: 9.2px;
+  line-height: 1.5;
+}
+
+.inventory-count-pdf-page-number {
+  position: absolute;
+  right: 5mm;
+  bottom: 1.8mm;
+  left: 5mm;
+  color: #cdeec7;
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-family: Cairo, Arial, sans-serif;
+  font-size: 8.6px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
 .inventory-count-export-sheet.inventory-count-export-sheet-png {
   width: auto;
   height: auto;
