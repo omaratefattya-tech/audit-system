@@ -11337,8 +11337,8 @@ function inventoryCountExportExcelRow(row){
     inventoryCountSettlementExportLabel(row)
   ];
 }
-function inventoryCountExportTotalRow(display=true){
-  const rows=INVENTORY_COUNT_STATE.lines || [];
+function inventoryCountExportTotalRow(display=true,sourceRows=null){
+  const rows=Array.isArray(sourceRows) ? sourceRows : (INVENTORY_COUNT_STATE.lines || []);
   const total=key=>rows.reduce((sum,row)=>sum+inventoryCountTotalNumber(row?.[key]),0);
   const numeric=value=>display ? formatInventoryCountThreeDecimalQuantity(value) : value;
   return [
@@ -11359,6 +11359,13 @@ function inventoryCountExportTotalRow(display=true){
     '', '', ''
   ];
 }
+function inventoryCountPngCellValue(key,displayValue,rawValue){
+  if(INVENTORY_COUNT_SORT_COLUMNS[key]==='number' && rawValue!==null && rawValue!==undefined && rawValue!==''){
+    const numericValue=Number(rawValue);
+    if(Number.isFinite(numericValue) && numericValue===0) return '_';
+  }
+  return displayValue ?? '';
+}
 function inventoryCountExportColumnLayout(visibleKeys=[]){
   const weights={
     material_code:2.3,
@@ -11375,14 +11382,17 @@ function inventoryCountExportColumnLayout(visibleKeys=[]){
     width:totalWeight ? ((weights[key] || fallbackWeight)/totalWeight)*100 : 0
   }));
 }
-function inventoryCountBuildExportSheet(){
-  const rows=INVENTORY_COUNT_STATE.lines || [];
+function inventoryCountBuildExportSheet(options={}){
+  const target=options.target==='png' ? 'png' : 'document';
+  const rows=target==='png' ? inventoryCountDisplayRows(INVENTORY_COUNT_STATE.lines || []) : (INVENTORY_COUNT_STATE.lines || []);
   const visibleIndexes=inventoryCountVisibleColumnIndexes();
   const visibleKeys=visibleIndexes.map(index=>INVENTORY_COUNT_COLUMNS[index]?.key || '');
   const sheet=document.createElement('section');
   sheet.className='inventory-count-export-sheet';
+  if(target==='png') sheet.classList.add('inventory-count-export-sheet-png');
   sheet.dir='rtl';
   sheet.lang='ar';
+  sheet.dataset.exportTarget=target;
   sheet.dataset.exportRows=String(rows.length);
   sheet.dataset.exportColumns=String(visibleKeys.length);
   const exportRowHeight=Math.max(22,Math.min(28,Math.floor(1320/Math.max(rows.length,1))));
@@ -11399,12 +11409,13 @@ function inventoryCountBuildExportSheet(){
   meta.className='inventory-count-export-meta';
   inventoryCountExportMetaRows().slice(1,-1).forEach(row=>{
     const item=document.createElement('span');
-    item.textContent=`${row[0]}: ${row[1]}`;
+    item.textContent=`${row[0]}: ${target==='png' && row[0]==='عدد الأصناف' ? rows.length : row[1]}`;
     meta.appendChild(item);
   });
   header.append(title,meta);
   const table=document.createElement('table');
   table.className='inventory-count-export-table';
+  table.dataset.noUniversalTable='1';
   const colgroup=document.createElement('colgroup');
   inventoryCountExportColumnLayout(visibleKeys).forEach(column=>{
     const col=document.createElement('col');
@@ -11430,7 +11441,7 @@ function inventoryCountBuildExportSheet(){
     visibleIndexes.forEach(index=>{
       const key=INVENTORY_COUNT_COLUMNS[index]?.key || '';
       const td=document.createElement('td');
-      td.textContent=values[index] ?? '';
+      td.textContent=target==='png' ? inventoryCountPngCellValue(key,values[index],row?.[key]) : (values[index] ?? '');
       if(key) td.classList.add(`inventory-count-export-col-${key}`);
       tr.appendChild(td);
     });
@@ -11439,11 +11450,12 @@ function inventoryCountBuildExportSheet(){
   const tfoot=document.createElement('tfoot');
   const totalRow=document.createElement('tr');
   totalRow.className='inventory-count-export-total-row';
-  const totals=inventoryCountExportTotalRow(true);
+  const totals=inventoryCountExportTotalRow(true,rows);
+  const rawTotals=inventoryCountExportTotalRow(false,rows);
   visibleIndexes.forEach(index=>{
     const key=INVENTORY_COUNT_COLUMNS[index]?.key || '';
     const td=document.createElement('td');
-    td.textContent=totals[index] ?? '';
+    td.textContent=target==='png' ? inventoryCountPngCellValue(key,totals[index],rawTotals[index]) : (totals[index] ?? '');
     if(key) td.classList.add(`inventory-count-export-col-${key}`);
     totalRow.appendChild(td);
   });
@@ -11454,6 +11466,59 @@ function inventoryCountBuildExportSheet(){
   content.append(header,table,footer);
   sheet.appendChild(content);
   return sheet;
+}
+function inventoryCountPngColumnBounds(key){
+  if(key==='material_name') return {min:260,max:440};
+  if(key==='inventory_counter') return {min:220,max:360};
+  if(key==='inventory_settlement') return {min:170,max:240};
+  if(key==='material_code') return {min:130,max:210};
+  if(key==='uom') return {min:100,max:150};
+  if(key==='oldest_date') return {min:135,max:190};
+  if(INVENTORY_COUNT_SORT_COLUMNS[key]==='number') return {min:126,max:190};
+  return {min:120,max:220};
+}
+function inventoryCountMeasureExportText(context,element){
+  const text=String(element?.textContent || '').trim();
+  if(!text) return 0;
+  const style=getComputedStyle(element);
+  context.font=`${style.fontStyle || 'normal'} ${style.fontWeight || '700'} ${style.fontSize || '11px'} ${style.fontFamily || 'Cairo, sans-serif'}`;
+  return context.measureText(text).width;
+}
+function inventoryCountApplyPngExportLayout(sheet){
+  const table=sheet.querySelector('.inventory-count-export-table');
+  const columns=[...(table?.querySelectorAll('col[data-inventory-export-key]') || [])];
+  if(!table || !columns.length) return {width:Math.max(1,sheet.scrollWidth),columnWidths:[]};
+  const context=document.createElement('canvas').getContext('2d');
+  const columnWidths=columns.map((column,index)=>{
+    const key=column.dataset.inventoryExportKey || '';
+    const bounds=inventoryCountPngColumnBounds(key);
+    const cells=[...table.rows].map(row=>row.cells[index]).filter(Boolean);
+    const measured=context ? cells.reduce((maximum,cell)=>Math.max(maximum,inventoryCountMeasureExportText(context,cell)),0) : bounds.min;
+    const padding=key==='material_name' || key==='inventory_counter' ? 34 : 26;
+    return Math.ceil(Math.min(bounds.max,Math.max(bounds.min,measured+padding)));
+  });
+  const tableWidth=columnWidths.reduce((sum,width)=>sum+width,0);
+  const sheetWidth=Math.max(1,tableWidth+28);
+  columns.forEach((column,index)=>{column.style.width=`${columnWidths[index]}px`;});
+  table.style.width=`${tableWidth}px`;
+  const content=sheet.querySelector('.inventory-count-export-content');
+  if(content) content.style.width=`${tableWidth}px`;
+  sheet.style.width=`${sheetWidth}px`;
+  sheet.style.minWidth=`${sheetWidth}px`;
+  sheet.style.height='auto';
+  sheet.style.minHeight='0';
+  sheet.dataset.measuredTableWidth=String(tableWidth);
+  sheet.dataset.measuredSheetWidth=String(sheetWidth);
+  sheet.dataset.measuredColumnWidths=columnWidths.join(',');
+  return {width:sheetWidth,columnWidths};
+}
+function inventoryCountPngCaptureScale(width,height){
+  const preferredScale=2;
+  const maximumDimension=16000;
+  const maximumPixels=64000000;
+  const dimensionScale=Math.min(maximumDimension/Math.max(width,1),maximumDimension/Math.max(height,1));
+  const pixelScale=Math.sqrt(maximumPixels/Math.max(width*height,1));
+  return Math.max(Number.EPSILON,Math.min(preferredScale,dimensionScale,pixelScale));
 }
 function inventorySettlementStatusMessage(status,reasonCode=''){
   const messages={
@@ -11497,14 +11562,24 @@ function inventorySettlementStatusMessage(status,reasonCode=''){
   }
   return messages[String(status || '')] || 'تعذر حفظ تسوية فرق الجرد.';
 }
-async function inventoryCountCaptureExportSheet(){
+async function inventoryCountCaptureExportSheet(options={}){
   const Html2Canvas=window.html2canvas;
   if(!Html2Canvas) throw new Error('مكتبة تصدير الصور غير محملة.');
-  const sheet=inventoryCountBuildExportSheet();
+  const target=options.target==='png' ? 'png' : 'document';
+  const sheet=inventoryCountBuildExportSheet({target});
   document.body.appendChild(sheet);
   try{
     if(document.fonts && document.fonts.ready) await document.fonts.ready;
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    if(target==='png'){
+      inventoryCountApplyPngExportLayout(sheet);
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      const width=Math.max(1,Math.ceil(sheet.scrollWidth));
+      const height=Math.max(1,Math.ceil(sheet.scrollHeight));
+      const captureScale=inventoryCountPngCaptureScale(width,height);
+      const canvas=await Html2Canvas(sheet,{scale:captureScale,useCORS:true,allowTaint:true,backgroundColor:'#00291f',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+      return {canvas,width,height};
+    }
     const content=sheet.querySelector('.inventory-count-export-content');
     const sheetStyles=getComputedStyle(sheet);
     const horizontalPadding=(parseFloat(sheetStyles.paddingLeft)||0)+(parseFloat(sheetStyles.paddingRight)||0);
@@ -11533,7 +11608,7 @@ async function inventoryCountCaptureExportSheet(){
 async function exportInventoryCountPng(){
   if(!(INVENTORY_COUNT_STATE.lines || []).length){ showInventoryCountToast('لا توجد بيانات للتصدير.','warning'); return; }
   try{
-    const {canvas}=await inventoryCountCaptureExportSheet();
+    const {canvas}=await inventoryCountCaptureExportSheet({target:'png'});
     await new Promise(resolve=>canvas.toBlob(async blob=>{
       if(!blob){ showInventoryCountToast('تعذر إنشاء صورة PNG.','error'); resolve(); return; }
       await saveBlobWithPicker(blob,`${inventoryCountExportFileBase()}.png`,'image/png');
@@ -15849,7 +15924,12 @@ function applyDepartmentPersonnelPermissions(){
   const canUseForm=editing ? canEdit : canAdd;
   const form=$('#departmentPersonnelForm');
   if(form) form.classList.toggle('permission-hidden',!canUseForm);
-  setElementsDisabled('#departmentPersonnelForm input:not([type="hidden"]),#departmentPersonnelForm select,#saveDepartmentPersonnelBtn',!canUseForm,true);
+  setElementsDisabled('#departmentPersonnelForm input:not([type="hidden"]),#departmentPersonnelForm input[data-custom-date-picker],#departmentPersonnelForm select,#saveDepartmentPersonnelBtn',!canUseForm,true);
+  const hireDateInput=$('#departmentPersonnelHireDateInput');
+  if(window.CustomDatePicker && hireDateInput){
+    window.CustomDatePicker.init(hireDateInput.parentElement || form || document);
+    window.CustomDatePicker.refresh(hireDateInput);
+  }
   setElementsDisabled('#cancelDepartmentPersonnelBtn',editing ? !canEdit : false,true);
   setElementsDisabled('#departmentPersonnelTable [data-action="edit-department-personnel"],#departmentPersonnelTable [data-action="toggle-department-personnel"]',!canEdit,true);
 }
@@ -15935,7 +16015,9 @@ function resetDepartmentPersonnelForm(){
   form.reset();
   $('#departmentPersonnelIdInput').value='';
   $('#departmentPersonnelActiveInput').checked=true;
-  if(window.CustomDatePicker) window.CustomDatePicker.refresh($('#departmentPersonnelHireDateInput'));
+  const hireDateInput=$('#departmentPersonnelHireDateInput');
+  if(hireDateInput) hireDateInput.value='';
+  if(window.CustomDatePicker) window.CustomDatePicker.refresh(hireDateInput);
   $('#saveDepartmentPersonnelBtn').textContent='حفظ الموظف';
   $('#cancelDepartmentPersonnelBtn').hidden=true;
   applyDepartmentPersonnelPermissions();

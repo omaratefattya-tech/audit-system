@@ -680,6 +680,20 @@
     const values={name:person?.full_name||'—',code:person?.employee_code||'—',job:person?.job_title||'—',date:dayAndDateLabel(date),score:String(score)+' / 10'};
     Object.entries(values).forEach(([key,value])=>{const el=root?.querySelector('[data-evaluation-detail="'+key+'"]');if(el) el.textContent=value;});
   }
+  function setEvaluationModalSaving(state,saving){
+    state.saving=Boolean(saving);
+    const modal=weeklyRoot(state)?.querySelector('[data-evaluation-modal]');
+    if(!modal) return;
+    const saveButton=modal.querySelector('[data-evaluation-modal-action="save"]');
+    if(saveButton){saveButton.disabled=state.saving;saveButton.textContent=state.saving?'جاري الحفظ...':'حفظ التقييم';}
+    modal.querySelectorAll('[data-evaluation-modal-action="cancel"],[data-evaluation-modal-action="close"]').forEach(button=>{button.disabled=state.saving;});
+  }
+  function resetEvaluationModalControls(state,clearReason=false){
+    setEvaluationModalSaving(state,false);
+    const modal=weeklyRoot(state)?.querySelector('[data-evaluation-modal]');
+    const reason=modal?.querySelector('[data-evaluation-reason]');
+    if(clearReason && reason){reason.value='';reason.readOnly=false;}
+  }
   function openNewEvaluationModal(state,personnelId,date){
     if(state.kind!=='evaluations' || state.modalDraft) return;
     const key=cellKey(personnelId,date);
@@ -688,6 +702,7 @@
     if(!draft || !person || !validateWeeklyValue(state,key,draft.value).valid) return;
     const modal=weeklyRoot(state)?.querySelector('[data-evaluation-modal]');
     if(!modal) return;
+    resetEvaluationModalControls(state,true);
     state.modalDraft={mode:'new',key,personnelId,date,score:draft.value};
     modal.hidden=false;
     modal.querySelector('[data-evaluation-modal-title]').textContent='حفظ تقييم نهائي';
@@ -715,6 +730,7 @@
     const person=personForState(state,record.personnel_id);
     const modal=weeklyRoot(state)?.querySelector('[data-evaluation-modal]');
     if(!modal) return;
+    resetEvaluationModalControls(state,true);
     state.modalDraft={mode:'view',recordId:String(recordId)};
     modal.hidden=false;
     modal.querySelector('[data-evaluation-modal-title]').textContent='تفاصيل التقييم النهائي';
@@ -734,6 +750,7 @@
     document.body.classList.add('modal-open');
   }
   function closeEvaluationModal(state,cancelDraft=false){
+    if(state.saving) return false;
     const modal=weeklyRoot(state)?.querySelector('[data-evaluation-modal]');
     const draft=state.modalDraft;
     if(cancelDraft && draft?.mode==='new'){
@@ -741,8 +758,10 @@
     }
     state.modalDraft=null;
     if(modal) modal.hidden=true;
+    resetEvaluationModalControls(state,true);
     document.body.classList.remove('modal-open');
     if(cancelDraft) renderWeeklyTable(state);
+    return true;
   }
   async function saveSingleEvaluation(state){
     const draft=state.modalDraft;
@@ -755,9 +774,7 @@
     if(!reason){setEvaluationModalStatus(state,'سبب التقييم إجباري ولا يمكن أن يكون مسافات فقط.','err');reasonInput?.focus();return;}
     if(!canManageWeeklyData()){setEvaluationModalStatus(state,'الصلاحية الحالية للعرض فقط.','err');return;}
     if(!WarehouseDB?.ready){setEvaluationModalStatus(state,'Supabase غير متصل. احتفظنا بالتقييم والسبب.','err');return;}
-    state.saving=true;
-    const saveButton=modal.querySelector('[data-evaluation-modal-action="save"]');
-    saveButton.disabled=true;saveButton.textContent='جاري الحفظ...';
+    setEvaluationModalSaving(state,true);
     setEvaluationModalStatus(state,'جاري حفظ التقييم النهائي...');
     try{
       const {data,error}=await WarehouseDB.client.rpc('save_department_personnel_daily_evaluations',{p_changes:[{
@@ -765,14 +782,14 @@
       }]});
       if(error) throw error;
       state.dirty.delete(draft.key);state.invalid.delete(draft.key);
-      state.saving=false;
+      setEvaluationModalSaving(state,false);
       closeEvaluationModal(state,false);
       await loadDepartmentWeeklyWorkspace('evaluations');
       setWeeklyStatus(state,'تم حفظ التقييم وقَفله نهائيًا بنجاح.','ok');
     }catch(error){
-      state.saving=false;
-      saveButton.disabled=false;saveButton.textContent='حفظ التقييم';
       setEvaluationModalStatus(state,weeklyErrorMessage(error,'save')+' احتفظنا بالتقييم والسبب.','err');
+    }finally{
+      setEvaluationModalSaving(state,false);
     }
   }
   async function saveWeeklyChanges(state){
