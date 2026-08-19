@@ -15832,24 +15832,56 @@ let DEPARTMENT_STATUS_CODES_LOADING = false;
 let DEPARTMENT_STATUS_CODE_SAVING = false;
 const DEPARTMENT_STATUS_CODE_PENDING = new Set();
 const DEPARTMENT_STATUS_BLOCKING_FIXED_CODES = new Set(['0','4','5','8','9']);
-const DEPARTMENT_STATUS_COLOR_PALETTE = [
-  {value:'#64748B',label:'رمادي مزرق'},
-  {value:'#2563EB',label:'أزرق'},
-  {value:'#059669',label:'أخضر زمردي'},
-  {value:'#7C3AED',label:'بنفسجي'},
-  {value:'#D97706',label:'كهرماني'},
-  {value:'#DB2777',label:'وردي داكن'},
-  {value:'#0891B2',label:'سماوي داكن'},
-  {value:'#65A30D',label:'أخضر ليموني'},
-  {value:'#EA580C',label:'برتقالي'},
-  {value:'#DC2626',label:'أحمر'},
-  {value:'#0F766E',label:'تركواز'},
-  {value:'#9333EA',label:'أرجواني'},
-  {value:'#4F46E5',label:'نيلي'},
-  {value:'#BE123C',label:'قرمزي'},
-  {value:'#15803D',label:'أخضر غامق'},
-  {value:'#A16207',label:'بني ذهبي'}
+const DEPARTMENT_STATUS_COMMON_COLORS = [
+  {value:'#0F766E',label:'تركواز'},{value:'#2563EB',label:'أزرق'},
+  {value:'#059669',label:'أخضر زمردي'},{value:'#7C3AED',label:'بنفسجي'},
+  {value:'#D97706',label:'كهرماني'},{value:'#DB2777',label:'وردي داكن'},
+  {value:'#0891B2',label:'سماوي داكن'},{value:'#EA580C',label:'برتقالي'},
+  {value:'#DC2626',label:'أحمر'},{value:'#64748B',label:'رمادي مزرق'}
 ];
+const DEPARTMENT_STATUS_COLOR_PICKER_STATE={
+  open:false,previous:'#0F766E',draft:'#0F766E',hue:174,saturation:87,brightness:46,
+  valid:true,pointerId:null,returnFocus:null
+};
+function normalizeDepartmentStatusHex(value){
+  const text=String(value||'').trim();
+  return /^#[0-9A-Fa-f]{6}$/.test(text)?text.toUpperCase():'';
+}
+function departmentStatusHexToRgb(value){
+  const hex=normalizeDepartmentStatusHex(value);
+  return hex?{r:parseInt(hex.slice(1,3),16),g:parseInt(hex.slice(3,5),16),b:parseInt(hex.slice(5,7),16)}:null;
+}
+function departmentStatusRgbToHex(r,g,b){
+  return '#'+[r,g,b].map(value=>Number(value).toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+function departmentStatusRgbToHsv(r,g,b){
+  const red=r/255,green=g/255,blue=b/255;
+  const maximum=Math.max(red,green,blue),minimum=Math.min(red,green,blue),delta=maximum-minimum;
+  let hue=0;
+  if(delta){
+    if(maximum===red) hue=60*(((green-blue)/delta)%6);
+    else if(maximum===green) hue=60*(((blue-red)/delta)+2);
+    else hue=60*(((red-green)/delta)+4);
+  }
+  if(hue<0) hue+=360;
+  return {h:hue,s:maximum===0?0:(delta/maximum)*100,v:maximum*100};
+}
+function departmentStatusHsvToRgb(h,s,v){
+  const hue=((Number(h)%360)+360)%360,saturation=Number(s)/100,brightness=Number(v)/100;
+  const chroma=brightness*saturation,x=chroma*(1-Math.abs((hue/60)%2-1)),match=brightness-chroma;
+  let red=0,green=0,blue=0;
+  if(hue<60){red=chroma;green=x;}
+  else if(hue<120){red=x;green=chroma;}
+  else if(hue<180){green=chroma;blue=x;}
+  else if(hue<240){green=x;blue=chroma;}
+  else if(hue<300){red=x;blue=chroma;}
+  else{red=chroma;blue=x;}
+  return {r:Math.round((red+match)*255),g:Math.round((green+match)*255),b:Math.round((blue+match)*255)};
+}
+function departmentStatusHsvToHex(h,s,v){
+  const rgb=departmentStatusHsvToRgb(h,s,v);
+  return departmentStatusRgbToHex(rgb.r,rgb.g,rgb.b);
+}
 function departmentStatusTextColor(color){
   const hex=String(color||'').replace('#','');
   if(!/^[0-9A-Fa-f]{6}$/.test(hex)) return '#FFFFFF';
@@ -15858,20 +15890,194 @@ function departmentStatusTextColor(color){
   return luminance>.48?'#041A13':'#FFFFFF';
 }
 function firstAvailableDepartmentStatusColor(editingId=''){
-  const used=new Set(DEPARTMENT_STATUS_CODE_ROWS.filter(row=>row.is_active && String(row.id)!==String(editingId)).map(row=>String(row.display_color||'').toUpperCase()));
-  return DEPARTMENT_STATUS_COLOR_PALETTE.find(item=>!used.has(item.value))?.value || DEPARTMENT_STATUS_COLOR_PALETTE[0].value;
+  const used=new Set(DEPARTMENT_STATUS_CODE_ROWS.filter(row=>row.is_active&&String(row.id)!==String(editingId)).map(row=>normalizeDepartmentStatusHex(row.display_color)).filter(Boolean));
+  const preferred=DEPARTMENT_STATUS_COMMON_COLORS.find(item=>!used.has(item.value));
+  if(preferred) return preferred.value;
+  for(let index=0;index<360;index+=1){
+    const candidate=departmentStatusHsvToHex((174+index*137.508)%360,72,78);
+    if(!used.has(candidate)) return candidate;
+  }
+  return '#0F766E';
 }
-function renderDepartmentStatusColorPalette(selectedColor,editingId=''){
-  const palette=$('#departmentStatusColorPalette');
-  const input=$('#departmentStatusDisplayColorInput');
-  if(!palette || !input) return;
-  const selected=String(selectedColor||input.value||firstAvailableDepartmentStatusColor(editingId)).toUpperCase();
-  input.value=selected;
-  const used=new Set(DEPARTMENT_STATUS_CODE_ROWS.filter(row=>row.is_active && String(row.id)!==String(editingId)).map(row=>String(row.display_color||'').toUpperCase()));
-  palette.innerHTML=DEPARTMENT_STATUS_COLOR_PALETTE.map(item=>{
-    const disabled=used.has(item.value) && item.value!==selected;
-    return '<button type="button" class="department-status-color-option '+(item.value===selected?'selected':'')+'" data-status-color="'+item.value+'" role="radio" aria-checked="'+(item.value===selected)+'" aria-label="'+escapeHtml(item.label)+'" title="'+escapeHtml(item.label)+'" style="--status-option-color:'+item.value+';--status-option-text:'+departmentStatusTextColor(item.value)+'" '+(disabled?'disabled':'')+'><span>'+escapeHtml(item.label)+'</span></button>';
-  }).join('');
+function departmentStatusColorPickerElements(){
+  const root=$('#departmentStatusColorPicker');
+  return {
+    root,input:$('#departmentStatusDisplayColorInput'),trigger:$('#departmentStatusColorTrigger'),
+    popover:$('#departmentStatusColorPopover'),spectrum:root?.querySelector('[data-status-color-spectrum]'),
+    thumb:root?.querySelector('[data-status-color-spectrum-thumb]'),hue:$('#departmentStatusColorHueInput'),
+    hex:$('#departmentStatusColorHexInput'),rgb:Array.from(root?.querySelectorAll('[data-status-color-rgb]')||[]),
+    validation:root?.querySelector('[data-status-color-validation]'),common:root?.querySelector('[data-status-color-common]'),
+    currentPreview:root?.querySelector('[data-status-color-current-preview]'),currentValue:root?.querySelector('[data-status-color-current-value]'),
+    newPreview:root?.querySelector('[data-status-color-new-preview]'),newValue:root?.querySelector('[data-status-color-new-value]')
+  };
+}
+function setDepartmentStatusColorValidation(message=''){
+  const {validation}=departmentStatusColorPickerElements();
+  if(validation) validation.textContent=message;
+  DEPARTMENT_STATUS_COLOR_PICKER_STATE.valid=!message;
+}
+function renderDepartmentStatusColorPickerDraft(){
+  const state=DEPARTMENT_STATUS_COLOR_PICKER_STATE,elements=departmentStatusColorPickerElements();
+  const rgb=departmentStatusHsvToRgb(state.hue,state.saturation,state.brightness);
+  state.draft=departmentStatusRgbToHex(rgb.r,rgb.g,rgb.b);
+  elements.root?.style.setProperty('--department-picker-hue',departmentStatusHsvToHex(state.hue,100,100));
+  if(elements.thumb){elements.thumb.style.left=state.saturation+'%';elements.thumb.style.top=(100-state.brightness)+'%';}
+  if(elements.spectrum){
+    elements.spectrum.setAttribute('aria-valuenow',String(Math.round(state.brightness)));
+    elements.spectrum.setAttribute('aria-valuetext','تشبع '+Math.round(state.saturation)+'%، سطوع '+Math.round(state.brightness)+'%، '+state.draft);
+  }
+  if(elements.hue) elements.hue.value=String(Math.round(state.hue));
+  elements.rgb.forEach(input=>{input.value=String(rgb[input.dataset.statusColorRgb]);});
+  if(elements.hex) elements.hex.value=state.draft;
+  if(elements.newPreview) elements.newPreview.style.background=state.draft;
+  if(elements.newValue) elements.newValue.textContent=state.draft;
+  setDepartmentStatusColorValidation('');
+}
+function setDepartmentStatusColorPickerFromHex(color){
+  const normalized=normalizeDepartmentStatusHex(color);
+  if(!normalized) return false;
+  const rgb=departmentStatusHexToRgb(normalized),hsv=departmentStatusRgbToHsv(rgb.r,rgb.g,rgb.b);
+  Object.assign(DEPARTMENT_STATUS_COLOR_PICKER_STATE,{draft:normalized,hue:hsv.h,saturation:hsv.s,brightness:hsv.v});
+  renderDepartmentStatusColorPickerDraft();
+  return true;
+}
+function setDepartmentStatusColorPickerFromHsv(hue,saturation,brightness){
+  Object.assign(DEPARTMENT_STATUS_COLOR_PICKER_STATE,{hue:Number(hue),saturation:Number(saturation),brightness:Number(brightness)});
+  renderDepartmentStatusColorPickerDraft();
+}
+function setDepartmentStatusColorValue(color){
+  const normalized=normalizeDepartmentStatusHex(color)||'#0F766E';
+  const {input,trigger,root}=departmentStatusColorPickerElements();
+  if(input) input.value=normalized;
+  root?.style.setProperty('--department-status-selected-color',normalized);
+  const swatch=trigger?.querySelector('[data-status-color-trigger-swatch]');
+  if(swatch) swatch.style.background=normalized;
+  const value=trigger?.querySelector('[data-status-color-trigger-value]');
+  if(value) value.textContent=normalized;
+}
+function positionDepartmentStatusColorPicker(){
+  const {trigger,popover}=departmentStatusColorPickerElements();
+  if(!trigger||!popover||popover.hidden) return;
+  if(window.matchMedia('(max-width: 650px)').matches){
+    popover.style.removeProperty('top');popover.style.removeProperty('left');popover.style.removeProperty('width');return;
+  }
+  const rect=trigger.getBoundingClientRect(),width=Math.min(380,window.innerWidth-24);
+  popover.style.width=width+'px';
+  const height=Math.min(popover.offsetHeight||560,window.innerHeight-24);
+  const preferredTop=window.innerHeight-rect.bottom>=height+8?rect.bottom+8:rect.top-height-8;
+  const top=Math.max(12,Math.min(window.innerHeight-height-12,preferredTop));
+  popover.style.top=top+'px';
+  popover.style.left=Math.max(12,Math.min(window.innerWidth-width-12,rect.right-width))+'px';
+}
+function openDepartmentStatusColorPicker(){
+  const elements=departmentStatusColorPickerElements();
+  if(!elements.root||!elements.input||!elements.trigger||elements.trigger.disabled) return;
+  const committed=normalizeDepartmentStatusHex(elements.input.value)||firstAvailableDepartmentStatusColor($('#departmentStatusCodeIdInput')?.value);
+  Object.assign(DEPARTMENT_STATUS_COLOR_PICKER_STATE,{open:true,previous:committed,draft:committed,pointerId:null,returnFocus:elements.trigger});
+  if(elements.currentPreview) elements.currentPreview.style.background=committed;
+  if(elements.currentValue) elements.currentValue.textContent=committed;
+  setDepartmentStatusColorPickerFromHex(committed);
+  elements.popover.hidden=false;
+  elements.trigger.setAttribute('aria-expanded','true');
+  positionDepartmentStatusColorPicker();
+  requestAnimationFrame(()=>{positionDepartmentStatusColorPicker();elements.spectrum?.focus({preventScroll:true});});
+}
+function closeDepartmentStatusColorPicker(apply=false,restoreFocus=true){
+  const state=DEPARTMENT_STATUS_COLOR_PICKER_STATE,elements=departmentStatusColorPickerElements();
+  if(!state.open||!elements.popover) return false;
+  if(apply&&!state.valid) return false;
+  setDepartmentStatusColorValue(apply?state.draft:state.previous);
+  elements.popover.hidden=true;
+  elements.trigger?.setAttribute('aria-expanded','false');
+  state.open=false;state.pointerId=null;
+  if(restoreFocus) state.returnFocus?.focus({preventScroll:true});
+  state.returnFocus=null;
+  return true;
+}
+function updateDepartmentStatusSpectrumFromPointer(event){
+  const state=DEPARTMENT_STATUS_COLOR_PICKER_STATE,{spectrum}=departmentStatusColorPickerElements();
+  if(!spectrum) return;
+  const rect=spectrum.getBoundingClientRect();
+  const saturation=Math.max(0,Math.min(100,((event.clientX-rect.left)/rect.width)*100));
+  const brightness=Math.max(0,Math.min(100,(1-(event.clientY-rect.top)/rect.height)*100));
+  setDepartmentStatusColorPickerFromHsv(state.hue,saturation,brightness);
+}
+function validateDepartmentStatusRgbInputs(){
+  const {rgb}=departmentStatusColorPickerElements(),values={};
+  for(const input of rgb){
+    const text=String(input.value||'').trim();
+    if(!/^\d{1,3}$/.test(text)||Number(text)<0||Number(text)>255){
+      setDepartmentStatusColorValidation('يجب أن تكون قيم RGB أعدادًا صحيحة من 0 إلى 255.');return false;
+    }
+    values[input.dataset.statusColorRgb]=Number(text);
+  }
+  setDepartmentStatusColorPickerFromHex(departmentStatusRgbToHex(values.r,values.g,values.b));
+  return true;
+}
+function initDepartmentStatusColorPicker(){
+  const elements=departmentStatusColorPickerElements();
+  if(!elements.root||elements.root.dataset.bound==='1') return;
+  elements.root.dataset.bound='1';
+  elements.common.innerHTML=DEPARTMENT_STATUS_COMMON_COLORS.map(item=>
+    '<button type="button" class="department-status-color-shortcut" data-status-common-color="'+item.value+'" aria-label="'+escapeHtml(item.label)+' '+item.value+'" title="'+escapeHtml(item.label)+'" style="--shortcut-color:'+item.value+'"></button>'
+  ).join('');
+  elements.trigger.addEventListener('click',()=>DEPARTMENT_STATUS_COLOR_PICKER_STATE.open?closeDepartmentStatusColorPicker(false):openDepartmentStatusColorPicker());
+  elements.popover.addEventListener('click',event=>{
+    const action=event.target.closest('[data-status-color-action]')?.dataset.statusColorAction;
+    if(action==='cancel'){closeDepartmentStatusColorPicker(false);return;}
+    if(action==='apply'){closeDepartmentStatusColorPicker(true);return;}
+    const shortcut=event.target.closest('[data-status-common-color]');
+    if(shortcut) setDepartmentStatusColorPickerFromHex(shortcut.dataset.statusCommonColor);
+  });
+  elements.hue.addEventListener('input',()=>setDepartmentStatusColorPickerFromHsv(elements.hue.value,DEPARTMENT_STATUS_COLOR_PICKER_STATE.saturation,DEPARTMENT_STATUS_COLOR_PICKER_STATE.brightness));
+  elements.rgb.forEach(input=>input.addEventListener('input',validateDepartmentStatusRgbInputs));
+  elements.hex.addEventListener('input',()=>{
+    const raw=String(elements.hex.value||'').trim();
+    if(!normalizeDepartmentStatusHex(raw)){setDepartmentStatusColorValidation('أدخل اللون بصيغة صحيحة مثل #0F766E.');return;}
+    setDepartmentStatusColorPickerFromHex(raw);
+  });
+  elements.spectrum.addEventListener('pointerdown',event=>{
+    if(event.pointerType==='mouse'&&event.button!==0) return;
+    event.preventDefault();DEPARTMENT_STATUS_COLOR_PICKER_STATE.pointerId=event.pointerId;
+    elements.spectrum.setPointerCapture?.(event.pointerId);updateDepartmentStatusSpectrumFromPointer(event);
+  });
+  elements.spectrum.addEventListener('pointermove',event=>{
+    if(DEPARTMENT_STATUS_COLOR_PICKER_STATE.pointerId!==event.pointerId) return;
+    event.preventDefault();updateDepartmentStatusSpectrumFromPointer(event);
+  });
+  const finishPointer=event=>{
+    if(DEPARTMENT_STATUS_COLOR_PICKER_STATE.pointerId!==event.pointerId) return;
+    elements.spectrum.releasePointerCapture?.(event.pointerId);DEPARTMENT_STATUS_COLOR_PICKER_STATE.pointerId=null;
+  };
+  elements.spectrum.addEventListener('pointerup',finishPointer);
+  elements.spectrum.addEventListener('pointercancel',finishPointer);
+  elements.spectrum.addEventListener('keydown',event=>{
+    const state=DEPARTMENT_STATUS_COLOR_PICKER_STATE;
+    let saturation=state.saturation,brightness=state.brightness;
+    if(event.key==='ArrowRight') saturation=Math.min(100,saturation+1);
+    else if(event.key==='ArrowLeft') saturation=Math.max(0,saturation-1);
+    else if(event.key==='ArrowUp') brightness=Math.min(100,brightness+1);
+    else if(event.key==='ArrowDown') brightness=Math.max(0,brightness-1);
+    else return;
+    event.preventDefault();setDepartmentStatusColorPickerFromHsv(state.hue,saturation,brightness);
+  });
+  elements.popover.addEventListener('keydown',event=>{
+    if(event.key!=='Tab') return;
+    const focusable=Array.from(elements.popover.querySelectorAll('button:not([disabled]),input:not([disabled]),[tabindex="0"]'));
+    if(!focusable.length) return;
+    const first=focusable[0],last=focusable[focusable.length-1];
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+  });
+  document.addEventListener('pointerdown',event=>{
+    if(DEPARTMENT_STATUS_COLOR_PICKER_STATE.open&&!elements.root.contains(event.target)) closeDepartmentStatusColorPicker(false);
+  },true);
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&DEPARTMENT_STATUS_COLOR_PICKER_STATE.open){event.preventDefault();closeDepartmentStatusColorPicker(false);}
+  });
+  window.addEventListener('resize',positionDepartmentStatusColorPicker);
+  window.addEventListener('scroll',positionDepartmentStatusColorPicker,true);
+  setDepartmentStatusColorValue(firstAvailableDepartmentStatusColor());
 }
 function syncDepartmentStatusBlockingField(){
   const code=String($('#departmentStatusCodeInput')?.value||'').trim();
@@ -15927,6 +16133,7 @@ function applyDepartmentPersonnelPermissions(){
   setElementsDisabled('#departmentPersonnelForm input:not([type="hidden"]),#departmentPersonnelForm input[data-custom-date-picker],#departmentPersonnelForm select,#saveDepartmentPersonnelBtn',!canUseForm,true);
   const hireDateInput=$('#departmentPersonnelHireDateInput');
   if(window.CustomDatePicker && hireDateInput){
+    window.CustomDatePicker.configure?.(hireDateInput,{commitOnDoubleClick:true});
     window.CustomDatePicker.init(hireDateInput.parentElement || form || document);
     window.CustomDatePicker.refresh(hireDateInput);
   }
@@ -16165,7 +16372,7 @@ function renderDepartmentStatusCodesTable(rows=[]){
     }).join('');
   }
   refreshSettingsTableControls('departmentStatusCodesTable');
-  renderDepartmentStatusColorPalette($('#departmentStatusDisplayColorInput')?.value,$('#departmentStatusCodeIdInput')?.value);
+
   applyDepartmentStatusCodesPermissions();
 }
 async function loadDepartmentStatusCodesTable(options={}){
@@ -16187,6 +16394,7 @@ async function loadDepartmentStatusCodesTable(options={}){
       .order('created_at',{ascending:false});
     if(error) throw error;
     DEPARTMENT_STATUS_CODE_ROWS=data||[];
+    window.dispatchEvent(new CustomEvent('department-status-codes-updated',{detail:{codes:DEPARTMENT_STATUS_CODE_ROWS.map(row=>({...row}))}}));
     renderDepartmentStatusCodesTable(DEPARTMENT_STATUS_CODE_ROWS);
     return true;
   }catch(error){
@@ -16211,7 +16419,8 @@ function resetDepartmentStatusCodeForm(){
   $('#departmentStatusCodeIdInput').value='';
   $('#departmentStatusActiveInput').checked=true;
   $('#departmentStatusBlocksEvaluationInput').checked=false;
-  renderDepartmentStatusColorPalette(firstAvailableDepartmentStatusColor());
+  closeDepartmentStatusColorPicker(false,false);
+  setDepartmentStatusColorValue(firstAvailableDepartmentStatusColor());
   syncDepartmentStatusBlockingField();
   $('#saveDepartmentStatusCodeBtn').textContent='حفظ الكود';
   $('#cancelDepartmentStatusCodeBtn').hidden=true;
@@ -16232,7 +16441,8 @@ function editDepartmentStatusCode(recordId){
   $('#departmentStatusDescriptionInput').value=row.description||'';
   $('#departmentStatusBlocksEvaluationInput').checked=row.blocks_evaluation===true;
   $('#departmentStatusActiveInput').checked=row.is_active===true;
-  renderDepartmentStatusColorPalette(row.display_color,row.id);
+  closeDepartmentStatusColorPicker(false,false);
+  setDepartmentStatusColorValue(row.display_color);
   syncDepartmentStatusBlockingField();
   $('#saveDepartmentStatusCodeBtn').textContent='تحديث الكود';
   $('#cancelDepartmentStatusCodeBtn').hidden=false;
@@ -16264,7 +16474,7 @@ async function saveDepartmentStatusCode(event){
     is_active:Boolean($('#departmentStatusActiveInput')?.checked)
   };
   if(DEPARTMENT_STATUS_BLOCKING_FIXED_CODES.has(payload.shift_code)) payload.blocks_evaluation=true;
-  if(!payload.shift_code || !payload.description || !DEPARTMENT_STATUS_COLOR_PALETTE.some(item=>item.value===payload.display_color)){
+  if(!payload.shift_code || !payload.description || !normalizeDepartmentStatusHex(payload.display_color)){
     setDepartmentStatusCodesStatus('يرجى استكمال جميع الحقول الإجبارية.','err');
     return;
   }
@@ -16351,14 +16561,8 @@ function initDepartmentCodingSettings(){
     statusForm.addEventListener('invalid',()=>setDepartmentStatusCodesStatus('يرجى استكمال جميع الحقول الإجبارية.','err'),true);
     $('#cancelDepartmentStatusCodeBtn')?.addEventListener('click',resetDepartmentStatusCodeForm);
     $('#departmentStatusCodeInput')?.addEventListener('input',syncDepartmentStatusBlockingField);
-    $('#departmentStatusColorPalette')?.addEventListener('click',event=>{
-      const option=event.target.closest('[data-status-color]');
-      if(!option || option.disabled) return;
-      $('#departmentStatusDisplayColorInput').value=option.dataset.statusColor||'';
-      renderDepartmentStatusColorPalette(option.dataset.statusColor,$('#departmentStatusCodeIdInput')?.value);
-      applyDepartmentStatusCodesPermissions();
-    });
-    renderDepartmentStatusColorPalette(firstAvailableDepartmentStatusColor());
+    initDepartmentStatusColorPicker();
+    setDepartmentStatusColorValue(firstAvailableDepartmentStatusColor());
     syncDepartmentStatusBlockingField();
     $('#departmentStatusCodesTable')?.addEventListener('click',event=>{
       const button=event.target.closest('button[data-action][data-record-id]');

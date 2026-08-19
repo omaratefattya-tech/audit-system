@@ -6372,26 +6372,146 @@ body.focus-mode-active .inventory-count-post-close-modal{
 .login-logo-refresh .login-logo{display:block;margin:0}
 .mobile-dashboard-session-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}
 .mobile-dashboard-refresh{display:none}
-.department-status-color-field{grid-column:1/-1}
-.department-status-color-palette{display:flex;flex-wrap:wrap;gap:8px;margin-top:7px}
-.department-status-color-option{
-  min-width:86px;
-  min-height:42px;
-  display:inline-flex;
+#settings #departmentStatusCodeForm{grid-template-columns:minmax(120px,.9fr) minmax(190px,1.35fr) minmax(118px,.62fr) auto auto auto auto}
+.department-status-color-field{
+  position:relative;
+  min-width:0;
+  display:grid;
+  align-self:end;
+  gap:7px;
+  color:#f5fff1;
+  font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;
+  font-weight:700;
+}
+.department-status-color-label{display:block}
+.department-status-color-trigger{
+  width:100%;
+  min-width:112px;
+  height:42px;
+  display:flex;
   align-items:center;
   justify-content:center;
-  padding:7px 10px;
-  border:2px solid transparent;
-  border-radius:11px;
-  background:var(--status-option-color);
-  color:var(--status-option-text);
-  font:800 11px/1.35 inherit;
+  gap:9px;
+  padding:6px 10px;
+  border:1px solid rgba(141,220,89,.34);
+  border-radius:10px;
+  background:rgba(0,29,23,.86);
+  color:#f5fff1;
+  font:800 12px/1 "Cairo","Segoe UI",Tahoma,Arial,sans-serif;
+  direction:ltr;
   cursor:pointer;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
 }
-.department-status-color-option.selected{border-color:#fff;box-shadow:0 0 0 2px rgba(155,230,80,.72),inset 0 0 0 1px rgba(255,255,255,.22)}
-.department-status-color-option:focus-visible{outline:3px solid rgba(155,230,80,.72);outline-offset:2px}
-.department-status-color-option:disabled{cursor:not-allowed;filter:saturate(.55);opacity:.58}
+.department-status-color-trigger:hover{border-color:rgba(155,230,80,.7);background:rgba(0,47,35,.92)}
+.department-status-color-trigger:focus-visible{outline:3px solid rgba(155,230,80,.72);outline-offset:2px}
+.department-status-color-trigger:disabled{opacity:.55;cursor:not-allowed}
+.department-status-color-trigger-swatch{width:28px;height:24px;flex:0 0 auto;border:1px solid rgba(255,255,255,.42);border-radius:7px;background:var(--department-status-selected-color,#0F766E);box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
+.department-status-color-popover{
+  position:fixed;
+  box-sizing:border-box;
+  z-index:12220;
+  width:min(380px,calc(100vw - 24px));
+  max-height:calc(100dvh - 24px);
+  overflow:auto;
+  overscroll-behavior:contain;
+  display:grid;
+  gap:12px;
+  padding:15px;
+  border:1px solid rgba(155,230,80,.38);
+  border-radius:18px;
+  background:linear-gradient(145deg,rgba(0,65,47,.99),rgba(0,24,20,.995));
+  color:#f5fff1;
+  font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;
+  box-shadow:0 24px 70px rgba(0,0,0,.52);
+}
+.department-status-color-popover[hidden]{display:none}
+.department-status-color-popover-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.department-status-color-popover-head strong{font-size:15px}
+.department-status-color-close{
+  width:38px;
+  min-width:38px;
+  height:38px;
+  display:grid;
+  place-items:center;
+  padding:0;
+  border:1px solid rgba(141,220,89,.28);
+  border-radius:11px;
+  background:rgba(255,255,255,.055);
+  color:#fff;
+  font:800 22px/1 "Cairo","Segoe UI",Tahoma,Arial,sans-serif;
+  cursor:pointer;
+}
+.department-status-color-close:hover,.department-status-color-close:focus-visible{border-color:#9be650;background:rgba(155,230,80,.13);outline:none}
+.department-status-color-previews{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.department-status-color-previews > span{min-width:0;display:grid;grid-template-columns:38px 1fr;grid-template-rows:auto auto;align-items:center;gap:1px 8px;padding:8px;border:1px solid rgba(141,220,89,.2);border-radius:11px;background:rgba(0,28,22,.62)}
+.department-status-color-previews i{grid-row:1/3;width:38px;height:38px;border:1px solid rgba(255,255,255,.4);border-radius:9px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+.department-status-color-previews b{font-size:11px}
+.department-status-color-previews small{font-size:10px;color:#cfe7d6;direction:ltr;unicode-bidi:isolate}
+.department-status-color-spectrum{
+  position:relative;
+  width:100%;
+  height:170px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.34);
+  border-radius:13px;
+  background:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,var(--department-picker-hue,#00FFF0));
+  cursor:crosshair;
+  touch-action:none;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.13);
+}
+.department-status-color-spectrum:focus-visible{outline:3px solid rgba(155,230,80,.72);outline-offset:2px}
+.department-status-color-spectrum-thumb{position:absolute;width:18px;height:18px;border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 1px rgba(0,0,0,.8),0 2px 7px rgba(0,0,0,.45);pointer-events:none}
+.department-status-color-hue-label{display:grid;gap:6px;font-size:11px}
+#settings #departmentStatusColorHueInput{
+  width:100%;
+  height:20px;
+  padding:0;
+  border:0;
+  border-radius:999px;
+  background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);
+  direction:ltr;
+  appearance:none;
+  cursor:pointer;
+}
+#departmentStatusColorHueInput::-webkit-slider-runnable-track{height:12px;border:1px solid rgba(255,255,255,.38);border-radius:999px;background:transparent}
+#departmentStatusColorHueInput::-webkit-slider-thumb{width:20px;height:20px;margin-top:-5px;border:2px solid #fff;border-radius:50%;background:#073c2e;appearance:none;box-shadow:0 1px 5px rgba(0,0,0,.55)}
+#departmentStatusColorHueInput::-moz-range-track{height:12px;border:1px solid rgba(255,255,255,.38);border-radius:999px;background:transparent}
+#departmentStatusColorHueInput::-moz-range-thumb{width:18px;height:18px;border:2px solid #fff;border-radius:50%;background:#073c2e;box-shadow:0 1px 5px rgba(0,0,0,.55)}
+.department-status-color-values{display:grid;grid-template-columns:repeat(3,minmax(54px,.7fr)) minmax(104px,1.4fr);gap:8px;direction:ltr}
+#settings .department-status-color-values label{min-width:0;display:grid;gap:5px;color:#dfffd5;font-size:10px;text-align:left}
+#settings .department-status-color-values input{height:39px;min-width:0;padding:7px 8px;text-align:center;font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;direction:ltr}
+.department-status-color-validation{min-height:20px;color:#ffd0d0;font-size:11px;font-weight:800;line-height:1.6}
+.department-status-color-common{display:flex;align-items:center;gap:8px;padding:2px;overflow-x:auto;overscroll-behavior-inline:contain}
+.department-status-color-shortcut{
+  width:32px;
+  min-width:32px;
+  height:32px;
+  padding:0;
+  border:2px solid rgba(255,255,255,.42);
+  border-radius:9px;
+  background:var(--shortcut-color);
+  cursor:pointer;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.16);
+}
+.department-status-color-shortcut:hover,.department-status-color-shortcut:focus-visible{border-color:#fff;outline:3px solid rgba(155,230,80,.62);outline-offset:1px}
+.department-status-color-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.department-status-color-actions button{min-height:42px;font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif}
+@media(max-width:1050px){
+  #settings #departmentStatusCodeForm{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:650px){
+  #settings #departmentStatusCodeForm{grid-template-columns:1fr}
+  .department-status-color-popover{
+    inset:auto 10px calc(10px + env(safe-area-inset-bottom));
+    width:auto;
+    max-height:calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    border-radius:20px;
+  }
+  .department-status-color-spectrum{height:150px}
+  .department-status-color-values{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .department-status-color-hex-label{grid-column:1/-1}
+  .department-status-color-actions button{min-height:48px}
+}
 .department-status-color-badge{display:inline-flex;align-items:center;gap:7px;direction:ltr;unicode-bidi:isolate}
 .department-status-color-badge i{width:30px;height:22px;border:1px solid rgba(255,255,255,.32);border-radius:7px;background:var(--status-color);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
 #departmentStorekeepersTable{min-width:1860px}
@@ -6586,5 +6706,5 @@ body.focus-mode-active .inventory-count-post-close-modal{
   .department-sort-button{min-height:48px}
   .department-status-cell-display{min-height:48px}
   .department-status-visual{min-height:46px}
-  .department-status-color-option{min-height:46px;min-width:100px;flex:1 1 100px}
+
 }

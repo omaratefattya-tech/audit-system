@@ -100,6 +100,14 @@
     const title=[code,label].filter(Boolean).join(' — ');
     return '<span class="department-status-visual '+extraClass+'" style="--status-color:'+safeColor+';--status-text:'+contrastTextColor(safeColor)+'" title="'+escapeHtml(title)+'"><span>'+escapeHtml(label)+'</span></span>';
   }
+  function currentStatusDisplayColor(state,code,snapshotColor=''){
+    const normalized=String(code||'').trim().toLocaleLowerCase();
+    const current=state.statusCodes.find(row=>String(row.shift_code||'').trim().toLocaleLowerCase()===normalized);
+    const currentColor=String(current?.display_color||'').toUpperCase();
+    if(/^#[0-9A-F]{6}$/.test(currentColor)) return currentColor;
+    const fallback=String(snapshotColor||'').toUpperCase();
+    return /^#[0-9A-F]{6}$/.test(fallback)?fallback:'#64748B';
+  }
 
   function createWeeklyState(kind,rootId,sectionId){
     const currentYear=new Date().getFullYear();
@@ -370,7 +378,7 @@
     const invalid=state.invalid.has(key);
     const value=draft?draft.value:baseline.value;
     const description=draft?.description||baseline.description||'';
-    const color=draft?.color||baseline.color||'';
+    const color=currentStatusDisplayColor(state,value,draft?.color||baseline.color||'');
     const classes=['department-weekly-cell'];
     if(!inRange) classes.push('outside-range');
     if(draft) classes.push('dirty');
@@ -394,7 +402,7 @@
     }
     if(blocked){
       classes.push('blocked');
-      return '<td class="'+classes.join(' ')+'" data-cell-date="'+date+'" title="'+escapeHtml((blocked.code||'')+' — '+(blocked.description||''))+'">'+statusVisual(blocked.description,blocked.code,blocked.color,'evaluation-blocked-status')+'<small class="department-evaluation-blocked-note">غير مؤهل للتقييم</small></td>';
+      return '<td class="'+classes.join(' ')+'" data-cell-date="'+date+'" title="'+escapeHtml((blocked.code||'')+' — '+(blocked.description||''))+'">'+statusVisual(blocked.description,blocked.code,currentStatusDisplayColor(state,blocked.code,blocked.color),'evaluation-blocked-status')+'<small class="department-evaluation-blocked-note">غير مؤهل للتقييم</small></td>';
     }
     const draft=state.dirty.get(key);
     if(draft) classes.push('dirty');
@@ -936,8 +944,15 @@
   }
   window.loadDepartmentStorekeepers=loadDepartmentStorekeepers;
 
-  function initDepartmentWeeklyOperations(){
+  function handleDepartmentStatusCodeUpdates(event){
+    const codes=Array.isArray(event.detail?.codes)?event.detail.codes.map(row=>({...row})):[];
+    Object.values(WEEKLY_STATES).forEach(state=>{
+      state.statusCodes=codes.map(row=>({...row}));
+      if(state.initialized && weeklyRoot(state)) renderWeeklyTable(state);
+    });
+  }  function initDepartmentWeeklyOperations(){
     Object.values(WEEKLY_STATES).forEach(renderWeeklyShell);
+    window.addEventListener('department-status-codes-updated',handleDepartmentStatusCodeUpdates);
     ['departmentStorekeepersSearch','departmentStorekeepersPlantFilter','departmentStorekeepersDepartmentFilter','departmentStorekeepersJobFilter'].forEach(id=>document.getElementById(id)?.addEventListener(id.endsWith('Search')?'input':'change',renderDepartmentStorekeepers));
     document.getElementById('departmentStorekeepersRetryBtn')?.addEventListener('click',loadDepartmentStorekeepers);
     document.getElementById('departmentStorekeepersTable')?.addEventListener('click',event=>{

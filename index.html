@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=personnel-ui-png-fixes-20260819-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=status-color-picker-20260819-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ir-hotfix-2-20260726" />
 </head>
 <body>
@@ -1783,7 +1783,7 @@
                     <input type="tel" id="departmentPersonnelPhoneInput" autocomplete="tel" inputmode="tel" placeholder="اختياري" />
                   </label>
                   <label>تاريخ التعيين
-                    <input type="date" id="departmentPersonnelHireDateInput" name="hire_date" data-custom-date-picker data-custom-date-picker-label="تاريخ التعيين" aria-label="تاريخ التعيين" />
+                    <input type="date" id="departmentPersonnelHireDateInput" name="hire_date" data-custom-date-picker data-custom-date-picker-label="تاريخ التعيين" data-custom-date-picker-commit-on-double-click="true" aria-label="تاريخ التعيين" />
                   </label>                  <label class="settings-check sales-product-flag-check"><input type="checkbox" id="departmentPersonnelActiveInput" checked /> <span>نشط</span></label>
                   <button class="primary" id="saveDepartmentPersonnelBtn" type="submit">حفظ الموظف</button>
                   <button class="secondary" id="cancelDepartmentPersonnelBtn" type="button" hidden>إلغاء</button>
@@ -1807,10 +1807,42 @@
                   <label>وصف الوردية
                     <input type="text" id="departmentStatusDescriptionInput" required autocomplete="off" />
                   </label>
-                  <label class="department-status-color-field">لون العرض
+                  <div class="department-status-color-field" id="departmentStatusColorPicker">
+                    <span class="department-status-color-label" id="departmentStatusColorPickerLabel">لون العرض</span>
                     <input type="hidden" id="departmentStatusDisplayColorInput" required />
-                    <span class="department-status-color-palette" id="departmentStatusColorPalette" role="radiogroup" aria-label="لون عرض الحالة"></span>
-                  </label>
+                    <button type="button" class="department-status-color-trigger" id="departmentStatusColorTrigger" aria-labelledby="departmentStatusColorPickerLabel departmentStatusColorValue" aria-haspopup="dialog" aria-expanded="false">
+                      <span class="department-status-color-trigger-swatch" data-status-color-trigger-swatch aria-hidden="true"></span>
+                      <span id="departmentStatusColorValue" data-status-color-trigger-value dir="ltr">#0F766E</span>
+                    </button>
+                    <div class="department-status-color-popover" id="departmentStatusColorPopover" role="dialog" aria-modal="false" aria-labelledby="departmentStatusColorPickerTitle" hidden>
+                      <div class="department-status-color-popover-head">
+                        <strong id="departmentStatusColorPickerTitle">اختيار لون العرض</strong>
+                        <button type="button" class="department-status-color-close" data-status-color-action="cancel" aria-label="إغلاق اختيار اللون">×</button>
+                      </div>
+                      <div class="department-status-color-previews" aria-label="معاينة اللون">
+                        <span><i data-status-color-current-preview aria-hidden="true"></i><b>الحالي</b><small data-status-color-current-value dir="ltr"></small></span>
+                        <span><i data-status-color-new-preview aria-hidden="true"></i><b>الجديد</b><small data-status-color-new-value dir="ltr"></small></span>
+                      </div>
+                      <div class="department-status-color-spectrum" data-status-color-spectrum role="slider" tabindex="0" aria-label="تشبع وسطوع اللون" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" aria-valuetext="">
+                        <span class="department-status-color-spectrum-thumb" data-status-color-spectrum-thumb aria-hidden="true"></span>
+                      </div>
+                      <label class="department-status-color-hue-label">درجة اللون
+                        <input type="range" id="departmentStatusColorHueInput" min="0" max="360" step="1" value="174" aria-label="درجة اللون من صفر إلى 360" />
+                      </label>
+                      <div class="department-status-color-values">
+                        <label>R<input type="text" inputmode="numeric" maxlength="3" data-status-color-rgb="r" aria-label="قيمة اللون الأحمر من صفر إلى 255" /></label>
+                        <label>G<input type="text" inputmode="numeric" maxlength="3" data-status-color-rgb="g" aria-label="قيمة اللون الأخضر من صفر إلى 255" /></label>
+                        <label>B<input type="text" inputmode="numeric" maxlength="3" data-status-color-rgb="b" aria-label="قيمة اللون الأزرق من صفر إلى 255" /></label>
+                        <label class="department-status-color-hex-label">Hex<input type="text" id="departmentStatusColorHexInput" maxlength="7" dir="ltr" spellcheck="false" autocomplete="off" aria-label="قيمة اللون بصيغة Hex" /></label>
+                      </div>
+                      <div class="department-status-color-validation" data-status-color-validation aria-live="polite"></div>
+                      <div class="department-status-color-common" data-status-color-common role="group" aria-label="ألوان شائعة"></div>
+                      <div class="department-status-color-actions">
+                        <button type="button" class="secondary" data-status-color-action="cancel">إلغاء</button>
+                        <button type="button" class="primary" data-status-color-action="apply">تطبيق اللون</button>
+                      </div>
+                    </div>
+                  </div>
                   <label class="settings-check plant-active-check"><input type="checkbox" id="departmentStatusBlocksEvaluationInput" /> <span>يمنع التقييم</span></label>
                   <label class="settings-check plant-active-check"><input type="checkbox" id="departmentStatusActiveInput" checked /> <span>نشط</span></label>
                   <button class="primary" id="saveDepartmentStatusCodeBtn" type="submit">حفظ الكود</button>
@@ -1859,9 +1891,9 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=personnel-ui-png-fixes-20260819-1"></script>
-  <script src="assets/js/department-weekly-operations.js?v=personnel-ui-png-fixes-20260819-1"></script>
-  <script src="assets/js/custom-date-picker.js?v=inv-04-1"></script>
+  <script src="assets/js/app.js?v=status-color-picker-20260819-1"></script>
+  <script src="assets/js/department-weekly-operations.js?v=status-color-picker-20260819-1"></script>
+  <script src="assets/js/custom-date-picker.js?v=status-color-picker-20260819-1"></script>
   <script>
   </script>
   <script src="assets/js/footer.js"></script>

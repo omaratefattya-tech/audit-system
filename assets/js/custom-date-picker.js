@@ -3,6 +3,28 @@
   const DAYS=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
   const ISO_RE=/^\d{4}-\d{2}-\d{2}$/;
   let active=null;
+  const pickerOptions=new WeakMap();
+  function configure(input,options={}){
+    if(!input) return;
+    pickerOptions.set(input,{...(pickerOptions.get(input)||{}),...options});
+  }
+  function optionsFor(input){
+    const configured=pickerOptions.get(input)||{};
+    return {
+      ...configured,
+      commitOnDoubleClick:configured.commitOnDoubleClick===true || input?.dataset.customDatePickerCommitOnDoubleClick==='true'
+    };
+  }
+  function isSelectableDate(input,iso){
+    if(!parseIso(iso)) return false;
+    const minimum=String(input?.min||'').trim();
+    const maximum=String(input?.max||'').trim();
+    return (!minimum || iso>=minimum) && (!maximum || iso<=maximum);
+  }
+  function isFinePointerDoubleClick(event){
+    if(event.detail<2 || event.sourceCapabilities?.firesTouchEvents===true) return false;
+    return !window.matchMedia || window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  }
 
   function pad(n){return String(n).padStart(2,'0');}
   function todayIso(){const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
@@ -130,7 +152,8 @@
       const iso=toIso(y,m,d);
       const isSelected=selected && selected.iso===iso;
       const isToday=today && today.iso===iso;
-      cells.push('<button type="button" class="custom-date-picker-day'+(muted?' is-muted':'')+(isSelected?' is-selected':'')+(isToday?' is-today':'')+'" data-iso="'+escapeAttr(iso)+'" role="gridcell" aria-selected="'+(isSelected?'true':'false')+'">'+d+'</button>');
+      const selectable=!state.options.commitOnDoubleClick || isSelectableDate(state.input,iso);
+      cells.push('<button type="button" class="custom-date-picker-day'+(muted?' is-muted':'')+(isSelected?' is-selected':'')+(isToday?' is-today':'')+(!selectable?' is-disabled':'')+'" data-iso="'+escapeAttr(iso)+'" role="gridcell" aria-selected="'+(isSelected?'true':'false')+'" '+(selectable?'':'disabled aria-disabled="true"')+'>'+d+'</button>');
     }
     popup.innerHTML='<div class="custom-date-picker-panel" role="document">'
       +'<div class="custom-date-picker-head">'
@@ -179,14 +202,30 @@
     popup.setAttribute('aria-modal','true');
     popup.setAttribute('aria-label',input.getAttribute('aria-label') || 'اختيار التاريخ');
     document.body.appendChild(popup);
-    active={input,display,popup,previousValue:input.value||'',previewIso:input.value||'',viewYear:selected.year,viewMonth:selected.month};
+    active={input,display,popup,previousValue:input.value||'',previewIso:input.value||'',viewYear:selected.year,viewMonth:selected.month,options:optionsFor(input)};
     display.setAttribute('aria-expanded','true');
     render(active);
     position(active);
     popup.addEventListener('click',event=>{
       const day=event.target.closest('[data-iso]');
       const action=event.target.closest('[data-cdp]')?.dataset.cdp;
-      if(day){active.previewIso=day.dataset.iso;const p=parseIso(active.previewIso);if(p){active.viewYear=p.year;active.viewMonth=p.month;}if(event.detail>1 && active.input.closest('#inventory_closing')){close(true);return;}render(active);position(active);return;}
+      if(day){
+        if(day.disabled || (active.options.commitOnDoubleClick && !isSelectableDate(active.input,day.dataset.iso))) return;
+        active.previewIso=day.dataset.iso;
+        const p=parseIso(active.previewIso);
+        if(p){active.viewYear=p.year;active.viewMonth=p.month;}
+        if(event.detail>1 && active.input.closest('#inventory_closing')){close(true);return;}
+        if(active.options.commitOnDoubleClick && !event.sourceCapabilities?.firesTouchEvents){
+          active.display.value=displayDate(active.previewIso,'');
+          active.popup.querySelectorAll('[data-iso]').forEach(cell=>{
+            const selected=cell.dataset.iso===active.previewIso;
+            cell.classList.toggle('is-selected',selected);
+            cell.setAttribute('aria-selected',String(selected));
+          });
+          return;
+        }
+        render(active);position(active);return;
+      }
       if(action==='prev-month'){const next=monthAdd(active.viewYear,active.viewMonth,-1);active.viewYear=next.year;active.viewMonth=next.month;render(active);position(active);}
       if(action==='next-month'){const next=monthAdd(active.viewYear,active.viewMonth,1);active.viewYear=next.year;active.viewMonth=next.month;render(active);position(active);}
       if(action==='prev-year'){active.viewYear-=1;render(active);position(active);}
@@ -195,6 +234,13 @@
       if(action==='clear'){active.previewIso='';close(true);}
       if(action==='cancel') close(false);
       if(action==='apply') close(true);
+    });
+    popup.addEventListener('dblclick',event=>{
+      const day=event.target.closest('[data-iso]');
+      if(!day || day.disabled || !active?.options.commitOnDoubleClick || !isFinePointerDoubleClick(event) || !isSelectableDate(active.input,day.dataset.iso)) return;
+      event.preventDefault();
+      active.previewIso=day.dataset.iso;
+      close(true);
     });
     requestAnimationFrame(()=>popup.querySelector('.custom-date-picker-day.is-selected,.custom-date-picker-apply')?.focus({preventScroll:true}));
   }
@@ -227,7 +273,7 @@
   });
   window.addEventListener('resize',()=>{if(active) position(active);});
   window.addEventListener('scroll',()=>{if(active) position(active);},true);
-  window.CustomDatePicker={init,refresh(target){if(!target)return init(document);if(target.matches?.('input[data-custom-date-picker]')) syncDisplay(target);else init(target);},formatDisplayDate:displayDate,isValidIso:value=>!!parseIso(value)};
+  window.CustomDatePicker={init,configure(input,options={}){configure(input,options);if(input?.dataset.customDatePickerBound==='1')syncDisplay(input);},refresh(target){if(!target)return init(document);if(target.matches?.('input[data-custom-date-picker]')) syncDisplay(target);else init(target);},formatDisplayDate:displayDate,isValidIso:value=>!!parseIso(value)};
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>init(document));
   else init(document);
 })();
