@@ -14075,6 +14075,83 @@ function initInventoryCountMobilePanels(){
 }
 
 
+const INVENTORY_EXPIRY_TAB_KEYS = Object.freeze(["WF01", "EL01", "EL02"]);
+
+function setInventoryExpiryTab(tabKey, options = {}) {
+  const root = document.getElementById("inventory_expiry_tracking");
+  if (!root) return;
+
+  const requestedKey = String(tabKey || "").trim().toUpperCase();
+  const activeKey = INVENTORY_EXPIRY_TAB_KEYS.includes(requestedKey) ? requestedKey : "WF01";
+  const shouldFocus = options.focus === true;
+  const tabs = Array.from(root.querySelectorAll("[data-inventory-expiry-tab]"));
+  const panels = Array.from(root.querySelectorAll("[data-inventory-expiry-panel]"));
+  let selectedTab = null;
+  let focusWasInsideHiddenPanel = false;
+
+  tabs.forEach((tab) => {
+    const isActive = tab.dataset.inventoryExpiryTab === activeKey;
+    tab.classList.toggle("active", isActive);
+    tab.setAttribute("aria-selected", isActive ? "true" : "false");
+    tab.tabIndex = isActive ? 0 : -1;
+    if (isActive) selectedTab = tab;
+  });
+
+  panels.forEach((panel) => {
+    const isActive = panel.dataset.inventoryExpiryPanel === activeKey;
+    if (!isActive && panel.contains(document.activeElement)) focusWasInsideHiddenPanel = true;
+    panel.classList.toggle("active", isActive);
+    panel.hidden = !isActive;
+  });
+
+  if (selectedTab && (shouldFocus || focusWasInsideHiddenPanel)) {
+    selectedTab.focus({ preventScroll: true });
+    selectedTab.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+}
+
+function initInventoryExpiryTabs() {
+  const root = document.getElementById("inventory_expiry_tracking");
+  const tablist = document.getElementById("inventoryExpiryTabs");
+  if (!root || !tablist || tablist.dataset.inventoryExpiryTabsBound === "1") return;
+
+  tablist.dataset.inventoryExpiryTabsBound = "1";
+
+  tablist.addEventListener("click", (event) => {
+    const tab = event.target.closest("[data-inventory-expiry-tab]");
+    if (!tab || !tablist.contains(tab)) return;
+    setInventoryExpiryTab(tab.dataset.inventoryExpiryTab);
+  });
+
+  tablist.addEventListener("keydown", (event) => {
+    const tab = event.target.closest("[data-inventory-expiry-tab]");
+    if (!tab || !tablist.contains(tab)) return;
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setInventoryExpiryTab(tab.dataset.inventoryExpiryTab, { focus: true });
+      return;
+    }
+
+    const tabs = Array.from(tablist.querySelectorAll("[data-inventory-expiry-tab]"));
+    const currentIndex = tabs.indexOf(tab);
+    if (currentIndex < 0) return;
+
+    let nextIndex = null;
+    if (event.key === "ArrowLeft") nextIndex = (currentIndex + 1) % tabs.length;
+    if (event.key === "ArrowRight") nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = tabs.length - 1;
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    tabs[nextIndex].focus({ preventScroll: true });
+    tabs[nextIndex].scrollIntoView({ block: "nearest", inline: "nearest" });
+  });
+
+  const selectedTab = tablist.querySelector('[role="tab"][aria-selected="true"]');
+  setInventoryExpiryTab(selectedTab?.dataset.inventoryExpiryTab || "WF01");
+}
 const INVENTORY_DIFFERENCE_PLANTS = [
   {code:'EL01', name:'مصنع الإيمان للأعلاف - السواقي'},
   {code:'EL02', name:'مصنع الإيمان للأعلاف - العامرية'},
@@ -15184,6 +15261,7 @@ function initInventoryCountScreen(){
 document.addEventListener('DOMContentLoaded', initInventoryClosing);
 document.addEventListener('DOMContentLoaded', initInventoryCountScreen);
 document.addEventListener('DOMContentLoaded', initInventoryDifferenceScreen);
+document.addEventListener('DOMContentLoaded', initInventoryExpiryTabs);
 // === Phase IC-02: Inventory Closing Upload Engine ===
 
 const INVENTORY_CLOSING_CONFIG = {

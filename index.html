@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=storekeepers-work-duration-20260819-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=inventory-expiry-tabs-20260820-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ir-hotfix-2-20260726" />
 </head>
 <body>
@@ -851,11 +851,22 @@
       </section>
 
       <section id="inventory_expiry_tracking" class="section">
-        <article class="panel glass inventory-expiry-placeholder">
+        <article class="panel glass inventory-expiry-panel">
           <div class="focus-mode-title-row">
             <h2>تتبع تواريخ الانتهاء</h2>
           </div>
-          <div class="empty-state">سيتم إعداد شاشة تتبع تواريخ الانتهاء في مرحلة لاحقة.</div>
+
+          <div class="subtabs inventory-expiry-tabs" id="inventoryExpiryTabs" role="tablist" aria-label="مصانع تتبع تواريخ الانتهاء">
+            <button type="button" class="inventory-expiry-tab active" id="inventoryExpiryTabWF01" role="tab" data-inventory-expiry-tab="WF01" aria-selected="true" aria-controls="inventoryExpiryPanelWF01" tabindex="0">مصنع الواحة - WF01</button>
+            <button type="button" class="inventory-expiry-tab" id="inventoryExpiryTabEL01" role="tab" data-inventory-expiry-tab="EL01" aria-selected="false" aria-controls="inventoryExpiryPanelEL01" tabindex="-1">مصنع الإيمان للأعلاف - السواقي - EL01</button>
+            <button type="button" class="inventory-expiry-tab" id="inventoryExpiryTabEL02" role="tab" data-inventory-expiry-tab="EL02" aria-selected="false" aria-controls="inventoryExpiryPanelEL02" tabindex="-1">مصنع الإيمان للأعلاف - العامرية - EL02</button>
+          </div>
+
+          <div class="inventory-expiry-tab-panels">
+            <div class="inventory-expiry-tab-panel active" id="inventoryExpiryPanelWF01" role="tabpanel" data-inventory-expiry-panel="WF01" aria-labelledby="inventoryExpiryTabWF01" tabindex="0"></div>
+            <div class="inventory-expiry-tab-panel" id="inventoryExpiryPanelEL01" role="tabpanel" data-inventory-expiry-panel="EL01" aria-labelledby="inventoryExpiryTabEL01" tabindex="0" hidden></div>
+            <div class="inventory-expiry-tab-panel" id="inventoryExpiryPanelEL02" role="tabpanel" data-inventory-expiry-panel="EL02" aria-labelledby="inventoryExpiryTabEL02" tabindex="0" hidden></div>
+          </div>
         </article>
       </section>
 
@@ -1891,9 +1902,9 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=storekeepers-work-duration-20260819-1"></script>
-  <script src="assets/js/department-weekly-operations.js?v=storekeepers-work-duration-20260819-1"></script>
-  <script src="assets/js/custom-date-picker.js?v=storekeepers-work-duration-20260819-1"></script>
+  <script src="assets/js/app.js?v=inventory-expiry-tabs-20260820-1"></script>
+  <script src="assets/js/department-weekly-operations.js?v=inventory-expiry-tabs-20260820-1"></script>
+  <script src="assets/js/custom-date-picker.js?v=inventory-expiry-tabs-20260820-1"></script>
   <script>
   </script>
   <script src="assets/js/footer.js"></script>
