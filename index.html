@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=inventory-expiry-tabs-20260820-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=production-tracking-hr-tabs-20260820-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ir-hotfix-2-20260726" />
 </head>
 <body>
@@ -58,7 +58,7 @@
           <div class="nav-submenu inventory-audit-nav-submenu" hidden>
             <button class="nav-item nav-subitem" data-section="inventory_closing" type="button">مستند الجرد</button>
             <button class="nav-item nav-subitem" data-section="inventory_differences" type="button">فروق الجرد</button>
-            <button class="nav-item nav-subitem" data-section="inventory_expiry_tracking" type="button">تتبع تواريخ الانتهاء</button>
+            <button class="nav-item nav-subitem" data-section="inventory_expiry_tracking" type="button">تتبع تواريخ الإنتاج</button>
           </div>
         </div>
         <button class="nav-item" data-section="reports">التقارير <span class="nav-icon" data-icon="reports"></span></button>
@@ -156,7 +156,7 @@
               <div class="mobile-drawer-submenu inventory-audit-mobile-submenu" hidden>
                 <button class="mobile-drawer-item mobile-drawer-subitem" data-mobile-section="inventory_closing" type="button"><span>مستند الجرد</span></button>
                 <button class="mobile-drawer-item mobile-drawer-subitem" data-mobile-section="inventory_differences" type="button"><span>فروق الجرد</span></button>
-                <button class="mobile-drawer-item mobile-drawer-subitem" data-mobile-section="inventory_expiry_tracking" type="button"><span>تتبع تواريخ الانتهاء</span></button>
+                <button class="mobile-drawer-item mobile-drawer-subitem" data-mobile-section="inventory_expiry_tracking" type="button"><span>تتبع تواريخ الإنتاج</span></button>
               </div>
             </div>
             <div class="mobile-drawer-submenu-group inventory-audit-mobile-group department-personnel-mobile-group" data-department-personnel-mobile-nav-group>
@@ -853,10 +853,10 @@
       <section id="inventory_expiry_tracking" class="section">
         <article class="panel glass inventory-expiry-panel">
           <div class="focus-mode-title-row">
-            <h2>تتبع تواريخ الانتهاء</h2>
+            <h2>تتبع تواريخ الإنتاج</h2>
           </div>
 
-          <div class="subtabs inventory-expiry-tabs" id="inventoryExpiryTabs" role="tablist" aria-label="مصانع تتبع تواريخ الانتهاء">
+          <div class="subtabs inventory-expiry-tabs" id="inventoryExpiryTabs" role="tablist" aria-label="مصانع تتبع تواريخ الإنتاج">
             <button type="button" class="inventory-expiry-tab active" id="inventoryExpiryTabWF01" role="tab" data-inventory-expiry-tab="WF01" aria-selected="true" aria-controls="inventoryExpiryPanelWF01" tabindex="0">مصنع الواحة - WF01</button>
             <button type="button" class="inventory-expiry-tab" id="inventoryExpiryTabEL01" role="tab" data-inventory-expiry-tab="EL01" aria-selected="false" aria-controls="inventoryExpiryPanelEL01" tabindex="-1">مصنع الإيمان للأعلاف - السواقي - EL01</button>
             <button type="button" class="inventory-expiry-tab" id="inventoryExpiryTabEL02" role="tab" data-inventory-expiry-tab="EL02" aria-selected="false" aria-controls="inventoryExpiryPanelEL02" tabindex="-1">مصنع الإيمان للأعلاف - العامرية - EL02</button>
@@ -1218,12 +1218,28 @@
           <div class="department-screen-head"><div><h2>جدول الأجازات الأسبوعي</h2><p class="hint">إدخال أكواد الورديات والإجازات من الجمعة إلى الخميس.</p></div></div>
           <div id="departmentWeeklyScheduleApp" class="department-weekly-workspace" data-department-weekly-kind="statuses"></div>
         </article>
-      </section>
-      <section id="department_hr_reports" class="section">
-        <article class="panel glass">
-          <h2>تقارير HR</h2>
+      </section>      <section id="department_hr_reports" class="section">
+        <article class="panel glass department-hr-reports-panel">
+          <div class="department-screen-head"><div><h2>تقارير HR</h2></div></div>
+          <div class="subtabs department-hr-report-tabs" id="departmentHrReportTabs" role="tablist" aria-label="أنواع تقارير الموارد البشرية">
+            <button type="button" class="department-hr-report-tab active" id="departmentHrReportTabCumulative" role="tab" data-department-hr-tab="cumulative_department_evaluation" aria-selected="true" aria-controls="departmentHrReportPanelCumulative" tabindex="0">التقييم التراكمي للقسم</button>
+            <button type="button" class="department-hr-report-tab" id="departmentHrReportTabPersonnel" role="tab" data-department-hr-tab="personnel_performance" aria-selected="false" aria-controls="departmentHrReportPanelPersonnel" tabindex="-1">تقرير أداء الأفراد</button>
+            <button type="button" class="department-hr-report-tab" id="departmentHrReportTabAttendance" role="tab" data-department-hr-tab="attendance_compliance" aria-selected="false" aria-controls="departmentHrReportPanelAttendance" tabindex="-1">الحضور والالتزام</button>
+            <button type="button" class="department-hr-report-tab" id="departmentHrReportTabAbsence" role="tab" data-department-hr-tab="absence_violations" aria-selected="false" aria-controls="departmentHrReportPanelAbsence" tabindex="-1">الغياب والمخالفات</button>
+            <button type="button" class="department-hr-report-tab" id="departmentHrReportTabAnalysis" role="tab" data-department-hr-tab="evaluation_analysis" aria-selected="false" aria-controls="departmentHrReportPanelAnalysis" tabindex="-1">تحليل التقييمات</button>
+            <button type="button" class="department-hr-report-tab" id="departmentHrReportTabTrend" role="tab" data-department-hr-tab="performance_trend" aria-selected="false" aria-controls="departmentHrReportPanelTrend" tabindex="-1">اتجاه الأداء</button>
+          </div>
+          <div class="department-hr-report-panels">
+            <div class="department-hr-report-panel active" id="departmentHrReportPanelCumulative" role="tabpanel" data-department-hr-panel="cumulative_department_evaluation" aria-labelledby="departmentHrReportTabCumulative" tabindex="0"><p>التقييم الإجمالي ومقارنة المواقع والأقسام والأفراد.</p></div>
+            <div class="department-hr-report-panel" id="departmentHrReportPanelPersonnel" role="tabpanel" data-department-hr-panel="personnel_performance" aria-labelledby="departmentHrReportTabPersonnel" tabindex="0" hidden><p>ملف أداء لكل موظف خلال فترة محددة.</p></div>
+            <div class="department-hr-report-panel" id="departmentHrReportPanelAttendance" role="tabpanel" data-department-hr-panel="attendance_compliance" aria-labelledby="departmentHrReportTabAttendance" tabindex="0" hidden><p>تحليل الراحة وأيام الشهر والعيد والخصم والغياب بدون إذن.</p></div>
+            <div class="department-hr-report-panel" id="departmentHrReportPanelAbsence" role="tabpanel" data-department-hr-panel="absence_violations" aria-labelledby="departmentHrReportTabAbsence" tabindex="0" hidden><p>التركيز على الغياب بدون إذن وأيام الخصم وتكرارها.</p></div>
+            <div class="department-hr-report-panel" id="departmentHrReportPanelAnalysis" role="tabpanel" data-department-hr-panel="evaluation_analysis" aria-labelledby="departmentHrReportTabAnalysis" tabindex="0" hidden><p>عدد التقييمات وتوزيع الدرجات وأسباب التقييم.</p></div>
+            <div class="department-hr-report-panel" id="departmentHrReportPanelTrend" role="tabpanel" data-department-hr-panel="performance_trend" aria-labelledby="departmentHrReportTabTrend" tabindex="0" hidden><p>هل أداء الموظف يتحسن أم يتراجع بمرور الوقت.</p></div>
+          </div>
         </article>
       </section>
+
       <section id="department_evaluations" class="section">
         <article class="panel glass department-weekly-panel department-evaluations-panel">
           <div class="department-screen-head"><div><h2>التقييمات</h2><p class="hint">التقييم اليومي للأفراد المؤهلين من الجمعة إلى الخميس.</p></div></div>
@@ -1902,9 +1918,9 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=inventory-expiry-tabs-20260820-1"></script>
-  <script src="assets/js/department-weekly-operations.js?v=inventory-expiry-tabs-20260820-1"></script>
-  <script src="assets/js/custom-date-picker.js?v=inventory-expiry-tabs-20260820-1"></script>
+  <script src="assets/js/app.js?v=production-tracking-hr-tabs-20260820-1"></script>
+  <script src="assets/js/department-weekly-operations.js?v=production-tracking-hr-tabs-20260820-1"></script>
+  <script src="assets/js/custom-date-picker.js?v=production-tracking-hr-tabs-20260820-1"></script>
   <script>
   </script>
   <script src="assets/js/footer.js"></script>

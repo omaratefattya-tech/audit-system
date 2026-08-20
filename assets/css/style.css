@@ -5157,6 +5157,88 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
     scroll-snap-align: start;
   }
 }
+/* Department HR report tabs */
+#department_hr_reports {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+#department_hr_reports .department-hr-reports-panel,
+#department_hr_reports .department-hr-report-panels,
+#department_hr_reports .department-hr-report-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#department_hr_reports .department-hr-report-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  max-width: 100%;
+  margin-bottom: 14px;
+}
+
+#department_hr_reports .department-hr-report-tab {
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  padding: 10px 12px;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  line-height: 1.65;
+  text-align: center;
+  touch-action: manipulation;
+}
+
+#department_hr_reports .department-hr-report-tab:focus {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+#department_hr_reports .department-hr-report-panel {
+  min-height: 92px;
+  padding: 18px;
+  border: 1px solid rgba(141, 220, 89, .22);
+  border-radius: 14px;
+  background: rgba(0, 35, 27, .3);
+}
+
+#department_hr_reports .department-hr-report-panel[hidden] {
+  display: none;
+}
+
+#department_hr_reports .department-hr-report-panel p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.9;
+}
+
+@media (max-width: 850px) {
+  #department_hr_reports.active-section {
+    overflow-x: hidden;
+  }
+
+  #department_hr_reports .department-hr-report-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    max-width: 100%;
+    padding: 2px 2px 7px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: inline proximity;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #department_hr_reports .department-hr-report-tab {
+    flex: 0 0 min(260px, calc(100vw - 72px));
+    min-height: 56px;
+    scroll-snap-align: start;
+  }
+}
 /* INV-REVIEW-01: inventory review recommendations */
 #inventoryCountLinesTable tbody td[data-inventory-review-line-id][data-inventory-review-version-id] {
   cursor: pointer;

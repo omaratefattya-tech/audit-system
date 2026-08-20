@@ -14152,6 +14152,90 @@ function initInventoryExpiryTabs() {
   const selectedTab = tablist.querySelector('[role="tab"][aria-selected="true"]');
   setInventoryExpiryTab(selectedTab?.dataset.inventoryExpiryTab || "WF01");
 }
+const DEPARTMENT_HR_REPORT_TAB_KEYS = Object.freeze([
+  "cumulative_department_evaluation",
+  "personnel_performance",
+  "attendance_compliance",
+  "absence_violations",
+  "evaluation_analysis",
+  "performance_trend"
+]);
+
+function setDepartmentHrReportTab(tabKey, options = {}) {
+  const root = document.getElementById("department_hr_reports");
+  if (!root) return;
+
+  const requestedKey = String(tabKey || "").trim();
+  const activeKey = DEPARTMENT_HR_REPORT_TAB_KEYS.includes(requestedKey)
+    ? requestedKey
+    : DEPARTMENT_HR_REPORT_TAB_KEYS[0];
+  const shouldFocus = options.focus === true;
+  const tabs = Array.from(root.querySelectorAll("[data-department-hr-tab]"));
+  const panels = Array.from(root.querySelectorAll("[data-department-hr-panel]"));
+  let selectedTab = null;
+  let focusWasInsideHiddenPanel = false;
+
+  tabs.forEach((tab) => {
+    const isActive = tab.dataset.departmentHrTab === activeKey;
+    tab.classList.toggle("active", isActive);
+    tab.setAttribute("aria-selected", isActive ? "true" : "false");
+    tab.tabIndex = isActive ? 0 : -1;
+    if (isActive) selectedTab = tab;
+  });
+
+  panels.forEach((panel) => {
+    const isActive = panel.dataset.departmentHrPanel === activeKey;
+    if (!isActive && panel.contains(document.activeElement)) focusWasInsideHiddenPanel = true;
+    panel.classList.toggle("active", isActive);
+    panel.hidden = !isActive;
+  });
+
+  if (selectedTab && (shouldFocus || focusWasInsideHiddenPanel)) {
+    selectedTab.focus({ preventScroll: true });
+    selectedTab.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+}
+
+function initDepartmentHrReportTabs() {
+  const tablist = document.getElementById("departmentHrReportTabs");
+  if (!tablist || tablist.dataset.departmentHrTabsBound === "1") return;
+
+  tablist.dataset.departmentHrTabsBound = "1";
+  tablist.addEventListener("click", (event) => {
+    const tab = event.target.closest("[data-department-hr-tab]");
+    if (!tab || !tablist.contains(tab)) return;
+    setDepartmentHrReportTab(tab.dataset.departmentHrTab);
+  });
+
+  tablist.addEventListener("keydown", (event) => {
+    const tab = event.target.closest("[data-department-hr-tab]");
+    if (!tab || !tablist.contains(tab)) return;
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setDepartmentHrReportTab(tab.dataset.departmentHrTab, { focus: true });
+      return;
+    }
+
+    const tabs = Array.from(tablist.querySelectorAll("[data-department-hr-tab]"));
+    const currentIndex = tabs.indexOf(tab);
+    if (currentIndex < 0) return;
+
+    let nextIndex = null;
+    if (event.key === "ArrowLeft") nextIndex = (currentIndex + 1) % tabs.length;
+    if (event.key === "ArrowRight") nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = tabs.length - 1;
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    tabs[nextIndex].focus({ preventScroll: true });
+    tabs[nextIndex].scrollIntoView({ block: "nearest", inline: "nearest" });
+  });
+
+  const selectedTab = tablist.querySelector('[role="tab"][aria-selected="true"]');
+  setDepartmentHrReportTab(selectedTab?.dataset.departmentHrTab || DEPARTMENT_HR_REPORT_TAB_KEYS[0]);
+}
 const INVENTORY_DIFFERENCE_PLANTS = [
   {code:'EL01', name:'مصنع الإيمان للأعلاف - السواقي'},
   {code:'EL02', name:'مصنع الإيمان للأعلاف - العامرية'},
@@ -15262,6 +15346,7 @@ document.addEventListener('DOMContentLoaded', initInventoryClosing);
 document.addEventListener('DOMContentLoaded', initInventoryCountScreen);
 document.addEventListener('DOMContentLoaded', initInventoryDifferenceScreen);
 document.addEventListener('DOMContentLoaded', initInventoryExpiryTabs);
+document.addEventListener('DOMContentLoaded', initDepartmentHrReportTabs);
 // === Phase IC-02: Inventory Closing Upload Engine ===
 
 const INVENTORY_CLOSING_CONFIG = {
