@@ -5157,6 +5157,218 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
     scroll-snap-align: start;
   }
 }
+#inventory_expiry_tracking .inventory-production-controls {
+  display: grid;
+  grid-template-columns: minmax(210px, .8fr) minmax(260px, 1.2fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 14px;
+}
+#inventory_expiry_tracking .inventory-production-date-field { display: grid; gap: 7px; min-width: 0; color: #eaffdf; font-weight: 800; }
+#inventory_expiry_tracking .inventory-production-date-field input,
+#inventory_expiry_tracking .inventory-production-date-field .custom-date-picker { width: 100%; min-width: 0; }
+#inventory_expiry_tracking .inventory-production-comparison {
+  display: grid;
+  gap: 3px;
+  min-height: 44px;
+  align-content: center;
+  padding: 8px 12px;
+  border: 1px solid rgba(141, 220, 89, .22);
+  border-radius: 11px;
+  background: rgba(0, 35, 27, .32);
+}
+#inventory_expiry_tracking .inventory-production-comparison span { color: var(--muted); font-size: 12px; }
+#inventory_expiry_tracking .inventory-production-comparison b { color: #dfffce; }
+#inventory_expiry_tracking .inventory-production-retry { min-height: 44px; }
+#inventory_expiry_tracking .inventory-production-screen-status {
+  min-height: 0;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(141, 220, 89, .22);
+  border-radius: 12px;
+  background: rgba(0, 35, 27, .3);
+  color: #dff7da;
+}
+#inventory_expiry_tracking .inventory-production-screen-status:empty { display: none; }
+#inventory_expiry_tracking .inventory-production-screen-status.error { border-color: rgba(255, 100, 100, .58); color: #ffd6d6; }
+#inventory_expiry_tracking .inventory-production-screen-status.warning { border-color: rgba(244, 190, 67, .5); color: #ffe7a8; }
+#inventory_expiry_tracking .inventory-production-screen-status.success { border-color: rgba(141, 220, 89, .46); color: #dfffce; }
+#inventory_expiry_tracking .inventory-production-summary {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 12px;
+}
+#inventory_expiry_tracking .inventory-production-summary-card {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid rgba(141, 220, 89, .25);
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(0, 61, 44, .72), rgba(0, 30, 24, .86));
+}
+#inventory_expiry_tracking .inventory-production-summary-card span { min-height: 36px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+#inventory_expiry_tracking .inventory-production-summary-card strong { color: #fff; font-size: 24px; }
+#inventory_expiry_tracking .inventory-production-summary-card.healthy { border-color: rgba(116, 197, 74, .48); }
+#inventory_expiry_tracking .inventory-production-summary-card.violation,
+#inventory_expiry_tracking .inventory-production-summary-card.premature { border-color: rgba(255, 111, 111, .48); }
+#inventory_expiry_tracking .inventory-production-summary-card.returned { border-color: rgba(232, 121, 249, .48); }
+#inventory_expiry_tracking .inventory-production-summary-card.review { border-color: rgba(244, 190, 67, .48); }
+#inventory_expiry_tracking .inventory-production-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(190px, .7fr) minmax(290px, 1.25fr);
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 14px;
+}
+#inventory_expiry_tracking .inventory-production-toolbar label { display: grid; gap: 6px; min-width: 0; color: #eaffdf; font-weight: 800; }
+#inventory_expiry_tracking .inventory-production-toolbar input,
+#inventory_expiry_tracking .inventory-production-toolbar select { width: 100%; min-width: 0; height: 42px; }
+#inventory_expiry_tracking .inventory-production-toolbar-note {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 8px 11px;
+  border: 1px solid rgba(141, 220, 89, .2);
+  border-radius: 10px;
+  color: #c9edbb;
+  font-size: 12px;
+  line-height: 1.65;
+}
+#inventory_expiry_tracking .inventory-production-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior-inline: contain;
+  border: 1px solid rgba(141, 220, 89, .22);
+  border-radius: 14px;
+  background: rgba(0, 31, 24, .34);
+  -webkit-overflow-scrolling: touch;
+}
+#inventory_expiry_tracking .inventory-production-table {
+  display: table;
+  width: 100%;
+  min-width: 1780px;
+  overflow: visible;
+  white-space: normal;
+}
+#inventory_expiry_tracking .inventory-production-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-width: 118px;
+  padding: 0;
+  background: #00412f;
+  vertical-align: middle;
+}
+#inventory_expiry_tracking .inventory-production-table thead th:nth-child(2),
+#inventory_expiry_tracking .inventory-production-table thead th:nth-child(8),
+#inventory_expiry_tracking .inventory-production-table thead th:nth-child(12) { min-width: 210px; }
+#inventory_expiry_tracking .inventory-production-sort {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-weight: 900;
+  line-height: 1.5;
+  white-space: normal;
+  cursor: pointer;
+}
+#inventory_expiry_tracking .inventory-production-sort:hover,
+#inventory_expiry_tracking .inventory-production-sort:focus-visible {
+  background: rgba(141, 220, 89, .14);
+  outline: 2px solid rgba(155, 230, 80, .7);
+  outline-offset: -3px;
+}
+#inventory_expiry_tracking .inventory-production-sort b { color: #9be650; font-size: 15px; }
+#inventory_expiry_tracking .inventory-production-table td { padding: 10px 9px; vertical-align: top; white-space: nowrap; }
+#inventory_expiry_tracking .inventory-production-description,
+#inventory_expiry_tracking .inventory-production-result,
+#inventory_expiry_tracking .inventory-production-expected { white-space: normal; line-height: 1.65; }
+#inventory_expiry_tracking .inventory-production-description { min-width: 220px; }
+#inventory_expiry_tracking .inventory-production-result { min-width: 250px; }
+#inventory_expiry_tracking .inventory-production-expected { min-width: 230px; }
+#inventory_expiry_tracking .inventory-production-code,
+#inventory_expiry_tracking .inventory-production-number,
+#inventory_expiry_tracking .inventory-production-number-text {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+#inventory_expiry_tracking .inventory-production-number small { display: block; margin-top: 3px; color: #ffc5a7; direction: rtl; font-size: 10px; }
+#inventory_expiry_tracking .movement-negative { background: rgba(234, 88, 12, .13); }
+#inventory_expiry_tracking .inventory-production-difference { font-weight: 900; }
+#inventory_expiry_tracking .inventory-production-expected-note { color: #d8e9df; font-size: 11px; }
+#inventory_expiry_tracking .inventory-production-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+}
+#inventory_expiry_tracking .inventory-production-status-pill.healthy { background: rgba(43, 151, 74, .55); }
+#inventory_expiry_tracking .inventory-production-status-pill.violation { background: rgba(183, 48, 48, .6); }
+#inventory_expiry_tracking .inventory-production-status-pill.review { background: rgba(180, 122, 18, .62); }
+#inventory_expiry_tracking .inventory-production-result small,
+#inventory_expiry_tracking .inventory-production-result em { display: block; margin-top: 6px; color: #cbded3; font-size: 10px; font-style: normal; }
+#inventory_expiry_tracking .inventory-production-result em { color: #ffc5a7; }
+#inventory_expiry_tracking .inventory-production-state {
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  padding: 24px;
+  border: 1px dashed rgba(141, 220, 89, .35);
+  border-radius: 16px;
+  background: rgba(0, 35, 27, .25);
+  text-align: center;
+}
+#inventory_expiry_tracking .inventory-production-state p { margin: 0; color: var(--muted); }
+#inventory_expiry_tracking .inventory-production-state.error { border-color: rgba(255, 100, 100, .5); }
+#inventory_expiry_tracking .inventory-production-state.warning { border-color: rgba(244, 190, 67, .5); }
+#inventory_expiry_tracking .inventory-production-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(141, 220, 89, .22);
+  border-top-color: #9be650;
+  border-radius: 50%;
+  animation: inventory-production-spin .8s linear infinite;
+}
+@keyframes inventory-production-spin { to { transform: rotate(360deg); } }
+@media (max-width: 1050px) {
+  #inventory_expiry_tracking .inventory-production-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #inventory_expiry_tracking .inventory-production-retry { grid-column: 1 / -1; width: 100%; }
+  #inventory_expiry_tracking .inventory-production-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #inventory_expiry_tracking .inventory-production-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #inventory_expiry_tracking .inventory-production-toolbar-note { grid-column: 1 / -1; }
+}
+@media (max-width: 850px) {
+  #inventory_expiry_tracking .inventory-production-controls,
+  #inventory_expiry_tracking .inventory-production-toolbar { grid-template-columns: 1fr; }
+  #inventory_expiry_tracking .inventory-production-retry { grid-column: auto; }
+  #inventory_expiry_tracking .inventory-production-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #inventory_expiry_tracking .inventory-production-toolbar-note { grid-column: auto; }
+  #inventory_expiry_tracking .inventory-production-table-wrap { max-width: 100%; }
+  #inventory_expiry_tracking .inventory-production-table td { min-height: 46px; }
+}
 /* Department HR report tabs */
 #department_hr_reports {
   min-width: 0;

@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=production-tracking-hr-tabs-20260820-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=production-tracking-report-20260820-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ir-hotfix-2-20260726" />
 </head>
 <body>
@@ -855,6 +855,18 @@
           <div class="focus-mode-title-row">
             <h2>تتبع تواريخ الإنتاج</h2>
           </div>
+
+          <div class="inventory-production-controls glass-soft">
+            <label class="inventory-production-date-field">تاريخ التقرير
+              <input id="inventoryProductionReportDateInput" type="date" data-custom-date-picker data-custom-date-picker-label="تاريخ التقرير" aria-label="تاريخ تقرير تتبع تواريخ الإنتاج" />
+            </label>
+            <div class="inventory-production-comparison" aria-live="polite">
+              <span>تتم المقارنة مع جرد اليوم السابق</span>
+              <b id="inventoryProductionComparisonDate">—</b>
+            </div>
+            <button class="secondary inventory-production-retry" id="inventoryProductionRetryBtn" type="button" hidden>إعادة المحاولة</button>
+          </div>
+          <div class="inventory-production-screen-status" id="inventoryProductionReportStatus" role="status" aria-live="polite"></div>
 
           <div class="subtabs inventory-expiry-tabs" id="inventoryExpiryTabs" role="tablist" aria-label="مصانع تتبع تواريخ الإنتاج">
             <button type="button" class="inventory-expiry-tab active" id="inventoryExpiryTabWF01" role="tab" data-inventory-expiry-tab="WF01" aria-selected="true" aria-controls="inventoryExpiryPanelWF01" tabindex="0">مصنع الواحة - WF01</button>
@@ -1918,9 +1930,10 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=production-tracking-hr-tabs-20260820-1"></script>
-  <script src="assets/js/department-weekly-operations.js?v=production-tracking-hr-tabs-20260820-1"></script>
-  <script src="assets/js/custom-date-picker.js?v=production-tracking-hr-tabs-20260820-1"></script>
+  <script src="assets/js/app.js?v=production-tracking-report-20260820-1"></script>
+  <script src="assets/js/department-weekly-operations.js?v=production-tracking-report-20260820-1"></script>
+  <script src="assets/js/custom-date-picker.js?v=production-tracking-report-20260820-1"></script>
+  <script src="assets/js/inventory-production-tracking.js?v=production-tracking-report-20260820-1"></script>
   <script>
   </script>
   <script src="assets/js/footer.js"></script>

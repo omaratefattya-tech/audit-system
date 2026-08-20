@@ -2748,6 +2748,7 @@ function switchSection(section,options={}){
     setTimeout(()=>openSelected ? openExistingInventoryCountFromUi({showLoading:true}) : openDefaultInventoryCountFromUi({showLoading:true}),50);
   }
   if(section==='inventory_differences') setTimeout(()=>loadInventoryDifferenceScreen(),50);
+  if(section==='inventory_expiry_tracking') setTimeout(()=>window.InventoryProductionTracking?.load(),50);
   if(section==='department_storekeepers') setTimeout(()=>loadDepartmentStorekeepers(),50);
   if(section==='department_weekly_leave_schedule') setTimeout(()=>loadDepartmentWeeklyWorkspace('statuses'),50);
   if(section==='department_evaluations') setTimeout(()=>loadDepartmentWeeklyWorkspace('evaluations'),50);
@@ -14108,6 +14109,7 @@ function setInventoryExpiryTab(tabKey, options = {}) {
     selectedTab.focus({ preventScroll: true });
     selectedTab.scrollIntoView({ block: "nearest", inline: "nearest" });
   }
+  window.InventoryProductionTracking?.onPlantChanged(activeKey);
 }
 
 function initInventoryExpiryTabs() {
