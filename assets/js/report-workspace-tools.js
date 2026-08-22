@@ -52,7 +52,19 @@
     const toolbar=document.querySelector(`#${sectionId} .report-workspace-toolbar`);
     if(!toolbar) return;
     toolbar.dataset.busy=busy?'1':'0';
-    toolbar.querySelectorAll('[data-report-export]').forEach(button=>button.disabled=Boolean(busy));
+    toolbar.querySelectorAll('[data-report-export]').forEach(button=>{
+      if(busy){
+        if(button.dataset.reportOriginalHtml===undefined) button.dataset.reportOriginalHtml=button.innerHTML;
+        button.disabled=true;
+      }else{
+        if(button.dataset.reportOriginalHtml!==undefined){button.innerHTML=button.dataset.reportOriginalHtml;delete button.dataset.reportOriginalHtml;}
+        button.disabled=false;
+      }
+    });
+  }
+  function notifyExportUser(sectionId,message,type='error',silent=false){
+    setToolbarStatus(sectionId,message,type);
+    if(!silent && typeof window.showToast==='function') window.showToast(message,type==='warning'?'warning':'error');
   }
   function toolButton(action,label,icon,extra=''){
     return `<button type="button" class="secondary report-workspace-tool ${extra}" ${action} title="${label}" aria-label="${label}">${icon}<span>${label}</span></button>`;
@@ -250,8 +262,183 @@
     const scale=Math.min(preferred,maxEdge/Math.max(width,1),maxEdge/Math.max(height,1),Math.sqrt(maxArea/Math.max(width*height,1)));
     return Math.max(.2,Math.floor(scale*100)/100);
   }
-  async function captureElement(element,preferredScale=2){
+  const UNSUPPORTED_COLOR_FUNCTION=/(?:^|[\s,(])(color|color-mix|lab|lch|oklab|oklch)\s*\(/i;
+  const EXPORT_COLOR_PROPERTIES=[
+    'color','background-color','border-top-color','border-right-color','border-bottom-color','border-left-color',
+    'outline-color','text-decoration-color','fill','stroke','stop-color','flood-color','lighting-color','column-rule-color'
+  ];
+  const EXPORT_DECORATIVE_COLOR_PROPERTIES=['box-shadow','text-shadow','filter'];
+  const EXPORT_IMAGE_COLOR_PROPERTIES=['background-image','border-image-source','mask-image'];
+  let EXPORT_COLOR_CANVAS=null;
+  let EXPORT_COLOR_CONTEXT=null;
+  let LAST_EXPORT_COLOR_AUDIT=Object.freeze({captures:0,unsupportedBefore:0,unsupportedAfter:0,converted:0,disabled:0,pseudoDisabled:0,failures:[],samples:[]});
+
+  function hasUnsupportedColorValue(value){return UNSUPPORTED_COLOR_FUNCTION.test(String(value||''));}
+  function createExportColorAudit(){
+    return {captures:0,unsupportedBefore:0,unsupportedAfter:0,converted:0,disabled:0,pseudoDisabled:0,failures:[],samples:[]};
+  }
+  function rememberColorSample(audit,entry){
+    if(audit.samples.length<24) audit.samples.push(entry);
+  }
+  function exportColorContext(){
+    if(EXPORT_COLOR_CONTEXT) return EXPORT_COLOR_CONTEXT;
+    EXPORT_COLOR_CANVAS=document.createElement('canvas');
+    EXPORT_COLOR_CANVAS.width=1;EXPORT_COLOR_CANVAS.height=1;
+    EXPORT_COLOR_CONTEXT=EXPORT_COLOR_CANVAS.getContext('2d',{willReadFrequently:true,colorSpace:'srgb'})
+      ||EXPORT_COLOR_CANVAS.getContext('2d',{willReadFrequently:true});
+    return EXPORT_COLOR_CONTEXT;
+  }
+  function resolveCssColorToRgba(value){
+    const candidate=String(value||'').trim();
+    if(!candidate) return null;
+    const context=exportColorContext();
+    if(!context) return null;
+    try{
+      context.fillStyle='rgb(1, 2, 3)';
+      const firstSentinel=context.fillStyle;
+      context.fillStyle=candidate;
+      const firstResult=context.fillStyle;
+      context.fillStyle='rgb(4, 5, 6)';
+      const secondSentinel=context.fillStyle;
+      context.fillStyle=candidate;
+      const secondResult=context.fillStyle;
+      if(firstResult===firstSentinel && secondResult===secondSentinel) return null;
+      context.clearRect(0,0,1,1);
+      context.fillStyle=candidate;
+      context.fillRect(0,0,1,1);
+      const rgba=context.getImageData(0,0,1,1).data;
+      const alpha=Math.round((rgba[3]/255)*10000)/10000;
+      return `rgba(${rgba[0]}, ${rgba[1]}, ${rgba[2]}, ${alpha})`;
+    }catch(_){return null;}
+  }
+  function safeStatusColorFallback(computed,property){
+    const variable=property==='color'?'--status-text':'--status-color';
+    const value=String(computed.getPropertyValue(variable)||'').trim();
+    if(!value||hasUnsupportedColorValue(value)) return null;
+    return resolveCssColorToRgba(value);
+  }
+  function inspectPseudoColorValues(element,pseudo,audit,apply){
+    let computed;
+    try{computed=getComputedStyle(element,pseudo);}catch(_){return;}
+    const content=String(computed.content||'').trim();
+    if(!content||content==='none'||content==='normal') return;
+    const properties=[...EXPORT_COLOR_PROPERTIES,...EXPORT_DECORATIVE_COLOR_PROPERTIES,...EXPORT_IMAGE_COLOR_PROPERTIES];
+    const hits=properties.map(property=>({property,value:String(computed.getPropertyValue(property)||'').trim()})).filter(item=>hasUnsupportedColorValue(item.value));
+    if(!hits.length) return;
+    audit.unsupportedBefore+=hits.length;
+    hits.forEach(item=>rememberColorSample(audit,{pseudo,property:item.property,value:item.value}));
+    if(apply){
+      element.dataset[pseudo==='::before'?'exportDisableBefore':'exportDisableAfter']='1';
+      audit.disabled+=hits.length;
+      audit.pseudoDisabled+=1;
+    }
+  }
+  function ensurePseudoSanitizerStyle(root){
+    if(root.querySelector?.('[data-export-color-sanitizer-style]')) return;
+    root.classList.add('report-export-color-sanitized');
+    const style=document.createElement('style');
+    style.dataset.exportColorSanitizerStyle='1';
+    style.textContent=[
+      '.report-export-color-sanitized[data-export-disable-before]::before,.report-export-color-sanitized [data-export-disable-before]::before{content:none}',
+      '.report-export-color-sanitized[data-export-disable-after]::after,.report-export-color-sanitized [data-export-disable-after]::after{content:none}'
+    ].join('');
+    root.appendChild(style);
+  }
+  function auditUnsupportedExportColors(root){
+    let count=0;
+    const samples=[];
+    const elements=[root,...Array.from(root.querySelectorAll?.('*')||[])];
+    const properties=[...EXPORT_COLOR_PROPERTIES,...EXPORT_DECORATIVE_COLOR_PROPERTIES,...EXPORT_IMAGE_COLOR_PROPERTIES];
+    elements.forEach(element=>{
+      let computed;
+      try{computed=getComputedStyle(element);}catch(_){return;}
+      properties.forEach(property=>{
+        const value=String(computed.getPropertyValue(property)||'').trim();
+        if(!hasUnsupportedColorValue(value)) return;
+        count+=1;
+        if(samples.length<12) samples.push({tag:element.tagName||'',className:String(element.className||''),property,value});
+      });
+      ['::before','::after'].forEach(pseudo=>{
+        let pseudoStyle;
+        try{pseudoStyle=getComputedStyle(element,pseudo);}catch(_){return;}
+        const pseudoContent=String(pseudoStyle.content||'').trim();
+        if(!pseudoContent||pseudoContent==='none'||pseudoContent==='normal') return;
+        properties.forEach(property=>{
+          const value=String(pseudoStyle.getPropertyValue(property)||'').trim();
+          if(!hasUnsupportedColorValue(value)) return;
+          count+=1;
+          if(samples.length<12) samples.push({tag:element.tagName||'',className:String(element.className||''),pseudo,property,value});
+        });
+      });
+    });
+    return {count,samples};
+  }
+  function sanitizeExportCloneColors(root,audit=createExportColorAudit()){
+    if(!root?.matches?.('.report-export-stage,.report-pdf-page') && !root?.closest?.('.report-pdf-stage')){
+      throw new Error('Color sanitization is restricted to the export clone.');
+    }
+    audit.captures+=1;
+    const elements=[root,...Array.from(root.querySelectorAll('*'))];
+    let pseudoRulesNeeded=false;
+    elements.forEach(element=>{
+      let computed;
+      try{computed=getComputedStyle(element);}catch(_){return;}
+      EXPORT_COLOR_PROPERTIES.forEach(property=>{
+        const value=String(computed.getPropertyValue(property)||'').trim();
+        if(!hasUnsupportedColorValue(value)) return;
+        audit.unsupportedBefore+=1;
+        rememberColorSample(audit,{tag:element.tagName||'',className:String(element.className||''),property,value});
+        const safe=resolveCssColorToRgba(value)||safeStatusColorFallback(computed,property);
+        if(safe){element.style.setProperty(property,safe);audit.converted+=1;}
+        else audit.failures.push({tag:element.tagName||'',className:String(element.className||''),property,value});
+      });
+      EXPORT_DECORATIVE_COLOR_PROPERTIES.forEach(property=>{
+        const value=String(computed.getPropertyValue(property)||'').trim();
+        if(!hasUnsupportedColorValue(value)) return;
+        audit.unsupportedBefore+=1;audit.disabled+=1;
+        rememberColorSample(audit,{tag:element.tagName||'',className:String(element.className||''),property,value});
+        element.style.setProperty(property,'none');
+      });
+      EXPORT_IMAGE_COLOR_PROPERTIES.forEach(property=>{
+        const value=String(computed.getPropertyValue(property)||'').trim();
+        if(!hasUnsupportedColorValue(value)) return;
+        audit.unsupportedBefore+=1;audit.disabled+=1;
+        rememberColorSample(audit,{tag:element.tagName||'',className:String(element.className||''),property,value});
+        element.style.setProperty(property,'none');
+      });
+      const beforeCount=audit.pseudoDisabled;
+      inspectPseudoColorValues(element,'::before',audit,true);
+      inspectPseudoColorValues(element,'::after',audit,true);
+      if(audit.pseudoDisabled>beforeCount) pseudoRulesNeeded=true;
+    });
+    if(pseudoRulesNeeded) ensurePseudoSanitizerStyle(root);
+    const after=auditUnsupportedExportColors(root);
+    audit.unsupportedAfter+=after.count;
+    if(after.count||audit.failures.length){
+      const error=new Error('Export clone still contains unsupported color values.');
+      error.name='ExportColorSanitizationError';
+      error.colorAudit={...audit,afterSamples:after.samples};
+      throw error;
+    }
+    return audit;
+  }
+  function finalizeExportColorAudit(audit){
+    if(!audit) return null;
+    LAST_EXPORT_COLOR_AUDIT=Object.freeze({...audit,failures:Object.freeze(audit.failures.slice()),samples:Object.freeze(audit.samples.slice())});
+    console.info('Report export color audit',{
+      captures:audit.captures,
+      unsupported_color_values_before:audit.unsupportedBefore,
+      unsupported_color_values:audit.unsupportedAfter,
+      converted:audit.converted,
+      disabled_decorative_values:audit.disabled,
+      pseudo_elements_disabled:audit.pseudoDisabled
+    });
+    return LAST_EXPORT_COLOR_AUDIT;
+  }
+  async function captureElement(element,preferredScale=2,colorAudit=createExportColorAudit()){
     if(typeof window.html2canvas!=='function') throw new Error('مكتبة PNG غير متاحة.');
+    sanitizeExportCloneColors(element,colorAudit);
+    await new Promise(resolve=>requestAnimationFrame(resolve));
     const width=Math.ceil(Math.max(element.scrollWidth,element.getBoundingClientRect().width));
     const height=Math.ceil(Math.max(element.scrollHeight,element.getBoundingClientRect().height));
     if(!width||!height) throw new Error('أبعاد التقرير غير صالحة للتصدير.');
@@ -266,7 +453,7 @@
       const desired=Math.max(960,...Array.from(stage.querySelectorAll('table')).map(table=>table.scrollWidth+48));
       stage.style.width=Math.min(14000,desired)+'px';
       await new Promise(resolve=>requestAnimationFrame(resolve));
-      const canvas=await captureElement(stage,2);
+      const canvas=await captureElement(stage,2,descriptor.colorAudit);
       return canvasBlob(canvas);
     }finally{stage.remove();}
   }
@@ -330,7 +517,7 @@
       const pageWidth=pdf.internal.pageSize.getWidth(),pageHeight=pdf.internal.pageSize.getHeight();
       for(let index=0;index<built.pages.length;index++){
         if(index) pdf.addPage('a4',descriptor.landscape?'landscape':'portrait');
-        const canvas=await captureElement(built.pages[index].page,1.55);
+        const canvas=await captureElement(built.pages[index].page,1.55,descriptor.colorAudit);
         pdf.addImage(canvas.toDataURL('image/jpeg',.94),'JPEG',0,0,pageWidth,pageHeight,undefined,'FAST');
         pdf.setFontSize(8);pdf.setTextColor(70,82,76);pdf.text(`${index+1} / ${built.pages.length}`,pageWidth/2,pageHeight-8,{align:'center'});
       }
@@ -438,14 +625,14 @@
   async function exportSection(sectionId,format,options={}){
     const descriptor=describe(sectionId);
     if(!descriptor) throw new Error('الشاشة غير مدعومة للتصدير.');
-    if(descriptor.loading){setToolbarStatus(sectionId,'انتظر اكتمال تحميل البيانات.','warning');return {blocked:'loading'};}
+    if(descriptor.loading){notifyExportUser(sectionId,'انتظر اكتمال تحميل البيانات.','warning',options.silent===true);return {blocked:'loading'};}
     if(descriptor.hasUnsaved){
       const message='لا يمكن التصدير مع وجود تعديلات غير محفوظة. احفظ التعديلات أو تراجع عنها أولًا.';
-      setToolbarStatus(sectionId,message,'warning');
-      if(options.silent!==true) window.alert(message);
+      notifyExportUser(sectionId,message,'warning',options.silent===true);
       return {blocked:'draft'};
     }
-    toolbarBusy(sectionId,true);setToolbarStatus(sectionId,`جاري إعداد ${format.toUpperCase()}...`,'busy');
+    if(format==='png'||format==='pdf') descriptor.colorAudit=createExportColorAudit();
+    toolbarBusy(sectionId,true);setToolbarStatus(sectionId,`جاري إعداد ${String(format).toUpperCase()}...`,'busy');
     try{
       let blob,mime,extension;
       if(format==='png'){blob=await exportPng(descriptor);mime='image/png';extension='png';}
@@ -457,11 +644,17 @@
       setToolbarStatus(sectionId,`تم إعداد ${fileName}`,'success');
       return {blob,fileName,descriptor};
     }catch(error){
-      console.error('Report workspace export failed:',error);
-      setToolbarStatus(sectionId,error?.message||'تعذر إنشاء ملف التصدير.','error');
-      if(options.silent!==true) window.alert(error?.message||'تعذر إنشاء ملف التصدير.');
+      const friendlyMessage='تعذر إنشاء ملف التصدير. تمت استعادة الشاشة ويمكنك المحاولة مرة أخرى.';
+      console.error('Report workspace export failed',{
+        sectionId,format,errorName:error?.name||'Error',technicalMessage:error?.message||String(error),
+        colorAudit:error?.colorAudit||descriptor.colorAudit||null
+      },error);
+      notifyExportUser(sectionId,friendlyMessage,'error',options.silent===true);
       throw error;
-    }finally{toolbarBusy(sectionId,false);}
+    }finally{
+      if(descriptor.colorAudit) finalizeExportColorAudit(descriptor.colorAudit);
+      toolbarBusy(sectionId,false);
+    }
   }
   function bind(){
     if(document.documentElement.dataset.reportWorkspaceToolsBound==='1') return;
@@ -476,6 +669,6 @@
   }
   function init(){Object.values(CONFIGS).forEach(injectToolbar);bind();}
 
-  window.ReportWorkspaceTools=Object.freeze({init,describe,exportSection,buildWorkbook,buildExportDocument,safeFilename,tableMatrix,captureScale});
+  window.ReportWorkspaceTools=Object.freeze({init,describe,exportSection,buildWorkbook,buildExportDocument,safeFilename,tableMatrix,captureScale,hasUnsupportedColorValue,resolveCssColorToRgba,sanitizeExportCloneColors,auditUnsupportedExportColors,getLastColorAudit:()=>({...LAST_EXPORT_COLOR_AUDIT,failures:[...LAST_EXPORT_COLOR_AUDIT.failures],samples:[...LAST_EXPORT_COLOR_AUDIT.samples]})});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
