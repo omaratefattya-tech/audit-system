@@ -18,7 +18,8 @@
     close:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>',
     png:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM7 16l3-4 3 3 2-2 3 3M15.5 8.5h.01"/></svg>',
     pdf:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h8l4 4v16H6zM14 2v5h5M8 17h8M8 13h8"/></svg>',
-    excel:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 9h16M4 14h16M10 4v16M15 4v16"/></svg>'
+    excel:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 9h16M4 14h16M10 4v16M15 4v16"/></svg>',
+    weekend:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v15H4zM8 3v4M16 3v4M4 10h16M8 14h3M13 14h3M8 17h3M13 17h3"/></svg>'
   };
   const EXCLUDED_SELECTORS=[
     '.report-workspace-toolbar','.inventory-production-toolbar','.department-hr-inline-controls',
@@ -26,6 +27,7 @@
     '.inventory-production-controls','.department-storekeepers-toolbar','.upload-status',
     '.department-hr-report-status','.inventory-production-screen-status','.department-admin-alert',
     '.department-hr-state.loading','.inventory-production-state.loading','[data-export-exclude]',
+    '.department-hr-column-filters','.column-filter-row','.filter-row','[data-export-filter-row]',
     'script','style','template'
   ].join(',');
 
@@ -82,6 +84,7 @@
       toolButton('data-report-export="png"','تصدير PNG',ICONS.png)+
       toolButton('data-report-export="pdf"','تصدير PDF',ICONS.pdf)+
       toolButton('data-report-export="excel"','تصدير Excel',ICONS.excel)+
+      (config.kind==='statuses'?toolButton('data-report-export="weekend-png"','PNG الجمعة والسبت',ICONS.weekend):'')+
       '<span class="report-workspace-tools-status" data-report-tools-status role="status" aria-live="polite"></span>';
     anchor.appendChild(toolbar);
   }
@@ -121,10 +124,171 @@
       loading:Boolean(state.loading),hasUnsaved:false
     };
   }
+  function exportDateAdd(value,days){
+    const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value||''));
+    if(!match) return '';
+    return new Date(Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3])+days)).toISOString().slice(0,10);
+  }
+  function exportDateDmy(value){
+    const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value||''));
+    return match?match[3]+'/'+match[2]+'/'+match[1]:'—';
+  }
+  function exportSafeColor(value){
+    return /^#[0-9a-f]{6}$/i.test(String(value||''))?String(value).toUpperCase():'#64748B';
+  }
+  function exportContrastColor(value){
+    const clean=exportSafeColor(value).slice(1);
+    const red=parseInt(clean.slice(0,2),16),green=parseInt(clean.slice(2,4),16),blue=parseInt(clean.slice(4,6),16);
+    return ((red*299+green*587+blue*114)/1000)>=150?'#111827':'#FFFFFF';
+  }
+  function weeklyPrimaryShiftCode(row){
+    const codes=Array.from(row?.days||[]).map(day=>String(day?.value??'').trim()).filter(code=>['1','2','3'].includes(code));
+    if(!codes.length) return null;
+    const counts=new Map([['1',0],['2',0],['3',0]]);
+    codes.forEach(code=>counts.set(code,counts.get(code)+1));
+    const maximum=Math.max(...counts.values());
+    const candidates=new Set([...counts].filter(([,count])=>count===maximum).map(([code])=>code));
+    return codes.find(code=>candidates.has(code))||null;
+  }
+  function sortWeeklyRowsByPrimaryShift(rows){
+    return Array.from(rows||[]).map((row,index)=>({row,index,shift:weeklyPrimaryShiftCode(row)})).sort((left,right)=>{
+      const leftRank=left.shift?Number(left.shift):4,rightRank=right.shift?Number(right.shift):4;
+      return leftRank-rightRank
+        ||String(left.row.full_name||'').localeCompare(String(right.row.full_name||''),'ar',{numeric:true,sensitivity:'base'})
+        ||String(left.row.employee_code||'').localeCompare(String(right.row.employee_code||''),'ar',{numeric:true,sensitivity:'base'})
+        ||left.index-right.index;
+    }).map(item=>item.row);
+  }
+  function weeklyDatasetCell(kind,day){
+    if(kind==='statuses'){
+      const value=String(day?.value??'').trim();
+      if(!value) return '<td data-export-value=""></td>';
+      const description=String(day?.description||'').trim();
+      const label=description||value,color=exportSafeColor(day?.color);
+      const exported=[value,description].filter(Boolean).join(' — ');
+      return '<td data-export-value="'+escapeHtml(exported)+'"><span class="department-status-visual" style="--status-color:'+color+';--status-text:'+exportContrastColor(color)+'" title="'+escapeHtml(exported)+'"><span>'+escapeHtml(label)+'</span></span></td>';
+    }
+    if(day?.saved){
+      const value=String(day.value??'');
+      return '<td data-export-value="'+escapeHtml(value)+'" data-export-type="number"><div class="department-locked-evaluation"><strong>'+escapeHtml(value)+'</strong><span>/ 10</span><small>محفوظ نهائيًا</small></div></td>';
+    }
+    if(day?.blocked){
+      const exported=[day.code,day.description].filter(Boolean).join(' — ');
+      const color=exportSafeColor(day.color);
+      return '<td data-export-value="'+escapeHtml(exported)+'"><span class="department-status-visual" style="--status-color:'+color+';--status-text:'+exportContrastColor(color)+'" title="'+escapeHtml(exported)+'"><span>'+escapeHtml(day.description||day.code||'—')+'</span></span></td>';
+    }
+    return '<td data-export-value=""></td>';
+  }
+  function buildWeeklyDatasetTable(dataset){
+    const table=document.createElement('table');
+    table.className='department-weekly-table report-export-table';
+    table.dataset.weeklyExportKind=dataset?.kind||'';
+    const fixed=dataset?.kind==='statuses'
+      ?['الكود الوظيفي','اسم أمين المخزن','الوظيفة','الموقع']
+      :['الكود الوظيفي','اسم الموظف','الوظيفة'];
+    const headers=[...fixed,...Array.from(dataset?.dates||[]).map(day=>day.label+' — '+exportDateDmy(day.date))];
+    const sourceRows=Array.from(dataset?.rows||[]);
+    const rows=dataset?.kind==='statuses'?sortWeeklyRowsByPrimaryShift(sourceRows):sourceRows;
+    table.innerHTML='<thead><tr>'+headers.map(label=>'<th data-export-label="'+escapeHtml(label)+'">'+escapeHtml(label)+'</th>').join('')+'</tr></thead><tbody></tbody>';
+    const tbody=table.tBodies[0];
+    if(!rows.length){
+      tbody.innerHTML='<tr><td class="empty-row" colspan="'+headers.length+'">لا توجد بيانات</td></tr>';
+      return table;
+    }
+    tbody.innerHTML=rows.map(row=>{
+      const fixedCells=[
+        '<td data-export-value="'+escapeHtml(row.employee_code)+'" dir="ltr">'+escapeHtml(row.employee_code)+'</td>',
+        '<td>'+escapeHtml(row.full_name)+'</td>',
+        '<td>'+escapeHtml(row.job_title)+'</td>'
+      ];
+      if(dataset.kind==='statuses') fixedCells.push('<td>'+escapeHtml(row.plant_code)+'</td>');
+      return '<tr data-personnel-id="'+escapeHtml(row.id)+'" data-primary-shift="'+escapeHtml(weeklyPrimaryShiftCode(row)||'')+'">'+fixedCells.join('')+row.days.map(day=>weeklyDatasetCell(dataset.kind,day)).join('')+'</tr>';
+    }).join('');
+    return table;
+  }
+  function weekendJobClass(job){
+    const value=String(job||'');
+    if(/مدير|مسئول/.test(value)) return 'management';
+    if(/رئيس|مشرف/.test(value)) return 'supervision';
+    if(/أمين مخزن|مساعد أمين|عامل مخازن/.test(value)) return 'operations';
+    return 'neutral';
+  }
+  function orderedWeekendJobs(groups,jobOrder){
+    const order=new Map(Array.from(jobOrder||[]).map((job,index)=>[String(job),index]));
+    return [...groups.keys()].sort((left,right)=>{
+      const leftRank=order.has(left)?order.get(left):Number.MAX_SAFE_INTEGER;
+      const rightRank=order.has(right)?order.get(right):Number.MAX_SAFE_INTEGER;
+      return leftRank-rightRank||left.localeCompare(right,'ar',{numeric:true,sensitivity:'base'});
+    });
+  }
+  function buildWeekendDatasetTable(dataset){
+    const table=document.createElement('table');
+    table.className='weekend-export-table report-export-table';
+    table.dir='rtl';
+    table.innerHTML='<thead><tr>'+['اليوم','الوظيفة','الوردية الأولى','الوردية الثانية','الوردية الثالثة'].map(label=>'<th data-export-label="'+label+'">'+label+'</th>').join('')+'</tr></thead><tbody></tbody>';
+    let html='';
+    Array.from(dataset?.dates||[]).slice(0,2).forEach(dayInfo=>{
+      const groups=new Map();
+      Array.from(dataset?.rows||[]).forEach(person=>{
+        const day=Array.from(person.days||[]).find(item=>item.date===dayInfo.date);
+        const code=String(day?.value??'').trim();
+        if(!['1','2','3'].includes(code)) return;
+        const job=String(person.job_title||'').trim()||'غير مصنف';
+        if(!groups.has(job)) groups.set(job,{'1':[],'2':[],'3':[]});
+        groups.get(job)[code].push(String(person.full_name||'').trim());
+      });
+      groups.forEach(shifts=>['1','2','3'].forEach(code=>shifts[code].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true,sensitivity:'base'}))));
+      const jobs=orderedWeekendJobs(groups,dataset?.jobOrder);
+      if(!jobs.length){
+        html+='<tr><td class="weekend-export-day" rowspan="1"><strong>'+escapeHtml(dayInfo.label)+'</strong><span>'+escapeHtml(exportDateDmy(dayInfo.date))+'</span></td><td class="weekend-export-empty-day" colspan="4">لا توجد ورديات مسجلة</td></tr>';
+        return;
+      }
+      const sizes=jobs.map(job=>Math.max(1,...['1','2','3'].map(code=>groups.get(job)[code].length)));
+      const dayRows=sizes.reduce((total,size)=>total+size,0);
+      let firstDayRow=true;
+      jobs.forEach((job,jobIndex)=>{
+        const shifts=groups.get(job),rowCount=sizes[jobIndex];
+        for(let rowIndex=0;rowIndex<rowCount;rowIndex++){
+          html+='<tr>';
+          if(firstDayRow){
+            html+='<td class="weekend-export-day" rowspan="'+dayRows+'"><strong>'+escapeHtml(dayInfo.label)+'</strong><span>'+escapeHtml(exportDateDmy(dayInfo.date))+'</span></td>';
+            firstDayRow=false;
+          }
+          if(rowIndex===0) html+='<td class="weekend-export-job '+weekendJobClass(job)+'" rowspan="'+rowCount+'">'+escapeHtml(job)+'</td>';
+          html+=['1','2','3'].map(code=>'<td class="weekend-export-name">'+escapeHtml(shifts[code][rowIndex]||'')+'</td>').join('')+'</tr>';
+        }
+      });
+    });
+    table.tBodies[0].innerHTML=html;
+    return table;
+  }
+  function buildWeekendDescriptor(base){
+    const dataset=base?.dataset;
+    if(!dataset) throw new Error('بيانات الأسبوع المحفوظة غير متاحة للتصدير.');
+    const table=buildWeekendDatasetTable(dataset);
+    const root=document.createElement('div');
+    root.className='weekend-export-root';
+    root.appendChild(table);
+    const friday=dataset.dates?.[0]?.date||dataset.weekStart;
+    const saturday=dataset.dates?.[1]?.date||exportDateAdd(friday,1);
+    return {
+      ...base,kind:'weekend',title:'جدول ورديات الجمعة والسبت',subtitle:dataset.activeTabLabel||base.subtitle,
+      metadata:formatMeta([
+        'الموقع: '+(dataset.plantCode||'—'),'القسم: '+(dataset.department||'—'),
+        'الجمعة: '+exportDateDmy(friday),'السبت: '+exportDateDmy(saturday)
+      ]),
+      root,tables:[table],intro:[],landscape:true,freezeColumns:2,
+      fileBase:safeFilename('weekly-leave-friday-saturday-'+(dataset.activeTab||dataset.plantCode||'report')+'-'+friday+'-'+saturday)
+    };
+  }
   function weeklyDescriptor(config,kind){
     const state=window.DepartmentWeeklyOperations?.getExportState?.(kind)||{};
-    const root=byId(state.rootId||'');
-    const table=root?.querySelector('.department-weekly-table');
+    const dataset=window.DepartmentWeeklyOperations?.getSavedExportDataset?.(kind)||null;
+    const liveRoot=byId(state.rootId||'');
+    const table=dataset?buildWeeklyDatasetTable(dataset):liveRoot?.querySelector('.department-weekly-table');
+    const exportRoot=document.createElement('div');
+    exportRoot.className='department-weekly-workspace report-export-weekly-dataset';
+    if(table) exportRoot.appendChild(table);
     const title=kind==='statuses'?'جدول الإجازات الأسبوعي':'التقييمات';
     const slug=kind==='statuses'?'weekly-leave':'evaluations';
     return {
@@ -133,9 +297,9 @@
         `الموقع: ${state.plantCode||'—'}`,`القسم: ${state.department||'—'}`,
         `الأسبوع: ${displayDate(state.weekStart)} - ${displayDate(state.weekEnd)}`,
         `الفترة المحددة: ${displayDate(state.from)} - ${displayDate(state.to)}`,
-        `الترتيب: ${state.sortKey||'الافتراضي'} ${state.sortDirection||''}`
+        kind==='statuses'?'ترتيب التصدير: الوردية الأولى، ثم الثانية، ثم الثالثة، ثم بلا وردية عمل':`الترتيب: ${state.sortKey||'الافتراضي'} ${state.sortDirection||''}`
       ]),
-      root,tables:table?[table]:[],intro:[],
+      root:exportRoot,tables:table?[table]:[],intro:[],dataset,
       fileBase:safeFilename(`${slug}-${state.activeTab||state.plantCode||'report'}-${state.weekStart||todayIso()}`),
       landscape:true,freezeColumns:kind==='statuses'?4:3,loading:Boolean(state.loading||state.saving),
       hasUnsaved:Boolean(state.hasUnsaved),draftKind:kind
@@ -172,19 +336,83 @@
     return hrDescriptor(config);
   }
 
+  function exportHeaderLabel(node){
+    if(!node) return '';
+    const direct=text(node.getAttribute?.('data-export-label'));
+    if(direct) return direct;
+    const labelled=node.querySelector?.('[data-export-label]');
+    const labelledValue=text(labelled?.getAttribute?.('data-export-label'));
+    if(labelledValue) return labelledValue;
+    const clone=node.cloneNode?.(true);
+    if(!clone) return '';
+    clone.querySelectorAll?.('.department-sort-indicator,.inventory-production-sort b,input,select,textarea,.sort-arrow,[aria-hidden="true"]').forEach(item=>item.remove());
+    return text(clone.textContent).replace(/[↕↑↓]/g,'').trim();
+  }
+  function normalizeExportHeaders(root){
+    const filterRows=[];
+    if(root.matches?.('thead tr')) filterRows.push(root);
+    root.querySelectorAll?.('thead tr').forEach(row=>filterRows.push(row));
+    filterRows.forEach(row=>{
+      if(row.matches('.department-hr-column-filters,.column-filter-row,.filter-row,[data-export-filter-row]') || row.querySelector('input,select,textarea')) row.remove();
+    });
+    const headers=[];
+    if(root.matches?.('th')) headers.push(root);
+    root.querySelectorAll?.('th').forEach(header=>headers.push(header));
+    headers.forEach(header=>{
+      const label=exportHeaderLabel(header);
+      header.replaceChildren();
+      header.dataset.exportLabel=label;
+      if(label){
+        const span=document.createElement('span');
+        span.className='report-export-column-label';
+        span.textContent=label;
+        header.appendChild(span);
+      }
+    });
+  }
+  function expandExportCloneLayout(root){
+    const nodes=[];
+    if(root?.nodeType===1 && !/^(TR|THEAD|TBODY|TH|TD)$/.test(root.tagName||'')) nodes.push(root);
+    root.querySelectorAll?.('.department-weekly-table-wrap,.department-operational-table-wrap,.department-hr-table-wrap,.inventory-production-table-wrap,.table-container,.table-responsive,[data-scroll-container]').forEach(node=>nodes.push(node));
+    nodes.forEach(node=>{
+      node.scrollTop=0;node.scrollLeft=0;
+      node.style.overflow='visible';
+      node.style.overflowX='visible';
+      node.style.overflowY='visible';
+      node.style.maxHeight='none';
+      node.style.maxWidth='none';
+      node.style.height='auto';
+      node.style.width='max-content';
+      node.style.minWidth='100%';
+    });
+    const tables=[];
+    if(root.matches?.('table')) tables.push(root);
+    root.querySelectorAll?.('table').forEach(table=>tables.push(table));
+    tables.forEach(table=>{
+      table.classList.add('report-export-table');
+      table.style.width='max-content';
+      table.style.minWidth='100%';
+      table.style.maxWidth='none';
+      table.style.height='auto';
+      table.style.tableLayout='auto';
+      table.querySelectorAll('th,td').forEach(cell=>{
+        cell.style.position='static';
+        cell.style.inset='auto';
+        cell.style.right='auto';
+        cell.style.left='auto';
+        cell.style.top='auto';
+        cell.style.bottom='auto';
+      });
+    });
+  }
   function replaceButton(button){
     const isSort=button.matches('.inventory-production-sort,.department-sort-button,.department-hr-sort');
     const isValue=button.matches('.department-status-cell-display,.department-locked-evaluation');
     if(!isSort && !isValue){button.remove();return;}
     const replacement=document.createElement(isSort?'span':'div');
     replacement.className=button.className;
-    if(isSort){
-      const label=button.cloneNode(true);
-      label.querySelectorAll('.department-sort-indicator,.inventory-production-sort b').forEach(node=>node.remove());
-      replacement.innerHTML=label.innerHTML||escapeHtml(text(label.textContent).replace(/[↕↑↓]/g,''));
-    }else{
-      replacement.innerHTML=button.innerHTML;
-    }
+    if(isSort) replacement.textContent=exportHeaderLabel(button);
+    else replacement.innerHTML=button.innerHTML;
     Array.from(button.attributes).forEach(attribute=>{
       if(attribute.name==='class'||attribute.name.startsWith('data-')||attribute.name.startsWith('aria-')||attribute.name==='tabindex') return;
       replacement.setAttribute(attribute.name,attribute.value);
@@ -195,13 +423,14 @@
     const clone=source.cloneNode(true);
     clone.querySelectorAll('[hidden]').forEach(node=>node.remove());
     clone.querySelectorAll(EXCLUDED_SELECTORS).forEach(node=>node.remove());
+    normalizeExportHeaders(clone);
     clone.querySelectorAll('button').forEach(replaceButton);
     clone.querySelectorAll('input,select,textarea').forEach(control=>{
       if(control.closest('table')){
         const value=text(control.value);
         const span=document.createElement('span');
         span.className='report-export-cell-value';
-        span.textContent=value||'—';
+        span.textContent=value;
         control.replaceWith(span);
       }else control.remove();
     });
@@ -211,9 +440,12 @@
     clone.querySelectorAll('table').forEach(table=>table.classList.add('report-export-table'));
     clone.querySelectorAll('[id]').forEach(node=>node.removeAttribute('id'));
     clone.removeAttribute?.('id');
+    expandExportCloneLayout(clone);
     return clone;
   }
   function statusExportText(cell){
+    const explicit=cell.matches?.('[data-export-value]')?cell:cell.querySelector?.('[data-export-value]');
+    if(explicit?.hasAttribute('data-export-value')) return text(explicit.getAttribute('data-export-value'));
     const visual=cell.querySelector('.department-status-visual');
     if(visual){
       const title=text(visual.getAttribute('title'));
@@ -260,7 +492,7 @@
   function captureScale(width,height,preferred=2){
     const maxEdge=30000,maxArea=90000000;
     const scale=Math.min(preferred,maxEdge/Math.max(width,1),maxEdge/Math.max(height,1),Math.sqrt(maxArea/Math.max(width*height,1)));
-    return Math.max(.2,Math.floor(scale*100)/100);
+    return Math.max(.05,Math.floor(scale*100)/100);
   }
   const UNSUPPORTED_COLOR_FUNCTION=/(?:^|[\s,(])(color|color-mix|lab|lch|oklab|oklch)\s*\(/i;
   const EXPORT_COLOR_PROPERTIES=[
@@ -450,8 +682,8 @@
     const stage=buildExportDocument(descriptor);
     try{
       await readyForCapture(stage);
-      const desired=Math.max(960,...Array.from(stage.querySelectorAll('table')).map(table=>table.scrollWidth+48));
-      stage.style.width=Math.min(14000,desired)+'px';
+      const desired=Math.max(960,...Array.from(stage.querySelectorAll('table')).map(table=>table.scrollWidth+64));
+      stage.style.width=desired+'px';
       await new Promise(resolve=>requestAnimationFrame(resolve));
       const canvas=await captureElement(stage,2,descriptor.colorAudit);
       return canvasBlob(canvas);
@@ -480,6 +712,7 @@
   async function buildPdfPages(descriptor){
     const host=document.createElement('div');host.className='report-pdf-stage';document.body.appendChild(host);
     try{
+    if(document.fonts?.ready) await document.fonts.ready;
     const pages=[];
     const addPage=()=>{const info=createPdfPage(descriptor,pages.length);host.appendChild(info.page);pages.push(info);return info;};
     let current=addPage();appendIntro(current,descriptor);
@@ -557,7 +790,7 @@
   function tableMatrix(table){
     const headers=[];
     const headRow=table.tHead?.rows?.[table.tHead.rows.length-1];
-    if(headRow) Array.from(headRow.cells).forEach(cell=>headers.push(statusExportText(cell).replace(/[↕↑↓]/g,'').trim()));
+    if(headRow) Array.from(headRow.cells).forEach(cell=>headers.push(exportHeaderLabel(cell)));
     const rows=Array.from(table.tBodies?.[0]?.rows||[]).filter(row=>!row.querySelector('.empty-row')).map(row=>{
       const values=[];Array.from(row.cells).forEach((cell,index)=>values.push(excelValue(statusExportText(cell),headers[index]||'')));return {values,cells:Array.from(row.cells)};
     });
@@ -623,7 +856,8 @@
     finally{setTimeout(()=>URL.revokeObjectURL(url),1000);}
   }
   async function exportSection(sectionId,format,options={}){
-    const descriptor=describe(sectionId);
+    let descriptor=describe(sectionId);
+    const requestedFormat=String(format||'');
     if(!descriptor) throw new Error('الشاشة غير مدعومة للتصدير.');
     if(descriptor.loading){notifyExportUser(sectionId,'انتظر اكتمال تحميل البيانات.','warning',options.silent===true);return {blocked:'loading'};}
     if(descriptor.hasUnsaved){
@@ -631,22 +865,28 @@
       notifyExportUser(sectionId,message,'warning',options.silent===true);
       return {blocked:'draft'};
     }
-    if(format==='png'||format==='pdf') descriptor.colorAudit=createExportColorAudit();
-    toolbarBusy(sectionId,true);setToolbarStatus(sectionId,`جاري إعداد ${String(format).toUpperCase()}...`,'busy');
+    const progressLabel=requestedFormat==='weekend-png'?'PNG الجمعة والسبت':requestedFormat.toUpperCase();
+    toolbarBusy(sectionId,true);setToolbarStatus(sectionId,`جاري إعداد ${progressLabel}...`,'busy');
     try{
+      if(requestedFormat==='weekend-png'){
+        if(descriptor.kind!=='statuses') throw new Error('تصدير الجمعة والسبت متاح لجدول الإجازات الأسبوعي فقط.');
+        descriptor=buildWeekendDescriptor(descriptor);
+      }
+      const outputFormat=requestedFormat==='weekend-png'?'png':requestedFormat;
+      if(outputFormat==='png'||outputFormat==='pdf') descriptor.colorAudit=createExportColorAudit();
       let blob,mime,extension;
-      if(format==='png'){blob=await exportPng(descriptor);mime='image/png';extension='png';}
-      else if(format==='pdf'){blob=await exportPdf(descriptor);mime='application/pdf';extension='pdf';}
-      else if(format==='excel'){blob=await exportExcel(descriptor);mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';extension='xlsx';}
+      if(outputFormat==='png'){blob=await exportPng(descriptor);mime='image/png';extension='png';}
+      else if(outputFormat==='pdf'){blob=await exportPdf(descriptor);mime='application/pdf';extension='pdf';}
+      else if(outputFormat==='excel'){blob=await exportExcel(descriptor);mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';extension='xlsx';}
       else throw new Error('صيغة التصدير غير مدعومة.');
       const fileName=`${descriptor.fileBase}.${extension}`;
       if(options.download!==false) await saveBlob(blob,fileName,mime);
       setToolbarStatus(sectionId,`تم إعداد ${fileName}`,'success');
-      return {blob,fileName,descriptor};
+      return {blob,fileName,descriptor,format:requestedFormat};
     }catch(error){
       const friendlyMessage='تعذر إنشاء ملف التصدير. تمت استعادة الشاشة ويمكنك المحاولة مرة أخرى.';
       console.error('Report workspace export failed',{
-        sectionId,format,errorName:error?.name||'Error',technicalMessage:error?.message||String(error),
+        sectionId,format:requestedFormat,errorName:error?.name||'Error',technicalMessage:error?.message||String(error),
         colorAudit:error?.colorAudit||descriptor.colorAudit||null
       },error);
       notifyExportUser(sectionId,friendlyMessage,'error',options.silent===true);
@@ -655,8 +895,7 @@
       if(descriptor.colorAudit) finalizeExportColorAudit(descriptor.colorAudit);
       toolbarBusy(sectionId,false);
     }
-  }
-  function bind(){
+  }  function bind(){
     if(document.documentElement.dataset.reportWorkspaceToolsBound==='1') return;
     document.documentElement.dataset.reportWorkspaceToolsBound='1';
     document.addEventListener('click',event=>{
@@ -669,6 +908,6 @@
   }
   function init(){Object.values(CONFIGS).forEach(injectToolbar);bind();}
 
-  window.ReportWorkspaceTools=Object.freeze({init,describe,exportSection,buildWorkbook,buildExportDocument,safeFilename,tableMatrix,captureScale,hasUnsupportedColorValue,resolveCssColorToRgba,sanitizeExportCloneColors,auditUnsupportedExportColors,getLastColorAudit:()=>({...LAST_EXPORT_COLOR_AUDIT,failures:[...LAST_EXPORT_COLOR_AUDIT.failures],samples:[...LAST_EXPORT_COLOR_AUDIT.samples]})});
+  window.ReportWorkspaceTools=Object.freeze({init,describe,exportSection,buildWorkbook,buildExportDocument,safeFilename,tableMatrix,captureScale,exportHeaderLabel,normalizeExportHeaders,expandExportCloneLayout,weeklyPrimaryShiftCode,sortWeeklyRowsByPrimaryShift,buildWeeklyDatasetTable,buildWeekendDatasetTable,hasUnsupportedColorValue,resolveCssColorToRgba,sanitizeExportCloneColors,auditUnsupportedExportColors,getLastColorAudit:()=>({...LAST_EXPORT_COLOR_AUDIT,failures:[...LAST_EXPORT_COLOR_AUDIT.failures],samples:[...LAST_EXPORT_COLOR_AUDIT.samples]})});
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

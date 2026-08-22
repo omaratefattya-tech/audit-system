@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const TABS = ['cumulative_department_evaluation','personnel_performance','attendance_compliance','absence_violations','evaluation_analysis','performance_trend'];
-  const S = { initialized:false, loading:false, loaded:false, error:'', activeTab:TABS[0], seq:0, controller:null, data:null, search:'', absenceMode:'records', trendGrouping:'month', sort:{} };
+  const S = { initialized:false, loading:false, loaded:false, error:'', activeTab:TABS[0], seq:0, controller:null, data:null, search:'', personPreviewId:'', absenceMode:'records', trendGrouping:'month', sort:{} };
   const $ = id => document.getElementById(id);
   const root = () => $('department_hr_reports');
   const panel = key => root()?.querySelector(`[data-department-hr-panel="${key}"]`);
@@ -69,6 +69,10 @@
       evaluations:arr(data.evaluations).filter(searchMatch)
     };
   }
+  function matchingPersonnel(data=current(),f=filters()){
+    const scope={...f,person:''};
+    return data.personnel.filter(person=>scopedPerson(person,scope)&&searchMatch(person));
+  }
   function scopedPerson(person,f=filters()){
     return (!f.plant||String(person.plant_code||'').toUpperCase()===f.plant.toUpperCase())
       &&(!f.department||person.department===f.department)&&(!f.job||person.job_title===f.job)&&(!f.person||person.id===f.person);
@@ -116,13 +120,13 @@
   }
   function sortHead(report,key,label){
     const state=S.sort[report]||{key,direction:'asc'};
-    const arrow=state.key===key?(state.direction==='asc'?' ↑':' ↓'):'';
-    return `<button class="department-hr-sort" type="button" data-hr-sort-report="${report}" data-hr-sort-key="${key}">${esc(label+arrow)}</button>`;
+    const arrow=state.key===key?(state.direction==='asc'?'↑':'↓'):'';
+    return `<button class="department-hr-sort" type="button" data-export-label="${esc(label)}" data-hr-sort-report="${report}" data-hr-sort-key="${key}"><span class="department-hr-sort-label">${esc(label)}</span>${arrow?`<span class="department-sort-indicator" aria-hidden="true">${arrow}</span>`:''}</button>`;
   }
-  function table(report,columns,rows,message){
+  function table(report,columns,rows,message,options={}){
     if(!rows.length) return empty(message);
-    const head=columns.map(c=>`<th>${c.sort?sortHead(report,c.key,c.label):esc(c.label)}</th>`).join('');
-    const body=rows.map(row=>`<tr>${columns.map(c=>`<td${c.className?` class="${c.className}"`:''}>${c.render?c.render(row):esc(row[c.key]??'—')}</td>`).join('')}</tr>`).join('');
+    const head=columns.map(c=>`<th data-export-label="${esc(c.label)}">${c.sort?sortHead(report,c.key,c.label):esc(c.label)}</th>`).join('');
+    const body=rows.map(row=>`<tr${typeof options.rowAttributes==='function'?options.rowAttributes(row):''}>${columns.map(c=>`<td${c.className?` class="${c.className}"`:''}>${c.render?c.render(row):esc(row[c.key]??'—')}</td>`).join('')}</tr>`).join('');
     return `<div class="department-hr-table-wrap"><table class="department-hr-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
   }
   function renderAll(){
@@ -190,9 +194,37 @@
   function renderPerson(){
     const target=panel('personnel_performance');
     if(!target) return;
-    const data=current(), id=filters().person, person=data.personnel.find(p=>p.id===id);
-    if(!person){ target.innerHTML=empty('اختر موظفًا ثم اضغط «تطبيق الفلاتر».'); return; }
-    const evals=data.evaluations.filter(r=>r.personnel_id===id), statuses=data.statuses.filter(r=>r.personnel_id===id), summary=scoreStats(evals);
+    const data=current(), f=filters(), people=matchingPersonnel(data,f);
+    const selectedId=f.person||S.personPreviewId;
+    let person=selectedId?data.personnel.find(p=>String(p.id)===String(selectedId)&&scopedPerson(p,{...f,person:selectedId})):null;
+    if(!person && !f.person && !S.personPreviewId && norm(S.search) && people.length===1) person=people[0];
+    if(!person){
+      if(!people.length){target.innerHTML=empty('لا يوجد موظفون مطابقون للفترة والفلاتر والبحث.');return;}
+      const summaryRows=people.map((p,index)=>{
+        const evals=data.evaluations.filter(r=>String(r.personnel_id)===String(p.id));
+        const statuses=data.statuses.filter(r=>String(r.personnel_id)===String(p.id));
+        const summary=scoreStats(evals);
+        return {
+          _order:index,id:p.id,employee_code:p.employee_code,full_name:p.full_name,job_title:p.job_title,
+          plant_code:p.plant_code,department:p.department,count:summary.count,avg:summary.avg,min:summary.min,max:summary.max,
+          discount:statuses.filter(r=>String(r.shift_code)==='8').length,
+          absence:statuses.filter(r=>String(r.shift_code)==='9').length
+        };
+      });
+      const summaryColumns=[
+        {key:'employee_code',label:'الكود الوظيفي',sort:true},{key:'full_name',label:'اسم الموظف',sort:true},{key:'job_title',label:'الوظيفة',sort:true},
+        {key:'plant_code',label:'الموقع',sort:true},{key:'department',label:'القسم',sort:true},{key:'count',label:'عدد التقييمات',sort:true},
+        {key:'avg',label:'المتوسط',sort:true,render:r=>esc(num(r.avg))},{key:'min',label:'أقل تقييم',sort:true,render:r=>esc(num(r.min))},
+        {key:'max',label:'أعلى تقييم',sort:true,render:r=>esc(num(r.max))},{key:'discount',label:'أيام الخصم',sort:true},{key:'absence',label:'غياب بدون إذن',sort:true}
+      ];
+      target.innerHTML='<p class="department-hr-note">اختر صف موظف لفتح تقريره التفصيلي دون إعادة تحميل البيانات.</p>'
+        +table('person_summary',summaryColumns,sorted('person_summary',summaryRows,'employee_code'),'لا يوجد موظفون مطابقون.',{
+          rowAttributes:row=>` class="department-hr-person-summary-row" data-hr-open-person="${esc(row.id)}" tabindex="0" role="button" aria-label="فتح تقرير ${esc(row.full_name)}"`
+        });
+      return;
+    }
+    const id=person.id;
+    const evals=data.evaluations.filter(r=>String(r.personnel_id)===String(id)), statuses=data.statuses.filter(r=>String(r.personnel_id)===String(id)), summary=scoreStats(evals);
     const counts=new Map();
     statuses.forEach(r=>counts.set(String(r.shift_code),(counts.get(String(r.shift_code))||0)+1));
     const codeCards=`<div class="department-hr-status-counts">${data.codes.map(code=>`<article><span class="department-hr-status-dot" style="--status-color:${color(code.display_color)}"></span><div><b>${esc(code.shift_code)} — ${esc(code.description)}</b><small>عدد الحالات المسجلة</small></div><strong>${counts.get(String(code.shift_code))||0}</strong></article>`).join('')}</div>`;
@@ -228,7 +260,7 @@
     });
     const columns=[
       {key:'employee_code',label:'الكود الوظيفي',sort:true},{key:'full_name',label:'اسم الموظف',sort:true},{key:'plant_code',label:'الموقع',sort:true},
-      {key:'department',label:'القسم',sort:true},{key:'job_title',label:'الوظيفة',sort:true},{key:'recorded',label:'إجمالي الأيام ذات الحالة',sort:true}
+      {key:'department',label:'القسم',sort:true},{key:'job_title',label:'الوظيفة',sort:true},{key:'recorded',label:'إجمالي الأيام المسجلة',sort:true}
     ];
     data.codes.forEach(code=>{
       const key=`code_${code.shift_code}`;
@@ -266,7 +298,7 @@
     const columns=[
       {key:'work_date',label:'التاريخ',sort:true,render:r=>esc(dateText(r.work_date))},{key:'employee_code',label:'الكود الوظيفي',sort:true},
       {key:'full_name',label:'اسم الموظف',sort:true},{key:'plant_code',label:'الموقع',sort:true},{key:'department',label:'القسم',sort:true},
-      {key:'job_title',label:'الوظيفة',sort:true},{key:'shift_code',label:'الكود',sort:true},
+      {key:'job_title',label:'الوظيفة',sort:true},{key:'shift_code',label:'كود الحالة',sort:true},
       {key:'shift_description',label:'وصف الحالة',sort:true,render:r=>`<span class="department-hr-status-label"><i style="--status-color:${color(r.display_color)}"></i>${esc(r.shift_description)}</span>`}
     ];
     target.innerHTML=controls+summary+table('absence_records',columns,sorted('absence_records',records.map((r,i)=>({...r,_order:i})),'work_date','desc'),'لا توجد مخالفات.');
@@ -276,21 +308,14 @@
     const target=panel('evaluation_analysis'), evals=current().evaluations;
     if(!target) return;
     if(!evals.length){ target.innerHTML=empty('لا توجد تقييمات يومية محفوظة فعليًا ضمن الفترة والفلاتر.'); return; }
-    const summary=scoreStats(evals), counts=new Map();
-    evals.forEach(r=>{const key=String(Number(r.score));counts.set(key,(counts.get(key)||0)+1);});
-    const distribution=[...counts].map(([score,count],i)=>({_order:i,score:Number(score),count,percentage:count/evals.length*100}));
-    const distributionColumns=[
-      {key:'score',label:'قيمة التقييم',sort:true,render:r=>esc(num(r.score))},{key:'count',label:'عدد المرات',sort:true},
-      {key:'percentage',label:'النسبة',sort:true,render:r=>esc(`${num(r.percentage)}%`)}
-    ];
+    const summary=scoreStats(evals);
+
     const reasonColumns=[
       {key:'evaluation_date',label:'التاريخ',sort:true,render:r=>esc(dateText(r.evaluation_date))},{key:'full_name',label:'الموظف',sort:true},
       {key:'job_title',label:'الوظيفة',sort:true},{key:'score',label:'التقييم',sort:true,render:r=>esc(num(r.score))},
       {key:'reason',label:'السبب',sort:true,className:'department-hr-text-cell',render:r=>esc(r.reason||'—')}
     ];
     target.innerHTML=cards([card('إجمالي التقييمات',String(summary.count)),card('المتوسط',num(summary.avg)),card('أقل تقييم',num(summary.min)),card('أعلى تقييم',num(summary.max))])
-      +'<h3 class="department-hr-subtitle">توزيع القيم الفعلية</h3>'
-      +table('analysis_distribution',distributionColumns,sorted('analysis_distribution',distribution,'score'),'لا يوجد توزيع تقييمات.')
       +'<h3 class="department-hr-subtitle">أسباب التقييم</h3>'
       +table('analysis_reasons',reasonColumns,sorted('analysis_reasons',evals.map((r,i)=>({...r,_order:i})),'evaluation_date','desc'),'لا توجد أسباب مسجلة.');
   }
@@ -336,11 +361,19 @@
     if(!host||host.dataset.departmentHrReportsBound==='1') return;
     host.dataset.departmentHrReportsBound='1';
     host.addEventListener('click',event=>{
-      if(event.target.closest('#departmentHrApplyFiltersBtn,#departmentHrRetryBtn,[data-hr-retry]')){event.preventDefault();load();return;}
+      if(event.target.closest('#departmentHrApplyFiltersBtn')){event.preventDefault();S.personPreviewId='';load();return;}
+      if(event.target.closest('#departmentHrRetryBtn,[data-hr-retry]')){event.preventDefault();load();return;}
+      const personRow=event.target.closest('[data-hr-open-person]');
+      if(personRow){event.preventDefault();S.personPreviewId=personRow.dataset.hrOpenPerson||'';renderPerson();return;}
       const button=event.target.closest('[data-hr-sort-key]');
       if(button){event.preventDefault();const report=button.dataset.hrSortReport,key=button.dataset.hrSortKey,current=S.sort[report];S.sort[report]=!current||current.key!==key?{key,direction:'asc'}:{key,direction:current.direction==='asc'?'desc':'asc'};renderAll();}
     });
-    host.addEventListener('input',event=>{if(event.target.id==='departmentHrSearchInput'){S.search=event.target.value||'';renderAll();}});
+    host.addEventListener('keydown',event=>{
+      const personRow=event.target.closest('[data-hr-open-person]');
+      if(!personRow || !['Enter',' '].includes(event.key)) return;
+      event.preventDefault();S.personPreviewId=personRow.dataset.hrOpenPerson||'';renderPerson();
+    });
+    host.addEventListener('input',event=>{if(event.target.id==='departmentHrSearchInput'){S.search=event.target.value||'';S.personPreviewId='';renderAll();}});
     host.addEventListener('change',event=>{
       if(event.target.matches('#departmentHrPlantFilter,#departmentHrDepartmentFilter,#departmentHrJobFilter')){syncOptions();return;}
       if(event.target.matches('[data-hr-absence-mode]')){S.absenceMode=event.target.value==='employees'?'employees':'records';renderAbsence();return;}

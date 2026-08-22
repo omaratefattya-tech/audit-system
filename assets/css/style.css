@@ -7632,3 +7632,26 @@ body.focus-mode-active .report-workspace-toolbar{position:sticky;top:0;z-index:3
 .report-export-document .department-hr-status-counts,.report-pdf-page .department-hr-status-counts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:7px}
 .report-export-document .department-hr-status-counts article,.report-pdf-page .department-hr-status-counts article{padding:7px;border:1px solid #bdd2c6;border-radius:8px;background:#fff;color:#14241c}
 .report-export-document .department-hr-note,.report-pdf-page .department-hr-note{padding:8px;border-radius:8px;background:#edf5ef;color:#40564a}
+
+.department-hr-person-summary-row{cursor:pointer}
+.department-hr-person-summary-row:hover td,.department-hr-person-summary-row:focus-visible td{background:rgba(104,186,69,.14)}
+.department-hr-person-summary-row:focus-visible{outline:2px solid #9be650;outline-offset:-2px}
+.report-export-column-label{display:block;color:inherit;font:inherit;text-align:center}
+.report-export-weekly-dataset{width:max-content;min-width:100%;max-width:none;overflow:visible}
+.weekend-export-root{width:max-content;min-width:100%;padding:4px;background:#f7faf8;overflow:visible}
+.report-export-document .weekend-export-table,.report-pdf-page .weekend-export-table{width:max-content;min-width:1080px;table-layout:fixed;border:2px solid #111;border-collapse:collapse;background:#fff;font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;direction:rtl}
+.report-export-document .weekend-export-table th,.report-export-document .weekend-export-table td,.report-pdf-page .weekend-export-table th,.report-pdf-page .weekend-export-table td{height:38px;min-height:38px;padding:6px 9px;border:2px solid #111;color:#111;background:#fff;font-weight:800;line-height:1.45;text-align:center;vertical-align:middle;white-space:normal;overflow-wrap:normal;word-break:normal}
+.report-export-document .weekend-export-table thead th,.report-pdf-page .weekend-export-table thead th{background:#245f6c;color:#fff;font-weight:900}
+.report-export-document .weekend-export-table th:nth-child(1),.report-pdf-page .weekend-export-table th:nth-child(1){width:145px}
+.report-export-document .weekend-export-table th:nth-child(2),.report-pdf-page .weekend-export-table th:nth-child(2){width:220px}
+.report-export-document .weekend-export-table th:nth-child(n+3),.report-pdf-page .weekend-export-table th:nth-child(n+3){width:250px}
+.report-export-document .weekend-export-table tbody tr>td.weekend-export-day,.report-pdf-page .weekend-export-table tbody tr>td.weekend-export-day{background:#245f6c;color:#ff8a1f;font-weight:900}
+.weekend-export-day strong,.weekend-export-day span{display:block;color:inherit}
+.weekend-export-day strong{font-size:17px}
+.weekend-export-day span{margin-top:5px;font-size:13px;direction:ltr;unicode-bidi:isolate}
+.report-export-document .weekend-export-table tbody tr>td.weekend-export-name,.report-pdf-page .weekend-export-table tbody tr>td.weekend-export-name{background:#fff;color:#111}
+.report-export-document .weekend-export-table tbody tr>td.weekend-export-job.management,.report-pdf-page .weekend-export-table tbody tr>td.weekend-export-job.management{background:#3c78d8;color:#fff}
+.report-export-document .weekend-export-table tbody tr>td.weekend-export-job.supervision,.report-pdf-page .weekend-export-table tbody tr>td.weekend-export-job.supervision{background:#4e9f50;color:#fff}
+.report-export-document .weekend-export-table tbody tr>td.weekend-export-job.operations,.report-pdf-page .weekend-export-table tbody tr>td.weekend-export-job.operations{background:#f39a3d;color:#17110a}
+.report-export-document .weekend-export-table tbody tr>td.weekend-export-job.neutral,.report-pdf-page .weekend-export-table tbody tr>td.weekend-export-job.neutral{background:#d8dee2;color:#172026}
+.report-export-document .weekend-export-table tbody tr>td.weekend-export-empty-day,.report-pdf-page .weekend-export-table tbody tr>td.weekend-export-empty-day{height:70px;background:#fff;color:#52615a;font-weight:900}

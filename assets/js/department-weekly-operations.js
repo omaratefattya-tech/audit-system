@@ -172,8 +172,46 @@
       hasUnsaved:hasDirtyWeeklyState(state)
     });
   }
+  function weeklyJobOrder(){
+    return Array.from(document.querySelectorAll('#departmentStorekeepersJobFilter option'))
+      .map(option=>String(option.value||'').trim()).filter(Boolean);
+  }
+  function weeklySavedExportDataset(kind){
+    const state=WEEKLY_STATES[kind];
+    if(!state) return null;
+    const tab=currentTab(state);
+    const dates=WEEK_DAYS.map(day=>Object.freeze({label:day.label,date:addDays(state.weekStart,day.offset)}));
+    const rows=sortedWeeklyPersonnel(state).map(person=>{
+      const days=dates.map(day=>{
+        const key=cellKey(person.id,day.date);
+        const baseline=state.baseline.get(key);
+        const blocked=state.kind==='evaluations'?state.blockingStatuses.get(key):null;
+        return Object.freeze({
+          label:day.label,date:day.date,
+          value:baseline?.value??'',
+          description:baseline?.description||blocked?.description||'',
+          color:baseline?.color||blocked?.color||'',
+          code:state.kind==='statuses'?(baseline?.value??''):(blocked?.code||''),
+          blocked:Boolean(blocked&&!baseline),
+          saved:Boolean(baseline)
+        });
+      });
+      return Object.freeze({
+        id:String(person.id||''),employee_code:String(person.employee_code||''),full_name:String(person.full_name||''),
+        job_title:String(person.job_title||''),plant_code:String(person.plant_code||''),department:String(person.department||''),
+        days:Object.freeze(days)
+      });
+    });
+    return Object.freeze({
+      kind:state.kind,from:state.from,to:state.to,weekStart:state.weekStart,weekEnd:addDays(state.weekStart,6),
+      activeTab:state.activeTab,activeTabLabel:tab.label,plantCode:tab.plantCode,department:tab.department,
+      sortKey:state.sortKey,sortDirection:state.sortDirection,hasUnsaved:hasDirtyWeeklyState(state),
+      jobOrder:Object.freeze(weeklyJobOrder()),dates:Object.freeze(dates),rows:Object.freeze(rows)
+    });
+  }
   window.DepartmentWeeklyOperations=Object.freeze({
     getExportState:weeklyPublicState,
+    getSavedExportDataset:weeklySavedExportDataset,
     hasUnsaved:kind=>hasDirtyWeeklyState(WEEKLY_STATES[kind]),
     getStorekeepersState:()=>Object.freeze({
       loading:STOREKEEPERS_STATE.loading,
