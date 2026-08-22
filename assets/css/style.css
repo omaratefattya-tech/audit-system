@@ -3183,7 +3183,7 @@ body.modal-open{overscroll-behavior:contain}
   }
 }
 
-/* Focus Mode: Sales Review + Incoming Review only */
+/* Focus Mode owner: report workspaces */
 .focus-mode-title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px;}
 .focus-mode-title-row h2{margin:0;text-align:right;}
 .focus-mode-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
@@ -3218,6 +3218,39 @@ body.focus-mode-active .focus-mode-close-btn{display:inline-flex!important;align
   body.focus-mode-active .focus-mode-actions{width:100%;}
   body.focus-mode-active .focus-mode-btn,
   body.focus-mode-active .focus-mode-close-btn{flex:1;min-width:0;}
+}
+/* Focus Mode layouts for the report workspaces registered in app.js */
+body.focus-mode-active[data-focus-section="inventory_expiry_tracking"] #inventory_expiry_tracking.active-section,
+body.focus-mode-active[data-focus-section="department_storekeepers"] #department_storekeepers.active-section,
+body.focus-mode-active[data-focus-section="department_weekly_leave_schedule"] #department_weekly_leave_schedule.active-section,
+body.focus-mode-active[data-focus-section="department_hr_reports"] #department_hr_reports.active-section,
+body.focus-mode-active[data-focus-section="department_evaluations"] #department_evaluations.active-section{display:block;flex:1 1 auto;width:100%;max-width:none;min-height:0;margin:0;padding:0;overflow:hidden}
+body.focus-mode-active[data-focus-section="inventory_expiry_tracking"] #inventory_expiry_tracking>.panel.glass,
+body.focus-mode-active[data-focus-section="department_storekeepers"] #department_storekeepers>.panel.glass,
+body.focus-mode-active[data-focus-section="department_weekly_leave_schedule"] #department_weekly_leave_schedule>.panel.glass,
+body.focus-mode-active[data-focus-section="department_hr_reports"] #department_hr_reports>.panel.glass,
+body.focus-mode-active[data-focus-section="department_evaluations"] #department_evaluations>.panel.glass{display:flex;flex-direction:column;width:100%;max-width:none;height:100%;min-height:0;margin:0;padding:16px;overflow:hidden}
+body.focus-mode-active #inventory_expiry_tracking .inventory-expiry-tab-panels,
+body.focus-mode-active #department_hr_reports .department-hr-report-panels,
+body.focus-mode-active #department_weekly_leave_schedule .department-weekly-workspace,
+body.focus-mode-active #department_evaluations .department-weekly-workspace{flex:1 1 auto;min-height:0;overflow:hidden}
+body.focus-mode-active #inventory_expiry_tracking .inventory-expiry-tab-panel.active,
+body.focus-mode-active #department_hr_reports .department-hr-report-panel.active,
+body.focus-mode-active #department_weekly_leave_schedule .department-weekly-workspace,
+body.focus-mode-active #department_evaluations .department-weekly-workspace{display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden}
+body.focus-mode-active #inventory_expiry_tracking .inventory-production-table-wrap,
+body.focus-mode-active #department_storekeepers .department-operational-table-wrap,
+body.focus-mode-active #department_weekly_leave_schedule .department-weekly-table-wrap,
+body.focus-mode-active #department_hr_reports .department-hr-table-wrap,
+body.focus-mode-active #department_evaluations .department-weekly-table-wrap{flex:1 1 auto;min-height:240px;max-height:none;overflow:auto;position:relative}
+body.focus-mode-active #department_weekly_leave_schedule .department-weekly-workspace,
+body.focus-mode-active #department_evaluations .department-weekly-workspace{display:flex;flex-direction:column}
+@media(max-width:768px){
+  body.focus-mode-active[data-focus-section="inventory_expiry_tracking"] #inventory_expiry_tracking>.panel.glass,
+  body.focus-mode-active[data-focus-section="department_storekeepers"] #department_storekeepers>.panel.glass,
+  body.focus-mode-active[data-focus-section="department_weekly_leave_schedule"] #department_weekly_leave_schedule>.panel.glass,
+  body.focus-mode-active[data-focus-section="department_hr_reports"] #department_hr_reports>.panel.glass,
+  body.focus-mode-active[data-focus-section="department_evaluations"] #department_evaluations>.panel.glass{padding:10px;border-radius:14px}
 }
 /* Inbound column manager + Focus sticky table headers */
 #inbound .report-tools-row,
@@ -7094,7 +7127,8 @@ body.focus-mode-active .inventory-count-post-close-modal{
 .department-storekeepers-toolbar{display:grid;grid-template-columns:minmax(220px,1.4fr) repeat(3,minmax(150px,1fr));gap:10px;margin-bottom:13px;padding:12px;border-radius:14px}
 .department-storekeepers-toolbar label,.department-weekly-period label{display:grid;gap:6px;color:#dfffd5;font-size:12px;font-weight:900}
 .department-storekeepers-toolbar input,.department-storekeepers-toolbar select,.department-weekly-period input{width:100%;min-width:0;height:42px;border-radius:10px}
-.department-operational-table-wrap,.department-weekly-table-wrap{width:100%;max-width:100%;overflow:auto;border:1px solid rgba(141,220,89,.22);border-radius:14px;background:rgba(0,35,27,.3);overscroll-behavior-inline:contain}
+.department-operational-table-wrap,.department-weekly-table-wrap{width:100%;max-width:100%;overflow:auto;border:1px solid rgba(141,220,89,.28);border-radius:12px;background:rgba(0,35,27,.46);overscroll-behavior-inline:contain;scrollbar-gutter:stable;box-shadow:0 16px 36px rgba(0,0,0,.2)}
+.department-weekly-table-wrap{max-height:min(72vh,760px)}
 #departmentStorekeepersTable{min-width:1560px}
 #departmentStorekeepersTable thead th,.department-weekly-table thead th{position:sticky;top:0;z-index:2;background:#00412f}
 #departmentStorekeepersTable td,#departmentStorekeepersTable th{white-space:nowrap}
@@ -7113,17 +7147,32 @@ body.focus-mode-active .inventory-count-post-close-modal{
 .department-weekly-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:9px;padding-top:2px}
 .department-weekly-actions button{min-width:145px}
 .department-weekly-help{min-height:22px;margin-bottom:6px}
-.department-weekly-table{width:100%;min-width:1760px;border-collapse:separate;border-spacing:0}
-#departmentEvaluationsApp .department-weekly-table{min-width:1480px}
-.department-weekly-table th,.department-weekly-table td{min-width:138px;text-align:center;vertical-align:middle}
-.department-weekly-table th:nth-child(-n+4),.department-weekly-table td:nth-child(-n+4){min-width:160px}
-#departmentEvaluationsApp .department-weekly-table th:nth-child(-n+3),#departmentEvaluationsApp .department-weekly-table td:nth-child(-n+3){min-width:165px}
+.department-weekly-table{width:100%;min-width:1686px;border-collapse:separate;border-spacing:0;table-layout:fixed;font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;direction:rtl}
+#departmentEvaluationsApp .department-weekly-table{min-width:1496px}
+.department-weekly-table th,.department-weekly-table td{box-sizing:border-box;height:50px;padding:7px 8px;border-inline-start:1px solid rgba(166,213,188,.28);border-bottom:1px solid rgba(166,213,188,.24);text-align:center;vertical-align:middle;white-space:normal}
+.department-weekly-table thead th{height:62px;padding:8px 7px;border-top:1px solid rgba(183,231,204,.34);border-bottom-color:rgba(183,231,204,.45);background:linear-gradient(180deg,#07533e,#003b2d);color:#f4fff7;box-shadow:inset 0 -1px 0 rgba(255,255,255,.06)}
+.department-weekly-table tbody td{background:#063328;color:#f1fff5}
+.department-weekly-table tbody tr:nth-child(even) td{background:#052d24}
+#departmentWeeklyScheduleApp .department-weekly-table th:nth-child(1),#departmentWeeklyScheduleApp .department-weekly-table td:nth-child(1),
+#departmentEvaluationsApp .department-weekly-table th:nth-child(1),#departmentEvaluationsApp .department-weekly-table td:nth-child(1){width:120px;min-width:120px;max-width:120px;position:sticky;right:0}
+#departmentWeeklyScheduleApp .department-weekly-table th:nth-child(2),#departmentWeeklyScheduleApp .department-weekly-table td:nth-child(2),
+#departmentEvaluationsApp .department-weekly-table th:nth-child(2),#departmentEvaluationsApp .department-weekly-table td:nth-child(2){width:220px;min-width:220px;max-width:220px;position:sticky;right:120px}
+#departmentWeeklyScheduleApp .department-weekly-table th:nth-child(3),#departmentWeeklyScheduleApp .department-weekly-table td:nth-child(3),
+#departmentEvaluationsApp .department-weekly-table th:nth-child(3),#departmentEvaluationsApp .department-weekly-table td:nth-child(3){width:190px;min-width:190px;max-width:190px;position:sticky;right:340px}
+#departmentWeeklyScheduleApp .department-weekly-table th:nth-child(4),#departmentWeeklyScheduleApp .department-weekly-table td:nth-child(4){width:190px;min-width:190px;max-width:190px;position:sticky;right:530px}
+#departmentWeeklyScheduleApp .department-weekly-table th:nth-child(n+5),#departmentWeeklyScheduleApp .department-weekly-table td:nth-child(n+5),
+#departmentEvaluationsApp .department-weekly-table th:nth-child(n+4),#departmentEvaluationsApp .department-weekly-table td:nth-child(n+4){width:138px;min-width:138px;max-width:138px}
+#departmentWeeklyScheduleApp .department-weekly-table tbody td:nth-child(-n+4),#departmentEvaluationsApp .department-weekly-table tbody td:nth-child(-n+3){z-index:3;background:#07392d;box-shadow:-1px 0 0 rgba(166,213,188,.16)}
+#departmentWeeklyScheduleApp .department-weekly-table tbody tr:nth-child(even) td:nth-child(-n+4),#departmentEvaluationsApp .department-weekly-table tbody tr:nth-child(even) td:nth-child(-n+3){background:#063328}
+#departmentWeeklyScheduleApp .department-weekly-table thead th:nth-child(-n+4),#departmentEvaluationsApp .department-weekly-table thead th:nth-child(-n+3){z-index:7;background:linear-gradient(180deg,#096047,#00412f);box-shadow:-1px 0 0 rgba(190,232,208,.22),0 8px 16px rgba(0,0,0,.2)}
 .department-day-heading span,.department-day-heading small{display:block}
-.department-day-heading small{margin-top:4px;color:#b8d8c6;font-size:10px;direction:ltr;unicode-bidi:isolate}
-.department-weekly-cell{padding:6px}
+.department-day-heading span{font-size:13px;font-weight:900;line-height:1.35}
+.department-day-heading small{margin-top:5px;color:#c8ead8;font-size:11px;font-weight:800;direction:ltr;unicode-bidi:isolate}
+.department-weekly-cell{position:relative;height:50px;padding:5px}
 .department-weekly-input{width:100%;min-width:108px;height:42px;padding:7px 8px;border:1px solid rgba(141,220,89,.28);border-radius:9px;background:rgba(0,24,20,.76);color:#fff;font:900 14px/1.2 inherit;text-align:center;direction:ltr;unicode-bidi:isolate}
 .department-weekly-input:focus{outline:2px solid rgba(155,230,80,.72);outline-offset:1px;border-color:#9be650}
-.department-weekly-cell.dirty{background:rgba(255,190,70,.1)}
+.department-weekly-cell.dirty{position:relative}
+.department-weekly-cell.dirty::after{content:"";position:absolute;top:4px;left:4px;z-index:8;width:8px;height:8px;border:2px solid rgba(4,39,29,.82);border-radius:50%;background:#ffc35b;box-shadow:0 0 0 2px rgba(255,195,91,.18)}
 .department-weekly-input.dirty{border-color:#ffc35b;box-shadow:inset 0 0 0 1px rgba(255,195,91,.2)}
 .department-weekly-cell.invalid{background:rgba(255,86,86,.12)}
 .department-weekly-input.invalid{border-color:#ff7272;color:#ffd0d0;box-shadow:inset 0 0 0 1px rgba(255,114,114,.25)}
@@ -7144,7 +7193,7 @@ body.focus-mode-active .inventory-count-post-close-modal{
   .department-weekly-tab{min-height:46px;scroll-snap-align:start}
   .department-operational-table-wrap,.department-weekly-table-wrap{max-width:100%;-webkit-overflow-scrolling:touch}
   .department-weekly-input{min-width:116px;height:48px;font-size:15px}
-  .department-weekly-table th,.department-weekly-table td{min-width:146px}
+  .department-weekly-table{touch-action:pan-x pan-y}
 }
 /* Department final evaluations, status colors, stable sorting, and mobile-only reload */
 .login-logo-refresh{
@@ -7502,3 +7551,84 @@ body.focus-mode-active .inventory-count-post-close-modal{
   .department-status-visual{min-height:46px}
 
 }
+/* Central report workspace toolbar and export surfaces */
+.report-workspace-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:7px;min-width:0;max-width:100%;font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;direction:rtl}
+.report-workspace-tool{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;min-width:0;min-height:40px;padding:8px 11px;white-space:nowrap;touch-action:manipulation}
+.report-workspace-tool svg{width:18px;height:18px;flex:0 0 18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.report-workspace-toolbar[data-busy="1"] .report-workspace-tool{cursor:progress}
+.report-workspace-tools-status{flex:1 1 100%;min-height:0;color:#cdebd8;text-align:left;font-size:11px;line-height:1.5}
+.report-workspace-tools-status:empty{display:none}
+.report-workspace-tools-status[data-type="error"]{color:#ffb4b4}
+.report-workspace-tools-status[data-type="warning"]{color:#ffd98c}
+.report-workspace-tools-status[data-type="success"]{color:#bdf29f}
+.department-screen-head>.report-workspace-toolbar{flex:0 1 auto}
+body.focus-mode-active .report-workspace-toolbar{position:sticky;top:0;z-index:38;padding:6px;border:1px solid rgba(141,220,89,.18);border-radius:12px;background:rgba(0,33,26,.94);box-shadow:0 8px 20px rgba(0,0,0,.22)}
+.report-export-stage,.report-pdf-stage{position:fixed;top:0;left:-100000px;z-index:-1;display:block;visibility:visible;pointer-events:none;overflow:visible;font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;direction:rtl}
+.report-export-document{box-sizing:border-box;width:1200px;min-height:320px;padding:24px;background:#f5faf6;color:#14241c}
+.report-export-document *,.report-pdf-stage *{box-sizing:border-box}
+.report-export-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:0 0 18px;padding:18px 20px;border-radius:14px;background:linear-gradient(135deg,#07543e,#00372b);color:#fff;box-shadow:0 10px 24px rgba(0,44,32,.18)}
+.report-export-header h1{margin:0;font-size:24px;line-height:1.45}
+.report-export-header h2{margin:4px 0 0;color:#cbf2d7;font-size:15px;line-height:1.5}
+.report-export-meta{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:6px;max-width:68%}
+.report-export-meta span{padding:5px 8px;border:1px solid rgba(255,255,255,.22);border-radius:8px;background:rgba(255,255,255,.08);color:#f5fff7;font-size:10px;font-weight:800;line-height:1.45;white-space:nowrap}
+.report-export-content{width:100%;min-width:0}
+.report-export-content>.inventory-expiry-tab-panel,.report-export-content>.department-weekly-workspace,.report-export-content>.department-hr-report-panel{display:block;width:100%;height:auto;overflow:visible}
+.report-export-document .report-export-table{width:max-content;min-width:100%;border-collapse:collapse;border-spacing:0;background:#fff;color:#14241c;direction:rtl}
+.report-export-document .report-export-table th,.report-export-document .report-export-table td{position:static;height:auto;min-height:36px;padding:8px 7px;border:1px solid #a9c3b5;background:#fff;color:#14241c;font-size:11px;line-height:1.55;text-align:center;vertical-align:middle;white-space:normal;overflow-wrap:anywhere;box-shadow:none}
+.report-export-document .report-export-table thead th{background:#07513d;color:#fff;font-weight:900}
+.report-export-document .report-export-table tbody tr:nth-child(even)>td{background:#edf5ef}
+.report-export-document .department-status-visual{min-height:38px;color:var(--status-text);background:var(--status-color);border-color:color-mix(in srgb,var(--status-color),#000 18%)}
+.report-export-document .inventory-production-stagnation.is-warning{background:#9f1f2e;color:#fff}
+.report-export-document .inventory-production-status-pill{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+.report-export-document .report-export-cell-value{display:block;min-height:28px;padding:5px;color:inherit;font-weight:800;text-align:center}
+.report-export-document .empty-row,.report-export-empty{padding:30px;border:1px dashed #99b6a6;border-radius:12px;background:#fff;color:#54675d;text-align:center;font-size:15px;font-weight:900}
+.report-pdf-page{position:relative;display:flex;flex-direction:column;overflow:hidden;padding:22px;background:#f5faf6;color:#14241c}
+.report-pdf-page.landscape{width:1123px;height:794px}
+.report-pdf-page.portrait{width:794px;height:1123px}
+.report-pdf-page .report-export-header{flex:0 0 auto;margin-bottom:12px;padding:12px 14px;border-radius:9px}
+.report-pdf-page .report-export-header.compact{padding:8px 12px}
+.report-pdf-page .report-export-header h1{font-size:17px}
+.report-pdf-page .report-export-header h2{font-size:11px}
+.report-pdf-page .report-export-header.compact .report-export-meta{display:none}
+.report-pdf-page .report-export-meta{gap:4px;max-width:72%}
+.report-pdf-page .report-export-meta span{padding:3px 5px;font-size:7.5px}
+.report-pdf-page-content{flex:1 1 auto;min-height:0;overflow:visible}
+.report-pdf-page .report-export-table{width:100%;min-width:0;max-width:100%;table-layout:fixed;border-collapse:collapse}
+.report-pdf-page .report-export-table thead{display:table-header-group}
+.report-pdf-page .report-export-table tr{break-inside:avoid;page-break-inside:avoid}
+.report-pdf-page .report-export-table th,.report-pdf-page .report-export-table td{position:static;width:auto;min-width:0;max-width:none;height:auto;min-height:28px;padding:5px 4px;border:1px solid #9fb9aa;background:#fff;color:#14241c;font-size:8.5px;line-height:1.42;white-space:normal;overflow-wrap:anywhere;box-shadow:none}
+.report-pdf-page .report-export-table thead th{background:#07513d;color:#fff;font-weight:900}
+.report-pdf-page .report-export-table tbody tr:nth-child(even)>td{background:#edf5ef}
+.report-pdf-page .department-status-visual{min-height:30px;padding:4px 5px;font-size:8px}
+.report-pdf-page .department-hr-summary,.report-pdf-page .inventory-production-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:7px;margin-bottom:10px}
+.report-pdf-page .department-hr-summary-card,.report-pdf-page .inventory-production-summary-card{min-height:0;padding:8px;background:#fff;color:#14241c}
+.report-pdf-page .department-hr-summary-card b,.report-pdf-page .inventory-production-summary-card strong{font-size:16px;color:#14241c}
+@media(max-width:900px){
+  .focus-mode-title-row,.department-screen-head{min-width:0}
+  .focus-mode-title-row>.report-workspace-toolbar,.department-screen-head>.report-workspace-toolbar{width:100%;max-width:100%;justify-content:flex-start;flex-wrap:nowrap;padding:3px 0 7px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-inline:contain;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+  .department-screen-head .report-workspace-toolbar .report-workspace-tool{flex:0 0 auto;width:auto;min-width:48px;min-height:46px}
+  .report-workspace-tool span{display:inline}
+  .report-workspace-tools-status{flex:0 0 auto;min-width:max-content;padding-inline:6px}
+}
+@media(max-width:520px){
+  .report-workspace-tool{padding-inline:10px}
+  .report-workspace-tool span{font-size:11px}
+  body.focus-mode-active .report-workspace-toolbar{top:0;padding-inline:max(6px,env(safe-area-inset-right)) max(6px,env(safe-area-inset-left))}
+}
+.report-export-document .inventory-production-summary,.report-export-document .department-hr-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:0 0 14px}
+.report-export-document .inventory-production-summary-card,.report-export-document .department-hr-summary-card{min-height:82px;padding:12px;border:1px solid #bdd2c6;border-radius:10px;background:#fff;color:#14241c;box-shadow:none}
+.report-export-document .inventory-production-summary-card span,.report-export-document .department-hr-summary-card span,.report-export-document .department-hr-summary-card small{display:block;color:#53675d}
+.report-export-document .inventory-production-summary-card strong,.report-export-document .department-hr-summary-card b{display:block;margin-top:5px;color:#14241c;font-size:20px}
+.report-export-document .inventory-production-summary-card.healthy{border-color:#64b94a;background:#eff9eb}
+.report-export-document .inventory-production-summary-card.violation,.report-export-document .inventory-production-summary-card.premature{border-color:#d65a67;background:#fff0f1}
+.report-export-document .inventory-production-summary-card.returned{border-color:#c36ad4;background:#fbf0fd}
+.report-export-document .inventory-production-summary-card.review{border-color:#d8a62d;background:#fff9e8}
+.report-export-document .inventory-production-status-pill{display:inline-flex;padding:4px 7px;border-radius:999px;font-weight:900}
+.report-export-document .inventory-production-status-pill.healthy{background:#dff5d6;color:#235b24}
+.report-export-document .inventory-production-status-pill.violation{background:#ffe0e3;color:#8d1e2a}
+.report-export-document .inventory-production-status-pill.review{background:#fff1c8;color:#75520c}
+.report-export-document .department-hr-person-card,.report-pdf-page .department-hr-person-card{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:0 0 10px}
+.report-export-document .department-hr-person-card>div,.report-pdf-page .department-hr-person-card>div{padding:8px;border:1px solid #bdd2c6;border-radius:8px;background:#fff;color:#14241c}
+.report-export-document .department-hr-status-counts,.report-pdf-page .department-hr-status-counts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:7px}
+.report-export-document .department-hr-status-counts article,.report-pdf-page .department-hr-status-counts article{padding:7px;border:1px solid #bdd2c6;border-radius:8px;background:#fff;color:#14241c}
+.report-export-document .department-hr-note,.report-pdf-page .department-hr-note{padding:8px;border-radius:8px;background:#edf5ef;color:#40564a}

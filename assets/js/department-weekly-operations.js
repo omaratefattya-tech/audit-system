@@ -146,6 +146,42 @@
   window.canLeaveDepartmentWeeklyWorkspace=canLeaveDepartmentWeeklyWorkspace;
   window.hasUnsavedDepartmentPersonnelWork=()=>Object.values(WEEKLY_STATES).some(hasDirtyWeeklyState);
   window.approveDepartmentPersonnelReloadOnce=()=>{APPROVED_APPLICATION_RELOAD=true;};
+  function weeklyPublicState(kind){
+    const state=WEEKLY_STATES[kind];
+    if(!state) return null;
+    const tab=currentTab(state);
+    return Object.freeze({
+      kind:state.kind,
+      rootId:state.rootId,
+      sectionId:state.sectionId,
+      from:state.from,
+      to:state.to,
+      weekStart:state.weekStart,
+      weekEnd:addDays(state.weekStart,6),
+      activeTab:state.activeTab,
+      activeTabLabel:tab.label,
+      plantCode:tab.plantCode,
+      department:tab.department,
+      sortKey:state.sortKey,
+      sortDirection:state.sortDirection,
+      loading:state.loading,
+      saving:state.saving,
+      rowCount:state.personnel.length,
+      dirtyCount:state.dirty.size,
+      invalidCount:state.invalid.size,
+      hasUnsaved:hasDirtyWeeklyState(state)
+    });
+  }
+  window.DepartmentWeeklyOperations=Object.freeze({
+    getExportState:weeklyPublicState,
+    hasUnsaved:kind=>hasDirtyWeeklyState(WEEKLY_STATES[kind]),
+    getStorekeepersState:()=>Object.freeze({
+      loading:STOREKEEPERS_STATE.loading,
+      rowCount:STOREKEEPERS_STATE.rows.length,
+      sortKey:STOREKEEPERS_STATE.sortKey,
+      sortDirection:STOREKEEPERS_STATE.sortDirection
+    })
+  });
 
   function weeklyRoot(state){return document.getElementById(state.rootId);}
   function setWeeklyStatus(state,message,type=''){

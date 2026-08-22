@@ -3049,8 +3049,33 @@ function nav(){
   updateFiltersVisibility(active);
 }
 
-const FOCUS_MODE_SECTIONS = new Set(['sales','inbound','raw_materials','inventory_closing']);
+const FOCUS_MODE_SECTIONS = new Set([
+  'sales','inbound','raw_materials','inventory_closing',
+  'inventory_expiry_tracking','department_storekeepers','department_weekly_leave_schedule',
+  'department_hr_reports','department_evaluations'
+]);
 let FOCUS_MODE_SCROLL_Y = 0;
+let FOCUS_MODE_CONTEXT = null;
+function captureFocusModeScrollState(target){
+  if(!target) return [];
+  return Array.from(target.querySelectorAll([
+    '.table-wrap','.department-weekly-table-wrap','.department-operational-table-wrap',
+    '.department-hr-table-wrap','.inventory-production-table-wrap',
+    '.department-hr-filters-scroll','.department-hr-tabs-scroll'
+  ].join(','))).filter(node=>node.scrollHeight>node.clientHeight || node.scrollWidth>node.clientWidth || node.scrollTop || node.scrollLeft).map(node=>({
+    node,top:node.scrollTop,left:node.scrollLeft
+  }));
+}
+function restoreFocusModeScrollState(context){
+  if(!context) return;
+  window.scrollTo({top:context.windowY,behavior:'auto'});
+  context.scrollNodes.forEach(item=>{
+    if(!item.node?.isConnected) return;
+    item.node.scrollTop=item.top;
+    item.node.scrollLeft=item.left;
+  });
+  if(context.trigger?.isConnected) context.trigger.focus({preventScroll:true});
+}
 function setFocusModeButtonState(){
   const active=document.body.classList.contains('focus-mode-active');
   const section=document.body.dataset.focusSection || '';
@@ -3068,8 +3093,16 @@ function enterFocusMode(section){
   if(!FOCUS_MODE_SECTIONS.has(section)) return;
   const target=$('#'+section);
   if(!target) return;
+  if(document.body.classList.contains('focus-mode-active') && document.body.dataset.focusSection===section) return;
+  if(document.body.classList.contains('focus-mode-active')) exitFocusMode({restoreScroll:false});
   if(currentActiveSection()!==section) switchSection(section);
   FOCUS_MODE_SCROLL_Y=window.scrollY || document.documentElement.scrollTop || 0;
+  FOCUS_MODE_CONTEXT={
+    section,
+    windowY:FOCUS_MODE_SCROLL_Y,
+    scrollNodes:captureFocusModeScrollState(target),
+    trigger:document.activeElement
+  };
   document.body.classList.add('focus-mode-active');
   document.body.dataset.focusSection=section;
   rememberApplicationViewState(section);
@@ -3080,13 +3113,15 @@ function enterFocusMode(section){
 }
 function exitFocusMode(options={}){
   const wasActive=document.body.classList.contains('focus-mode-active');
+  const context=FOCUS_MODE_CONTEXT;
   document.body.classList.remove('focus-mode-active');
   delete document.body.dataset.focusSection;
   rememberApplicationViewState(currentActiveSection());
   syncApplicationModalScrollRoot();
   setFocusModeButtonState();
   updateInventoryCountFreezePanes();
-  if(wasActive && options.restoreScroll!==false) requestAnimationFrame(()=>window.scrollTo({top:FOCUS_MODE_SCROLL_Y,behavior:'auto'}));
+  FOCUS_MODE_CONTEXT=null;
+  if(wasActive && options.restoreScroll!==false) requestAnimationFrame(()=>restoreFocusModeScrollState(context));
 }
 function initFocusModeControls(){
   if(document.body.dataset.focusModeBound==='1') return;
@@ -3111,6 +3146,11 @@ function initFocusModeControls(){
   });
   setFocusModeButtonState();
 }
+window.ReportFocusMode=Object.freeze({
+  enter:enterFocusMode,
+  exit:exitFocusMode,
+  isActive:section=>document.body.classList.contains('focus-mode-active') && (!section || document.body.dataset.focusSection===section)
+});
 
 function initSidebarToggle(){
   const shell = $('#appShell');
