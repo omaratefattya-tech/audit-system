@@ -26,7 +26,8 @@
     'effective_outbound',
     'expected_remaining_quantity',
     'current_oldest_quantity',
-    'difference'
+    'difference',
+    'stagnation_days'
   ]);
   const DATE_FIELDS = new Set(['previous_oldest_date', 'current_oldest_date']);
   const ARABIC_COLLATOR = new Intl.Collator('ar', { numeric: true, sensitivity: 'base' });
@@ -51,6 +52,41 @@
     const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
     date.setUTCDate(date.getUTCDate() + Number(days || 0));
     return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+  }
+
+  function dateOnlyUtcMilliseconds(value) {
+    const match = String(value || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const milliseconds = Date.UTC(year, month - 1, day);
+    const parsed = new Date(milliseconds);
+    if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) return null;
+    return milliseconds;
+  }
+
+  function calculateStagnationDays(reportDate, currentOldestDate) {
+    const reportMilliseconds = dateOnlyUtcMilliseconds(reportDate);
+    const oldestMilliseconds = dateOnlyUtcMilliseconds(currentOldestDate);
+    if (reportMilliseconds === null || oldestMilliseconds === null) return null;
+    const days = (reportMilliseconds - oldestMilliseconds) / 86400000;
+    return Number.isInteger(days) && days >= 0 ? days : null;
+  }
+
+  function formatStagnationDays(days) {
+    if (!Number.isInteger(days) || days < 0) return '—';
+    if (days === 0) return '0 يوم';
+    if (days === 1) return '1 يوم';
+    if (days === 2) return 'يومان';
+    if (days <= 10) return `${days} أيام`;
+    return `${days} يومًا`;
+  }
+
+  function sortableValue(row, key) {
+    return key === 'stagnation_days'
+      ? calculateStagnationDays(STATE.reportDate, row.current_oldest_date)
+      : row[key];
   }
 
   function displayDate(value) {
@@ -136,8 +172,8 @@
     });
     if (!STATE.sortKey || !STATE.sortDirection) return filtered;
     return filtered.map((row, index) => ({ row, index })).sort((left, right) => {
-      const first = left.row[STATE.sortKey];
-      const second = right.row[STATE.sortKey];
+      const first = sortableValue(left.row, STATE.sortKey);
+      const second = sortableValue(right.row, STATE.sortKey);
       const firstEmpty = first === null || first === undefined || first === '';
       const secondEmpty = second === null || second === undefined || second === '';
       if (firstEmpty !== secondEmpty) return firstEmpty ? 1 : -1;
@@ -175,6 +211,8 @@
     const expected = row.expected_note
       ? `<span class="inventory-production-expected-note">${escapeValue(row.expected_note)}</span>`
       : `<span class="inventory-production-number-text">${formatNumber(row.expected_remaining_quantity)}</span>`;
+    const stagnationDays = calculateStagnationDays(STATE.reportDate, row.current_oldest_date);
+    const stagnationWarning = stagnationDays !== null && stagnationDays >= 15;
     return `<tr data-production-status="${escapeValue(row.status_code)}">
       <td class="inventory-production-code">${escapeValue(row.material_code || '—')}</td>
       <td class="inventory-production-description">${escapeValue(row.material_name || '—')}</td>
@@ -187,6 +225,7 @@
       <td>${escapeValue(displayDate(row.current_oldest_date))}</td>
       <td class="inventory-production-number">${formatNumber(row.current_oldest_quantity)}</td>
       <td class="inventory-production-number inventory-production-difference">${formatNumber(row.difference, { signed: true })}</td>
+      <td class="inventory-production-number inventory-production-stagnation${stagnationWarning ? ' is-warning' : ''}">${formatStagnationDays(stagnationDays)}</td>
       <td class="inventory-production-result">
         <span class="inventory-production-status-pill ${escapeValue(row.status_category)}">${escapeValue(row.status_label)}</span>
         <small>${escapeValue(row.status_reason)}</small>
@@ -209,12 +248,13 @@
       ['current_oldest_date', 'أقدم تاريخ اليوم'],
       ['current_oldest_quantity', 'كمية اليوم'],
       ['difference', 'الفرق'],
+      ['stagnation_days', 'مدة ركود الصنف في المخزن'],
       ['status_label', 'الحالة']
     ];
     return `<div class="inventory-production-table-wrap">
       <table class="inventory-production-table" data-no-universal-table="1">
         <thead><tr>${headings.map(([key, label]) => `<th>${sortHeading(key, label)}</th>`).join('')}</tr></thead>
-        <tbody>${rows.length ? rows.map(renderRow).join('') : '<tr><td colspan="12" class="empty-row">لا توجد أصناف مطابقة للبحث أو الفلتر.</td></tr>'}</tbody>
+        <tbody>${rows.length ? rows.map(renderRow).join('') : '<tr><td colspan="13" class="empty-row">لا توجد أصناف مطابقة للبحث أو الفلتر.</td></tr>'}</tbody>
       </table>
     </div>`;
   }
