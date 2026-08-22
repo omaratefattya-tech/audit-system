@@ -5378,10 +5378,63 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 
 #department_hr_reports .department-hr-reports-panel,
 #department_hr_reports .department-hr-report-panels,
-#department_hr_reports .department-hr-report-panel {
+#department_hr_reports .department-hr-report-panel,
+#department_hr_reports .department-hr-report-content {
   min-width: 0;
   max-width: 100%;
 }
+
+#department_hr_reports .department-hr-report-controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid rgba(141, 220, 89, .2);
+  border-radius: 14px;
+}
+
+#department_hr_reports .department-hr-report-controls label,
+#department_hr_reports .department-hr-inline-controls label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: .88rem;
+}
+
+#department_hr_reports .department-hr-report-controls input,
+#department_hr_reports .department-hr-report-controls select,
+#department_hr_reports .department-hr-inline-controls select {
+  width: 100%;
+  min-width: 0;
+}
+
+#department_hr_reports .department-hr-search-field {
+  grid-column: span 2;
+}
+
+#department_hr_reports .department-hr-control-actions {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+
+#department_hr_reports .department-hr-control-actions button {
+  flex: 1 1 auto;
+  min-height: 43px;
+}
+
+#department_hr_reports .department-hr-report-status {
+  min-height: 28px;
+  margin-bottom: 10px;
+  padding: 0 2px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+#department_hr_reports .department-hr-report-status.success { color: #9ce66c; }
+#department_hr_reports .department-hr-report-status.error { color: #ff9b9b; }
 
 #department_hr_reports .department-hr-report-tabs {
   display: grid;
@@ -5415,16 +5468,223 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
   border: 1px solid rgba(141, 220, 89, .22);
   border-radius: 14px;
   background: rgba(0, 35, 27, .3);
+  overflow: hidden;
 }
 
 #department_hr_reports .department-hr-report-panel[hidden] {
   display: none;
 }
 
-#department_hr_reports .department-hr-report-panel p {
-  margin: 0;
+#department_hr_reports .department-hr-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+#department_hr_reports .department-hr-summary-card {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-height: 112px;
+  padding: 14px;
+  border: 1px solid rgba(141, 220, 89, .18);
+  border-radius: 12px;
+  background: rgba(5, 48, 38, .72);
+}
+
+#department_hr_reports .department-hr-summary-card span,
+#department_hr_reports .department-hr-summary-card small {
   color: var(--muted);
-  line-height: 1.9;
+  line-height: 1.6;
+}
+
+#department_hr_reports .department-hr-summary-card b {
+  color: #f1ffe7;
+  font-size: 1.45rem;
+}
+
+#department_hr_reports .department-hr-person-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+#department_hr_reports .department-hr-person-card > div {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid rgba(141, 220, 89, .16);
+  border-radius: 11px;
+  background: rgba(3, 43, 34, .7);
+}
+
+#department_hr_reports .department-hr-person-card span,
+#department_hr_reports .department-hr-status-counts small {
+  color: var(--muted);
+  font-size: .82rem;
+}
+
+#department_hr_reports .department-hr-subtitle {
+  margin: 18px 0 10px;
+  color: #eaffdf;
+  font-size: 1rem;
+}
+
+#department_hr_reports .department-hr-status-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+#department_hr_reports .department-hr-status-counts article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 10px;
+  background: rgba(0, 27, 22, .55);
+}
+
+#department_hr_reports .department-hr-status-counts article div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+#department_hr_reports .department-hr-status-dot,
+#department_hr_reports .department-hr-code-value i,
+#department_hr_reports .department-hr-status-label i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--status-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-color) 22%, transparent);
+}
+
+#department_hr_reports .department-hr-inline-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+#department_hr_reports .department-hr-inline-controls label {
+  width: min(280px, 100%);
+}
+
+#department_hr_reports .department-hr-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(141, 220, 89, .07);
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+#department_hr_reports .department-hr-note + .department-hr-table-wrap {
+  margin-top: 12px;
+}
+
+#department_hr_reports .department-hr-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid rgba(141, 220, 89, .17);
+  border-radius: 12px;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+#department_hr_reports .department-hr-table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+}
+
+#department_hr_reports .department-hr-table th,
+#department_hr_reports .department-hr-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, .07);
+  text-align: right;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+#department_hr_reports .department-hr-table th {
+  background: rgba(3, 52, 40, .94);
+  color: #dcffd0;
+}
+
+#department_hr_reports .department-hr-table tbody tr:hover {
+  background: rgba(141, 220, 89, .045);
+}
+
+#department_hr_reports .department-hr-table .department-hr-text-cell {
+  min-width: 260px;
+  max-width: 420px;
+  white-space: normal;
+  line-height: 1.65;
+}
+
+#department_hr_reports .department-hr-sort {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+#department_hr_reports .department-hr-code-value,
+#department_hr_reports .department-hr-status-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+#department_hr_reports .department-hr-lock-badge,
+#department_hr_reports .department-hr-period-note {
+  display: inline-flex;
+  margin-inline-start: 7px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(141, 220, 89, .12);
+  color: #b8f58f;
+  font-size: .76rem;
+}
+
+#department_hr_reports .department-hr-table .positive { color: #9ce66c; }
+#department_hr_reports .department-hr-table .negative { color: #ff9b9b; }
+#department_hr_reports .department-hr-table .neutral { color: var(--muted); }
+
+#department_hr_reports .department-hr-state {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 170px;
+  padding: 22px;
+  color: var(--muted);
+  text-align: center;
+}
+
+#department_hr_reports .department-hr-state.error { color: #ffb2b2; }
+
+#department_hr_reports .department-hr-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(141, 220, 89, .18);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: department-hr-spin .8s linear infinite;
+}
+
+@keyframes department-hr-spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 850px) {
@@ -5432,23 +5692,55 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
     overflow-x: hidden;
   }
 
+  #department_hr_reports .department-hr-report-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #department_hr_reports .department-hr-search-field {
+    grid-column: auto;
+  }
+
   #department_hr_reports .department-hr-report-tabs {
-    display: flex;
-    flex-wrap: nowrap;
-    max-width: 100%;
-    padding: 2px 2px 7px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    overscroll-behavior-inline: contain;
-    scroll-snap-type: inline proximity;
-    scrollbar-width: thin;
-    -webkit-overflow-scrolling: touch;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   #department_hr_reports .department-hr-report-tab {
-    flex: 0 0 min(260px, calc(100vw - 72px));
     min-height: 56px;
-    scroll-snap-align: start;
+  }
+
+  #department_hr_reports .department-hr-person-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  #department_hr_reports .department-hr-report-controls,
+  #department_hr_reports .department-hr-report-tabs,
+  #department_hr_reports .department-hr-person-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #department_hr_reports .department-hr-control-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  #department_hr_reports .department-hr-report-panel {
+    padding: 12px;
+  }
+
+  #department_hr_reports .department-hr-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #department_hr_reports .department-hr-summary-card {
+    min-height: 100px;
+  }
+}
+
+@media (max-width: 390px) {
+  #department_hr_reports .department-hr-summary {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 /* INV-REVIEW-01: inventory review recommendations */

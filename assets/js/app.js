@@ -2751,6 +2751,7 @@ function switchSection(section,options={}){
   if(section==='inventory_expiry_tracking') setTimeout(()=>window.InventoryProductionTracking?.load(),50);
   if(section==='department_storekeepers') setTimeout(()=>loadDepartmentStorekeepers(),50);
   if(section==='department_weekly_leave_schedule') setTimeout(()=>loadDepartmentWeeklyWorkspace('statuses'),50);
+  if(section==='department_hr_reports') setTimeout(()=>window.DepartmentHrReports?.load(),50);
   if(section==='department_evaluations') setTimeout(()=>loadDepartmentWeeklyWorkspace('evaluations'),50);
   setTimeout(()=>applyPermissionActionGuards(section),80);
   return true;
@@ -14192,6 +14193,7 @@ function setDepartmentHrReportTab(tabKey, options = {}) {
     panel.hidden = !isActive;
   });
 
+  window.DepartmentHrReports?.setActiveTab(activeKey);
   if (selectedTab && (shouldFocus || focusWasInsideHiddenPanel)) {
     selectedTab.focus({ preventScroll: true });
     selectedTab.scrollIntoView({ block: "nearest", inline: "nearest" });

@@ -1233,6 +1233,39 @@
       </section>      <section id="department_hr_reports" class="section">
         <article class="panel glass department-hr-reports-panel">
           <div class="department-screen-head"><div><h2>تقارير HR</h2></div></div>
+          <div class="department-hr-report-controls glass-soft" id="departmentHrReportControls">
+            <label>من تاريخ
+              <input id="departmentHrFromDate" type="date" data-custom-date-picker data-custom-date-picker-label="من تاريخ" aria-label="بداية فترة تقارير HR" />
+            </label>
+            <label>إلى تاريخ
+              <input id="departmentHrToDate" type="date" data-custom-date-picker data-custom-date-picker-label="إلى تاريخ" aria-label="نهاية فترة تقارير HR" />
+            </label>
+            <label>الموقع الوظيفي
+              <select id="departmentHrPlantFilter">
+                <option value="">كل المواقع</option>
+                <option value="WF01">WF01</option>
+                <option value="EL01">EL01</option>
+                <option value="EL02">EL02</option>
+              </select>
+            </label>
+            <label>القسم
+              <select id="departmentHrDepartmentFilter"><option value="">كل الأقسام</option></select>
+            </label>
+            <label>الوظيفة
+              <select id="departmentHrJobFilter"><option value="">كل الوظائف</option></select>
+            </label>
+            <label data-hr-personnel-filter>الموظف
+              <select id="departmentHrPersonnelFilter"><option value="">كل الموظفين</option></select>
+            </label>
+            <label class="department-hr-search-field">البحث
+              <input id="departmentHrSearchInput" type="search" autocomplete="off" placeholder="الاسم، الكود، الوظيفة، السبب..." />
+            </label>
+            <div class="department-hr-control-actions">
+              <button class="primary" id="departmentHrApplyFiltersBtn" type="button">تطبيق الفلاتر</button>
+              <button class="secondary" id="departmentHrRetryBtn" type="button" hidden>إعادة المحاولة</button>
+            </div>
+          </div>
+          <div class="department-hr-report-status" id="departmentHrReportStatus" role="status" aria-live="polite"></div>
           <div class="subtabs department-hr-report-tabs" id="departmentHrReportTabs" role="tablist" aria-label="أنواع تقارير الموارد البشرية">
             <button type="button" class="department-hr-report-tab active" id="departmentHrReportTabCumulative" role="tab" data-department-hr-tab="cumulative_department_evaluation" aria-selected="true" aria-controls="departmentHrReportPanelCumulative" tabindex="0">التقييم التراكمي للقسم</button>
             <button type="button" class="department-hr-report-tab" id="departmentHrReportTabPersonnel" role="tab" data-department-hr-tab="personnel_performance" aria-selected="false" aria-controls="departmentHrReportPanelPersonnel" tabindex="-1">تقرير أداء الأفراد</button>
@@ -1933,6 +1966,7 @@
   <script src="assets/js/app.js?v=production-tracking-report-20260820-1"></script>
   <script src="assets/js/department-weekly-operations.js?v=production-tracking-report-20260820-1"></script>
   <script src="assets/js/custom-date-picker.js?v=production-tracking-report-20260820-1"></script>
+  <script src="assets/js/department-hr-reports.js?v=hr-reports-20260822-1"></script>
   <script src="assets/js/inventory-production-tracking.js?v=production-tracking-report-20260820-1"></script>
   <script>
   </script>
