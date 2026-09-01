@@ -2691,7 +2691,7 @@ function syncMobileDashboardShellState(){
 }
 const INVENTORY_AUDIT_SECTION_IDS = new Set(['inventory_closing','inventory_differences','inventory_expiry_tracking']);
 function isInventoryAuditSection(section){ return INVENTORY_AUDIT_SECTION_IDS.has(section); }
-const DEPARTMENT_PERSONNEL_SECTION_IDS = new Set(['department_storekeepers','department_weekly_leave_schedule','department_hr_reports','department_evaluations']);
+const DEPARTMENT_PERSONNEL_SECTION_IDS = new Set(['department_storekeepers','department_weekly_leave_schedule','department_hr_reports','department_evaluations','department_loading_errors']);
 function isDepartmentPersonnelSection(section){ return DEPARTMENT_PERSONNEL_SECTION_IDS.has(section); }
 function setInventoryAuditNavGroupOpen(group,open){
   if(!group) return;
@@ -2753,6 +2753,7 @@ function switchSection(section,options={}){
   if(section==='department_weekly_leave_schedule') setTimeout(()=>loadDepartmentWeeklyWorkspace('statuses'),50);
   if(section==='department_hr_reports') setTimeout(()=>window.DepartmentHrReports?.load(),50);
   if(section==='department_evaluations') setTimeout(()=>loadDepartmentWeeklyWorkspace('evaluations'),50);
+  if(section==='department_loading_errors') setTimeout(()=>window.DepartmentLoadingErrors?.load(),50);
   setTimeout(()=>applyPermissionActionGuards(section),80);
   return true;
 }
@@ -6299,7 +6300,7 @@ function applyNavigationPermissions(){
     group.classList.toggle('permission-hidden',!departmentPersonnelAllowed);
     group.hidden=!departmentPersonnelAllowed;
   });
-  $$('.mobile-drawer-item[data-mobile-section="department_storekeepers"],.mobile-drawer-item[data-mobile-section="department_weekly_leave_schedule"],.mobile-drawer-item[data-mobile-section="department_hr_reports"],.mobile-drawer-item[data-mobile-section="department_evaluations"]').forEach(item=>{
+  $$('.mobile-drawer-item[data-mobile-section="department_storekeepers"],.mobile-drawer-item[data-mobile-section="department_weekly_leave_schedule"],.mobile-drawer-item[data-mobile-section="department_hr_reports"],.mobile-drawer-item[data-mobile-section="department_evaluations"],.mobile-drawer-item[data-mobile-section="department_loading_errors"]').forEach(item=>{
     item.disabled=!departmentPersonnelAllowed;
     item.classList.toggle('permission-hidden',!departmentPersonnelAllowed);
   });

@@ -6618,6 +6618,95 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .audit-score-dialog.app-liquid-modal{display:flex;flex-direction:column}
 .users-modal-card.app-liquid-modal,.inventory-difference-replace-dialog.app-liquid-modal,#icBatchViewModal.app-liquid-modal{font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif}
 @media(max-width:700px){.app-liquid-modal{max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);border-radius:17px}.app-liquid-modal__footer{padding-bottom:max(12px,env(safe-area-inset-bottom))}.inventory-settlement-reversal-modal,.app-liquid-confirm{padding:8px}.inventory-settlement-reversal-dialog,.app-liquid-confirm__dialog{width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}.inventory-settlement-reversal-grid,.inventory-review-history-meta,.inventory-review-history-comparison{grid-template-columns:1fr}.inventory-settlement-reversal-header,.inventory-settlement-reversal-body,.inventory-settlement-reversal-actions{padding-inline:13px}.inventory-settlement-reversal-actions{display:grid;grid-template-columns:1fr 1fr}.inventory-settlement-reversal-actions button,.app-liquid-modal__footer button{min-height:46px}.inventory-review-tabs{padding-inline:12px}}
+
+/* Department loading error register */
+#department_loading_errors{min-width:0;max-width:100%;overflow-x:hidden}
+#department_loading_errors .department-loading-errors-panel{min-width:0;display:flex;flex-direction:column;gap:14px}
+.department-loading-errors-workspace{display:flex;flex-direction:column;gap:12px;min-width:0}
+.department-loading-errors-tabs{display:flex;align-items:center;gap:9px;min-width:0;padding:5px;overflow-x:auto;scrollbar-width:thin}
+.department-loading-errors-tab{flex:0 0 auto;min-height:44px;padding:9px 15px;border:1px solid rgba(142,211,94,.24);border-radius:13px;background:rgba(1,45,35,.62);color:#d8ebdc;font-family:"Cairo",sans-serif;font-weight:700;cursor:pointer;transition:border-color .18s ease,background .18s ease,color .18s ease,transform .18s ease}
+.department-loading-errors-tab:hover{border-color:rgba(159,224,97,.58);transform:translateY(-1px)}
+.department-loading-errors-tab.active{border-color:rgba(244,190,47,.8);background:linear-gradient(145deg,rgba(42,112,50,.78),rgba(3,61,45,.92));color:#fff4c4;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+.department-loading-errors-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px;border-radius:16px}
+.department-loading-errors-context{display:flex;flex-direction:column;gap:2px;min-width:0}
+.department-loading-errors-context span{color:var(--muted);font-size:.78rem}
+.department-loading-errors-context strong{color:#fff;overflow-wrap:anywhere}
+.department-loading-error-open{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;white-space:nowrap}
+.department-loading-error-open svg,.department-loading-error-lines-head button svg,.department-loading-error-remove-line svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.department-loading-errors-status{min-height:22px;margin:0}
+.department-loading-errors-status.ok{color:#b9f18e}
+.department-loading-errors-status.err{color:#ffb0b0}
+.department-loading-errors-table-wrap{position:relative;min-width:0;max-width:100%;max-height:calc(100dvh - 330px);overflow:auto;border:1px solid rgba(142,211,94,.18);border-radius:16px}
+#departmentLoadingErrorsTable{min-width:1900px;margin:0}
+#departmentLoadingErrorsTable th{position:sticky;top:0;z-index:2;white-space:nowrap;background:#063f32;color:#fff}
+#departmentLoadingErrorsTable td{vertical-align:middle}
+#departmentLoadingErrorsTable .department-loading-errors-text-cell{min-width:220px;max-width:340px;white-space:normal;overflow-wrap:anywhere;line-height:1.75}
+.department-loading-error-type{display:inline-flex;align-items:center;justify-content:center;min-width:62px;padding:4px 10px;border-radius:999px;border:1px solid transparent;font-weight:800}
+.department-loading-error-type.surplus{color:#d9ffd2;background:rgba(65,159,69,.22);border-color:rgba(122,218,93,.42)}
+.department-loading-error-type.shortage{color:#ffd8d8;background:rgba(174,45,56,.24);border-color:rgba(255,112,112,.42)}
+
+.department-loading-error-modal{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(0,14,11,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.department-loading-error-modal[hidden]{display:none}
+.department-loading-error-dialog{display:flex;flex-direction:column;width:min(1500px,calc(100vw - 36px));height:min(900px,calc(100dvh - 36px))}
+.department-loading-error-modal-head{padding:16px 18px}
+.department-loading-error-modal-head>div{display:flex;flex-direction:column;gap:3px}
+.department-loading-error-modal-head>div>span{color:#b9d7bd;font-size:.76rem;font-weight:700}
+.department-loading-error-modal-body{display:flex;flex:1 1 auto;flex-direction:column;gap:14px;padding:16px 18px}
+.department-loading-error-header-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;padding:14px}
+.department-loading-error-header-grid label,.department-loading-error-action-field{display:flex;flex-direction:column;gap:7px;color:#e9f5eb;font-weight:700;min-width:0}
+.department-loading-error-header-grid input,.department-loading-error-lines-table input,.department-loading-error-lines-table select,.department-loading-error-lines-table textarea,.department-loading-error-action-field textarea{width:100%;min-width:0;border:1px solid rgba(154,217,111,.28);border-radius:11px;background:rgba(0,31,25,.72);color:#fff;padding:9px 10px;font-family:"Cairo",sans-serif}
+.department-loading-error-header-grid input{min-height:43px}
+.department-loading-error-header-grid input[readonly],.department-loading-error-lines-table input[readonly]{background:rgba(255,255,255,.055);color:#cce0d0;cursor:default}
+.department-loading-error-header-grid .custom-date-picker-display{min-height:43px}
+.department-loading-error-lines-section{display:flex;flex-direction:column;gap:12px;padding:14px;min-width:0}
+.department-loading-error-lines-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.department-loading-error-lines-head h3{margin:0;color:#f3fff0}
+.department-loading-error-lines-head p{margin:3px 0 0;color:var(--muted);font-size:.8rem}
+.department-loading-error-lines-head button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;white-space:nowrap}
+.department-loading-error-lines-wrap{max-width:100%;overflow:auto;border:1px solid rgba(142,211,94,.18);border-radius:13px}
+.department-loading-error-lines-table{width:100%;min-width:1280px;margin:0;border-collapse:separate;border-spacing:0}
+.department-loading-error-lines-table th{white-space:nowrap;background:#073f33;color:#fff}
+.department-loading-error-lines-table th,.department-loading-error-lines-table td{padding:8px;border-bottom:1px solid rgba(255,255,255,.08);vertical-align:middle}
+.department-loading-error-lines-table td:nth-child(1){min-width:150px}
+.department-loading-error-lines-table td:nth-child(2){min-width:220px}
+.department-loading-error-lines-table td:nth-child(3){min-width:130px}
+.department-loading-error-lines-table td:nth-child(4){min-width:160px}
+.department-loading-error-lines-table td:nth-child(5){min-width:190px}
+.department-loading-error-lines-table td:nth-child(6){min-width:250px}
+.department-loading-error-lines-table textarea{resize:vertical;min-height:44px}
+.department-loading-error-remove-line{display:inline-grid;place-items:center;width:40px;height:40px;margin:auto;border:1px solid rgba(255,110,110,.38);border-radius:11px;background:rgba(124,21,29,.24);color:#ffc0c0;cursor:pointer}
+.department-loading-error-remove-line:disabled{opacity:.35;cursor:not-allowed}
+.department-loading-error-action-field textarea{min-height:105px;resize:vertical;line-height:1.7}
+.department-loading-error-modal-status{margin:0;padding:10px 12px;border-radius:11px;color:#dcecdf;background:rgba(255,255,255,.055)}
+.department-loading-error-modal-status.err{border:1px solid rgba(255,92,92,.55);background:rgba(112,11,19,.25);color:#ffd9d9}
+.department-loading-error-modal input.invalid,.department-loading-error-modal select.invalid,.department-loading-error-modal textarea.invalid{border-color:#ff7777;box-shadow:0 0 0 2px rgba(255,76,76,.18)}
+.department-loading-error-modal-footer{padding:13px 18px}
+.department-loading-error-modal-footer button{min-width:125px;min-height:44px}
+
+@media(max-width:1100px){
+  .department-loading-error-header-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .department-loading-error-header-grid label:last-child{grid-column:1/-1}
+  .department-loading-errors-table-wrap{max-height:calc(100dvh - 350px)}
+}
+@media(max-width:700px){
+  #department_loading_errors.active-section{width:100%;max-width:100%;min-width:0;padding-bottom:calc(28px + env(safe-area-inset-bottom));overflow-x:hidden}
+  #department_loading_errors .department-loading-errors-panel{padding:11px;border-radius:15px}
+  .department-loading-errors-tabs{padding:2px}
+  .department-loading-errors-tab{min-height:42px;padding:8px 12px;font-size:.78rem}
+  .department-loading-errors-toolbar{align-items:stretch;flex-direction:column;padding:11px}
+  .department-loading-error-open{width:100%}
+  .department-loading-errors-table-wrap{max-height:calc(100dvh - 390px)}
+  .department-loading-error-modal{padding:8px}
+  .department-loading-error-dialog{width:calc(100vw - 16px);height:calc(100dvh - 16px)}
+  .department-loading-error-modal-head,.department-loading-error-modal-body,.department-loading-error-modal-footer{padding-inline:12px}
+  .department-loading-error-header-grid{grid-template-columns:1fr;padding:11px}
+  .department-loading-error-header-grid label:last-child{grid-column:auto}
+  .department-loading-error-lines-section{padding:11px}
+  .department-loading-error-lines-head{align-items:stretch;flex-direction:column}
+  .department-loading-error-lines-head button{width:100%}
+  .department-loading-error-modal-footer{display:grid;grid-template-columns:1fr 1fr}
+  .department-loading-error-modal-footer button{min-width:0}
+}
 @media(max-height:560px) and (orientation:landscape){.inventory-settlement-reversal-dialog,.app-liquid-confirm__dialog{max-height:calc(100dvh - 12px)}}
 
 /* INV-SETTLEMENT-02 certification: keep legacy modal internals on the same dark Liquid Glass system. */

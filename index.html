@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=hr-export-corrections-20260822-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=department-loading-errors-20260901-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ir-hotfix-2-20260726" />
 </head>
 <body>
@@ -69,6 +69,7 @@
             <button class="nav-item nav-subitem" data-section="department_weekly_leave_schedule" type="button">جدول الأجازات الأسبوعي</button>
             <button class="nav-item nav-subitem" data-section="department_hr_reports" type="button">تقارير HR</button>
             <button class="nav-item nav-subitem" data-section="department_evaluations" type="button">التقييمات</button>
+            <button class="nav-item nav-subitem" data-section="department_loading_errors" type="button">سجل أخطاء التحميل</button>
           </div>
         </div>
         <button class="nav-item" data-section="users">إدارة المستخدمين <span class="nav-icon" data-icon="users"></span></button>
@@ -166,6 +167,7 @@
                 <button class="mobile-drawer-item mobile-drawer-subitem" data-mobile-section="department_weekly_leave_schedule" type="button"><span>جدول الأجازات الأسبوعي</span></button>
                 <button class="mobile-drawer-item mobile-drawer-subitem" data-mobile-section="department_hr_reports" type="button"><span>تقارير HR</span></button>
                 <button class="mobile-drawer-item mobile-drawer-subitem" data-mobile-section="department_evaluations" type="button"><span>التقييمات</span></button>
+                <button class="mobile-drawer-item mobile-drawer-subitem" data-mobile-section="department_loading_errors" type="button"><span>سجل أخطاء التحميل</span></button>
               </div>
             </div>
             <button class="mobile-drawer-item" data-mobile-section="users" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M5 21a7 7 0 0 1 14 0"/><path d="M18 8a3 3 0 0 1 3 3"/></svg><span>إدارة المستخدمين</span></button>
@@ -1290,7 +1292,16 @@
           <div class="department-screen-head"><div><h2>التقييمات</h2><p class="hint">التقييم اليومي للأفراد المؤهلين من الجمعة إلى الخميس.</p></div></div>
           <div id="departmentEvaluationsApp" class="department-weekly-workspace" data-department-weekly-kind="evaluations"></div>
         </article>
-      </section>      <section id="users" class="section">
+      </section>
+      <section id="department_loading_errors" class="section">
+        <article class="panel glass department-loading-errors-panel">
+          <div class="department-screen-head">
+            <div><h2>سجل أخطاء التحميل</h2><p class="hint">تسجيل أخطاء التحميل وعرض مستنداتها حسب المصنع.</p></div>
+          </div>
+          <div id="departmentLoadingErrorsApp" class="department-loading-errors-workspace"></div>
+        </article>
+      </section>
+      <section id="users" class="section">
         <article class="panel glass users-management-panel users-enterprise-panel" id="usersManagementCapture">
           <div class="users-hero">
             <div>
@@ -1963,9 +1974,10 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=report-workspace-tools-20260822-1"></script>
+  <script src="assets/js/app.js?v=department-loading-errors-20260901-1"></script>
   <script src="assets/js/department-weekly-operations.js?v=hr-export-corrections-20260822-1"></script>
   <script src="assets/js/custom-date-picker.js?v=production-tracking-report-20260820-1"></script>
+  <script src="assets/js/department-loading-errors.js?v=department-loading-errors-20260901-1"></script>
   <script src="assets/js/department-hr-reports.js?v=hr-export-corrections-20260822-1"></script>
   <script src="assets/js/inventory-production-tracking.js?v=production-stagnation-20260822-1"></script>
   <script src="assets/js/report-workspace-tools.js?v=hr-export-corrections-20260822-1"></script>
@@ -2019,9 +2031,6 @@
 
 </body>
 </html>
-
-
-
 
 
 
