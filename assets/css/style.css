@@ -6633,6 +6633,8 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .department-loading-errors-context strong{color:#fff;overflow-wrap:anywhere}
 .department-loading-errors-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap}
 .department-loading-error-open,.department-loading-error-back{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;white-space:nowrap}
+.department-loading-error-pending-badge{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:24px;height:24px;padding:0 7px;border:1px solid rgba(255,200,200,.58);border-radius:999px;background:linear-gradient(145deg,#dc3f4f,#9f1f2c);color:#fff;direction:ltr;font-size:.74rem;font-weight:900;line-height:1;box-shadow:0 4px 12px rgba(87,5,15,.34),inset 0 1px 0 rgba(255,255,255,.22)}
+.department-loading-error-pending-badge[hidden]{display:none}
 .department-loading-error-open svg,.department-loading-error-back svg,.department-loading-error-lines-head button svg,.department-loading-error-remove-line svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .department-loading-errors-status{min-height:22px;margin:0}
 .department-loading-errors-status.ok{color:#b9f18e}

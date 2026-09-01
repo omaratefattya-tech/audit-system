@@ -10,7 +10,7 @@
   const state={
     activePlant:'WF01',view:'completed',requestToken:0,loading:false,saving:false,
     documents:[],rows:[],lineSequence:0,lines:[],modalMode:'register',currentDocument:null,
-    personnelByPlant:new Map(),products:null,lastTrigger:null
+    personnelByPlant:new Map(),products:null,lastTrigger:null,pendingCount:0
   };
 
   const byId=id=>document.getElementById(id);
@@ -105,8 +105,10 @@
           </button>`
         :`<button class="primary department-loading-error-open" id="departmentLoadingErrorPendingBtn" type="button" data-loading-errors-action="pending">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11h6M9 15h4M8 3h8l3 3v15H5V3h3Zm0 0v4h8V3"/></svg><span>أخطاء تحتاج مراجعة</span>
+            <span class="department-loading-error-pending-badge" id="departmentLoadingErrorPendingBadge" aria-hidden="true" hidden></span>
           </button>`;
     }
+    renderPendingBadge();
     const table=byId('departmentLoadingErrorsTable');
     if(table){
       table.classList.toggle('is-pending',isPending);
@@ -141,6 +143,7 @@
       const code=normalizeCode(tab.dataset.loadingErrorsPlant);
       if(PLANT_CODES.includes(code) && code!==state.activePlant){
         state.activePlant=code;
+        state.pendingCount=0;
         clearLoadedRows();
         renderView();
         loadRecords();
@@ -174,6 +177,37 @@
       lines.forEach((line,lineIndex)=>rows.push({document:documentRow,line,lineIndex,lineCount:lines.length}));
     });
     return rows;
+  }
+
+  function countPendingDocuments(documents){
+    const documentIds=(documents||[]).map(item=>clean(item?.id)).filter(Boolean);
+    return new Set(documentIds).size;
+  }
+
+  function renderPendingBadge(){
+    const button=byId('departmentLoadingErrorPendingBtn');
+    const badge=byId('departmentLoadingErrorPendingBadge');
+    if(!button || !badge) return;
+    const count=Math.max(0,Math.trunc(Number(state.pendingCount)||0));
+    const visible=count>0;
+    badge.hidden=!visible;
+    badge.textContent=visible ? (count>99?'99+':String(count)) : '';
+    button.setAttribute('aria-label',visible?`أخطاء تحتاج مراجعة، ${count} مستند معلق`:'أخطاء تحتاج مراجعة');
+    button.title=visible?`${count} مستند خطأ يحتاج مراجعة`:'';
+  }
+
+  function setPendingCount(count,plantCode=state.activePlant){
+    if(normalizeCode(plantCode)!==state.activePlant) return;
+    state.pendingCount=Math.max(0,Math.trunc(Number(count)||0));
+    renderPendingBadge();
+  }
+
+  function requestPendingDocumentCount(plantCode){
+    return window.WarehouseDB.client
+      .from('department_loading_error_documents')
+      .select('id',{count:'exact',head:true})
+      .eq('plant_code',plantCode)
+      .eq('status',VIEW_STATUS.pending);
   }
 
   function renderRows(){
@@ -225,7 +259,10 @@
 
   async function loadRecords(options={}){
     renderShell();
-    if(!canView()) return false;
+    if(!canView()){
+      setPendingCount(0);
+      return false;
+    }
     const token=++state.requestToken;
     const requestedPlant=state.activePlant;
     const requestedView=state.view;
@@ -233,6 +270,7 @@
     renderRows();
     setStatus(requestedView==='pending'?'جاري تحميل الأخطاء التي تحتاج مراجعة...':'جاري تحميل سجل أخطاء التحميل...');
     if(!window.WarehouseDB?.ready){
+      setPendingCount(0,requestedPlant);
       state.loading=false;clearLoadedRows();renderRows();
       setStatus('Supabase غير متصل. تعذر تحميل أخطاء التحميل.','err');
       return false;
@@ -241,23 +279,35 @@
       if(typeof window.loadPlantsCatalog==='function') await window.loadPlantsCatalog();
       if(token!==state.requestToken || requestedPlant!==state.activePlant || requestedView!==state.view) return false;
       renderTabs();
-      const {data,error}=await window.WarehouseDB.client
+      const recordsRequest=window.WarehouseDB.client
         .from('department_loading_error_documents')
         .select('id,document_no,plant_code,status,storekeeper_code_snapshot,storekeeper_name_snapshot,error_date,vehicle_no,action_text,created_by,created_at,reviewed_by,reviewed_at,department_loading_error_lines(id,line_no,material_code,material_name,error_type,sales_order_no,customer_name,notes,created_at)')
         .eq('plant_code',requestedPlant).eq('status',VIEW_STATUS[requestedView])
         .order('created_at',{ascending:false}).order('document_no',{ascending:false});
+      const pendingCountRequest=requestedView==='completed'
+        ?requestPendingDocumentCount(requestedPlant)
+        :Promise.resolve({count:null,error:null});
+      const [{data,error},pendingCountResult]=await Promise.all([recordsRequest,pendingCountRequest]);
       if(error) throw error;
       if(token!==state.requestToken || requestedPlant!==state.activePlant || requestedView!==state.view) return false;
       state.documents=data||[];
       state.rows=flattenDocuments(state.documents);
+      const pendingCountError=pendingCountResult?.error;
+      if(requestedView==='pending') setPendingCount(countPendingDocuments(state.documents),requestedPlant);
+      else if(pendingCountError){
+        console.error('[department-loading-errors] pending count failed',pendingCountError);
+        setPendingCount(0,requestedPlant);
+      }else setPendingCount(pendingCountResult?.count,requestedPlant);
       state.loading=false;
       renderRows();
       const label=requestedView==='pending'?'قائمة المراجعة':'السجل المكتمل';
-      setStatus(options.successMessage||`تم تحميل ${state.rows.length} سطر من ${label} للمصنع ${requestedPlant}.`,options.successMessage?'ok':'');
+      const statusMessage=options.successMessage||`تم تحميل ${state.rows.length} سطر من ${label} للمصنع ${requestedPlant}.`;
+      setStatus(pendingCountError?`${statusMessage} تعذر تحديث عداد المراجعة.`:statusMessage,pendingCountError?'err':options.successMessage?'ok':'');
       return true;
     }catch(error){
       if(token!==state.requestToken) return false;
       console.error('[department-loading-errors] load failed',error);
+      setPendingCount(0,requestedPlant);
       clearLoadedRows();state.loading=false;renderRows();
       setStatus(`تعذر تحميل أخطاء التحميل: ${error?.message||error}`,'err');
       return false;
