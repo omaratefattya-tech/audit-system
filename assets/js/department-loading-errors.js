@@ -307,7 +307,7 @@
           <div><h3>بيانات الخطأ</h3><p>سجّل الأصناف التي اكتُشف بها الخطأ، وسيستكمل المراجع بقية بيانات المستند.</p></div>
           <button type="button" class="secondary" data-loading-error-modal-action="add-line"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>إضافة سطر</span></button>
         </div>
-        <div class="department-loading-error-lines-wrap"><table class="department-loading-error-lines-table">
+        <div class="department-loading-error-lines-wrap"><table class="department-loading-error-lines-table" data-no-universal-table="1">
           <thead><tr><th>كود المادة</th><th>اسم المادة</th><th>رقم أمر البيع</th><th>نوع الخطأ</th><th>اسم العميل</th><th>ملاحظات</th><th>حذف</th></tr></thead>
           <tbody id="departmentLoadingErrorLinesBody"></tbody>
         </table></div>
