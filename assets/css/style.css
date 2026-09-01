@@ -6631,16 +6631,20 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .department-loading-errors-context{display:flex;flex-direction:column;gap:2px;min-width:0}
 .department-loading-errors-context span{color:var(--muted);font-size:.78rem}
 .department-loading-errors-context strong{color:#fff;overflow-wrap:anywhere}
-.department-loading-error-open{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;white-space:nowrap}
-.department-loading-error-open svg,.department-loading-error-lines-head button svg,.department-loading-error-remove-line svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.department-loading-errors-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+.department-loading-error-open,.department-loading-error-back{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;white-space:nowrap}
+.department-loading-error-open svg,.department-loading-error-back svg,.department-loading-error-lines-head button svg,.department-loading-error-remove-line svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .department-loading-errors-status{min-height:22px;margin:0}
 .department-loading-errors-status.ok{color:#b9f18e}
 .department-loading-errors-status.err{color:#ffb0b0}
 .department-loading-errors-table-wrap{position:relative;min-width:0;max-width:100%;max-height:calc(100dvh - 330px);overflow:auto;border:1px solid rgba(142,211,94,.18);border-radius:16px}
-#departmentLoadingErrorsTable{min-width:1900px;margin:0}
+#departmentLoadingErrorsTable{min-width:2050px;margin:0}
+#departmentLoadingErrorsTable.is-pending{min-width:1250px}
 #departmentLoadingErrorsTable th{position:sticky;top:0;z-index:2;white-space:nowrap;background:#063f32;color:#fff}
 #departmentLoadingErrorsTable td{vertical-align:middle}
 #departmentLoadingErrorsTable .department-loading-errors-text-cell{min-width:220px;max-width:340px;white-space:normal;overflow-wrap:anywhere;line-height:1.75}
+.department-loading-error-review-cell{text-align:center;min-width:160px;background:rgba(255,255,255,.025)}
+.department-loading-error-review-btn{min-height:39px;padding:7px 13px;white-space:nowrap}
 .department-loading-error-type{display:inline-flex;align-items:center;justify-content:center;min-width:62px;padding:4px 10px;border-radius:999px;border:1px solid transparent;font-weight:800}
 .department-loading-error-type.surplus{color:#d9ffd2;background:rgba(65,159,69,.22);border-color:rgba(122,218,93,.42)}
 .department-loading-error-type.shortage{color:#ffd8d8;background:rgba(174,45,56,.24);border-color:rgba(255,112,112,.42)}
@@ -6653,6 +6657,8 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .department-loading-error-modal-head>div>span{color:#b9d7bd;font-size:.76rem;font-weight:700}
 .department-loading-error-modal-body{display:flex;flex:1 1 auto;flex-direction:column;gap:14px;padding:16px 18px}
 .department-loading-error-header-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;padding:14px}
+.department-loading-error-header-grid.is-register{grid-template-columns:minmax(260px,460px);justify-content:start}
+.department-loading-error-header-grid.is-review{grid-template-columns:repeat(5,minmax(0,1fr))}
 .department-loading-error-header-grid label,.department-loading-error-action-field{display:flex;flex-direction:column;gap:7px;color:#e9f5eb;font-weight:700;min-width:0}
 .department-loading-error-header-grid input,.department-loading-error-lines-table input,.department-loading-error-lines-table select,.department-loading-error-lines-table textarea,.department-loading-error-action-field textarea{width:100%;min-width:0;border:1px solid rgba(154,217,111,.28);border-radius:11px;background:rgba(0,31,25,.72);color:#fff;padding:9px 10px;font-family:"Cairo",sans-serif}
 .department-loading-error-header-grid input{min-height:43px}
@@ -6677,6 +6683,13 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .department-loading-error-remove-line{display:inline-grid;place-items:center;width:40px;height:40px;margin:auto;border:1px solid rgba(255,110,110,.38);border-radius:11px;background:rgba(124,21,29,.24);color:#ffc0c0;cursor:pointer}
 .department-loading-error-remove-line:disabled{opacity:.35;cursor:not-allowed}
 .department-loading-error-action-field textarea{min-height:105px;resize:vertical;line-height:1.7}
+.department-loading-error-action-field small{color:#b9d7bd;font-size:.74rem;font-weight:600}
+.department-loading-error-review-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:14px}
+.department-loading-error-review-meta>div{display:flex;flex-direction:column;gap:5px;min-width:0;padding:10px 12px;border:1px solid rgba(142,211,94,.16);border-radius:11px;background:rgba(0,31,25,.45)}
+.department-loading-error-review-meta span{color:var(--muted);font-size:.76rem}
+.department-loading-error-review-meta strong{color:#fff;overflow-wrap:anywhere}
+.department-loading-error-review-lines{min-width:1080px}
+.department-loading-error-review-lines td{color:#e8f2ea;white-space:normal;overflow-wrap:anywhere}
 .department-loading-error-modal-status{margin:0;padding:10px 12px;border-radius:11px;color:#dcecdf;background:rgba(255,255,255,.055)}
 .department-loading-error-modal-status.err{border:1px solid rgba(255,92,92,.55);background:rgba(112,11,19,.25);color:#ffd9d9}
 .department-loading-error-modal input.invalid,.department-loading-error-modal select.invalid,.department-loading-error-modal textarea.invalid{border-color:#ff7777;box-shadow:0 0 0 2px rgba(255,76,76,.18)}
@@ -6684,8 +6697,10 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .department-loading-error-modal-footer button{min-width:125px;min-height:44px}
 
 @media(max-width:1100px){
-  .department-loading-error-header-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .department-loading-error-header-grid,.department-loading-error-header-grid.is-review{grid-template-columns:repeat(2,minmax(0,1fr))}
   .department-loading-error-header-grid label:last-child{grid-column:1/-1}
+  .department-loading-error-header-grid.is-register{grid-template-columns:minmax(240px,1fr)}
+  .department-loading-error-header-grid.is-register label:last-child{grid-column:auto}
   .department-loading-errors-table-wrap{max-height:calc(100dvh - 350px)}
 }
 @media(max-width:700px){
@@ -6694,13 +6709,15 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
   .department-loading-errors-tabs{padding:2px}
   .department-loading-errors-tab{min-height:42px;padding:8px 12px;font-size:.78rem}
   .department-loading-errors-toolbar{align-items:stretch;flex-direction:column;padding:11px}
-  .department-loading-error-open{width:100%}
+  .department-loading-errors-actions{display:grid;grid-template-columns:1fr;width:100%}
+  .department-loading-error-open,.department-loading-error-back{width:100%}
   .department-loading-errors-table-wrap{max-height:calc(100dvh - 390px)}
   .department-loading-error-modal{padding:8px}
   .department-loading-error-dialog{width:calc(100vw - 16px);height:calc(100dvh - 16px)}
   .department-loading-error-modal-head,.department-loading-error-modal-body,.department-loading-error-modal-footer{padding-inline:12px}
-  .department-loading-error-header-grid{grid-template-columns:1fr;padding:11px}
+  .department-loading-error-header-grid,.department-loading-error-header-grid.is-register,.department-loading-error-header-grid.is-review{grid-template-columns:1fr;padding:11px}
   .department-loading-error-header-grid label:last-child{grid-column:auto}
+  .department-loading-error-review-meta{grid-template-columns:1fr;padding:11px}
   .department-loading-error-lines-section{padding:11px}
   .department-loading-error-lines-head{align-items:stretch;flex-direction:column}
   .department-loading-error-lines-head button{width:100%}
