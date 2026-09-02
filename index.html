@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=upload-report-templates-20260902-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=loading-errors-table-tools-20260902-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ir-hotfix-2-20260726" />
 </head>
 <body>
@@ -48,8 +48,6 @@
       <nav class="nav" aria-label="القائمة الرئيسية">
         <button class="nav-item active" data-section="dashboard">الرئيسية <span class="nav-icon" data-icon="home"></span></button>
         <button class="nav-item" data-section="upload">رفع التقارير <span class="nav-icon" data-icon="upload"></span></button>
-        <button class="nav-item" data-section="plants">مصانع ومخازن <span class="nav-icon" data-icon="warehouses"></span></button>
-        <button class="nav-item" data-section="movements">الحركات المخزنية <span class="nav-icon" data-icon="movements"></span></button>
         <button class="nav-item" data-section="sales">مراجعة البيع <span class="nav-icon" data-icon="sales"></span></button>
         <button class="nav-item" data-section="inbound">مراجعة الوارد <span class="nav-icon" data-icon="inbound"></span></button>
                 <button class="nav-item" data-section="raw_materials">&#x0645;&#x062A;&#x0627;&#x0628;&#x0639;&#x0629; &#x0627;&#x0644;&#x062E;&#x0627;&#x0645;&#x0627;&#x062A; <span class="nav-icon" data-icon="production"></span></button>
@@ -149,8 +147,6 @@
           <aside class="mobile-side-drawer" id="mobileDashboardDrawer" style="display:none" aria-hidden="true">
             <div class="mobile-drawer-head"><strong>القائمة</strong><button class="mobile-drawer-close" type="button" aria-label="إغلاق القائمة">×</button></div>
             <button class="mobile-drawer-item" data-mobile-section="upload" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></svg><span>رفع التقارير</span></button>
-            <button class="mobile-drawer-item" data-mobile-section="plants" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-4 8 4v11"/><path d="M8 20v-6h8v6"/><path d="M8 11h.01M12 11h.01M16 11h.01"/></svg><span>مصانع ومخازن</span></button>
-            <button class="mobile-drawer-item" data-mobile-section="movements" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3"/><path d="M17 17H6l3 3"/><path d="M18 7l-3 3"/><path d="M6 17l3-3"/></svg><span>الحركات المخزنية</span></button>
             <button class="mobile-drawer-item" data-mobile-section="inbound" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"/><path d="M12 4v9"/><path d="m8 9 4 4 4-4"/></svg><span>مراجعة الوارد</span></button>
                         <button class="mobile-drawer-item" data-mobile-section="raw_materials" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-4 8 4v11"/><path d="M8 20v-6h8v6"/><path d="M8 11h.01M12 11h.01M16 11h.01"/></svg><span>متابعة الخامات</span></button>            <div class="mobile-drawer-submenu-group inventory-audit-mobile-group" data-inventory-mobile-nav-group>
               <button class="mobile-drawer-item inventory-audit-mobile-parent" type="button" data-inventory-mobile-toggle aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path><path d="M16 13H8"></path><path d="M16 17H8"></path><path d="M10 9H8"></path></svg><span>الجرد وتوثيق المخزون</span><b class="inventory-audit-nav-chevron" aria-hidden="true">⌄</b></button>
@@ -512,8 +508,6 @@
 
         </article>
       </section>
-      <section id="plants" class="section"><article class="panel glass"><h2>مصانع ومخازن</h2><div id="plantsFull" class="plants-full"></div></article></section>
-      <section id="movements" class="section"><article class="panel glass"><h2>الحركات المخزنية</h2><p class="hint">تعريفات أكواد SAP المستخدمة في مراجعة المخازن.</p><div class="table-wrap"><table id="movementsTable"></table></div></article></section>
       <section id="sales" class="section">
         <article class="panel glass">
           <div class="focus-mode-title-row" data-focus-section="sales">
@@ -1517,6 +1511,7 @@
             <button class="settings-tab active" id="settingsProfileTab" type="button" role="tab" aria-selected="true" aria-controls="settingsProfilePanel" data-settings-tab="profile">البيانات الشخصية</button>
             <button class="settings-tab" id="settingsAccountTab" type="button" role="tab" aria-selected="false" aria-controls="settingsAccountPanel" data-settings-tab="account">بيانات المستخدم وكلمة المرور</button>
             <button class="settings-tab" id="settingsSystemTab" type="button" role="tab" aria-selected="false" aria-controls="settingsSystemPanel" data-settings-tab="system">&#x2699;&#xFE0F; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0646;&#x0638;&#x0627;&#x0645;</button>
+            <button class="settings-tab" id="settingsGeneralTab" type="button" role="tab" aria-selected="false" aria-controls="settingsGeneralPanel" data-settings-tab="general">إعدادات عامة</button>
             <button class="settings-tab" id="settingsPlantsTab" type="button" role="tab" aria-selected="false" aria-controls="settingsPlantsPanel" data-settings-tab="plants-settings">&#x1F3ED; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x0635;&#x0627;&#x0646;&#x0639;</button>
             <button class="settings-tab" id="settingsWarehousesTab" type="button" role="tab" aria-selected="false" aria-controls="settingsWarehousesPanel" data-settings-tab="warehouses-settings">&#x1F3EC; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x062E;&#x0627;&#x0632;&#x0646;</button>
             <button class="settings-tab" id="settingsSalesProductsTab" type="button" role="tab" aria-selected="false" aria-controls="settingsSalesProductsPanel" data-settings-tab="sales-products-settings">&#x1F4E6; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0623;&#x0635;&#x0646;&#x0627;&#x0641; &#x0627;&#x0644;&#x0628;&#x064A;&#x0639;</button>
@@ -1532,6 +1527,7 @@
                 <option value="profile">البيانات الشخصية</option>
                 <option value="account">بيانات المستخدم وكلمة المرور</option>
                 <option value="system">إعدادات النظام</option>
+                <option value="general">إعدادات عامة</option>
                 <option value="plants-settings">إعدادات المصانع</option>
                 <option value="warehouses-settings">إعدادات المخازن</option>
                 <option value="sales-products-settings">إعدادات أصناف البيع</option>
@@ -1680,6 +1676,21 @@
                 <button class="primary" id="saveSystemSettingsBtn" type="submit">&#x1F4BE; &#x062D;&#x0641;&#x0638; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0646;&#x0638;&#x0627;&#x0645;</button>
                 <div class="upload-status" id="systemSettingsStatus"></div>
               </form>
+            </section>
+            <section class="settings-tab-panel" id="settingsGeneralPanel" role="tabpanel" aria-labelledby="settingsGeneralTab" data-settings-panel="general">
+              <div class="subtabs settings-general-tabs" role="tablist" aria-label="تبويبات الإعدادات العامة">
+                <button class="active" id="settingsGeneralPlantsTab" type="button" role="tab" aria-selected="true" aria-controls="settingsGeneralPlantsPanel" data-general-settings-tab="plants">مصانع ومخازن</button>
+                <button id="settingsGeneralMovementsTab" type="button" role="tab" aria-selected="false" aria-controls="settingsGeneralMovementsPanel" data-general-settings-tab="movements">الحركات المخزنية</button>
+              </div>
+              <section class="settings-general-panel active" id="settingsGeneralPlantsPanel" role="tabpanel" aria-labelledby="settingsGeneralPlantsTab" data-general-settings-panel="plants">
+                <h3>مصانع ومخازن</h3>
+                <div id="plantsFull" class="plants-full"></div>
+              </section>
+              <section class="settings-general-panel" id="settingsGeneralMovementsPanel" role="tabpanel" aria-labelledby="settingsGeneralMovementsTab" data-general-settings-panel="movements">
+                <h3>الحركات المخزنية</h3>
+                <p class="hint">تعريفات أكواد SAP المستخدمة في مراجعة المخازن.</p>
+                <div class="table-wrap"><table id="movementsTable"></table></div>
+              </section>
             </section>
             <section class="settings-tab-panel" id="settingsPlantsPanel" role="tabpanel" aria-labelledby="settingsPlantsTab" data-settings-panel="plants-settings">
               <div class="settings-plants-wrap">
@@ -1981,13 +1992,13 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=upload-report-templates-20260902-1"></script>
+  <script src="assets/js/app.js?v=loading-errors-table-tools-20260902-1"></script>
   <script src="assets/js/department-weekly-operations.js?v=hr-export-corrections-20260822-1"></script>
   <script src="assets/js/custom-date-picker.js?v=loading-error-modal-datepicker-layer-20260902-1"></script>
-  <script src="assets/js/department-loading-errors.js?v=loading-error-modal-datepicker-layer-20260902-1"></script>
+  <script src="assets/js/department-loading-errors.js?v=loading-errors-table-tools-20260902-1"></script>
   <script src="assets/js/department-hr-reports.js?v=hr-performance-presentation-20260902-1"></script>
   <script src="assets/js/inventory-production-tracking.js?v=production-stagnation-20260822-1"></script>
-  <script src="assets/js/report-workspace-tools.js?v=hr-performance-presentation-20260902-1"></script>
+  <script src="assets/js/report-workspace-tools.js?v=loading-errors-table-tools-20260902-1"></script>
   <script>
   </script>
   <script src="assets/js/footer.js"></script>

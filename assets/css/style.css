@@ -49,8 +49,12 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 #settings .settings-tab-panels{min-width:0}
 #settings .settings-tab-panel{display:none}
 #settings .settings-tab-panel.active{display:block}
+#settings .settings-general-tabs{margin:0 0 18px}
+#settings .settings-general-panel{display:none;min-width:0}
+#settings .settings-general-panel.active{display:block}
+#settings .settings-general-panel>h3{margin:0 0 14px;text-align:center}
 #settings .profile-settings{margin-top:0}
-@media (max-width:650px){#settings .settings-tabs{display:grid;grid-template-columns:1fr}#settings .settings-tab{width:100%}}
+@media (max-width:650px){#settings .settings-tabs,#settings .settings-general-tabs{display:grid;grid-template-columns:1fr}#settings .settings-tab,#settings .settings-general-tabs button{width:100%}}
 #settings .settings-account-grid{display:grid;grid-template-columns:minmax(240px,.85fr) minmax(320px,1.15fr);gap:18px;align-items:start}
 #settings .settings-readonly-card,#settings .settings-password-card{border:1px solid rgba(141,220,89,.28);border-radius:14px;background:rgba(0,35,27,.46);padding:18px;min-width:0}
 #settings .settings-readonly-card h3,#settings .settings-password-card h3{margin:0 0 14px;text-align:right;color:#f4fff5}
@@ -3224,12 +3228,14 @@ body.focus-mode-active[data-focus-section="inventory_expiry_tracking"] #inventor
 body.focus-mode-active[data-focus-section="department_storekeepers"] #department_storekeepers.active-section,
 body.focus-mode-active[data-focus-section="department_weekly_leave_schedule"] #department_weekly_leave_schedule.active-section,
 body.focus-mode-active[data-focus-section="department_hr_reports"] #department_hr_reports.active-section,
-body.focus-mode-active[data-focus-section="department_evaluations"] #department_evaluations.active-section{display:block;flex:1 1 auto;width:100%;max-width:none;min-height:0;margin:0;padding:0;overflow:hidden}
+body.focus-mode-active[data-focus-section="department_evaluations"] #department_evaluations.active-section,
+body.focus-mode-active[data-focus-section="department_loading_errors"] #department_loading_errors.active-section{display:block;flex:1 1 auto;width:100%;max-width:none;min-height:0;margin:0;padding:0;overflow:hidden}
 body.focus-mode-active[data-focus-section="inventory_expiry_tracking"] #inventory_expiry_tracking>.panel.glass,
 body.focus-mode-active[data-focus-section="department_storekeepers"] #department_storekeepers>.panel.glass,
 body.focus-mode-active[data-focus-section="department_weekly_leave_schedule"] #department_weekly_leave_schedule>.panel.glass,
 body.focus-mode-active[data-focus-section="department_hr_reports"] #department_hr_reports>.panel.glass,
-body.focus-mode-active[data-focus-section="department_evaluations"] #department_evaluations>.panel.glass{display:flex;flex-direction:column;width:100%;max-width:none;height:100%;min-height:0;margin:0;padding:16px;overflow:hidden}
+body.focus-mode-active[data-focus-section="department_evaluations"] #department_evaluations>.panel.glass,
+body.focus-mode-active[data-focus-section="department_loading_errors"] #department_loading_errors>.panel.glass{display:flex;flex-direction:column;width:100%;max-width:none;height:100%;min-height:0;margin:0;padding:16px;overflow:hidden}
 body.focus-mode-active #inventory_expiry_tracking .inventory-expiry-tab-panels,
 body.focus-mode-active #department_hr_reports .department-hr-report-panels,
 body.focus-mode-active #department_weekly_leave_schedule .department-weekly-workspace,
@@ -3242,7 +3248,9 @@ body.focus-mode-active #inventory_expiry_tracking .inventory-production-table-wr
 body.focus-mode-active #department_storekeepers .department-operational-table-wrap,
 body.focus-mode-active #department_weekly_leave_schedule .department-weekly-table-wrap,
 body.focus-mode-active #department_hr_reports .department-hr-table-wrap,
-body.focus-mode-active #department_evaluations .department-weekly-table-wrap{flex:1 1 auto;min-height:240px;max-height:none;overflow:auto;position:relative}
+body.focus-mode-active #department_evaluations .department-weekly-table-wrap,
+body.focus-mode-active #department_loading_errors .department-loading-errors-table-wrap{flex:1 1 auto;min-height:240px;max-height:none;overflow:auto;position:relative}
+body.focus-mode-active #department_loading_errors .department-loading-errors-workspace{flex:1 1 auto;min-height:0;overflow:hidden}
 body.focus-mode-active #department_weekly_leave_schedule .department-weekly-workspace,
 body.focus-mode-active #department_evaluations .department-weekly-workspace{display:flex;flex-direction:column}
 @media(max-width:768px){
@@ -3250,7 +3258,8 @@ body.focus-mode-active #department_evaluations .department-weekly-workspace{disp
   body.focus-mode-active[data-focus-section="department_storekeepers"] #department_storekeepers>.panel.glass,
   body.focus-mode-active[data-focus-section="department_weekly_leave_schedule"] #department_weekly_leave_schedule>.panel.glass,
   body.focus-mode-active[data-focus-section="department_hr_reports"] #department_hr_reports>.panel.glass,
-  body.focus-mode-active[data-focus-section="department_evaluations"] #department_evaluations>.panel.glass{padding:10px;border-radius:14px}
+  body.focus-mode-active[data-focus-section="department_evaluations"] #department_evaluations>.panel.glass,
+  body.focus-mode-active[data-focus-section="department_loading_errors"] #department_loading_errors>.panel.glass{padding:10px;border-radius:14px}
 }
 /* Inbound column manager + Focus sticky table headers */
 #inbound .report-tools-row,
@@ -6708,17 +6717,38 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .department-loading-errors-context span{color:var(--muted);font-size:.78rem}
 .department-loading-errors-context strong{color:#fff;overflow-wrap:anywhere}
 .department-loading-errors-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap}
-.department-loading-error-open,.department-loading-error-back{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;white-space:nowrap}
+.department-loading-error-open,.department-loading-error-back,.department-loading-errors-columns-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;white-space:nowrap}
 .department-loading-error-pending-badge{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:24px;height:24px;padding:0 7px;border:1px solid rgba(255,200,200,.58);border-radius:999px;background:linear-gradient(145deg,#dc3f4f,#9f1f2c);color:#fff;direction:ltr;font-size:.74rem;font-weight:900;line-height:1;box-shadow:0 4px 12px rgba(87,5,15,.34),inset 0 1px 0 rgba(255,255,255,.22)}
 .department-loading-error-pending-badge[hidden]{display:none}
-.department-loading-error-open svg,.department-loading-error-back svg,.department-loading-error-lines-head button svg,.department-loading-error-remove-line svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.department-loading-error-open svg,.department-loading-error-back svg,.department-loading-errors-columns-btn svg,.department-loading-error-lines-head button svg,.department-loading-error-remove-line svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.department-loading-errors-table-filters{display:flex;align-items:flex-end;gap:10px;min-width:0;padding:12px 14px;border-radius:14px}
+.department-loading-errors-table-filters[hidden],.department-loading-errors-column-manager[hidden]{display:none}
+.department-loading-errors-date-filter{display:grid;gap:6px;width:min(310px,100%);color:#e8f7e8;font-size:.8rem;font-weight:800}
+.department-loading-errors-date-filter .custom-date-picker{width:100%}
+.department-loading-errors-date-filter .custom-date-picker-display{min-height:42px}
+.department-loading-errors-clear-date{min-height:42px}
+.department-loading-errors-column-manager{display:grid;gap:12px;padding:14px;border:1px solid rgba(142,211,94,.24);border-radius:15px;background:linear-gradient(150deg,rgba(0,61,45,.92),rgba(0,28,23,.96))}
+.department-loading-errors-column-manager-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.department-loading-errors-column-manager-head>div{display:grid;gap:3px}
+.department-loading-errors-column-manager-head strong{color:#fff}
+.department-loading-errors-column-manager-head small{color:var(--muted)}
+.department-loading-errors-column-close{display:grid;place-items:center;width:38px;height:38px;padding:0;border:1px solid rgba(142,211,94,.3);border-radius:10px;background:rgba(0,34,27,.8);color:#fff;font:900 20px/1 "Cairo",sans-serif;cursor:pointer}
+.department-loading-errors-column-close:hover,.department-loading-errors-column-close:focus-visible{border-color:var(--yellow);outline:2px solid rgba(241,187,48,.28);outline-offset:2px}
+.department-loading-errors-column-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
+.department-loading-errors-column-list label{display:flex;align-items:center;gap:8px;min-height:42px;padding:8px 10px;border:1px solid rgba(142,211,94,.16);border-radius:10px;background:rgba(0,31,25,.55);color:#e9f7e7;font-weight:700;cursor:pointer}
+.department-loading-errors-column-list label.is-required{border-color:rgba(241,187,48,.3);cursor:default}
+.department-loading-errors-column-list input{width:18px;height:18px;accent-color:#75c54a}
+.department-loading-errors-column-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .department-loading-errors-status{min-height:22px;margin:0}
 .department-loading-errors-status.ok{color:#b9f18e}
 .department-loading-errors-status.err{color:#ffb0b0}
 .department-loading-errors-table-wrap{position:relative;min-width:0;max-width:100%;max-height:calc(100dvh - 330px);overflow:auto;border:1px solid rgba(142,211,94,.18);border-radius:16px}
 #departmentLoadingErrorsTable{min-width:2050px;margin:0}
 #departmentLoadingErrorsTable.is-pending{min-width:1250px}
-#departmentLoadingErrorsTable th{position:sticky;top:0;z-index:2;white-space:nowrap;background:#063f32;color:#fff}
+#departmentLoadingErrorsTable[data-columns-managed="true"]{width:max-content;min-width:100%}
+#departmentLoadingErrorsTable thead tr:first-child th{position:sticky;top:0;z-index:3;white-space:nowrap;background:#063f32;color:#fff}
+#departmentLoadingErrorsTable .department-loading-errors-filter-row th{position:sticky;top:44px;z-index:2;padding:6px 7px;background:rgba(0,39,31,.96)}
+#departmentLoadingErrorsTable .department-loading-errors-column-filter{min-width:105px}
 #departmentLoadingErrorsTable td{vertical-align:middle}
 #departmentLoadingErrorsTable .department-loading-errors-text-cell{min-width:220px;max-width:340px;white-space:normal;overflow-wrap:anywhere;line-height:1.75}
 .department-loading-error-review-cell{text-align:center;min-width:160px;background:rgba(255,255,255,.025)}
@@ -6792,7 +6822,10 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
   .department-loading-errors-tab{min-height:42px;padding:8px 12px;font-size:.78rem}
   .department-loading-errors-toolbar{align-items:stretch;flex-direction:column;padding:11px}
   .department-loading-errors-actions{display:grid;grid-template-columns:1fr;width:100%}
-  .department-loading-error-open,.department-loading-error-back{width:100%}
+  .department-loading-error-open,.department-loading-error-back,.department-loading-errors-columns-btn{width:100%}
+  .department-loading-errors-table-filters{align-items:stretch;flex-direction:column;padding:11px}
+  .department-loading-errors-date-filter,.department-loading-errors-clear-date{width:100%}
+  .department-loading-errors-column-list{grid-template-columns:1fr}
   .department-loading-errors-table-wrap{max-height:calc(100dvh - 390px)}
   .department-loading-error-modal{padding:8px}
   .department-loading-error-dialog{width:calc(100vw - 16px);height:calc(100dvh - 16px)}

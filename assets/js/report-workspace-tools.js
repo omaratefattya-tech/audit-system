@@ -6,7 +6,8 @@
     department_storekeepers:{sectionId:'department_storekeepers',anchor:'.department-screen-head',kind:'storekeepers'},
     department_weekly_leave_schedule:{sectionId:'department_weekly_leave_schedule',anchor:'.department-screen-head',kind:'statuses'},
     department_hr_reports:{sectionId:'department_hr_reports',anchor:'.department-screen-head',kind:'hr'},
-    department_evaluations:{sectionId:'department_evaluations',anchor:'.department-screen-head',kind:'evaluations'}
+    department_evaluations:{sectionId:'department_evaluations',anchor:'.department-screen-head',kind:'evaluations'},
+    department_loading_errors:{sectionId:'department_loading_errors',anchor:'.department-screen-head',kind:'loading-errors'}
   };
   const HR_SLUGS={
     cumulative_department_evaluation:'cumulative',personnel_performance:'personnel-performance',
@@ -327,12 +328,33 @@
       landscape:maxColumns>7,freezeColumns:1,loading:Boolean(state.loading),hasUnsaved:false
     };
   }
+  function loadingErrorsDescriptor(config){
+    const state=window.DepartmentLoadingErrors?.getExportState?.()||{};
+    const table=state.table||byId('departmentLoadingErrorsTable')?.cloneNode(true);
+    const root=document.createElement('div');
+    root.className='department-loading-errors-export-root';
+    if(table) root.appendChild(table);
+    return {
+      ...config,title:state.viewLabel||'سجل أخطاء التحميل',subtitle:state.plantLabel||state.activePlant||'—',
+      metadata:formatMeta([
+        `المصنع: ${state.plantLabel||state.activePlant||'—'}`,
+        state.view==='completed'?`تاريخ تسجيل الخطأ: ${state.registrationDate?displayDate(state.registrationDate):'الكل'}`:'',
+        state.filters?.length?`فلاتر البحث: ${state.filters.join(' | ')}`:'فلاتر البحث: الكل',
+        `الترتيب: ${state.sortLabel||'الافتراضي'} ${state.sortDirection==='desc'?'تنازلي':'تصاعدي'}`,
+        `عدد السطور: ${state.rowCount??0}`
+      ]),
+      root,tables:table?[table]:[],intro:[],
+      fileBase:safeFilename(`loading-errors-${state.view||'completed'}-${state.activePlant||'plant'}-${state.registrationDate||todayIso()}`),
+      landscape:true,freezeColumns:1,loading:Boolean(state.loading),hasUnsaved:false
+    };
+  }
   function describe(sectionId){
     const config=CONFIGS[sectionId];
     if(!config) return null;
     if(config.kind==='production') return productionDescriptor(config);
     if(config.kind==='storekeepers') return storekeepersDescriptor(config);
     if(config.kind==='statuses'||config.kind==='evaluations') return weeklyDescriptor(config,config.kind);
+    if(config.kind==='loading-errors') return loadingErrorsDescriptor(config);
     return hrDescriptor(config);
   }
 

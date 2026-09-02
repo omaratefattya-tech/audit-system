@@ -7,10 +7,43 @@
   const PLANT_CODES=Object.freeze(['WF01','EL01','EL02']);
   const ERROR_TYPE_LABELS=Object.freeze({surplus:'زيادة',shortage:'عجز'});
   const VIEW_STATUS=Object.freeze({completed:'completed',pending:'pending_review'});
+  const TABLE_COLUMNS=Object.freeze({
+    pending:Object.freeze([
+      {key:'documentNo',label:'رقم سجل الخطأ',type:'number',required:true},
+      {key:'materialCode',label:'كود الصنف'},
+      {key:'materialName',label:'اسم الصنف'},
+      {key:'salesOrderNo',label:'رقم أمر البيع'},
+      {key:'errorType',label:'نوع الخطأ'},
+      {key:'customerName',label:'اسم العميل'},
+      {key:'notes',label:'ملاحظات'},
+      {key:'review',label:'استكمال',action:true}
+    ]),
+    completed:Object.freeze([
+      {key:'documentNo',label:'رقم سجل الخطأ',type:'number',required:true},
+      {key:'storekeeperCode',label:'كود أمين المخزن'},
+      {key:'storekeeperName',label:'اسم أمين المخزن'},
+      {key:'materialCode',label:'كود الصنف'},
+      {key:'materialName',label:'اسم الصنف'},
+      {key:'errorType',label:'نوع الخطأ'},
+      {key:'salesOrderNo',label:'رقم أمر البيع'},
+      {key:'customerName',label:'اسم العميل'},
+      {key:'vehicleNo',label:'رقم السيارة'},
+      {key:'errorDate',label:'تاريخ الخطأ',type:'date'},
+      {key:'registrationDate',label:'تاريخ تسجيل الخطأ',type:'date'},
+      {key:'plant',label:'المصنع'},
+      {key:'notes',label:'ملاحظات'},
+      {key:'actionText',label:'الإجراء'}
+    ])
+  });
+  const createTableViewState=view=>({
+    filters:{},sortKey:view==='completed'?'registrationDate':'documentNo',sortDirection:'desc',
+    registrationDate:'',visibleColumns:new Set(TABLE_COLUMNS[view].map(column=>column.key))
+  });
   const state={
     activePlant:'WF01',view:'completed',requestToken:0,loading:false,saving:false,
     documents:[],rows:[],lineSequence:0,lines:[],modalMode:'register',currentDocument:null,
-    personnelByPlant:new Map(),products:null,lastTrigger:null,pendingCount:0
+    personnelByPlant:new Map(),products:null,lastTrigger:null,pendingCount:0,
+    tableViews:{completed:createTableViewState('completed'),pending:createTableViewState('pending')}
   };
 
   const byId=id=>document.getElementById(id);
@@ -39,6 +72,14 @@
     if(Number.isNaN(parsed.getTime())) return clean(value)||'—';
     return new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).format(parsed);
   };
+  const registrationDateIso=value=>{
+    if(!value) return '';
+    const parsed=new Date(value);
+    if(Number.isNaN(parsed.getTime())) return clean(value).slice(0,10);
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Cairo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(parsed);
+    const values=Object.fromEntries(parts.map(part=>[part.type,part.value]));
+    return `${values.year}-${values.month}-${values.day}`;
+  };
   const documentPlantCode=()=>normalizeCode(state.currentDocument?.plant_code||state.activePlant);
 
   function setStatus(message,type=''){
@@ -66,11 +107,15 @@
         <div class="department-loading-errors-context"><span>المصنع النشط</span><strong id="departmentLoadingErrorsPlantLabel">—</strong></div>
         <div class="department-loading-errors-actions" id="departmentLoadingErrorsActions"></div>
       </div>
+      <div class="department-loading-errors-table-filters glass-soft" id="departmentLoadingErrorsTableFilters" data-export-exclude></div>
+      <div class="department-loading-errors-column-manager glass-soft" id="departmentLoadingErrorsColumnManager" data-export-exclude hidden></div>
       <div class="upload-status department-loading-errors-status" id="departmentLoadingErrorsStatus" role="status" aria-live="polite"></div>
       <div class="table-wrap department-loading-errors-table-wrap">
         <table id="departmentLoadingErrorsTable" data-no-universal-table="1"><thead></thead><tbody></tbody></table>
       </div>`;
     host.addEventListener('click',handleRootClick);
+    host.addEventListener('input',handleRootInput);
+    host.addEventListener('change',handleRootInput);
     renderView();
   }
 
@@ -96,30 +141,130 @@
       :'عرض أخطاء التحميل التي اكتملت مراجعتها حسب المصنع.';
     const actions=byId('departmentLoadingErrorsActions');
     if(actions){
+      const columnsButton=`<button class="secondary department-loading-errors-columns-btn" type="button" data-loading-errors-action="columns" aria-expanded="false" aria-controls="departmentLoadingErrorsColumnManager">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16M8 3v4M15 10v4M11 17v4"/></svg><span>إدارة الأعمدة</span>
+        </button>`;
       actions.innerHTML=isPending
         ?`<button class="secondary department-loading-error-back" type="button" data-loading-errors-action="completed">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg><span>العودة لسجل أخطاء التحميل</span>
           </button>
           <button class="primary department-loading-error-open" id="departmentLoadingErrorRegisterBtn" type="button" data-loading-errors-action="register">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>تسجيل خطأ</span>
-          </button>`
+          </button>${columnsButton}`
         :`<button class="primary department-loading-error-open" id="departmentLoadingErrorPendingBtn" type="button" data-loading-errors-action="pending">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11h6M9 15h4M8 3h8l3 3v15H5V3h3Zm0 0v4h8V3"/></svg><span>أخطاء تحتاج مراجعة</span>
             <span class="department-loading-error-pending-badge" id="departmentLoadingErrorPendingBadge" aria-hidden="true" hidden></span>
-          </button>`;
+          </button>${columnsButton}`;
     }
     renderPendingBadge();
-    const table=byId('departmentLoadingErrorsTable');
-    if(table){
-      table.classList.toggle('is-pending',isPending);
-      table.querySelector('thead').innerHTML=isPending
-        ?'<tr><th>رقم سجل الخطأ</th><th>كود الصنف</th><th>اسم الصنف</th><th>رقم أمر البيع</th><th>نوع الخطأ</th><th>اسم العميل</th><th>ملاحظات</th><th>استكمال</th></tr>'
-        :'<tr><th>رقم سجل الخطأ</th><th>كود أمين المخزن</th><th>اسم أمين المخزن</th><th>كود الصنف</th><th>اسم الصنف</th><th>نوع الخطأ</th><th>رقم أمر البيع</th><th>اسم العميل</th><th>رقم السيارة</th><th>تاريخ الخطأ</th><th>تاريخ تسجيل الخطأ</th><th>المصنع</th><th>ملاحظات</th><th>الإجراء</th></tr>';
-    }
+    closeColumnManager();
+    renderTableFilters();
+    renderTable();
     renderTabs();
-    renderRows();
     syncPermissionState();
   }
+
+  function currentTableState(){return state.tableViews[state.view];}
+  function currentColumns(options={}){
+    const viewState=currentTableState();
+    return TABLE_COLUMNS[state.view].filter(column=>viewState.visibleColumns.has(column.key) && !(options.exporting && column.action));
+  }
+  function rowValue(row,key){
+    const header=row?.document||{};
+    const line=row?.line||{};
+    const values={
+      documentNo:header.document_no,storekeeperCode:header.storekeeper_code_snapshot,
+      storekeeperName:header.storekeeper_name_snapshot,materialCode:line.material_code,
+      materialName:line.material_name,salesOrderNo:line.sales_order_no,
+      errorType:ERROR_TYPE_LABELS[line.error_type]||clean(line.error_type),customerName:line.customer_name,
+      vehicleNo:header.vehicle_no,errorDate:clean(header.error_date).slice(0,10),
+      registrationDate:registrationDateIso(header.created_at),plant:`${clean(header.plant_code)} — ${plantName(header.plant_code)}`,
+      notes:line.notes||'',actionText:header.action_text||'',review:''
+    };
+    return clean(values[key]);
+  }
+  function normalizedSearch(value){return clean(value).replace(/\s+/g,' ').toLocaleLowerCase('ar');}
+  function compareRows(left,right,column,direction){
+    const leftValue=rowValue(left,column.key),rightValue=rowValue(right,column.key);
+    let comparison=0;
+    if(column.type==='number' && /^-?\d+(?:\.\d+)?$/.test(leftValue) && /^-?\d+(?:\.\d+)?$/.test(rightValue)) comparison=Number(leftValue)-Number(rightValue);
+    else comparison=leftValue.localeCompare(rightValue,'ar',{numeric:true,sensitivity:'base'});
+    return direction==='desc'?-comparison:comparison;
+  }
+  function displayedRows(){
+    const viewState=currentTableState();
+    const columns=TABLE_COLUMNS[state.view];
+    const filtered=state.rows.filter(row=>{
+      if(state.view==='completed' && viewState.registrationDate && rowValue(row,'registrationDate')!==viewState.registrationDate) return false;
+      return columns.every(column=>{
+        const query=normalizedSearch(viewState.filters[column.key]);
+        return !query || normalizedSearch(rowValue(row,column.key)).includes(query);
+      });
+    });
+    const sortColumn=columns.find(column=>column.key===viewState.sortKey && !column.action);
+    if(!sortColumn) return filtered;
+    return filtered.map((row,index)=>({row,index})).sort((left,right)=>compareRows(left.row,right.row,sortColumn,viewState.sortDirection)||left.index-right.index).map(item=>item.row);
+  }
+  function sortIndicator(column){
+    const viewState=currentTableState();
+    if(viewState.sortKey!==column.key) return '↕';
+    return viewState.sortDirection==='asc'?'↑':'↓';
+  }
+  function renderTableHeader(){
+    const table=byId('departmentLoadingErrorsTable');
+    const thead=table?.querySelector('thead');
+    if(!table || !thead) return;
+    const columns=currentColumns();
+    table.classList.toggle('is-pending',state.view==='pending');
+    table.dataset.columnsManaged=columns.length<TABLE_COLUMNS[state.view].length?'true':'false';
+    const heading=columns.map(column=>column.action
+      ?`<th data-loading-errors-column="${column.key}" data-export-exclude>${escapeText(column.label)}</th>`
+      :`<th data-loading-errors-column="${column.key}"><button type="button" class="department-sort-button department-loading-errors-sort" data-loading-errors-sort="${column.key}" data-export-label="${escapeText(column.label)}" aria-label="ترتيب حسب ${escapeText(column.label)}"><span>${escapeText(column.label)}</span><span class="department-sort-indicator" aria-hidden="true">${sortIndicator(column)}</span></button></th>`
+    ).join('');
+    const filters=columns.map(column=>column.action
+      ?'<th data-export-exclude></th>'
+      :`<th><input class="col-filter department-loading-errors-column-filter" data-loading-errors-filter="${column.key}" value="${escapeText(currentTableState().filters[column.key]||'')}" placeholder="بحث ${escapeText(column.label)}" aria-label="بحث في ${escapeText(column.label)}" /></th>`
+    ).join('');
+    thead.innerHTML=`<tr>${heading}</tr><tr class="column-filter-row department-loading-errors-filter-row" data-export-filter-row>${filters}</tr>`;
+  }
+  function renderTableFilters(){
+    const filters=byId('departmentLoadingErrorsTableFilters');
+    if(!filters) return;
+    if(state.view!=='completed'){
+      filters.hidden=true;
+      filters.innerHTML='';
+      return;
+    }
+    const value=currentTableState().registrationDate;
+    filters.hidden=false;
+    filters.innerHTML=`<label class="department-loading-errors-date-filter"><span>تاريخ تسجيل الخطأ</span><input id="departmentLoadingErrorsRegistrationDateFilter" type="date" data-custom-date-picker data-custom-date-picker-label="فلتر تاريخ تسجيل الخطأ" data-loading-errors-date-filter value="${escapeText(value)}" /></label>
+      <button type="button" class="secondary department-loading-errors-clear-date" data-loading-errors-action="clear-date"${value?'':' disabled'}>مسح فلتر التاريخ</button>`;
+    window.CustomDatePicker?.init?.(filters);
+  }
+  function renderColumnManager(){
+    const panel=byId('departmentLoadingErrorsColumnManager');
+    if(!panel) return;
+    const visible=currentTableState().visibleColumns;
+    panel.innerHTML=`<div class="department-loading-errors-column-manager-head"><div><strong>إدارة أعمدة ${state.view==='pending'?'أخطاء تحتاج مراجعة':'سجل أخطاء التحميل'}</strong><small>اختر الأعمدة التي تريد عرضها وتصديرها.</small></div><button type="button" class="department-loading-errors-column-close" data-loading-errors-action="close-columns" aria-label="إغلاق إدارة الأعمدة">×</button></div>
+      <div class="department-loading-errors-column-list">${TABLE_COLUMNS[state.view].map(column=>`<label${column.required?' class="is-required"':''}><input type="checkbox" data-loading-errors-column-toggle="${column.key}"${visible.has(column.key)?' checked':''}${column.required?' disabled':''} /><span>${escapeText(column.label)}</span></label>`).join('')}</div>
+      <div class="department-loading-errors-column-actions"><button type="button" class="secondary" data-loading-errors-action="show-all-columns">إظهار الكل</button><button type="button" class="primary" data-loading-errors-action="close-columns">تم</button></div>`;
+  }
+  function openColumnManager(){
+    const panel=byId('departmentLoadingErrorsColumnManager');
+    const button=root()?.querySelector('[data-loading-errors-action="columns"]');
+    if(!panel || !button) return;
+    renderColumnManager();
+    panel.hidden=false;
+    button.setAttribute('aria-expanded','true');
+    requestAnimationFrame(()=>panel.querySelector('input')?.focus({preventScroll:true}));
+  }
+  function closeColumnManager(){
+    const panel=byId('departmentLoadingErrorsColumnManager');
+    const button=root()?.querySelector('[data-loading-errors-action="columns"]');
+    if(panel) panel.hidden=true;
+    if(button) button.setAttribute('aria-expanded','false');
+  }
+  function renderTable(){renderTableHeader();renderRows();}
 
   function syncPermissionState(){
     const registerButton=byId('departmentLoadingErrorRegisterBtn');
@@ -152,10 +297,69 @@
     }
     const actionButton=event.target.closest('[data-loading-errors-action]');
     const action=actionButton?.dataset.loadingErrorsAction;
+    const sortButton=event.target.closest('[data-loading-errors-sort]');
+    if(sortButton){
+      const key=sortButton.dataset.loadingErrorsSort;
+      const viewState=currentTableState();
+      if(viewState.sortKey===key) viewState.sortDirection=viewState.sortDirection==='asc'?'desc':'asc';
+      else {viewState.sortKey=key;viewState.sortDirection='asc';}
+      renderTable();
+      return;
+    }
     if(action==='pending'){switchView('pending');return;}
     if(action==='completed'){switchView('completed');return;}
     if(action==='register'){openRegisterModal(actionButton);return;}
+    if(action==='columns'){openColumnManager();return;}
+    if(action==='close-columns'){closeColumnManager();return;}
+    if(action==='show-all-columns'){
+      currentTableState().visibleColumns=new Set(TABLE_COLUMNS[state.view].map(column=>column.key));
+      renderColumnManager();renderTable();return;
+    }
+    if(action==='clear-date'){
+      currentTableState().registrationDate='';
+      renderTableFilters();renderRows();updateFilteredStatus();return;
+    }
     if(action==='review') openReviewModal(actionButton.dataset.documentId,actionButton);
+  }
+
+  function handleRootInput(event){
+    const filter=event.target.closest('[data-loading-errors-filter]');
+    if(filter){
+      const key=filter.dataset.loadingErrorsFilter;
+      const nextValue=filter.value||'';
+      if(currentTableState().filters[key]===nextValue) return;
+      currentTableState().filters[key]=nextValue;
+      const position=filter.selectionStart;
+      renderRows();updateFilteredStatus();
+      const next=root()?.querySelector(`[data-loading-errors-filter="${key}"]`);
+      if(next && next!==document.activeElement){next.focus({preventScroll:true});try{next.setSelectionRange(position,position);}catch(_){}}
+      return;
+    }
+    const dateFilter=event.target.closest('[data-loading-errors-date-filter]');
+    if(dateFilter){
+      const nextValue=clean(dateFilter.value);
+      if(currentTableState().registrationDate===nextValue) return;
+      currentTableState().registrationDate=nextValue;
+      const clearButton=root()?.querySelector('[data-loading-errors-action="clear-date"]');
+      if(clearButton) clearButton.disabled=!currentTableState().registrationDate;
+      renderRows();updateFilteredStatus();
+      return;
+    }
+    const columnToggle=event.target.closest('[data-loading-errors-column-toggle]');
+    if(columnToggle){
+      const visible=currentTableState().visibleColumns;
+      const key=columnToggle.dataset.loadingErrorsColumnToggle;
+      if(TABLE_COLUMNS[state.view].find(column=>column.key===key)?.required){columnToggle.checked=true;return;}
+      if(columnToggle.checked===visible.has(key)) return;
+      if(columnToggle.checked) visible.add(key);
+      else if(visible.size>1){
+        visible.delete(key);
+        delete currentTableState().filters[key];
+        if(currentTableState().sortKey===key){currentTableState().sortKey=[...visible][0]||'';currentTableState().sortDirection='asc';}
+      }
+      else columnToggle.checked=true;
+      renderTable();
+    }
   }
 
   function clearLoadedRows(){state.documents=[];state.rows=[];}
@@ -166,6 +370,13 @@
     clearLoadedRows();
     renderView();
     loadRecords(options);
+  }
+
+  function updateFilteredStatus(){
+    if(state.loading) return;
+    const visible=displayedRows().length;
+    const label=state.view==='pending'?'قائمة المراجعة':'السجل المكتمل';
+    setStatus(`يتم عرض ${visible} من ${state.rows.length} سطر في ${label} للمصنع ${state.activePlant}.`);
   }
 
   function flattenDocuments(documents){
@@ -213,48 +424,36 @@
   function renderRows(){
     const tbody=byId('departmentLoadingErrorsTable')?.querySelector('tbody');
     if(!tbody) return;
-    const isPending=state.view==='pending';
-    const columns=isPending?8:14;
+    const columns=currentColumns();
     if(state.loading){
-      tbody.innerHTML=`<tr><td colspan="${columns}" class="empty-row">${isPending?'جاري تحميل الأخطاء التي تحتاج مراجعة...':'جاري تحميل سجل أخطاء التحميل...'}</td></tr>`;
+      tbody.innerHTML=`<tr><td colspan="${columns.length}" class="empty-row">${state.view==='pending'?'جاري تحميل الأخطاء التي تحتاج مراجعة...':'جاري تحميل سجل أخطاء التحميل...'}</td></tr>`;
       return;
     }
-    if(!state.rows.length){
-      tbody.innerHTML=`<tr><td colspan="${columns}" class="empty-row">${isPending?'لا توجد أخطاء تحتاج مراجعة لهذا المصنع.':'لا توجد أخطاء تحميل مكتملة المراجعة لهذا المصنع.'}</td></tr>`;
+    const rows=displayedRows();
+    if(!rows.length){
+      const hasFilters=Boolean(currentTableState().registrationDate||Object.values(currentTableState().filters).some(clean));
+      const message=hasFilters?'لا توجد بيانات مطابقة للفلاتر الحالية.':state.view==='pending'?'لا توجد أخطاء تحتاج مراجعة لهذا المصنع.':'لا توجد أخطاء تحميل مكتملة المراجعة لهذا المصنع.';
+      tbody.innerHTML=`<tr><td colspan="${columns.length}" class="empty-row">${message}</td></tr>`;
       return;
     }
-    tbody.innerHTML=isPending ? renderPendingRows() : renderCompletedRows();
+    tbody.innerHTML=rows.map(row=>`<tr>${columns.map(column=>renderTableCell(row,column)).join('')}</tr>`).join('');
     syncPermissionState();
   }
 
-  function renderPendingRows(){
-    return state.rows.map(({document:header,line,lineIndex,lineCount})=>{
+  function renderTableCell(row,column){
+    const header=row.document||{},line=row.line||{};
+    if(column.key==='review') return `<td class="department-loading-error-review-cell" data-export-exclude><button type="button" class="primary department-loading-error-review-btn" data-loading-errors-action="review" data-document-id="${escapeText(header.id)}">استكمال البيانات</button></td>`;
+    if(column.key==='errorType'){
       const type=ERROR_TYPE_LABELS[line.error_type]||clean(line.error_type)||'—';
       const typeClass=line.error_type==='surplus'?'surplus':line.error_type==='shortage'?'shortage':'';
-      const reviewCell=lineIndex===0
-        ?`<td rowspan="${lineCount}" class="department-loading-error-review-cell"><button type="button" class="primary department-loading-error-review-btn" data-loading-errors-action="review" data-document-id="${escapeText(header.id)}">استكمال البيانات</button></td>`
-        :'';
-      return `<tr>
-        <td dir="ltr">${escapeText(header.document_no)}</td><td dir="ltr">${escapeText(line.material_code)}</td><td>${escapeText(line.material_name)}</td>
-        <td dir="ltr">${escapeText(line.sales_order_no)}</td><td><span class="department-loading-error-type ${typeClass}">${escapeText(type)}</span></td>
-        <td>${escapeText(line.customer_name)}</td><td class="department-loading-errors-text-cell">${escapeText(line.notes||'—')}</td>${reviewCell}
-      </tr>`;
-    }).join('');
-  }
-
-  function renderCompletedRows(){
-    return state.rows.map(({document:header,line})=>{
-      const type=ERROR_TYPE_LABELS[line.error_type]||clean(line.error_type)||'—';
-      const typeClass=line.error_type==='surplus'?'surplus':line.error_type==='shortage'?'shortage':'';
-      const plant=`${clean(header.plant_code)} — ${plantName(header.plant_code)}`;
-      return `<tr>
-        <td dir="ltr">${escapeText(header.document_no)}</td><td dir="ltr">${escapeText(header.storekeeper_code_snapshot)}</td><td>${escapeText(header.storekeeper_name_snapshot)}</td>
-        <td dir="ltr">${escapeText(line.material_code)}</td><td>${escapeText(line.material_name)}</td><td><span class="department-loading-error-type ${typeClass}">${escapeText(type)}</span></td>
-        <td dir="ltr">${escapeText(line.sales_order_no)}</td><td>${escapeText(line.customer_name)}</td><td dir="auto">${escapeText(header.vehicle_no)}</td>
-        <td>${escapeText(displayDate(header.error_date))}</td><td>${escapeText(registrationDate(header.created_at))}</td><td>${escapeText(plant)}</td>
-        <td class="department-loading-errors-text-cell">${escapeText(line.notes||'—')}</td><td class="department-loading-errors-text-cell">${escapeText(header.action_text)}</td>
-      </tr>`;
-    }).join('');
+      return `<td><span class="department-loading-error-type ${typeClass}">${escapeText(type)}</span></td>`;
+    }
+    const value=column.key==='errorDate'?displayDate(header.error_date)
+      :column.key==='registrationDate'?registrationDate(header.created_at)
+      :rowValue(row,column.key)||'—';
+    const textCell=['notes','actionText'].includes(column.key)?' class="department-loading-errors-text-cell"':'';
+    const direction=['documentNo','storekeeperCode','materialCode','salesOrderNo'].includes(column.key)?' dir="ltr"':'';
+    return `<td${textCell}${direction}>${escapeText(value)}</td>`;
   }
 
   async function loadRecords(options={}){
@@ -659,9 +858,33 @@
     }
   }
 
+  function buildExportTable(){
+    const columns=currentColumns({exporting:true});
+    const table=document.createElement('table');
+    table.className='department-loading-errors-export-table';
+    table.innerHTML=`<thead><tr>${columns.map(column=>`<th data-export-label="${escapeText(column.label)}">${escapeText(column.label)}</th>`).join('')}</tr></thead><tbody>${displayedRows().map(row=>`<tr>${columns.map(column=>renderTableCell(row,column)).join('')}</tr>`).join('')}</tbody>`;
+    return table;
+  }
+
+  function getExportState(){
+    const viewState=currentTableState();
+    const filterLabels=TABLE_COLUMNS[state.view].map(column=>{
+      const value=clean(viewState.filters[column.key]);
+      return value?`${column.label}: ${value}`:'';
+    }).filter(Boolean);
+    const sortColumn=TABLE_COLUMNS[state.view].find(column=>column.key===viewState.sortKey);
+    return {
+      activePlant:state.activePlant,plantLabel:`${state.activePlant} — ${plantName(state.activePlant)}`,
+      view:state.view,viewLabel:state.view==='pending'?'أخطاء تحتاج مراجعة':'سجل أخطاء التحميل',
+      registrationDate:viewState.registrationDate,filters:filterLabels,
+      sortLabel:sortColumn?.label||'الافتراضي',sortDirection:viewState.sortDirection,
+      loading:state.loading,rowCount:displayedRows().length,table:buildExportTable()
+    };
+  }
+
   function init(){renderShell();ensureModal();}
 
-  window.DepartmentLoadingErrors={load:loadRecords,close:closeModal};
+  window.DepartmentLoadingErrors={load:loadRecords,close:closeModal,getExportState};
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
   else init();
 })();

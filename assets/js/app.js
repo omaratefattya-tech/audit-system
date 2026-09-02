@@ -1075,7 +1075,8 @@ function initReportExportButtons(){
   $('#rawMaterialsExportPngBtn')?.addEventListener('click',exportRawMaterialsPng);
 }
 
-function renderTables(){table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']));table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحويل'],APP_DATA.salesReviewSample);table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample)}
+function renderMovementsTable(){table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']))}
+function renderTables(){renderMovementsTable();table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحويل'],APP_DATA.salesReviewSample);table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample)}
 function renderTabs(){const salesWh=APP_DATA.plants.flatMap(p=>p.warehouses.filter(w=>['W401','W402','N401','N402','N411','N412','E401','E402'].includes(w[0])).map(w=>w[0]));$('#salesTabs').innerHTML=salesWh.map((w,i)=>`<button class="${i===0?'active':''}">${w}</button>`).join('');$('#inboundTabs').innerHTML=getPlantsCatalog().map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('')}
 
 
@@ -3053,7 +3054,7 @@ function nav(){
 const FOCUS_MODE_SECTIONS = new Set([
   'sales','inbound','raw_materials','inventory_closing',
   'inventory_expiry_tracking','department_storekeepers','department_weekly_leave_schedule',
-  'department_hr_reports','department_evaluations'
+  'department_hr_reports','department_evaluations','department_loading_errors'
 ]);
 let FOCUS_MODE_SCROLL_Y = 0;
 let FOCUS_MODE_CONTEXT = null;
@@ -4821,8 +4822,65 @@ const SETTINGS_TAB_PERMISSION_MAP={
   'storekeepers':'settings_storekeepers',
   'activity-log':'settings_activity_log'
 };
+const GENERAL_SETTINGS_TAB_PERMISSION_MAP=Object.freeze({plants:'plants',movements:'movements'});
+function canViewGeneralSettingsTab(key){
+  const permissionKey=GENERAL_SETTINGS_TAB_PERMISSION_MAP[key];
+  return Boolean(permissionKey && hasPermission(permissionKey,'view'));
+}
 function canViewSettingsTab(key){
+  if(key==='general') return Object.keys(GENERAL_SETTINGS_TAB_PERMISSION_MAP).some(canViewGeneralSettingsTab);
   return hasPermission(SETTINGS_TAB_PERMISSION_MAP[key]||'settings','view');
+}
+function syncGeneralSettingsTabs(){
+  const root=$('#settingsGeneralPanel');
+  if(!root) return;
+  const tabs=[...root.querySelectorAll('[data-general-settings-tab]')];
+  const panels=[...root.querySelectorAll('[data-general-settings-panel]')];
+  tabs.forEach(tab=>{
+    const allowed=canViewGeneralSettingsTab(tab.dataset.generalSettingsTab);
+    tab.hidden=!allowed;
+    tab.disabled=!allowed;
+  });
+  let active=tabs.find(tab=>tab.classList.contains('active') && !tab.hidden && !tab.disabled);
+  if(!active) active=tabs.find(tab=>!tab.hidden && !tab.disabled);
+  tabs.forEach(tab=>{
+    const selected=tab===active;
+    tab.classList.toggle('active',selected);
+    tab.setAttribute('aria-selected',selected?'true':'false');
+  });
+  panels.forEach(panel=>{
+    const selected=Boolean(active && panel.dataset.generalSettingsPanel===active.dataset.generalSettingsTab);
+    panel.classList.toggle('active',selected);
+    panel.hidden=!selected;
+  });
+}
+function initGeneralSettingsTabs(){
+  const root=$('#settingsGeneralPanel');
+  if(!root) return;
+  const tabs=[...root.querySelectorAll('[data-general-settings-tab]')];
+  const panels=[...root.querySelectorAll('[data-general-settings-panel]')];
+  if(root.dataset.generalSettingsTabsBound==='1'){
+    syncGeneralSettingsTabs();
+    return;
+  }
+  root.dataset.generalSettingsTabsBound='1';
+  tabs.forEach(tab=>tab.addEventListener('click',()=>{
+    const key=tab.dataset.generalSettingsTab;
+    if(!canViewGeneralSettingsTab(key)) return;
+    tabs.forEach(item=>{
+      const selected=item===tab;
+      item.classList.toggle('active',selected);
+      item.setAttribute('aria-selected',selected?'true':'false');
+    });
+    panels.forEach(panel=>{
+      const selected=panel.dataset.generalSettingsPanel===key;
+      panel.classList.toggle('active',selected);
+      panel.hidden=!selected;
+    });
+    if(key==='plants') renderPlants();
+    if(key==='movements') renderMovementsTable();
+  }));
+  syncGeneralSettingsTabs();
 }
 function setElementsDisabled(selector,disabled,hide=false){
   $$(selector).forEach(el=>{
@@ -4851,6 +4909,7 @@ function applySettingsSubPermissions(){
     const first=tabs.find(tab=>!tab.hidden);
     if(first) first.click();
   }
+  syncGeneralSettingsTabs();
   syncSettingsMobileTabSelect?.();
 
   setElementsDisabled('#saveProfileBtn,#profileForm input',!hasPermission('settings_profile','edit'));
@@ -6112,6 +6171,7 @@ function initSettingsMobileTabSelect(){
 function initSettingsTabs(){
   const root=$('#settings');
   if(!root) return;
+  initGeneralSettingsTabs();
   const tabs=[...root.querySelectorAll('[data-settings-tab]')];
   const panels=[...root.querySelectorAll('[data-settings-panel]')];
   if(root.dataset.settingsTabsBound==='1'){
@@ -6131,6 +6191,7 @@ function initSettingsTabs(){
     tabs.forEach(t=>{const active=t===tab;t.classList.toggle('active',active);t.setAttribute('aria-selected',active?'true':'false');});
     panels.forEach(panel=>panel.classList.toggle('active',panel.dataset.settingsPanel===key));
     if(key==='system') ensureSystemSettingsLoaded();
+    if(key==='general') syncGeneralSettingsTabs();
     if(key==='plants-settings') ensurePlantsSettingsLoaded();
     if(key==='warehouses-settings') ensureWarehousesSettingsLoaded();
     if(key==='sales-products-settings') ensureSalesProductsSettingsLoaded();
@@ -6244,7 +6305,10 @@ function hasPermission(section, action='view'){
   if(!row) return action==='view' ? ['dashboard'].includes(permissionKey) : false;
   return row[permissionColumn(action)] === true;
 }
-function canViewSection(section){ return hasPermission(section,'view'); }
+function canViewSection(section){
+  if(section==='settings') return hasPermission('settings','view') || canViewSettingsTab('general');
+  return hasPermission(section,'view');
+}
 function showPermissionDenied(section){
   const permissionKey=permissionKeyForSection(section);
   const label=PERMISSION_SCREENS.find(x=>x.key===permissionKey)?.label || section;
