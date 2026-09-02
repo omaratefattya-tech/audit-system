@@ -761,9 +761,11 @@
   function normalizeDigits(value){
     return String(value??'').replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)]);
   }
-  function excelValue(value,header){
+  function excelValue(value,header,sourceCell=null){
     const raw=text(value);
     if(!raw||raw==='—') return '';
+    const exportType=text(sourceCell?.getAttribute?.('data-export-type'));
+    if(exportType==='text') return raw;
     const normalized=normalizeDigits(raw).replace(/٬/g,',').replace(/٫/g,'.');
     const iso=/^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
     const display=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(normalized);
@@ -773,6 +775,7 @@
     }
     if(/كود|الموقع|المصنع|الهاتف|التليفون/.test(header||'')) return raw;
     const numeric=normalized.replace(/,/g,'').replace(/%$/,'').replace(/^\+/,'');
+    if(exportType==='percentage'&&/^[-+]?\d+(?:\.\d+)?$/.test(numeric)) return Number(numeric)/100;
     if(/^[-+]?\d+(?:\.\d+)?$/.test(numeric)) return Number(numeric);
     return raw;
   }
@@ -792,7 +795,7 @@
     const headRow=table.tHead?.rows?.[table.tHead.rows.length-1];
     if(headRow) Array.from(headRow.cells).forEach(cell=>headers.push(exportHeaderLabel(cell)));
     const rows=Array.from(table.tBodies?.[0]?.rows||[]).filter(row=>!row.querySelector('.empty-row')).map(row=>{
-      const values=[];Array.from(row.cells).forEach((cell,index)=>values.push(excelValue(statusExportText(cell),headers[index]||'')));return {values,cells:Array.from(row.cells)};
+      const values=[];Array.from(row.cells).forEach((cell,index)=>values.push(excelValue(statusExportText(cell),headers[index]||'',cell)));return {values,cells:Array.from(row.cells)};
     });
     return {headers,rows};
   }
@@ -805,7 +808,11 @@
       border:{top:{style:'thin',color:{rgb:'FF9CB9AA'}},bottom:{style:'thin',color:{rgb:'FF9CB9AA'}},left:{style:'thin',color:{rgb:'FF9CB9AA'}},right:{style:'thin',color:{rgb:'FF9CB9AA'}}},
       fill:{patternType:'solid',fgColor:{rgb:fill||(isHeader?'FF06452F':'FFF7FBF8')}}
     };
+    const exportType=text(sourceCell?.getAttribute?.('data-export-type'));
     if(cell.v instanceof Date) cell.z='dd/mm/yyyy';
+    else if(typeof cell.v==='number'&&exportType==='percentage') cell.z='0.00%';
+    else if(typeof cell.v==='number'&&exportType==='rating') cell.z='0.00';
+    else if(typeof cell.v==='number'&&exportType==='integer') cell.z='0';
     else if(typeof cell.v==='number') cell.z='0.000';
   }
   function buildWorkbook(descriptor){

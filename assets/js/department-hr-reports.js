@@ -1,6 +1,8 @@
 (() => {
   'use strict';
   const TABS = ['cumulative_department_evaluation','personnel_performance','attendance_compliance','absence_violations','evaluation_analysis','performance_trend'];
+  const EVALUATION_MAX_SCORE = 10;
+  const PERSONNEL_PERFORMANCE_EXCLUDED_JOBS = new Set(['مدير إدارة المخازن','مدير مخازن قطع الغيار','رئيس قسم']);
   const S = { initialized:false, loading:false, loaded:false, error:'', activeTab:TABS[0], seq:0, controller:null, data:null, search:'', personPreviewId:'', absenceMode:'records', trendGrouping:'month', sort:{} };
   const $ = id => document.getElementById(id);
   const root = () => $('department_hr_reports');
@@ -27,11 +29,22 @@
   function dateTime(value){
     if(!value) return '—';
     const d=new Date(value);
-    return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat('ar-EG',{dateStyle:'medium',timeStyle:'short',timeZone:'Africa/Cairo'}).format(d);
+    return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat('ar-EG-u-nu-latn',{dateStyle:'medium',timeStyle:'short',timeZone:'Africa/Cairo'}).format(d);
   }
-  function num(value,digits=2){
+  function numberText(value,digits=2){
     if(value===null||value===undefined||value===''||!Number.isFinite(Number(value))) return '—';
-    return new Intl.NumberFormat('ar-EG',{minimumFractionDigits:digits,maximumFractionDigits:digits}).format(Number(value));
+    const numeric=Object.is(Number(value),-0)?0:Number(value);
+    return new Intl.NumberFormat('en-US-u-nu-latn',{useGrouping:false,minimumFractionDigits:digits,maximumFractionDigits:digits}).format(numeric);
+  }
+  const integerText=value=>numberText(value,0);
+  const ratingText=value=>numberText(value,2);
+  function percentageText(value){
+    if(value===null||value===undefined||value===''||!Number.isFinite(Number(value))||!Number.isFinite(EVALUATION_MAX_SCORE)||EVALUATION_MAX_SCORE<=0) return '—';
+    return `${numberText((Number(value)/EVALUATION_MAX_SCORE)*100,2)}%`;
+  }
+  function westernText(value){
+    return String(value??'').replace(/[٠-٩]/g,digit=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(digit)])
+      .replace(/[۰-۹]/g,digit=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)]).replace(/٫/g,'.').replace(/٬/g,',');
   }
   const color=value=>/^#[0-9A-F]{6}$/.test(String(value||'').toUpperCase())?String(value).toUpperCase():'#64748B';
   function filters(){
@@ -52,8 +65,8 @@
   }
   const stateMarkup=(kind,message,button='')=>`<div class="department-hr-state ${kind}">${kind==='loading'?'<span class="department-hr-spinner" aria-hidden="true"></span>':''}<b>${kind==='error'?'تعذر تحميل التقرير':kind==='empty'?'لا توجد بيانات':'جاري تحميل البيانات...'}</b><span>${esc(message||'')}</span>${button}</div>`;
   const empty=message=>stateMarkup('empty',message);
-  const card=(label,value,note='')=>`<article class="department-hr-summary-card"><span>${esc(label)}</span><b>${esc(value)}</b>${note?`<small>${esc(note)}</small>`:''}</article>`;
-  const cards=items=>`<div class="department-hr-summary">${items.join('')}</div>`;
+  const card=(label,value,note='',numeric=false)=>`<article class="department-hr-summary-card"><span>${esc(label)}</span><b${numeric?' class="department-hr-numeric-value" dir="ltr"':''}>${esc(value)}</b>${note?`<small>${esc(note)}</small>`:''}</article>`;
+  const cards=(items,enhanced=false)=>`<div class="department-hr-summary${enhanced?' department-hr-summary-enhanced':''}">${items.join('')}</div>`;
 
   function searchMatch(row){
     const q=norm(S.search);
@@ -73,6 +86,7 @@
     const scope={...f,person:''};
     return data.personnel.filter(person=>scopedPerson(person,scope)&&searchMatch(person));
   }
+  const isPersonnelPerformanceExcluded=person=>PERSONNEL_PERFORMANCE_EXCLUDED_JOBS.has(String(person?.job_title||'').trim());
   function scopedPerson(person,f=filters()){
     return (!f.plant||String(person.plant_code||'').toUpperCase()===f.plant.toUpperCase())
       &&(!f.department||person.department===f.department)&&(!f.job||person.job_title===f.job)&&(!f.person||person.id===f.person);
@@ -125,8 +139,8 @@
   }
   function table(report,columns,rows,message,options={}){
     if(!rows.length) return empty(message);
-    const head=columns.map(c=>`<th data-export-label="${esc(c.label)}">${c.sort?sortHead(report,c.key,c.label):esc(c.label)}</th>`).join('');
-    const body=rows.map(row=>`<tr${typeof options.rowAttributes==='function'?options.rowAttributes(row):''}>${columns.map(c=>`<td${c.className?` class="${c.className}"`:''}>${c.render?c.render(row):esc(row[c.key]??'—')}</td>`).join('')}</tr>`).join('');
+    const head=columns.map(c=>`<th${c.className?` class="${c.className}"`:''} data-export-label="${esc(c.label)}">${c.sort?sortHead(report,c.key,c.label):esc(c.label)}</th>`).join('');
+    const body=rows.map(row=>`<tr${typeof options.rowAttributes==='function'?options.rowAttributes(row):''}>${columns.map(c=>`<td${c.className?` class="${c.className}"`:''}${c.exportType?` data-export-type="${esc(c.exportType)}"`:''}>${c.render?c.render(row):esc(row[c.key]??'—')}</td>`).join('')}</tr>`).join('');
     return `<div class="department-hr-table-wrap"><table class="department-hr-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
   }
   function renderAll(){
@@ -170,52 +184,61 @@
     if(!target) return;
     if(!rows.length){ target.innerHTML=empty('لا توجد تقييمات يومية محفوظة فعليًا ضمن الفترة والفلاتر.'); return; }
     const summary=scoreStats(rows), aggregates=[];
-    const add=(level,key,label)=>{
+    const add=(level,levelKey,key,label)=>{
       const groups=new Map();
       rows.forEach(row=>{const k=key(row);if(!groups.has(k))groups.set(k,{label:label(row),rows:[]});groups.get(k).rows.push(row);});
-      groups.forEach(group=>{const x=scoreStats(group.rows);aggregates.push({_order:aggregates.length,level,label:group.label,employees:x.people,count:x.count,avg:x.avg,min:x.min,max:x.max});});
+      groups.forEach(group=>{const x=scoreStats(group.rows);aggregates.push({_order:aggregates.length,level,levelKey,label:group.label,employees:x.people,count:x.count,avg:x.avg,min:x.min,max:x.max});});
     };
-    add('الموقع',r=>r.plant_code,r=>r.plant_code);
-    add('القسم',r=>`${r.plant_code}|${r.department}`,r=>`${r.plant_code} / ${r.department}`);
-    add('الموظف',r=>r.personnel_id,r=>`${r.employee_code} — ${r.full_name}`);
+    add('الموقع','site',r=>r.plant_code,r=>r.plant_code);
+    add('القسم','department',r=>`${r.plant_code}|${r.department}`,r=>`${r.plant_code} / ${r.department}`);
+    add('الموظف','employee',r=>r.personnel_id,r=>`${westernText(r.employee_code)} — ${r.full_name}`);
     const rowsOut=sorted('cumulative',aggregates,'level');
     const columns=[
-      {key:'level',label:'المستوى',sort:true},{key:'label',label:'الموقع/القسم/الموظف',sort:true},
-      {key:'employees',label:'عدد الموظفين',sort:true},{key:'count',label:'عدد التقييمات',sort:true},
-      {key:'avg',label:'المتوسط',sort:true,render:r=>esc(num(r.avg))},{key:'min',label:'أقل تقييم',sort:true,render:r=>esc(num(r.min))},
-      {key:'max',label:'أعلى تقييم',sort:true,render:r=>esc(num(r.max))}
+      {key:'level',label:'المستوى',sort:true,className:'department-hr-text-column'},{key:'label',label:'الموقع/القسم/الموظف',sort:true,className:'department-hr-text-column'},
+      {key:'employees',label:'عدد الموظفين',sort:true,className:'department-hr-numeric-cell',exportType:'integer',render:r=>esc(integerText(r.employees))},
+      {key:'count',label:'عدد التقييمات',sort:true,className:'department-hr-numeric-cell',exportType:'integer',render:r=>esc(integerText(r.count))},
+      {key:'avg',label:'المتوسط',sort:true,className:'department-hr-numeric-cell',exportType:'percentage',render:r=>esc(percentageText(r.avg))},
+      {key:'min',label:'أقل تقييم',sort:true,className:'department-hr-numeric-cell',exportType:'rating',render:r=>esc(ratingText(r.min))},
+      {key:'max',label:'أعلى تقييم',sort:true,className:'department-hr-numeric-cell',exportType:'rating',render:r=>esc(ratingText(r.max))}
     ];
     target.innerHTML=cards([
-      card('إجمالي التقييمات المسجلة',String(summary.count)),card('موظفون لديهم تقييمات',String(summary.people)),
-      card('المتوسط العام',num(summary.avg)),card('أقل تقييم',num(summary.min)),card('أعلى تقييم',num(summary.max))
-    ])+table('cumulative',columns,rowsOut,'لا توجد مقارنات متاحة.');
+      card('إجمالي التقييمات المسجلة',integerText(summary.count),'',true),card('موظفون لديهم تقييمات',integerText(summary.people),'',true),
+      card('المتوسط العام',percentageText(summary.avg),'',true),card('أقل تقييم',ratingText(summary.min),'',true),card('أعلى تقييم',ratingText(summary.max),'',true)
+    ],true)+table('cumulative',columns,rowsOut,'لا توجد مقارنات متاحة.',{
+      rowAttributes:row=>` data-hr-cumulative-level="${esc(row.levelKey)}"`
+    });
   }
 
   function renderPerson(){
     const target=panel('personnel_performance');
     if(!target) return;
-    const data=current(), f=filters(), people=matchingPersonnel(data,f);
+    const data=current(), f=filters();
+    const selectedCandidate=f.person?data.personnel.find(p=>String(p.id)===String(f.person)&&scopedPerson(p,f)):null;
+    const people=selectedCandidate&&isPersonnelPerformanceExcluded(selectedCandidate)
+      ?[]
+      :matchingPersonnel(data,f).filter(person=>!isPersonnelPerformanceExcluded(person));
     const selectedId=f.person||S.personPreviewId;
-    let person=selectedId?data.personnel.find(p=>String(p.id)===String(selectedId)&&scopedPerson(p,{...f,person:selectedId})):null;
+    let person=selectedId?data.personnel.find(p=>String(p.id)===String(selectedId)&&scopedPerson(p,{...f,person:selectedId})&&!isPersonnelPerformanceExcluded(p)):null;
     if(!person && !f.person && !S.personPreviewId && norm(S.search) && people.length===1) person=people[0];
     if(!person){
       if(!people.length){target.innerHTML=empty('لا يوجد موظفون مطابقون للفترة والفلاتر والبحث.');return;}
       const summaryRows=people.map((p,index)=>{
         const evals=data.evaluations.filter(r=>String(r.personnel_id)===String(p.id));
-        const statuses=data.statuses.filter(r=>String(r.personnel_id)===String(p.id));
         const summary=scoreStats(evals);
         return {
           _order:index,id:p.id,employee_code:p.employee_code,full_name:p.full_name,job_title:p.job_title,
-          plant_code:p.plant_code,department:p.department,count:summary.count,avg:summary.avg,min:summary.min,max:summary.max,
-          discount:statuses.filter(r=>String(r.shift_code)==='8').length,
-          absence:statuses.filter(r=>String(r.shift_code)==='9').length
+          plant_code:p.plant_code,department:p.department,avg:summary.avg,min:summary.min,max:summary.max
         };
       });
       const summaryColumns=[
-        {key:'employee_code',label:'الكود الوظيفي',sort:true},{key:'full_name',label:'اسم الموظف',sort:true},{key:'job_title',label:'الوظيفة',sort:true},
-        {key:'plant_code',label:'الموقع',sort:true},{key:'department',label:'القسم',sort:true},{key:'count',label:'عدد التقييمات',sort:true},
-        {key:'avg',label:'المتوسط',sort:true,render:r=>esc(num(r.avg))},{key:'min',label:'أقل تقييم',sort:true,render:r=>esc(num(r.min))},
-        {key:'max',label:'أعلى تقييم',sort:true,render:r=>esc(num(r.max))},{key:'discount',label:'أيام الخصم',sort:true},{key:'absence',label:'غياب بدون إذن',sort:true}
+        {key:'employee_code',label:'كود الموظف',sort:true,className:'department-hr-code-cell',exportType:'text',render:r=>esc(westernText(r.employee_code))},
+        {key:'full_name',label:'اسم الموظف',sort:true,className:'department-hr-text-column'},
+        {key:'plant_code',label:'المصنع',sort:true,className:'department-hr-code-cell',exportType:'text'},
+        {key:'department',label:'القسم',sort:true,className:'department-hr-text-column'},
+        {key:'job_title',label:'الوظيفة',sort:true,className:'department-hr-text-column'},
+        {key:'avg',label:'متوسط التقييم',sort:true,className:'department-hr-numeric-cell',exportType:'percentage',render:r=>esc(percentageText(r.avg))},
+        {key:'max',label:'أعلى تقييم',sort:true,className:'department-hr-numeric-cell',exportType:'rating',render:r=>esc(ratingText(r.max))},
+        {key:'min',label:'أقل تقييم',sort:true,className:'department-hr-numeric-cell',exportType:'rating',render:r=>esc(ratingText(r.min))}
       ];
       target.innerHTML='<p class="department-hr-note">اختر صف موظف لفتح تقريره التفصيلي دون إعادة تحميل البيانات.</p>'
         +table('person_summary',summaryColumns,sorted('person_summary',summaryRows,'employee_code'),'لا يوجد موظفون مطابقون.',{
@@ -227,21 +250,21 @@
     const evals=data.evaluations.filter(r=>String(r.personnel_id)===String(id)), statuses=data.statuses.filter(r=>String(r.personnel_id)===String(id)), summary=scoreStats(evals);
     const counts=new Map();
     statuses.forEach(r=>counts.set(String(r.shift_code),(counts.get(String(r.shift_code))||0)+1));
-    const codeCards=`<div class="department-hr-status-counts">${data.codes.map(code=>`<article><span class="department-hr-status-dot" style="--status-color:${color(code.display_color)}"></span><div><b>${esc(code.shift_code)} — ${esc(code.description)}</b><small>عدد الحالات المسجلة</small></div><strong>${counts.get(String(code.shift_code))||0}</strong></article>`).join('')}</div>`;
+    const codeCards=`<div class="department-hr-status-counts">${data.codes.map(code=>`<article><span class="department-hr-status-dot" style="--status-color:${color(code.display_color)}"></span><div><b>${esc(westernText(code.shift_code))} — ${esc(code.description)}</b><small>عدد الحالات المسجلة</small></div><strong class="department-hr-numeric-value" dir="ltr">${integerText(counts.get(String(code.shift_code))||0)}</strong></article>`).join('')}</div>`;
     const rows=sorted('person',evals.map((r,i)=>({...r,_order:i})),'evaluation_date','desc');
     const columns=[
       {key:'evaluation_date',label:'التاريخ',sort:true,render:r=>esc(dateText(r.evaluation_date))},
-      {key:'score',label:'التقييم',sort:true,render:r=>esc(num(r.score))},
+      {key:'score',label:'التقييم',sort:true,className:'department-hr-numeric-cell',exportType:'rating',render:r=>esc(ratingText(r.score))},
       {key:'reason',label:'سبب التقييم',sort:true,className:'department-hr-text-cell',render:r=>esc(r.reason||'—')},
       {key:'saved_by_name',label:'المستخدم الذي حفظه',sort:true},
       {key:'saved_at',label:'وقت الحفظ',sort:true,render:r=>esc(dateTime(r.saved_at))},
       {key:'locked_at',label:'الحالة',render:()=>'<span class="department-hr-lock-badge">مقفل</span>'}
     ];
     target.innerHTML=`<div class="department-hr-person-card">
-      <div><span>الكود الوظيفي</span><b>${esc(person.employee_code)}</b></div><div><span>اسم الموظف</span><b>${esc(person.full_name)}</b></div>
+      <div><span>الكود الوظيفي</span><b class="department-hr-numeric-value" dir="ltr">${esc(westernText(person.employee_code))}</b></div><div><span>اسم الموظف</span><b>${esc(person.full_name)}</b></div>
       <div><span>الموقع</span><b>${esc(person.plant_code)}</b></div><div><span>القسم</span><b>${esc(person.department)}</b></div>
       <div><span>الوظيفة</span><b>${esc(person.job_title)}</b></div><div><span>تاريخ التعيين</span><b>${esc(dateText(person.hire_date))}</b></div>
-    </div>${cards([card('عدد التقييمات',String(summary.count)),card('المتوسط',num(summary.avg)),card('أقل تقييم',num(summary.min)),card('أعلى تقييم',num(summary.max)),card('أيام لها حالة مسجلة',String(statuses.length))])}
+    </div>${cards([card('عدد التقييمات',integerText(summary.count),'',true),card('المتوسط',percentageText(summary.avg),'',true),card('أقل تقييم',ratingText(summary.min),'',true),card('أعلى تقييم',ratingText(summary.max),'',true),card('أيام لها حالة مسجلة',integerText(statuses.length),'',true)],true)}
     <h3 class="department-hr-subtitle">الحالات المسجلة حسب التكويد الحالي</h3>${codeCards}
     <h3 class="department-hr-subtitle">التقييمات اليومية النهائية</h3>${table('person',columns,rows,'لا توجد تقييمات محفوظة فعليًا لهذا الموظف ضمن الفترة.')}`;
   }
@@ -312,10 +335,10 @@
 
     const reasonColumns=[
       {key:'evaluation_date',label:'التاريخ',sort:true,render:r=>esc(dateText(r.evaluation_date))},{key:'full_name',label:'الموظف',sort:true},
-      {key:'job_title',label:'الوظيفة',sort:true},{key:'score',label:'التقييم',sort:true,render:r=>esc(num(r.score))},
+      {key:'job_title',label:'الوظيفة',sort:true},{key:'score',label:'التقييم',sort:true,className:'department-hr-numeric-cell',exportType:'rating',render:r=>esc(ratingText(r.score))},
       {key:'reason',label:'السبب',sort:true,className:'department-hr-text-cell',render:r=>esc(r.reason||'—')}
     ];
-    target.innerHTML=cards([card('إجمالي التقييمات',String(summary.count)),card('المتوسط',num(summary.avg)),card('أقل تقييم',num(summary.min)),card('أعلى تقييم',num(summary.max))])
+    target.innerHTML=cards([card('إجمالي التقييمات',integerText(summary.count),'',true),card('المتوسط',percentageText(summary.avg),'',true),card('أقل تقييم',ratingText(summary.min),'',true),card('أعلى تقييم',ratingText(summary.max),'',true)],true)
       +'<h3 class="department-hr-subtitle">أسباب التقييم</h3>'
       +table('analysis_reasons',reasonColumns,sorted('analysis_reasons',evals.map((r,i)=>({...r,_order:i})),'evaluation_date','desc'),'لا توجد أسباب مسجلة.');
   }
@@ -327,7 +350,7 @@
       return {key:start,label:`${dateText(start)} — ${dateText(end)}`,start,end};
     }
     const start=`${date.slice(0,7)}-01`, [year,month]=start.split('-').map(Number), end=new Date(Date.UTC(year,month,0)).toISOString().slice(0,10);
-    return {key:start.slice(0,7),label:new Intl.DateTimeFormat('ar-EG',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(`${start}T00:00:00Z`)),start,end};
+    return {key:start.slice(0,7),label:new Intl.DateTimeFormat('ar-EG-u-nu-latn',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(`${start}T00:00:00Z`)),start,end};
   }
   function renderTrend(){
     const target=panel('performance_trend'), evals=current().evaluations;
@@ -346,13 +369,14 @@
     const trend=complete.length<2?'بيانات غير كافية':Math.abs(last-first)<1e-12?'ثابت':last>first?'تحسن':'تراجع';
     const columns=[
       {key:'period',label:'الفترة',sort:true,render:r=>`${esc(r.period)}${r.complete?'':'<small class="department-hr-period-note">غير مكتملة</small>'}`},
-      {key:'count',label:'عدد التقييمات',sort:true},{key:'avg',label:'المتوسط',sort:true,render:r=>esc(num(r.avg))},
-      {key:'change',label:'التغير عن الفترة السابقة',sort:true,render:r=>r.change===null?'—':`<span class="${r.change>0?'positive':r.change<0?'negative':'neutral'}">${r.change>0?'+':''}${esc(num(r.change))}</span>`}
+      {key:'count',label:'عدد التقييمات',sort:true,className:'department-hr-numeric-cell',exportType:'integer',render:r=>esc(integerText(r.count))},
+      {key:'avg',label:'المتوسط',sort:true,className:'department-hr-numeric-cell',exportType:'rating',render:r=>esc(ratingText(r.avg))},
+      {key:'change',label:'التغير عن الفترة السابقة',sort:true,className:'department-hr-numeric-cell',exportType:'rating',render:r=>r.change===null?'—':`<span class="${r.change>0?'positive':r.change<0?'negative':'neutral'}">${r.change>0?'+':''}${esc(ratingText(r.change))}</span>`}
     ];
     target.innerHTML=controls+cards([
-      card('الاتجاه',trend,'أول وآخر فترة مكتملة بهما تقييمات'),card('الفترات المكتملة ذات البيانات',String(complete.length)),
-      card('متوسط أول فترة مكتملة',num(first)),card('متوسط آخر فترة مكتملة',num(last))
-    ])+'<p class="department-hr-note">لا تُضاف الفترات الخالية كصفر. المقارنة تعتمد فقط على فترات مكتملة تحتوي تقييمات محفوظة.</p>'
+      card('الاتجاه',trend,'أول وآخر فترة مكتملة بهما تقييمات'),card('الفترات المكتملة ذات البيانات',integerText(complete.length),'',true),
+      card('متوسط أول فترة مكتملة',percentageText(first),'',true),card('متوسط آخر فترة مكتملة',percentageText(last),'',true)
+    ],true)+'<p class="department-hr-note">لا تُضاف الفترات الخالية كصفر. المقارنة تعتمد فقط على فترات مكتملة تحتوي تقييمات محفوظة.</p>'
       +table('trend',columns,sorted('trend',rows,'start'),'لا توجد فترات تحتوي تقييمات.');
   }
 
