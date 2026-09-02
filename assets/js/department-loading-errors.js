@@ -488,6 +488,7 @@
     if(state.saving && !options.force) return;
     const element=modal();
     if(!element || element.hidden) return;
+    window.CustomDatePicker?.closeWithin?.(element,false);
     element.hidden=true;
     if(typeof window.unlockAppModalScroll==='function') window.unlockAppModalScroll(MODAL_ID);
     if(options.restoreFocus!==false && state.lastTrigger?.isConnected) state.lastTrigger.focus({preventScroll:true});

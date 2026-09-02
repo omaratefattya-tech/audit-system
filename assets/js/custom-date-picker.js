@@ -187,6 +187,15 @@
     popup.style.top=top+'px';
     popup.style.left=left+'px';
   }
+  function syncPopupLayer(input,popup){
+    const modalLayer=input.closest('.app-liquid-modal-backdrop');
+    if(!modalLayer) return;
+    const modalZIndex=Number.parseInt(window.getComputedStyle(modalLayer).zIndex,10);
+    const popupZIndex=Number.parseInt(window.getComputedStyle(popup).zIndex,10);
+    if(Number.isFinite(modalZIndex) && (!Number.isFinite(popupZIndex) || modalZIndex>=popupZIndex)){
+      popup.style.zIndex=String(modalZIndex+1);
+    }
+  }
   function open(input){
     if(!input || input.disabled) return;
     if(active && active.input===input) return;
@@ -202,6 +211,7 @@
     popup.setAttribute('aria-modal','true');
     popup.setAttribute('aria-label',input.getAttribute('aria-label') || 'اختيار التاريخ');
     document.body.appendChild(popup);
+    syncPopupLayer(input,popup);
     active={input,display,popup,previousValue:input.value||'',previewIso:input.value||'',viewYear:selected.year,viewMonth:selected.month,options:optionsFor(input)};
     display.setAttribute('aria-expanded','true');
     render(active);
@@ -273,7 +283,7 @@
   });
   window.addEventListener('resize',()=>{if(active) position(active);});
   window.addEventListener('scroll',()=>{if(active) position(active);},true);
-  window.CustomDatePicker={init,configure(input,options={}){configure(input,options);if(input?.dataset.customDatePickerBound==='1')syncDisplay(input);},refresh(target){if(!target)return init(document);if(target.matches?.('input[data-custom-date-picker]')) syncDisplay(target);else init(target);},formatDisplayDate:displayDate,isValidIso:value=>!!parseIso(value)};
+  window.CustomDatePicker={init,configure(input,options={}){configure(input,options);if(input?.dataset.customDatePickerBound==='1')syncDisplay(input);},refresh(target){if(!target)return init(document);if(target.matches?.('input[data-custom-date-picker]')) syncDisplay(target);else init(target);},closeWithin(target,commit=false){if(!active || !target?.contains?.(active.input)) return false;close(commit);return true;},formatDisplayDate:displayDate,isValidIso:value=>!!parseIso(value)};
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>init(document));
   else init(document);
 })();
