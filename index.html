@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=hr-performance-presentation-20260902-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=upload-report-templates-20260902-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ir-hotfix-2-20260726" />
 </head>
 <body>
@@ -242,6 +242,7 @@
                 <input type="date" id="salesReportDateInput" />
               </label>
               <button class="primary" id="pickSalesFileBtn" type="button">اختيار ورفع ملف المبيعات</button>
+              <button class="secondary raw-template-download-btn" id="downloadSalesTemplateBtn" type="button" data-template-key="sales">تحميل القالب</button>
             </div>
             <input type="file" id="salesExcelInput" accept=".xlsx,.xls,.csv" hidden />
             <div class="drop-zone" id="salesDropZone">
@@ -274,6 +275,7 @@
                 <input type="date" id="incomingReportDateInput" />
               </label>
               <button class="primary" id="pickIncomingFileBtn" type="button">اختيار ورفع ملف الوارد MB51</button>
+              <button class="secondary raw-template-download-btn" id="downloadIncomingTemplateBtn" type="button" data-template-key="incoming">تحميل القالب</button>
             </div>
             <input type="file" id="incomingExcelInput" accept=".xlsx,.xls,.csv" hidden />
             <div class="drop-zone" id="incomingDropZone">
@@ -306,6 +308,7 @@
                 <input type="date" id="scaleReportDateInput" />
               </label>
               <button class="primary" id="pickScaleFileBtn" type="button">اختيار ورفع ملف الميزان</button>
+              <button class="secondary raw-template-download-btn" id="downloadScaleTemplateBtn" type="button" data-template-key="scale">تحميل القالب</button>
             </div>
             <input type="file" id="scaleExcelInput" accept=".xlsx,.xls,.csv" hidden />
             <div class="drop-zone" id="scaleDropZone">
@@ -338,6 +341,7 @@
                 <input type="date" id="freightReferenceDateInput" />
               </label>
               <button class="primary" id="pickFreightFileBtn" type="button">اختيار ورفع ملف نولون الوارد</button>
+              <button class="secondary raw-template-download-btn" id="downloadFreightTemplateBtn" type="button" data-template-key="freight">تحميل القالب</button>
             </div>
             <input type="file" id="freightExcelInput" accept=".xlsx,.xls,.csv" hidden />
             <div class="drop-zone" id="freightDropZone">
@@ -372,7 +376,7 @@
           <div class="upload-tab-panel" id="currentPlantStockUploadPanel" data-upload-panel="current_plant_stock" data-report-key="current_plant_stock">
             <div class="daily-upload-box">
               <button class="primary" id="pickCurrentPlantStockFileBtn" type="button">اختيار ورفع ملف رصيد المصنع الحالي</button>
-              <button class="secondary raw-template-download-btn" id="downloadCurrentPlantStockTemplateBtn" type="button" data-template-key="current_plant_stock">تحميل قالب التقرير</button>
+              <button class="secondary raw-template-download-btn" id="downloadCurrentPlantStockTemplateBtn" type="button" data-template-key="current_plant_stock">تحميل القالب</button>
             </div>
             <input type="file" id="currentPlantStockExcelInput" accept=".xlsx,.xls" hidden />
             <div class="drop-zone" id="currentPlantStockDropZone">
@@ -391,7 +395,7 @@
           <div class="upload-tab-panel" id="consumptionRateUploadPanel" data-upload-panel="consumption_rate" data-report-key="consumption_rate">
             <div class="daily-upload-box">
               <button class="primary" id="pickConsumptionRateFileBtn" type="button">اختيار ورفع ملف معدل الاستهلاك</button>
-              <button class="secondary raw-template-download-btn" id="downloadConsumptionRateTemplateBtn" type="button" data-template-key="consumption_rate">تحميل قالب التقرير</button>
+              <button class="secondary raw-template-download-btn" id="downloadConsumptionRateTemplateBtn" type="button" data-template-key="consumption_rate">تحميل القالب</button>
             </div>
             <input type="file" id="consumptionRateExcelInput" accept=".xlsx,.xls" hidden />
             <div class="drop-zone" id="consumptionRateDropZone">
@@ -414,6 +418,7 @@
                 <input type="date" class="inventory-closing-upload-date" id="inventoryClosingWf01DateInput" />
               </label>
               <button class="primary" id="pickInventoryClosingWf01FileBtn" type="button">اختيار ورفع تقرير تقفيل الواحة</button>
+              <button class="secondary raw-template-download-btn" id="downloadInventoryClosingWf01TemplateBtn" type="button" data-template-key="inventory_closing_wf01">تحميل القالب</button>
             </div>
             <input type="file" id="inventoryClosingWf01ExcelInput" accept=".xlsx,.xls" hidden />
             <div class="drop-zone" id="inventoryClosingWf01DropZone">
@@ -446,6 +451,7 @@
                 <input type="date" class="inventory-closing-upload-date" id="inventoryClosingEl01DateInput" />
               </label>
               <button class="primary" id="pickInventoryClosingEl01FileBtn" type="button">اختيار ورفع تقرير تقفيل المصنع الرئيسي</button>
+              <button class="secondary raw-template-download-btn" id="downloadInventoryClosingEl01TemplateBtn" type="button" data-template-key="inventory_closing_el01">تحميل القالب</button>
             </div>
             <input type="file" id="inventoryClosingEl01ExcelInput" accept=".xlsx,.xls" hidden />
             <div class="drop-zone" id="inventoryClosingEl01DropZone">
@@ -478,6 +484,7 @@
                 <input type="date" class="inventory-closing-upload-date" id="inventoryClosingEl02DateInput" />
               </label>
               <button class="primary" id="pickInventoryClosingEl02FileBtn" type="button">اختيار ورفع تقرير تقفيل مصنع العامرية</button>
+              <button class="secondary raw-template-download-btn" id="downloadInventoryClosingEl02TemplateBtn" type="button" data-template-key="inventory_closing_el02">تحميل القالب</button>
             </div>
             <input type="file" id="inventoryClosingEl02ExcelInput" accept=".xlsx,.xls" hidden />
             <div class="drop-zone" id="inventoryClosingEl02DropZone">
@@ -1974,7 +1981,7 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=department-loading-errors-20260901-1"></script>
+  <script src="assets/js/app.js?v=upload-report-templates-20260902-1"></script>
   <script src="assets/js/department-weekly-operations.js?v=hr-export-corrections-20260822-1"></script>
   <script src="assets/js/custom-date-picker.js?v=loading-error-modal-datepicker-layer-20260902-1"></script>
   <script src="assets/js/department-loading-errors.js?v=loading-error-modal-datepicker-layer-20260902-1"></script>

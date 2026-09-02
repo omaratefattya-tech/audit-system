@@ -6968,9 +6968,20 @@ document.addEventListener('DOMContentLoaded',()=>{initMobileApplicationRefresh()
 // Raw materials report upload helpers
 const RAW_MATERIALS_UPLOAD_CHUNK_SIZE=250;
 const RAW_MATERIALS_TEMPLATE_HEADERS={
-  current_plant_stock:{fileName:'رصيد المصنع الحالي.xlsx',sheetName:'Data',headers:['المادة','وصف المادة','وحدة القياس','رصيد غير مقيد','قيد فحص الجودة','مجموعة المواد','وصف مجموعة المواد','المصنع','إسم المصنع','المخزن','إسم المخزن']},
-  consumption_rate:{fileName:'حساب معدل إستهدلاك الخامات.xlsx',sheetName:'Data',headers:['المادة','وصف المادة','الكمية','وحدة القياس','نوع الحركة','وصف نوع الحركة','المصنع','إسم المصنع','مجموعه المواد','وصف مجموعه المواد','التاريخ']}
+  current_plant_stock:{sheetName:'Data',headers:['المادة','وصف المادة','وحدة القياس','رصيد غير مقيد','قيد فحص الجودة','مجموعة المواد','وصف مجموعة المواد','المصنع','إسم المصنع','المخزن','إسم المخزن']},
+  consumption_rate:{sheetName:'Data',headers:['المادة','وصف المادة','الكمية','وحدة القياس','نوع الحركة','وصف نوع الحركة','المصنع','إسم المصنع','مجموعه المواد','وصف مجموعه المواد','التاريخ']}
 };
+const UPLOAD_REPORT_TEMPLATE_FILES=Object.freeze({
+  sales:{path:'assets/templates/upload-reports/sales-review.xlsx',fileName:'مراجعة مبيعات المنتج التام والتحويلات المخزنية.xlsx'},
+  incoming:{path:'assets/templates/upload-reports/incoming-mb51.xlsx',fileName:'الوارد من MB51.xlsx'},
+  scale:{path:'assets/templates/upload-reports/scale-report.xlsx',fileName:'تقرير الميزان.xlsx'},
+  freight:{path:'assets/templates/upload-reports/incoming-freight.xlsx',fileName:'نولون الوارد.xlsx'},
+  current_plant_stock:{path:'assets/templates/upload-reports/current-plant-stock.xlsx',fileName:'رصيد المصنع الحالي.xlsx'},
+  consumption_rate:{path:'assets/templates/upload-reports/consumption-rate.xlsx',fileName:'حساب معدل إستهدلاك الخامات.xlsx'},
+  inventory_closing_wf01:{path:'assets/templates/upload-reports/inventory-closing-wf01.xlsx',fileName:'مراجعة مبيعات المنتج التام والتحويلات المخزنية WF01.xlsx'},
+  inventory_closing_el01:{path:'assets/templates/upload-reports/inventory-closing-el01.xlsx',fileName:'مراجعة مبيعات المنتج التام والتحويلات المخزنية EL01.xlsx'},
+  inventory_closing_el02:{path:'assets/templates/upload-reports/inventory-closing-el02.xlsx',fileName:'مراجعة مبيعات المنتج التام والتحويلات المخزنية EL02.xlsx'}
+});
 const RAW_MATERIALS_UPLOAD_CONFIG={
   current_plant_stock:{
     statusId:'currentPlantStockUploadStatus',inputId:'currentPlantStockExcelInput',buttonId:'pickCurrentPlantStockFileBtn',dropId:'currentPlantStockDropZone',tableId:'currentPlantStockBatchesTable',chunkRpc:'append_current_plant_stock_upload_chunk',finalizeRpc:'finalize_current_plant_stock_upload',title:'رصيد المصنع الحالي'
@@ -6980,16 +6991,16 @@ const RAW_MATERIALS_UPLOAD_CONFIG={
   }
 };
 const RAW_MATERIALS_UPLOAD_BUSY={current_plant_stock:false,consumption_rate:false};
-async function downloadRawMaterialsTemplate(key){
-  const spec=RAW_MATERIALS_TEMPLATE_HEADERS[key];
+function downloadUploadReportTemplate(key){
+  const spec=UPLOAD_REPORT_TEMPLATE_FILES[key];
   if(!spec) return;
-  if(!window.XLSX){ alert('مكتبة Excel غير محملة.'); return; }
-  const ws=XLSX.utils.aoa_to_sheet([spec.headers]);
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,spec.sheetName);
-  const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
-  const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  await saveBlobWithPicker(blob,spec.fileName,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  const link=document.createElement('a');
+  link.href=spec.path;
+  link.download=spec.fileName;
+  link.hidden=true;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 }
 function cleanRawMaterialsHeader(value){
   return stripHiddenUnicode(value).trim();
@@ -7258,13 +7269,13 @@ function initRawMaterialsReportUploaders(){
   bindRawMaterialsUploader('current_plant_stock');
   bindRawMaterialsUploader('consumption_rate');
 }
-function initRawMaterialsTemplateDownloads(){
+function initUploadReportTemplateDownloads(){
   document.querySelectorAll('[data-template-key]').forEach(btn=>{
-    if(btn.dataset.rawTemplateBound==='1') return;
-    btn.dataset.rawTemplateBound='1';
+    if(btn.dataset.uploadTemplateBound==='1') return;
+    btn.dataset.uploadTemplateBound='1';
     btn.addEventListener('click',event=>{
       event.preventDefault();
-      downloadRawMaterialsTemplate(btn.dataset.templateKey);
+      downloadUploadReportTemplate(btn.dataset.templateKey);
     });
   });
 }
@@ -7806,7 +7817,7 @@ function initRawMaterialsTabs(){
   $('#rawMaterialsMobileTabSelect')?.addEventListener('change',event=>switchRawMaterialsTab(event.target.value));
   switchRawMaterialsTab('main');
 }
-document.addEventListener('DOMContentLoaded',()=>{initRawMaterialsTemplateDownloads();initRawMaterialsReportUploaders();initRawMaterialsTabs();});
+document.addEventListener('DOMContentLoaded',()=>{initUploadReportTemplateDownloads();initRawMaterialsReportUploaders();initRawMaterialsTabs();});
 // Upload reports tabs controller
 function initUploadReportTabs(){
   const tabs=document.querySelectorAll('[data-upload-tab]');
