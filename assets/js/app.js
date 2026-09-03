@@ -2743,7 +2743,7 @@ function switchSection(section,options={}){
   if(section==='reports') setTimeout(()=>loadExecutiveReport(),50);
   if(section==='raw_materials') setTimeout(()=>loadRawMaterialsScreen(),50);
   if(section==='users') setTimeout(()=>loadUsersManagement(),50);
-  if(section==='permissions') setTimeout(()=>loadPermissionsManagement(),50);
+  if(section==='permissions') setTimeout(()=>window.PermissionManagement?.load?.(),50);
   if(section==='inventory_closing'){
     const openSelected=options.inventoryOpenMode==='selected';
     setTimeout(()=>openSelected ? openExistingInventoryCountFromUi({showLoading:true}) : openDefaultInventoryCountFromUi({showLoading:true}),50);
@@ -6249,9 +6249,7 @@ const PERMISSION_SCREENS = [
   {key:'settings_sales_product_warehouses', label:'الإعدادات / ربط أصناف البيع بالمخازن', description:'عرض وإضافة وحذف ربط أصناف البيع بالمخازن'},
   {key:'settings', label:'الإعدادات', description:'بيانات الحساب وإعدادات النظام'}
 ];
-const PERMISSION_ROLE_LABELS={admin:'Admin',auditor:'Auditor',viewer:'Viewer'};
 let CURRENT_ROLE_PERMISSIONS = {};
-let PERMISSIONS_MANAGEMENT_STATE={role:'admin', rows:[], view:[], dirty:false};
 function permissionColumn(action){ return 'can_'+action; }
 function defaultPermissionValue(role,screen,action){
   if(screen==='raw_materials') return false;
@@ -6413,123 +6411,6 @@ function applyPermissionActionGuards(section){
     if(typeof updateInventoryCountFinalizationControls === 'function') updateInventoryCountFinalizationControls();
   }
 }
-function setPermissionsStatus(message,type=''){
-  const el=$('#permissionsManagementStatus');
-  if(!el) return;
-  el.className='upload-status permissions-status-bar '+(type||'');
-  el.textContent=message||'';
-}
-function permissionsKpiUpdate(rows){
-  const total=rows.length*PERMISSION_ACTIONS.length;
-  let enabled=0;
-  rows.forEach(r=>PERMISSION_ACTIONS.forEach(a=>{ if(r[permissionColumn(a.key)]) enabled++; }));
-  const set=(id,v)=>{const el=$(id); if(el) el.textContent=v;};
-  set('#permissionsScreensCount',rows.length);
-  set('#permissionsEnabledCount',enabled);
-  set('#permissionsDisabledCount',Math.max(0,total-enabled));
-  set('#permissionsSelectedRoleLabel',PERMISSION_ROLE_LABELS[PERMISSIONS_MANAGEMENT_STATE.role]||PERMISSIONS_MANAGEMENT_STATE.role);
-}
-function renderPermissionsMatrix(rows){
-  const tbody=$('#permissionsMatrixTable tbody');
-  if(!tbody) return;
-  if(!rows.length){ tbody.innerHTML='<tr><td colspan="11" class="empty-row">لا توجد شاشات مطابقة.</td></tr>'; return; }
-  tbody.innerHTML=rows.map(sc=>{
-    const row=PERMISSIONS_MANAGEMENT_STATE.rows.find(r=>r.screen_key===sc.key) || buildDefaultPermissions(PERMISSIONS_MANAGEMENT_STATE.role)[sc.key];
-    const cells=PERMISSION_ACTIONS.map(a=>{
-      const col=permissionColumn(a.key);
-      return `<td><label class="perm-toggle"><input type="checkbox" data-screen="${escapeHtml(sc.key)}" data-action="${escapeHtml(a.key)}" ${row[col]?'checked':''}><span></span></label></td>`;
-    }).join('');
-    return `<tr data-screen="${escapeHtml(sc.key)}"><td class="permission-screen-cell"><b>${escapeHtml(sc.label)}</b><small>${escapeHtml(sc.description||'')}</small></td>${cells}</tr>`;
-  }).join('');
-  tbody.querySelectorAll('input[type="checkbox"]').forEach(chk=>chk.addEventListener('change',onPermissionToggleChange));
-}
-function applyPermissionsSearch(){
-  const q=($('#permissionsQuickSearch')?.value||'').trim().toLowerCase();
-  PERMISSIONS_MANAGEMENT_STATE.view=PERMISSION_SCREENS.filter(sc=>!q || [sc.key,sc.label,sc.description].join(' ').toLowerCase().includes(q));
-  renderPermissionsMatrix(PERMISSIONS_MANAGEMENT_STATE.view);
-  permissionsKpiUpdate(PERMISSIONS_MANAGEMENT_STATE.rows);
-}
-function onPermissionToggleChange(e){
-  const screen=e.target.dataset.screen;
-  const action=e.target.dataset.action;
-  const row=PERMISSIONS_MANAGEMENT_STATE.rows.find(r=>r.screen_key===screen);
-  if(row){ row[permissionColumn(action)]=e.target.checked; PERMISSIONS_MANAGEMENT_STATE.dirty=true; }
-  permissionsKpiUpdate(PERMISSIONS_MANAGEMENT_STATE.rows);
-}
-function setAllVisiblePermissions(value){
-  PERMISSIONS_MANAGEMENT_STATE.view.forEach(sc=>{
-    const row=PERMISSIONS_MANAGEMENT_STATE.rows.find(r=>r.screen_key===sc.key);
-    if(row) PERMISSION_ACTIONS.forEach(a=>row[permissionColumn(a.key)]=value);
-  });
-  PERMISSIONS_MANAGEMENT_STATE.dirty=true;
-  applyPermissionsSearch();
-}
-function resetPermissionsToDefaults(){
-  const role=PERMISSIONS_MANAGEMENT_STATE.role;
-  PERMISSIONS_MANAGEMENT_STATE.rows=Object.values(buildDefaultPermissions(role));
-  PERMISSIONS_MANAGEMENT_STATE.dirty=true;
-  applyPermissionsSearch();
-  setPermissionsStatus('تم استعادة الصلاحيات الافتراضية. اضغط حفظ لاعتمادها.','ok');
-}
-async function loadPermissionsManagement(){
-  if(!$('#permissionsMatrixTable')) return;
-  if(!isSuperAdmin() && !hasPermission('permissions','manage')){
-    setPermissionsStatus('غير مسموح بإدارة الصلاحيات لهذا الدور.','err');
-    return;
-  }
-  const role=$('#permissionsRoleSelect')?.value || PERMISSIONS_MANAGEMENT_STATE.role || 'admin';
-  PERMISSIONS_MANAGEMENT_STATE.role=role;
-  setPermissionsStatus('جاري تحميل الصلاحيات...');
-  try{
-    let rows=[];
-    if(WarehouseDB?.ready){
-      const {data,error}=await WarehouseDB.client.from('app_role_permissions').select('*').eq('role',role);
-      if(error) throw error;
-      rows=data||[];
-    }
-    PERMISSIONS_MANAGEMENT_STATE.rows=Object.values(permissionsForRoleFromRows(role,rows));
-    PERMISSIONS_MANAGEMENT_STATE.dirty=false;
-    const info=$('#permissionsRoleInfo');
-    if(info) info.innerHTML=`<b>${PERMISSION_ROLE_LABELS[role]}</b><span>عدد الصلاحيات: ${PERMISSIONS_MANAGEMENT_STATE.rows.length*PERMISSION_ACTIONS.length}</span>`;
-    applyPermissionsSearch();
-    setPermissionsStatus('تم تحميل الصلاحيات.','ok');
-  }catch(err){
-    PERMISSIONS_MANAGEMENT_STATE.rows=Object.values(buildDefaultPermissions(role));
-    applyPermissionsSearch();
-    setPermissionsStatus('تعذر تحميل الصلاحيات من Supabase، تم عرض الافتراضي: '+(err.message||err),'err');
-  }
-}
-async function savePermissionsManagement(){
-  if(!WarehouseDB?.ready){ setPermissionsStatus('Supabase غير متصل.','err'); return; }
-  if(!isSuperAdmin() && !hasPermission('permissions','manage')){ setPermissionsStatus('غير مسموح بحفظ الصلاحيات.','err'); return; }
-  const role=PERMISSIONS_MANAGEMENT_STATE.role;
-  if(role==='super_admin'){ setPermissionsStatus('لا يمكن تعديل صلاحيات Super Admin.','err'); return; }
-  try{
-    setPermissionsStatus('جاري حفظ الصلاحيات...');
-    const payload=PERMISSIONS_MANAGEMENT_STATE.rows.map(r=>{
-      const obj={role,screen_key:r.screen_key,updated_at:new Date().toISOString()};
-      PERMISSION_ACTIONS.forEach(a=>obj[permissionColumn(a.key)] = r[permissionColumn(a.key)] === true);
-      return obj;
-    });
-    const {error}=await WarehouseDB.client.from('app_role_permissions').upsert(payload,{onConflict:'role,screen_key'});
-    if(error) throw error;
-    PERMISSIONS_MANAGEMENT_STATE.dirty=false;
-    setPermissionsStatus('تم حفظ الصلاحيات بنجاح.','ok');
-    await logSystemActivity('الصلاحيات','تعديل صلاحيات مستخدم',`تعديل صلاحيات الدور: ${role}`);
-    await loadCurrentUserPermissions();
-    applyNavigationPermissions();
-  }catch(err){ setPermissionsStatus('تعذر حفظ الصلاحيات: '+(err.message||err),'err'); }
-}
-function initPermissionsManagement(){
-  $('#permissionsRoleSelect')?.addEventListener('change',loadPermissionsManagement);
-  $('#permissionsQuickSearch')?.addEventListener('input',applyPermissionsSearch);
-  $('#savePermissionsBtn')?.addEventListener('click',savePermissionsManagement);
-  $('#reloadPermissionsBtn')?.addEventListener('click',loadPermissionsManagement);
-  $('#permissionsSelectAllBtn')?.addEventListener('click',()=>setAllVisiblePermissions(true));
-  $('#permissionsClearAllBtn')?.addEventListener('click',()=>setAllVisiblePermissions(false));
-  $('#permissionsDefaultsBtn')?.addEventListener('click',resetPermissionsToDefaults);
-}
-
 // === Users Management ===
 const USER_ROLE_LABELS={super_admin:'منشئ النظام',admin:'Admin',auditor:'Auditor',viewer:'Viewer',authenticated:'Authenticated'};
 const USER_ROLE_CREATE_VALUES=new Set(['admin','auditor','viewer']);
@@ -6950,7 +6831,7 @@ function isMobileApplicationRefreshViewport(){
 }
 function hasApplicationUnsavedChanges(){
   const departmentDirty=typeof window.hasUnsavedDepartmentPersonnelWork==='function' && window.hasUnsavedDepartmentPersonnelWork();
-  const permissionsDirty=Boolean(typeof PERMISSIONS_MANAGEMENT_STATE!=='undefined' && PERMISSIONS_MANAGEMENT_STATE?.dirty);
+  const permissionsDirty=Boolean(window.PermissionManagement?.isDirty?.());
   const permissionSettingsDirty=Boolean(window.PermissionSettings?.isDirty?.());
   return Boolean(departmentDirty || permissionsDirty || permissionSettingsDirty);
 }
@@ -7036,7 +6917,7 @@ function initMainLoginGate(){
   }
   checkMainSession();
 }
-document.addEventListener('DOMContentLoaded',()=>{initMobileApplicationRefresh();initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initAllSettingsTableControls();initActivityLogSettings();applySettingsSubPermissions();initUsersManagement();initPermissionsManagement();});
+document.addEventListener('DOMContentLoaded',()=>{initMobileApplicationRefresh();initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initAllSettingsTableControls();initActivityLogSettings();applySettingsSubPermissions();initUsersManagement();window.PermissionManagement?.init?.();});
 
 // Raw materials report upload helpers
 const RAW_MATERIALS_UPLOAD_CHUNK_SIZE=250;

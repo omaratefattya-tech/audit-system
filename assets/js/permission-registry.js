@@ -31,6 +31,7 @@
   const action = (key, label, parent, owner, selectors, notes) => add('ACTION', key, label, parent, owner, selectors, notes);
 
   const APP = 'assets/js/app.js';
+  const PERMISSION_MANAGEMENT = 'assets/js/permission-management.js';
   const HTML = 'index.html';
   const WEEKLY = 'assets/js/department-weekly-operations.js';
   const HR = 'assets/js/department-hr-reports.js';
@@ -292,14 +293,14 @@
   filter('users.filter.status', 'الحالة', users, APP, '#usersStatusFilter');
   ['excel', 'pdf', 'png'].forEach(format => button(`users.export_${format}`, `تصدير ${format.toUpperCase()}`, users, APP, `#usersExport${format === 'excel' ? 'Excel' : format === 'pdf' ? 'Pdf' : 'Png'}Btn`));
 
-  const permissions = screen('permissions', 'إدارة الصلاحيات', APP, '#permissions', 'Legacy permission-management UI; inventoried only and not replaced in P1.');
-  filter('permissions.filter.role', 'اختيار الدور', permissions, APP, '#permissionsRoleSelect');
-  filter('permissions.filter.search', 'بحث الشاشات', permissions, APP, '#permissionsQuickSearch');
-  action('permissions.assign', 'حفظ صلاحيات الدور', permissions, APP, '#savePermissionsBtn');
-  button('permissions.refresh', 'تحديث', permissions, APP, '#reloadPermissionsBtn');
-  button('permissions.selection.select_all', 'تحديد الكل', permissions, APP, '#permissionsSelectAllBtn');
-  button('permissions.selection.clear_all', 'إلغاء الكل', permissions, APP, '#permissionsClearAllBtn');
-  button('permissions.selection.restore_defaults', 'استعادة الافتراضي', permissions, APP, '#permissionsDefaultsBtn');
+  const permissions = screen('permissions', 'إدارة الصلاحيات', PERMISSION_MANAGEMENT, '#permissions', 'P6 Role-to-Bundle management UI; legacy enforcement remains unchanged.');
+  filter('permissions.filter.role', 'اختيار الدور', permissions, PERMISSION_MANAGEMENT, '#permissionsRoleSelect');
+  filter('permissions.filter.search', 'بحث الحزم', permissions, PERMISSION_MANAGEMENT, '#permissionsQuickSearch');
+  action('permissions.assign', 'حفظ ربط الدور بالحزم', permissions, PERMISSION_MANAGEMENT, '#savePermissionsBtn');
+  button('permissions.refresh', 'تحديث', permissions, PERMISSION_MANAGEMENT, '#reloadPermissionsBtn');
+  button('permissions.selection.select_all', 'تحديد الحزم الظاهرة', permissions, PERMISSION_MANAGEMENT, '#permissionsSelectAllBtn');
+  button('permissions.selection.clear_all', 'إلغاء الحزم الظاهرة', permissions, PERMISSION_MANAGEMENT, '#permissionsClearAllBtn');
+  button('permissions.selection.restore_defaults', 'استعادة الربط المحفوظ', permissions, PERMISSION_MANAGEMENT, '#permissionsDefaultsBtn');
 
   const settings = screen('settings', 'الإعدادات', APP, '#settings');
   const settingsTabs = [

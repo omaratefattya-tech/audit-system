@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=p3-permission-modal-paint-fix-20260903-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=p6-permission-management-20260903-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ir-hotfix-2-20260726" />
 </head>
 <body>
@@ -1430,74 +1430,62 @@
         <article class="panel glass permissions-management-panel" id="permissionsManagementCapture">
           <div class="permissions-hero">
             <div>
-              <span class="section-badge">أمن النظام</span>
+              <span class="section-badge">P6 — إدارة الحزم</span>
               <h2>إدارة الصلاحيات <span class="hero-icon" data-modern-icon="shield" aria-hidden="true"></span></h2>
-              <p class="hint">تحديد صلاحيات كل دور على الشاشات والإجراءات. Super Admin يملك كل الصلاحيات ولا يتم تعديله من هذه الشاشة.</p>
+              <p class="hint">اختر دورًا واربطه بحزمة صلاحيات واحدة أو أكثر. نظام التشغيل القديم ما زال المسؤول الوحيد عن منح ومنع الوصول حتى مرحلة P7.</p>
             </div>
             <div class="permissions-hero-actions">
-              <button class="primary" id="savePermissionsBtn" type="button"><span class="button-svg-icon" data-modern-icon="save" aria-hidden="true"></span> حفظ الصلاحيات</button>
-              <button class="secondary" id="reloadPermissionsBtn" type="button">تحديث <span class="button-svg-icon" data-modern-icon="refresh" aria-hidden="true"></span></button>
+              <button class="primary" id="savePermissionsBtn" type="button" data-permission-settings-management-action><span class="button-svg-icon" data-modern-icon="save" aria-hidden="true"></span> حفظ ربط الحزم</button>
+              <button class="secondary" id="reloadPermissionsBtn" type="button" data-permission-settings-management-action>تحديث <span class="button-svg-icon" data-modern-icon="refresh" aria-hidden="true"></span></button>
             </div>
           </div>
 
           <div class="permissions-kpi-grid">
-            <article class="permissions-kpi-card"><span data-modern-icon="reports" aria-hidden="true"></span><b id="permissionsScreensCount">0</b><small>الشاشات</small></article>
-            <article class="permissions-kpi-card"><span data-modern-icon="check" aria-hidden="true"></span><b id="permissionsEnabledCount">0</b><small>صلاحيات مفعلة</small></article>
-            <article class="permissions-kpi-card"><span data-modern-icon="lock" aria-hidden="true"></span><b id="permissionsDisabledCount">0</b><small>صلاحيات مقفلة</small></article>
-            <article class="permissions-kpi-card"><span data-modern-icon="role" aria-hidden="true"></span><b id="permissionsSelectedRoleLabel">Admin</b><small>الدور المختار</small></article>
+            <article class="permissions-kpi-card"><span data-modern-icon="role" aria-hidden="true"></span><b id="permissionsRolesCount">0</b><small>أدوار نشطة</small></article>
+            <article class="permissions-kpi-card"><span data-modern-icon="shield" aria-hidden="true"></span><b id="permissionsBundlesCount">0</b><small>حزم نشطة</small></article>
+            <article class="permissions-kpi-card"><span data-modern-icon="check" aria-hidden="true"></span><b id="permissionsSelectedBundlesCount">0</b><small>حزم مختارة</small></article>
+            <article class="permissions-kpi-card"><span data-modern-icon="reports" aria-hidden="true"></span><b id="permissionsEffectiveCount">0</b><small>صلاحيات الاتحاد</small></article>
           </div>
 
           <div class="permissions-toolbar glass-soft">
             <label class="permissions-role-picker">الدور
               <select id="permissionsRoleSelect">
-                <option value="admin">Admin</option>
-                <option value="auditor">Auditor</option>
-                <option value="viewer">Viewer</option>
+                <option value="">جاري تحميل الأدوار...</option>
               </select>
             </label>
             <div class="permissions-search-box">
               <span class="ui-svg-icon" data-modern-icon="search" aria-hidden="true"></span>
-              <input id="permissionsQuickSearch" type="search" placeholder="بحث باسم الشاشة أو الوصف..." />
+              <input id="permissionsQuickSearch" type="search" placeholder="بحث باسم الحزمة أو المصنع..." />
             </div>
-            <button class="secondary" id="permissionsSelectAllBtn" type="button">تحديد الكل</button>
-            <button class="secondary" id="permissionsClearAllBtn" type="button">إلغاء الكل</button>
-            <button class="secondary" id="permissionsDefaultsBtn" type="button">استعادة الافتراضي</button>
+            <button class="secondary" id="permissionsSelectAllBtn" type="button" data-permission-settings-management-action>تحديد الظاهر</button>
+            <button class="secondary" id="permissionsClearAllBtn" type="button" data-permission-settings-management-action>إلغاء الظاهر</button>
+            <button class="secondary" id="permissionsDefaultsBtn" type="button" data-permission-settings-management-action>استعادة المحفوظ</button>
           </div>
 
-          <div class="upload-status permissions-status-bar" id="permissionsManagementStatus"></div>
+          <div class="upload-status permissions-status-bar" id="permissionsManagementStatus" aria-live="polite"></div>
 
           <div class="permissions-layout">
-            <div class="permissions-table-card">
-              <table id="permissionsMatrixTable" class="permissions-matrix-table">
-                <thead>
-                  <tr>
-                    <th>الشاشة / القسم</th>
-                    <th>عرض</th>
-                    <th>إضافة</th>
-                    <th>تعديل</th>
-                    <th>حذف</th>
-                    <th>رفع</th>
-                    <th>Excel</th>
-                    <th>PDF</th>
-                    <th>PNG</th>
-                    <th>اعتماد</th>
-                    <th>إدارة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr><td colspan="11" class="empty-row">اختر الدور لتحميل الصلاحيات...</td></tr>
-                </tbody>
-              </table>
+            <div class="permissions-bundles-card">
+              <div class="permissions-bundles-head">
+                <div>
+                  <h3>حزم الصلاحيات</h3>
+                  <p class="hint">الصلاحيات الفعلية للدور تساوي اتحاد الصلاحيات الموجودة في كل الحزم المختارة، مع احترام نطاق المصنع لكل حزمة.</p>
+                </div>
+              </div>
+              <div class="permissions-bundle-grid" id="permissionsBundleGrid" aria-live="polite">
+                <div class="permissions-empty-state">اختر الدور لتحميل الحزم المرتبطة...</div>
+              </div>
             </div>
             <aside class="permissions-side-card glass-soft">
-              <h3>قواعد مهمة</h3>
-              <ul>
-                <li>Super Admin لا يظهر هنا لأنه يملك كل الصلاحيات تلقائياً.</li>
-                <li>إلغاء صلاحية العرض يخفي الشاشة من القائمة الجانبية.</li>
-                <li>الأزرار الحساسة مثل الحذف والرفع والتصدير تتأثر بالصلاحيات.</li>
-                <li>يتم تطبيق الصلاحيات بعد الحفظ وتحديث الصفحة أو تسجيل الدخول.</li>
-              </ul>
-              <div class="permissions-role-info" id="permissionsRoleInfo"></div>
+              <h3>ملخص الدور</h3>
+              <dl class="permissions-role-summary">
+                <div><dt>اسم الدور</dt><dd id="permissionsSelectedRoleName">—</dd></div>
+                <div><dt>مفتاح الدور</dt><dd id="permissionsSelectedRoleKey">—</dd></div>
+                <div><dt>نوع الدور</dt><dd id="permissionsSelectedRoleType">—</dd></div>
+                <div><dt>مستخدمون نشطون</dt><dd id="permissionsSelectedRoleUsers">0</dd></div>
+                <div><dt>نطاق المصانع</dt><dd id="permissionsSelectedRolePlants">—</dd></div>
+              </dl>
+              <p class="permissions-role-safety-note" id="permissionsRoleSafetyNote">P6 إدارة فقط: نظام الصلاحيات القديم ما زال المسؤول الوحيد عن الوصول.</p>
             </aside>
           </div>
         </article>
@@ -2150,10 +2138,11 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=p4-permission-shadow-20260903-1"></script>
-  <script src="assets/js/permission-registry.js?v=p3-permission-settings-20260903-1"></script>
+  <script src="assets/js/app.js?v=p6-permission-management-20260903-1"></script>
+  <script src="assets/js/permission-registry.js?v=p6-permission-management-20260903-1"></script>
   <script src="assets/js/permissions.js?v=p4-permission-shadow-20260903-1"></script>
   <script src="assets/js/permission-settings.js?v=p3-permission-modal-paint-fix-20260903-1"></script>
+  <script src="assets/js/permission-management.js?v=p6-permission-management-20260903-1"></script>
   <script src="assets/js/department-weekly-operations.js?v=hr-export-corrections-20260822-1"></script>
   <script src="assets/js/custom-date-picker.js?v=loading-error-modal-datepicker-layer-20260902-1"></script>
   <script src="assets/js/department-loading-errors.js?v=loading-errors-table-tools-20260902-1"></script>
