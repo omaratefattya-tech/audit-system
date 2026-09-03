@@ -82,6 +82,126 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 #settings #saveSystemSettingsBtn,#settings #systemSettingsStatus{justify-self:stretch}
 @media (max-width:850px){#settings .system-settings-grid{grid-template-columns:1fr}#settings #clearSystemCacheBtn{width:100%}}
 
+/* P3 permission settings management (shadow model only) */
+#settings .permission-settings-shell{display:grid;gap:16px;min-width:0;text-align:right}
+#settings .permission-settings-intro{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px;border:1px solid rgba(141,220,89,.28);border-radius:16px;background:linear-gradient(145deg,rgba(0,63,44,.58),rgba(0,31,25,.72))}
+#settings .permission-settings-intro h3{margin:8px 0 4px;color:#fff}
+#settings .permission-settings-intro p{margin:0;color:var(--muted);line-height:1.7}
+#settings .permission-settings-shadow-note{display:flex;align-items:center;gap:10px;max-width:390px;padding:12px 14px;border:1px solid rgba(241,187,48,.4);border-radius:13px;background:rgba(90,62,0,.2);color:#ffedb2;line-height:1.65}
+#settings .permission-settings-shadow-note>[data-modern-icon]{width:24px;height:24px;flex:none;color:var(--yellow)}
+#settings .permission-settings-tabs{margin:0;justify-content:flex-start}
+#settings .permission-settings-tabs button{min-width:170px;border-radius:12px;font-weight:900}
+#settings .permission-settings-inner-panel{display:none;min-width:0}
+#settings .permission-settings-inner-panel.active{display:block}
+#settings .permission-settings-grid{display:grid;grid-template-columns:minmax(310px,.82fr) minmax(480px,1.18fr);gap:16px;align-items:start;min-width:0}
+#settings .permission-settings-bundles-grid{grid-template-columns:minmax(360px,.9fr) minmax(520px,1.1fr)}
+#settings .permission-settings-form,#settings .permission-settings-list-card{min-width:0;border:1px solid rgba(141,220,89,.27);border-radius:16px;background:rgba(0,35,27,.46);padding:17px}
+#settings .permission-settings-form{display:grid;gap:15px}
+#settings .permission-settings-card-head,#settings .permission-settings-list-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+#settings .permission-settings-card-head h4,#settings .permission-settings-list-head h4{margin:0 0 4px;color:#f4fff5}
+#settings .permission-settings-card-head p,#settings .permission-settings-list-head p{margin:0;color:var(--muted);font-size:12px;line-height:1.65}
+#settings .permission-settings-card-icon{display:grid;place-items:center;width:42px;height:42px;flex:none;border:1px solid rgba(155,230,80,.38);border-radius:12px;background:rgba(53,139,54,.24);color:#a7ef6e}
+#settings .permission-settings-card-icon svg{width:23px;height:23px}
+#settings .permission-settings-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#settings .permission-settings-fields>label{display:grid;gap:7px;min-width:0;color:#f5fff1;font-weight:800}
+#settings .permission-settings-fields input,#settings .permission-settings-fields textarea{width:100%;min-width:0;font-family:inherit}
+#settings .permission-settings-fields textarea{resize:vertical;line-height:1.65}
+#settings .permission-settings-fields small{color:var(--muted);font-size:11px;font-weight:500;line-height:1.6}
+#settings .permission-settings-field-wide{grid-column:1/-1}
+#settings .permission-settings-active-check{grid-column:1/-1;width:max-content;max-width:100%}
+#settings .permission-settings-form-actions{display:flex;gap:9px;flex-wrap:wrap}
+#settings .permission-settings-form-actions button{min-width:145px}
+#settings .permission-settings-status{min-height:0;margin:0;padding:9px 11px;border-radius:10px;background:rgba(0,22,18,.42);font-size:12px;line-height:1.65}
+#settings .permission-settings-status:empty{display:none}
+#settings .permission-settings-status.ok{color:#dfffce}
+#settings .permission-settings-status.err{color:#ffd6d6}
+#settings .permission-settings-list-card{display:grid;gap:13px}
+#settings .permission-settings-list-head{align-items:center}
+#settings .permission-settings-table-wrap{max-width:100%;border:1px solid rgba(141,220,89,.2);border-radius:12px;background:rgba(0,24,20,.36)}
+#settings .permission-settings-table-wrap table{min-width:720px}
+#settings .permission-settings-table-wrap th,#settings .permission-settings-table-wrap td{padding:11px 9px;vertical-align:middle}
+#settings .permission-settings-table-wrap td b{white-space:normal}
+#settings .permission-settings-row-note{display:block;max-width:340px;margin-top:3px;color:var(--muted);font-size:11px;white-space:normal;line-height:1.6}
+#settings .permission-settings-kind-badge,#settings .permission-settings-scope-badge,#settings .permission-settings-count-badge{display:inline-flex;align-items:center;justify-content:center;min-height:26px;padding:3px 9px;border:1px solid rgba(141,220,89,.3);border-radius:999px;background:rgba(30,116,50,.24);color:#dfffd0;font-size:11px;font-weight:900;white-space:nowrap}
+#settings .permission-settings-kind-badge.is-super{border-color:rgba(241,187,48,.48);background:rgba(108,77,5,.27);color:#ffedb2}
+#settings .permission-settings-kind-badge.is-custom{border-color:rgba(42,166,168,.48);background:rgba(18,103,105,.24);color:#cffeff}
+#settings .permission-settings-count-badge{min-width:32px;font-variant-numeric:tabular-nums}
+#settings .permission-settings-count-badge.has-links{border-color:rgba(241,187,48,.45);color:#ffe8a5}
+#settings .permission-settings-protected{color:#b8d7bc;font-size:11px;white-space:nowrap}
+#settings .permission-settings-scope-list{display:flex;justify-content:center;gap:5px;flex-wrap:wrap}
+#settings .permission-settings-fieldset{display:grid;gap:11px;min-width:0;margin:0;padding:13px;border:1px solid rgba(141,220,89,.24);border-radius:13px}
+#settings .permission-settings-fieldset legend{padding-inline:7px;color:#eaffdf;font-weight:900}
+#settings .permission-settings-all-plants{display:flex;align-items:center;gap:10px;cursor:pointer}
+#settings .permission-settings-all-plants input,#settings .permission-settings-plant-option input{width:18px;height:18px;flex:none;accent-color:#68ba45}
+#settings .permission-settings-all-plants span,#settings .permission-settings-plant-option span{display:grid;gap:2px;min-width:0}
+#settings .permission-settings-all-plants small,#settings .permission-settings-plant-option small{color:var(--muted);font-size:11px;line-height:1.55}
+#settings .permission-settings-plant-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#settings .permission-settings-plant-option{display:flex;align-items:center;gap:9px;min-width:0;padding:10px;border:1px solid rgba(141,220,89,.2);border-radius:11px;background:rgba(0,28,23,.5);cursor:pointer}
+#settings .permission-settings-plant-option.is-disabled{opacity:.56;cursor:not-allowed}
+#settings .permission-settings-builder-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;border:1px solid rgba(42,166,168,.34);border-radius:13px;background:rgba(15,96,89,.16)}
+#settings .permission-settings-builder-row>div{display:grid;gap:4px}
+#settings .permission-settings-builder-row span{color:var(--muted);font-size:12px;line-height:1.6}
+#settings .permission-settings-empty-inline{grid-column:1/-1;padding:18px;color:var(--muted);text-align:center}
+
+.permission-settings-modal-backdrop{position:fixed;inset:0;z-index:12100;display:grid;place-items:center;padding:18px;background:rgba(0,10,8,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.permission-settings-modal-backdrop[hidden]{display:none}
+.permission-settings-modal{display:flex;flex-direction:column;width:min(1050px,calc(100vw - 36px));max-height:calc(100dvh - 36px)}
+.permission-settings-editor-modal{width:min(900px,calc(100vw - 36px))}
+.permission-settings-modal-head,.permission-settings-modal-footer{padding:15px 17px}
+.permission-settings-modal-head p{margin:5px 0 0;color:var(--muted);font-size:12px;line-height:1.65}
+.permission-settings-modal-head .app-liquid-modal__close{border:1px solid rgba(141,220,89,.42);border-radius:11px;background:rgba(0,55,38,.88);color:#fff;font-family:inherit;font-size:20px;font-weight:900}
+.permission-settings-modal-head .app-liquid-modal__close:hover{border-color:rgba(241,187,48,.72);background:rgba(28,111,49,.88)}
+.permission-settings-modal-body{display:grid;gap:12px;padding:16px 17px}
+.permission-settings-modal-search{display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px;align-items:center}
+.permission-settings-modal-search>[data-modern-icon]{width:22px;height:22px;color:#9be650}
+.permission-settings-modal-search input{width:100%}
+.permission-settings-picker-summary{color:#dff7da;font-size:12px}
+.permission-settings-screen-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;min-width:0}
+.permission-settings-screen-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;min-width:0;padding:12px;border:1px solid rgba(141,220,89,.24);border-radius:13px;background:rgba(0,38,30,.72);color:#fff;font-family:inherit;text-align:right;cursor:pointer}
+.permission-settings-screen-card:hover,.permission-settings-screen-card:focus-visible{border-color:rgba(155,230,80,.7);background:rgba(24,94,44,.7);outline:2px solid rgba(155,230,80,.35);outline-offset:2px}
+.permission-settings-screen-card.has-selection{border-color:rgba(42,166,168,.62);box-shadow:inset 3px 0 0 rgba(42,166,168,.82)}
+.permission-settings-screen-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:10px;background:rgba(104,186,69,.17);color:#a7ef6e}
+.permission-settings-screen-icon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8}
+.permission-settings-screen-copy{display:grid;gap:3px;min-width:0}
+.permission-settings-screen-copy b{overflow-wrap:anywhere}
+.permission-settings-screen-copy small{overflow:hidden;color:var(--muted);font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.permission-settings-screen-count{min-width:45px;padding:4px 7px;border-radius:999px;background:rgba(0,20,17,.66);color:#dfffd0;font-size:11px;font-weight:900;text-align:center;font-variant-numeric:tabular-nums}
+.permission-settings-editor-toolbar{display:flex;align-items:center;gap:8px;padding:11px 17px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(0,29,23,.5)}
+.permission-settings-editor-toolbar span{margin-inline-start:auto;color:#dff7da;font-size:12px;font-variant-numeric:tabular-nums}
+.permission-settings-editor-body{padding:13px 17px}
+.permission-settings-tree{display:grid;gap:8px;min-width:0}
+.permission-settings-tree-item{min-width:0}
+.permission-settings-tree-item>label{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:9px;align-items:center;min-width:0;padding:10px 11px;border:1px solid rgba(141,220,89,.19);border-radius:11px;background:rgba(0,35,27,.42);cursor:pointer}
+.permission-settings-tree-item>label:hover{border-color:rgba(155,230,80,.52);background:rgba(20,83,42,.46)}
+.permission-settings-tree-item input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.permission-settings-tree-check{display:grid;place-items:center;width:20px;height:20px;border:1px solid rgba(155,230,80,.58);border-radius:6px;background:rgba(0,22,18,.8)}
+.permission-settings-tree-item input:checked+.permission-settings-tree-check{background:linear-gradient(135deg,#68ba45,#1e7432);box-shadow:inset 0 0 0 4px rgba(0,36,27,.7)}
+.permission-settings-tree-item input:indeterminate+.permission-settings-tree-check{background:linear-gradient(180deg,transparent 42%,#f1bb30 42%,#f1bb30 58%,transparent 58%)}
+.permission-settings-tree-item input:focus-visible+.permission-settings-tree-check{outline:2px solid var(--yellow);outline-offset:2px}
+.permission-settings-tree-copy{display:grid;gap:4px;min-width:0}
+.permission-settings-tree-copy b{overflow-wrap:anywhere}
+.permission-settings-tree-copy small{display:flex;align-items:center;gap:7px;min-width:0;color:var(--muted);font-size:10px;flex-wrap:wrap}
+.permission-settings-tree-copy em{padding:2px 7px;border-radius:999px;background:rgba(42,166,168,.15);color:#cbffff;font-style:normal}
+.permission-settings-tree-copy code{direction:ltr;overflow-wrap:anywhere;color:#b8d7bc}
+.permission-settings-tree-children{display:grid;gap:7px;margin:7px 0 0;padding-right:22px;border-right:2px solid rgba(141,220,89,.2)}
+
+@media (max-width:1100px){
+  #settings .permission-settings-grid,#settings .permission-settings-bundles-grid{grid-template-columns:1fr}
+  .permission-settings-screen-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:700px){
+  #settings .permission-settings-intro,#settings .permission-settings-card-head,#settings .permission-settings-list-head,#settings .permission-settings-builder-row{align-items:stretch;flex-direction:column}
+  #settings .permission-settings-tabs{display:grid;grid-template-columns:1fr}
+  #settings .permission-settings-tabs button,#settings .permission-settings-form-actions button,#settings .permission-settings-builder-row button,#settings .permission-settings-list-head button{width:100%}
+  #settings .permission-settings-fields,#settings .permission-settings-plant-grid{grid-template-columns:1fr}
+  .permission-settings-modal-backdrop{padding:8px;place-items:end center}
+  .permission-settings-modal,.permission-settings-editor-modal{width:100%;max-width:100%;max-height:calc(100dvh - 16px);border-radius:18px 18px 12px 12px}
+  .permission-settings-screen-grid{grid-template-columns:1fr}
+  .permission-settings-editor-toolbar{flex-wrap:wrap}
+  .permission-settings-editor-toolbar span{width:100%;margin:0}
+  .permission-settings-tree-children{padding-right:12px}
+}
+
 #settings .settings-plants-wrap{display:grid;gap:16px;text-align:right}
 #settings .plant-settings-form{display:grid;grid-template-columns:1fr 1.4fr .75fr auto auto;gap:12px;align-items:end;border:1px solid rgba(141,220,89,.28);border-radius:14px;background:rgba(0,35,27,.46);padding:18px}
 #settings .plant-settings-form label{display:flex;flex-direction:column;gap:7px;color:#f5fff1;font-weight:700}

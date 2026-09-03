@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=loading-errors-table-tools-20260902-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=p3-permission-settings-20260903-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ir-hotfix-2-20260726" />
 </head>
 <body>
@@ -1512,6 +1512,7 @@
             <button class="settings-tab" id="settingsAccountTab" type="button" role="tab" aria-selected="false" aria-controls="settingsAccountPanel" data-settings-tab="account">بيانات المستخدم وكلمة المرور</button>
             <button class="settings-tab" id="settingsSystemTab" type="button" role="tab" aria-selected="false" aria-controls="settingsSystemPanel" data-settings-tab="system">&#x2699;&#xFE0F; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0646;&#x0638;&#x0627;&#x0645;</button>
             <button class="settings-tab" id="settingsGeneralTab" type="button" role="tab" aria-selected="false" aria-controls="settingsGeneralPanel" data-settings-tab="general">إعدادات عامة</button>
+            <button class="settings-tab" id="settingsPermissionsTab" type="button" role="tab" aria-selected="false" aria-controls="settingsPermissionsPanel" data-settings-tab="permission-settings">إعدادات الصلاحيات</button>
             <button class="settings-tab" id="settingsPlantsTab" type="button" role="tab" aria-selected="false" aria-controls="settingsPlantsPanel" data-settings-tab="plants-settings">&#x1F3ED; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x0635;&#x0627;&#x0646;&#x0639;</button>
             <button class="settings-tab" id="settingsWarehousesTab" type="button" role="tab" aria-selected="false" aria-controls="settingsWarehousesPanel" data-settings-tab="warehouses-settings">&#x1F3EC; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0627;&#x0644;&#x0645;&#x062E;&#x0627;&#x0632;&#x0646;</button>
             <button class="settings-tab" id="settingsSalesProductsTab" type="button" role="tab" aria-selected="false" aria-controls="settingsSalesProductsPanel" data-settings-tab="sales-products-settings">&#x1F4E6; &#x0625;&#x0639;&#x062F;&#x0627;&#x062F;&#x0627;&#x062A; &#x0623;&#x0635;&#x0646;&#x0627;&#x0641; &#x0627;&#x0644;&#x0628;&#x064A;&#x0639;</button>
@@ -1528,6 +1529,7 @@
                 <option value="account">بيانات المستخدم وكلمة المرور</option>
                 <option value="system">إعدادات النظام</option>
                 <option value="general">إعدادات عامة</option>
+                <option value="permission-settings">إعدادات الصلاحيات</option>
                 <option value="plants-settings">إعدادات المصانع</option>
                 <option value="warehouses-settings">إعدادات المخازن</option>
                 <option value="sales-products-settings">إعدادات أصناف البيع</option>
@@ -1691,6 +1693,120 @@
                 <p class="hint">تعريفات أكواد SAP المستخدمة في مراجعة المخازن.</p>
                 <div class="table-wrap"><table id="movementsTable"></table></div>
               </section>
+            </section>
+            <section class="settings-tab-panel" id="settingsPermissionsPanel" role="tabpanel" aria-labelledby="settingsPermissionsTab" data-settings-panel="permission-settings">
+              <div class="permission-settings-shell" id="permissionSettingsShell">
+                <div class="permission-settings-intro glass-soft">
+                  <div>
+                    <span class="section-badge">P3 — إدارة فقط</span>
+                    <h3>إعدادات الصلاحيات</h3>
+                    <p>إنشاء الأدوار وحزم الصلاحيات داخل النموذج الجديد دون تغيير الصلاحيات الفعلية الحالية.</p>
+                  </div>
+                  <div class="permission-settings-shadow-note" role="note">
+                    <span data-modern-icon="shield" aria-hidden="true"></span>
+                    <b>نظام الصلاحيات القديم ما زال مسؤولًا عن الوصول</b>
+                  </div>
+                </div>
+
+                <div class="subtabs permission-settings-tabs" role="tablist" aria-label="تبويبات إعدادات الصلاحيات">
+                  <button class="active" id="permissionSettingsRolesTab" type="button" role="tab" aria-selected="true" aria-controls="permissionSettingsRolesPanel" data-permission-settings-tab="roles">إنشاء دور</button>
+                  <button id="permissionSettingsBundlesTab" type="button" role="tab" aria-selected="false" aria-controls="permissionSettingsBundlesPanel" data-permission-settings-tab="bundles">إنشاء حزمة صلاحيات</button>
+                </div>
+
+                <section class="permission-settings-inner-panel active" id="permissionSettingsRolesPanel" role="tabpanel" aria-labelledby="permissionSettingsRolesTab" data-permission-settings-panel="roles">
+                  <div class="permission-settings-grid">
+                    <form id="permissionRoleForm" class="permission-settings-form" novalidate>
+                      <input id="permissionRoleIdInput" type="hidden" />
+                      <div class="permission-settings-card-head">
+                        <div><h4 id="permissionRoleFormTitle">إنشاء دور جديد</h4><p>الأدوار النظامية الحالية محمية ولا يمكن تعديلها أو حذفها خلال الهجرة المرحلية.</p></div>
+                        <span class="permission-settings-card-icon" data-modern-icon="role" aria-hidden="true"></span>
+                      </div>
+                      <div class="permission-settings-fields">
+                        <label>مفتاح الدور
+                          <input id="permissionRoleKeyInput" type="text" dir="ltr" autocomplete="off" maxlength="80" placeholder="warehouse_reviewer" required />
+                          <small>حروف إنجليزية صغيرة وأرقام، مع شرطة سفلية أو نقاط فاصلة، ولا يتغير بعد الإنشاء.</small>
+                        </label>
+                        <label>اسم الدور
+                          <input id="permissionRoleNameInput" type="text" autocomplete="off" maxlength="120" placeholder="مثال: مراجع المخازن" required />
+                        </label>
+                        <label class="permission-settings-field-wide">الوصف
+                          <textarea id="permissionRoleDescriptionInput" rows="3" maxlength="500" placeholder="وصف مختصر لاستخدام الدور"></textarea>
+                        </label>
+                        <label class="settings-check permission-settings-active-check"><input id="permissionRoleActiveInput" type="checkbox" checked /><span>دور نشط</span></label>
+                      </div>
+                      <div class="permission-settings-form-actions">
+                        <button class="primary" id="permissionRoleSaveBtn" type="submit"><span class="button-svg-icon" data-modern-icon="save" aria-hidden="true"></span> حفظ الدور</button>
+                        <button class="secondary" id="permissionRoleResetBtn" type="button">تفريغ النموذج</button>
+                      </div>
+                      <div class="upload-status permission-settings-status" id="permissionRoleStatus" aria-live="polite"></div>
+                    </form>
+
+                    <div class="permission-settings-list-card">
+                      <div class="permission-settings-list-head">
+                        <div><h4>الأدوار الحالية</h4><p>الأدوار الديناميكية داخل نموذج P2 الجديد فقط.</p></div>
+                        <button class="secondary" id="permissionRolesRefreshBtn" type="button"><span class="button-svg-icon" data-modern-icon="refresh" aria-hidden="true"></span> تحديث</button>
+                      </div>
+                      <div class="table-wrap permission-settings-table-wrap">
+                        <table id="permissionRolesTable" data-no-universal-table="1">
+                          <thead><tr><th>مفتاح الدور</th><th>اسم الدور</th><th>النوع</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+                          <tbody><tr><td colspan="5" class="empty-row">يتم تحميل الأدوار عند فتح التبويب.</td></tr></tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="permission-settings-inner-panel" id="permissionSettingsBundlesPanel" role="tabpanel" aria-labelledby="permissionSettingsBundlesTab" data-permission-settings-panel="bundles" hidden>
+                  <div class="permission-settings-grid permission-settings-bundles-grid">
+                    <form id="permissionBundleForm" class="permission-settings-form" novalidate>
+                      <input id="permissionBundleIdInput" type="hidden" />
+                      <div class="permission-settings-card-head">
+                        <div><h4 id="permissionBundleFormTitle">إنشاء حزمة صلاحيات</h4><p>الحزمة لا تؤثر على أي مستخدم في P3، ولا تُستخدم في Enforcement.</p></div>
+                        <span class="permission-settings-card-icon" data-modern-icon="shield" aria-hidden="true"></span>
+                      </div>
+                      <div class="permission-settings-fields">
+                        <label>اسم الحزمة
+                          <input id="permissionBundleNameInput" type="text" autocomplete="off" maxlength="140" placeholder="مثال: مراجعة المخزون" required />
+                        </label>
+                        <label class="permission-settings-field-wide">الوصف
+                          <textarea id="permissionBundleDescriptionInput" rows="3" maxlength="700" placeholder="وصف مختصر لنطاق الحزمة"></textarea>
+                        </label>
+                      </div>
+
+                      <fieldset class="permission-settings-fieldset">
+                        <legend>المصانع</legend>
+                        <label class="permission-settings-all-plants"><input id="permissionBundleAllPlantsInput" type="checkbox" checked /><span><b>كل المصانع</b><small>يشمل المصانع الحالية وأي مصنع جديد يُضاف لاحقًا.</small></span></label>
+                        <div class="permission-settings-plant-grid" id="permissionBundlePlantOptions" aria-live="polite"></div>
+                      </fieldset>
+
+                      <div class="permission-settings-builder-row">
+                        <div><b>الشاشات والصلاحيات</b><span id="permissionBundleSelectionSummary">لم يتم اختيار صلاحيات بعد.</span></div>
+                        <button class="secondary" id="permissionBundleScreensBtn" type="button"><span class="button-svg-icon" data-modern-icon="reports" aria-hidden="true"></span> الشاشات</button>
+                      </div>
+
+                      <label class="settings-check permission-settings-active-check"><input id="permissionBundleActiveInput" type="checkbox" checked /><span>حزمة نشطة</span></label>
+                      <div class="permission-settings-form-actions">
+                        <button class="primary" id="permissionBundleSaveBtn" type="submit"><span class="button-svg-icon" data-modern-icon="save" aria-hidden="true"></span> حفظ الحزمة</button>
+                        <button class="secondary" id="permissionBundleResetBtn" type="button">تفريغ النموذج</button>
+                      </div>
+                      <div class="upload-status permission-settings-status" id="permissionBundleStatus" aria-live="polite"></div>
+                    </form>
+
+                    <div class="permission-settings-list-card">
+                      <div class="permission-settings-list-head">
+                        <div><h4>حزم الصلاحيات</h4><p>ملخص المصانع وعدد مفاتيح الصلاحيات داخل كل حزمة.</p></div>
+                        <button class="secondary" id="permissionBundlesRefreshBtn" type="button"><span class="button-svg-icon" data-modern-icon="refresh" aria-hidden="true"></span> تحديث</button>
+                      </div>
+                      <div class="table-wrap permission-settings-table-wrap">
+                        <table id="permissionBundlesTable" data-no-universal-table="1">
+                          <thead><tr><th>اسم الحزمة</th><th>المصانع</th><th>الصلاحيات</th><th>الأدوار المرتبطة</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+                          <tbody><tr><td colspan="6" class="empty-row">يتم تحميل الحزم عند فتح التبويب.</td></tr></tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
             </section>
             <section class="settings-tab-panel" id="settingsPlantsPanel" role="tabpanel" aria-labelledby="settingsPlantsTab" data-settings-panel="plants-settings">
               <div class="settings-plants-wrap">
@@ -1986,13 +2102,57 @@
       <div id="footerMount"></div>
     </main>
   </div>
+
+  <div class="permission-settings-modal-backdrop app-liquid-modal-backdrop" id="permissionScreenPickerOverlay" aria-hidden="true" hidden>
+    <section class="permission-settings-modal app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="permissionScreenPickerTitle">
+      <header class="permission-settings-modal-head app-liquid-modal__header">
+        <div><span class="section-badge">Permission Bundle Builder</span><h2 class="app-liquid-modal__title" id="permissionScreenPickerTitle">اختيار الشاشات</h2><p>افتح أي شاشة وحدد التبويبات والأزرار والفلاتر والإجراءات المطلوبة.</p></div>
+        <button class="app-liquid-modal__close" type="button" data-permission-screen-picker-action="close" aria-label="إغلاق اختيار الشاشات">×</button>
+      </header>
+      <div class="permission-settings-modal-body app-liquid-modal__body">
+        <label class="permission-settings-modal-search">
+          <span data-modern-icon="search" aria-hidden="true"></span>
+          <input id="permissionScreenSearchInput" type="search" autocomplete="off" placeholder="بحث باسم الشاشة..." aria-label="بحث باسم الشاشة" />
+        </label>
+        <div class="permission-settings-picker-summary" id="permissionScreenPickerSummary"></div>
+        <div class="permission-settings-screen-grid" id="permissionScreenGrid"></div>
+      </div>
+      <footer class="permission-settings-modal-footer app-liquid-modal__footer">
+        <button class="secondary" type="button" data-permission-screen-picker-action="close">العودة للحزمة</button>
+      </footer>
+    </section>
+  </div>
+
+  <div class="permission-settings-modal-backdrop app-liquid-modal-backdrop" id="permissionScreenEditorOverlay" aria-hidden="true" hidden>
+    <section class="permission-settings-modal permission-settings-editor-modal app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="permissionScreenEditorTitle">
+      <header class="permission-settings-modal-head app-liquid-modal__header">
+        <div><span class="section-badge">صلاحيات الشاشة</span><h2 class="app-liquid-modal__title" id="permissionScreenEditorTitle">صلاحيات الشاشة</h2><p id="permissionScreenEditorHint"></p></div>
+        <button class="app-liquid-modal__close" type="button" data-permission-editor-action="close" aria-label="إغلاق صلاحيات الشاشة">×</button>
+      </header>
+      <div class="permission-settings-editor-toolbar">
+        <button class="secondary" id="permissionEditorSelectAllBtn" type="button">تحديد الكل</button>
+        <button class="secondary" id="permissionEditorClearAllBtn" type="button">إلغاء الكل</button>
+        <span id="permissionEditorSelectionCount">0 صلاحية محددة</span>
+      </div>
+      <div class="permission-settings-modal-body permission-settings-editor-body app-liquid-modal__body">
+        <div class="permission-settings-tree" id="permissionScreenPermissionTree"></div>
+      </div>
+      <footer class="permission-settings-modal-footer app-liquid-modal__footer">
+        <button class="secondary" type="button" data-permission-editor-action="close">إلغاء</button>
+        <button class="primary" id="permissionEditorSaveBtn" type="button"><span class="button-svg-icon" data-modern-icon="save" aria-hidden="true"></span> حفظ اختيارات الشاشة</button>
+      </footer>
+    </section>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="vendor/html2canvas/html2canvas.min.js?v=2.2-m433"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=loading-errors-table-tools-20260902-1"></script>
+  <script src="assets/js/app.js?v=p3-permission-settings-20260903-1"></script>
+  <script src="assets/js/permission-registry.js?v=p3-permission-settings-20260903-1"></script>
+  <script src="assets/js/permission-settings.js?v=p3-permission-settings-20260903-1"></script>
   <script src="assets/js/department-weekly-operations.js?v=hr-export-corrections-20260822-1"></script>
   <script src="assets/js/custom-date-picker.js?v=loading-error-modal-datepicker-layer-20260902-1"></script>
   <script src="assets/js/department-loading-errors.js?v=loading-errors-table-tools-20260902-1"></script>

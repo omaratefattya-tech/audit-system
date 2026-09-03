@@ -4816,6 +4816,7 @@ const SETTINGS_TAB_PERMISSION_MAP={
   profile:'settings_profile',
   account:'settings_account',
   system:'settings_system',
+  'permission-settings':'permissions',
   'plants-settings':'settings_plants',
   'warehouses-settings':'settings_warehouses',
   'sales-products-settings':'settings_sales_products',
@@ -4829,6 +4830,7 @@ function canViewGeneralSettingsTab(key){
 }
 function canViewSettingsTab(key){
   if(key==='general') return Object.keys(GENERAL_SETTINGS_TAB_PERMISSION_MAP).some(canViewGeneralSettingsTab);
+  if(key==='permission-settings') return isSuperAdmin();
   return hasPermission(SETTINGS_TAB_PERMISSION_MAP[key]||'settings','view');
 }
 function syncGeneralSettingsTabs(){
@@ -5813,6 +5815,7 @@ function showLoginScreen(){
   APPLICATION_VIEW_RESTORED_USER_ID='';
   closeActiveApplicationModals({restoreFocus:false});
   resetAppModalScrollLocks();
+  window.PermissionSettings?.resetSession?.();
   $('#loginScreen')?.classList.remove('login-hidden');
   $('#appShell')?.classList.add('app-hidden');
   document.body.classList.remove('mobile-app-shell-active','mobile-dashboard-active','mobile-inbound-active','mobile-upload-reports-active','mobile-reports-active','mobile-dashboard-filter-open','mobile-dashboard-drawer-open','mobile-inbound-filter-open','mobile-reports-filter-open');
@@ -6192,6 +6195,7 @@ function initSettingsTabs(){
     panels.forEach(panel=>panel.classList.toggle('active',panel.dataset.settingsPanel===key));
     if(key==='system') ensureSystemSettingsLoaded();
     if(key==='general') syncGeneralSettingsTabs();
+    if(key==='permission-settings') window.PermissionSettings?.load();
     if(key==='plants-settings') ensurePlantsSettingsLoaded();
     if(key==='warehouses-settings') ensureWarehousesSettingsLoaded();
     if(key==='sales-products-settings') ensureSalesProductsSettingsLoaded();
@@ -6943,7 +6947,8 @@ function isMobileApplicationRefreshViewport(){
 function hasApplicationUnsavedChanges(){
   const departmentDirty=typeof window.hasUnsavedDepartmentPersonnelWork==='function' && window.hasUnsavedDepartmentPersonnelWork();
   const permissionsDirty=Boolean(typeof PERMISSIONS_MANAGEMENT_STATE!=='undefined' && PERMISSIONS_MANAGEMENT_STATE?.dirty);
-  return Boolean(departmentDirty || permissionsDirty);
+  const permissionSettingsDirty=Boolean(window.PermissionSettings?.isDirty?.());
+  return Boolean(departmentDirty || permissionsDirty || permissionSettingsDirty);
 }
 function requestSafeApplicationReload(){
   if(MOBILE_APPLICATION_RELOAD_PENDING || !isMobileApplicationRefreshViewport()) return false;
