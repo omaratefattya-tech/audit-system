@@ -5816,6 +5816,7 @@ function showLoginScreen(){
   closeActiveApplicationModals({restoreFocus:false});
   resetAppModalScrollLocks();
   window.PermissionSettings?.resetSession?.();
+  window.PermissionShadow?.reset?.();
   $('#loginScreen')?.classList.remove('login-hidden');
   $('#appShell')?.classList.add('app-hidden');
   document.body.classList.remove('mobile-app-shell-active','mobile-dashboard-active','mobile-inbound-active','mobile-upload-reports-active','mobile-reports-active','mobile-dashboard-filter-open','mobile-dashboard-drawer-open','mobile-inbound-filter-open','mobile-reports-filter-open');
@@ -6323,6 +6324,7 @@ async function loadCurrentUserPermissions(){
     CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions('admin');
     applySettingsSubPermissions();
     syncDashboardPngButtonState();
+    window.PermissionShadow?.refresh?.('legacy-permissions-loaded');
     return;
   }
   const role=CURRENT_APP_PROFILE?.role || 'viewer';
@@ -6330,6 +6332,7 @@ async function loadCurrentUserPermissions(){
     CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions(role);
     applySettingsSubPermissions();
     syncDashboardPngButtonState();
+    window.PermissionShadow?.refresh?.('legacy-permissions-fallback');
     return;
   }
   try{
@@ -6338,6 +6341,7 @@ async function loadCurrentUserPermissions(){
   }catch(_){ CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions(role); }
   applySettingsSubPermissions();
   syncDashboardPngButtonState();
+  window.PermissionShadow?.refresh?.('legacy-permissions-loaded');
 }
 function applyNavigationPermissions(){
   $$('.nav-item').forEach(btn=>{
