@@ -6398,7 +6398,7 @@ function applyPermissionActionGuards(section){
   disableByPermission('button[id*="ExportPng"],button[id*="Png"],.png-export-btn',section,'export_png','لا تملك صلاحية تصدير PNG');
   disableByPermission('.delete-user-btn,.delete-batch-btn,button[id*="Delete"],button.danger',section,'delete','لا تملك صلاحية الحذف');
   disableByPermission('button[id*="Upload"],button[id*="pick"],.upload-report-tab',section,'upload','لا تملك صلاحية الرفع');
-  disableByPermission('button[id*="save"],button[id*="Save"],button[id*="edit"],.edit-user-btn',section,'edit','لا تملك صلاحية التعديل');
+  disableByPermission('button[id*="save"]:not([data-permission-settings-management-action]),button[id*="Save"]:not([data-permission-settings-management-action]),button[id*="edit"],.edit-user-btn',section,'edit','لا تملك صلاحية التعديل');
   if(section==='dashboard') syncDashboardPngButtonState();
   if(section==='inventory_closing'){
     disableByPermission('#createInventoryCountBtn','inventory_count','add',"غير متاح للصلاحية الحالية");

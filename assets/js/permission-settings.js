@@ -7,6 +7,7 @@
   const BUNDLE_DELETE_RPC='app_permission_p3_delete_bundle';
   const SCREEN_PICKER_MODAL_ID='permissionScreenPickerOverlay';
   const SCREEN_EDITOR_MODAL_ID='permissionScreenEditorOverlay';
+  const MANAGEMENT_ACTION_SELECTOR='[data-permission-settings-management-action]';
 
   const state={
     initialized:false,
@@ -38,6 +39,16 @@
   const roots=()=>nodes().filter(node=>node.type==='SCREEN' && !node.parent);
   const isAuthorized=()=>typeof globalScope.isSuperAdmin==='function' && globalScope.isSuperAdmin();
   const isReady=()=>Boolean(globalScope.WarehouseDB?.ready && globalScope.WarehouseDB?.client);
+
+  function syncManagementActionAccess(){
+    const allowed=isAuthorized();
+    qa(MANAGEMENT_ACTION_SELECTOR).forEach(button=>{
+      const saving=button.dataset.permissionSettingsSaving==='1';
+      button.disabled=!allowed || saving;
+      button.classList.toggle('permission-disabled',!allowed);
+      if(allowed && button.title==='لا تملك صلاحية التعديل') button.removeAttribute('title');
+    });
+  }
 
   function setStatus(id,message,type=''){
     const element=q(id);
@@ -228,6 +239,7 @@
 
   async function load(options={}){
     if(!q('#permissionSettingsShell')) return false;
+    syncManagementActionAccess();
     if(!isAuthorized()){
       setStatus('#permissionRoleStatus','هذا التبويب متاح لـSuper Admin فقط.','err');
       setStatus('#permissionBundleStatus','هذا التبويب متاح لـSuper Admin فقط.','err');
@@ -318,13 +330,14 @@
     if(!button) return;
     if(saving){
       button.dataset.originalHtml=button.innerHTML;
-      button.disabled=true;
+      button.dataset.permissionSettingsSaving='1';
       button.textContent=text;
     }else{
-      button.disabled=false;
+      delete button.dataset.permissionSettingsSaving;
       if(button.dataset.originalHtml) button.innerHTML=button.dataset.originalHtml;
       delete button.dataset.originalHtml;
     }
+    syncManagementActionAccess();
   }
 
   async function saveRole(event){
@@ -572,6 +585,7 @@
     q('#permissionScreenEditorTitle').textContent=`صلاحيات: ${root.label}`;
     q('#permissionScreenEditorHint').textContent='يتم حفظ الاختيارات داخل Draft الحزمة، ولن تصل إلى قاعدة البيانات قبل حفظ الحزمة نهائيًا.';
     renderEditorTree();
+    syncManagementActionAccess();
     const overlay=q('#permissionScreenEditorOverlay');
     openModal(overlay,SCREEN_EDITOR_MODAL_ID,options=>closeScreenEditor(options),q('#permissionScreenPermissionTree input'));
   }
@@ -691,6 +705,7 @@
     bindEvents();
     resetRoleForm();
     resetBundleForm();
+    syncManagementActionAccess();
   }
 
   function isDirty(){ return state.roleDirty || state.bundleDirty; }

@@ -1735,7 +1735,7 @@
                         <label class="settings-check permission-settings-active-check"><input id="permissionRoleActiveInput" type="checkbox" checked /><span>دور نشط</span></label>
                       </div>
                       <div class="permission-settings-form-actions">
-                        <button class="primary" id="permissionRoleSaveBtn" type="submit"><span class="button-svg-icon" data-modern-icon="save" aria-hidden="true"></span> حفظ الدور</button>
+                        <button class="primary" id="permissionRoleSaveBtn" type="submit" data-permission-settings-management-action><span class="button-svg-icon" data-modern-icon="save" aria-hidden="true"></span> حفظ الدور</button>
                         <button class="secondary" id="permissionRoleResetBtn" type="button">تفريغ النموذج</button>
                       </div>
                       <div class="upload-status permission-settings-status" id="permissionRoleStatus" aria-live="polite"></div>
@@ -1786,7 +1786,7 @@
 
                       <label class="settings-check permission-settings-active-check"><input id="permissionBundleActiveInput" type="checkbox" checked /><span>حزمة نشطة</span></label>
                       <div class="permission-settings-form-actions">
-                        <button class="primary" id="permissionBundleSaveBtn" type="submit"><span class="button-svg-icon" data-modern-icon="save" aria-hidden="true"></span> حفظ الحزمة</button>
+                        <button class="primary" id="permissionBundleSaveBtn" type="submit" data-permission-settings-management-action><span class="button-svg-icon" data-modern-icon="save" aria-hidden="true"></span> حفظ الحزمة</button>
                         <button class="secondary" id="permissionBundleResetBtn" type="button">تفريغ النموذج</button>
                       </div>
                       <div class="upload-status permission-settings-status" id="permissionBundleStatus" aria-live="polite"></div>
@@ -2139,7 +2139,7 @@
       </div>
       <footer class="permission-settings-modal-footer app-liquid-modal__footer">
         <button class="secondary" type="button" data-permission-editor-action="close">إلغاء</button>
-        <button class="primary" id="permissionEditorSaveBtn" type="button"><span class="button-svg-icon" data-modern-icon="save" aria-hidden="true"></span> حفظ اختيارات الشاشة</button>
+        <button class="primary" id="permissionEditorSaveBtn" type="button" data-permission-settings-management-action><span class="button-svg-icon" data-modern-icon="save" aria-hidden="true"></span> حفظ اختيارات الشاشة</button>
       </footer>
     </section>
   </div>
@@ -2150,9 +2150,9 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=p3-permission-settings-20260903-1"></script>
+  <script src="assets/js/app.js?v=p3-permission-settings-save-guard-fix-20260903-1"></script>
   <script src="assets/js/permission-registry.js?v=p3-permission-settings-20260903-1"></script>
-  <script src="assets/js/permission-settings.js?v=p3-permission-settings-20260903-1"></script>
+  <script src="assets/js/permission-settings.js?v=p3-permission-settings-save-guard-fix-20260903-1"></script>
   <script src="assets/js/department-weekly-operations.js?v=hr-export-corrections-20260822-1"></script>
   <script src="assets/js/custom-date-picker.js?v=loading-error-modal-datepicker-layer-20260902-1"></script>
   <script src="assets/js/department-loading-errors.js?v=loading-errors-table-tools-20260902-1"></script>
