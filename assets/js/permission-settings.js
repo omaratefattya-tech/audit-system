@@ -561,19 +561,28 @@
     return `<div class="permission-settings-tree-item" data-permission-tree-item="${safeHtml(node.key)}"><label><input type="checkbox" data-permission-key="${safeHtml(node.key)}" ${checked?'checked':''}/><span class="permission-settings-tree-check" aria-hidden="true"></span><span class="permission-settings-tree-copy"><b>${safeHtml(node.label)}</b><small><em>${safeHtml(typeLabels[node.type]||node.type)}</em><code dir="ltr">${safeHtml(node.key)}</code></small></span></label>${childNodes.length?`<div class="permission-settings-tree-children">${childNodes.map(child=>treeNodeHtml(child,children)).join('')}</div>`:''}</div>`;
   }
 
-  function renderEditorTree(){
+  function syncEditorTreeSelection(){
     const container=q('#permissionScreenPermissionTree');
     const root=nodeMap().get(state.editorRootKey);
     if(!container || !root) return;
-    container.innerHTML=treeNodeHtml(root,childrenMap());
     const branchKeys=new Set(descendants(root.key).map(node=>node.key));
-    qa('#permissionScreenPermissionTree input[data-permission-key]').forEach(input=>{
-      const branch=descendants(input.dataset.permissionKey).map(node=>node.key).filter(key=>branchKeys.has(key));
+    container.querySelectorAll('input[data-permission-key]').forEach(input=>{
+      const key=input.dataset.permissionKey;
+      input.checked=state.editorDraft.has(key);
+      const branch=descendants(key).map(node=>node.key).filter(itemKey=>branchKeys.has(itemKey));
       const selected=branch.filter(key=>state.editorDraft.has(key)).length;
       input.indeterminate=selected>0 && selected<branch.length;
     });
     const count=q('#permissionEditorSelectionCount');
     if(count) count.textContent=`${state.editorDraft.size} صلاحية محددة`;
+  }
+
+  function renderEditorTree(){
+    const container=q('#permissionScreenPermissionTree');
+    const root=nodeMap().get(state.editorRootKey);
+    if(!container || !root) return;
+    container.innerHTML=treeNodeHtml(root,childrenMap());
+    syncEditorTreeSelection();
   }
 
   function openScreenEditor(rootKey){
@@ -609,13 +618,13 @@
     }else{
       descendants(key).forEach(node=>state.editorDraft.delete(node.key));
     }
-    renderEditorTree();
+    syncEditorTreeSelection();
   }
 
   function selectEditorBranch(value){
     const branch=descendants(state.editorRootKey).map(node=>node.key);
     state.editorDraft=value ? new Set(branch) : new Set();
-    renderEditorTree();
+    syncEditorTreeSelection();
   }
 
   function saveEditorSelection(){
