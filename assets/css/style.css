@@ -1644,6 +1644,8 @@ body.modal-open{overscroll-behavior:contain}
 .permission-bundle-option:hover{border-color:rgba(144,239,87,.58);background:rgba(0,57,42,.78);transform:translateY(-1px)}
 .permission-bundle-option.is-selected{border-color:rgba(160,245,82,.82);background:linear-gradient(145deg,rgba(28,112,55,.72),rgba(0,50,37,.88));box-shadow:0 0 0 1px rgba(142,231,78,.15),0 10px 24px rgba(0,0,0,.18)}
 .permission-bundle-option.is-inactive{opacity:.58;cursor:not-allowed}
+.permission-bundle-option.is-protected{cursor:not-allowed;border-color:rgba(255,205,66,.42);background:linear-gradient(145deg,rgba(87,68,8,.24),rgba(0,43,33,.86))}
+.permission-bundle-option.is-protected:hover{border-color:rgba(255,205,66,.42);background:linear-gradient(145deg,rgba(87,68,8,.24),rgba(0,43,33,.86));transform:none}
 .permission-bundle-option input{position:absolute;opacity:0;pointer-events:none}
 .permission-bundle-option-mark{width:22px;height:22px;border:2px solid rgba(177,231,138,.58);border-radius:7px;background:rgba(0,18,15,.65);display:grid;place-items:center;margin-top:1px}
 .permission-bundle-option input:focus-visible+.permission-bundle-option-mark{outline:3px solid rgba(255,214,65,.62);outline-offset:3px}
@@ -1664,6 +1666,7 @@ body.modal-open{overscroll-behavior:contain}
 .permissions-role-safety-note{margin:16px 0 0;border:1px solid rgba(255,205,66,.35);border-radius:13px;background:rgba(122,86,0,.14);color:#fff2a8;padding:12px;line-height:1.65;font-weight:800}
 .permissions-role-safety-note.is-dirty{border-color:rgba(255,190,62,.7);background:rgba(159,96,0,.2)}
 .permissions-role-safety-note.is-protected{border-color:rgba(95,189,255,.42);background:rgba(31,97,132,.2);color:#cdeeff}
+.permissions-role-safety-note.is-blocked{border-color:rgba(255,101,101,.58);background:rgba(143,28,28,.2);color:#ffd7d7}
 @media(max-width:1100px){.permissions-layout{grid-template-columns:1fr}.permissions-side-card{position:static}.permissions-kpi-grid{grid-template-columns:repeat(2,1fr)}.permissions-toolbar{grid-template-columns:1fr 1fr}.permissions-hero{flex-direction:column}.permissions-hero-actions{width:100%}}
 @media(max-width:760px){.permissions-bundle-grid{grid-template-columns:1fr;max-height:none}.permissions-kpi-grid,.permissions-toolbar{grid-template-columns:1fr}.permissions-management-panel{padding:16px}.permissions-hero h2{font-size:24px}.permissions-hero-actions button{flex:1}.permissions-role-summary div{grid-template-columns:1fr}}
 

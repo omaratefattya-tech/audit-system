@@ -17,6 +17,7 @@
     selectedRoleId:'',
     originalBundleIds:new Set(),
     draftBundleIds:new Set(),
+    blockedBundleIds:new Set(),
     search:''
   };
 
@@ -37,6 +38,8 @@
 
   function errorMessage(error){
     const message=String(error?.message || error || '');
+    if(/P6_PROTECTED_BASELINE_BUNDLE/i.test(message)) return 'إحدى حزم الترحيل المحمية مخصصة لدور نظامي آخر ولا يمكن إسنادها لهذا الدور.';
+    if(/P6_SYSTEM_BASELINE_REQUIRED/i.test(message)) return 'لا يمكن إزالة حزمة الترحيل الأساسية المحمية من الدور النظامي.';
     if(/42501|permission denied|row-level security|P6_PERMISSION_DENIED/i.test(message)) return 'غير مسموح بإدارة ربط الأدوار بالحزم. يلزم حساب Super Admin نشط.';
     if(/PGRST202|Could not find the function|does not exist|schema cache/i.test(message)) return 'ملف قاعدة بيانات P6 غير مطبق أو لم يتم تحديث Schema Cache بعد.';
     if(/P6_ROLE_NOT_FOUND|P6_BUNDLE_NOT_FOUND/i.test(message)) return 'الدور أو إحدى الحزم لم يعد موجودًا. حدّث البيانات وحاول مرة أخرى.';
@@ -73,6 +76,43 @@
     return state.roles.find(role=>role.id===state.selectedRoleId) || null;
   }
 
+  function legacyBaselineRoleKey(bundle){
+    const match=String(bundle?.description||'').match(/^P5_LEGACY_BASELINE:([^:]+):/);
+    return match ? match[1] : '';
+  }
+
+  function isBundleAllowedForRole(bundle,role){
+    if(!bundle || !role) return false;
+    const baselineRoleKey=legacyBaselineRoleKey(bundle);
+    if(baselineRoleKey) return baselineRoleKey===role.role_key;
+    return !role.is_super_admin;
+  }
+
+  function sanitizedBundleIds(bundleIds,role){
+    const allowedIds=new Set();
+    (bundleIds||new Set()).forEach(bundleId=>{
+      const bundle=state.bundles.find(item=>item.id===bundleId);
+      if(isBundleAllowedForRole(bundle,role)) allowedIds.add(bundleId);
+    });
+    return allowedIds;
+  }
+
+  function requiredSystemBaselineIds(role){
+    if(!role?.is_system || role.is_super_admin) return new Set();
+    return new Set(state.bundles
+      .filter(bundle=>legacyBaselineRoleKey(bundle)===role.role_key)
+      .map(bundle=>bundle.id));
+  }
+
+  function hasRequiredSystemBaseline(role){
+    const requiredIds=requiredSystemBaselineIds(role);
+    if(role?.is_system && !role.is_super_admin && requiredIds.size!==1) return false;
+    for(const bundleId of requiredIds){
+      if(!state.draftBundleIds.has(bundleId)) return false;
+    }
+    return true;
+  }
+
   function selectedBundles(){
     return state.bundles.filter(bundle=>state.draftBundleIds.has(bundle.id));
   }
@@ -100,7 +140,7 @@
     const role=selectedRole();
     const authorized=isAuthorized();
     const save=q('#savePermissionsBtn');
-    const canSave=authorized && role && !role.is_super_admin && role.is_active && state.draftBundleIds.size>0 && isDirty() && !state.saving;
+    const canSave=authorized && role && !role.is_super_admin && role.is_active && state.draftBundleIds.size>0 && hasRequiredSystemBaseline(role) && isDirty() && !state.saving;
     if(save){
       save.disabled=!canSave;
       save.dataset.permissionSettingsSaving=state.saving?'1':'0';
@@ -113,6 +153,8 @@
             ? 'لا توجد تغييرات للحفظ'
             : state.draftBundleIds.size===0
               ? 'اختر حزمة واحدة على الأقل'
+              : !hasRequiredSystemBaseline(role)
+                ? 'حزمة الترحيل الأساسية للدور النظامي محمية ولا يمكن إزالتها'
               : '';
     }
     qa(MANAGEMENT_SELECTOR).forEach(button=>{
@@ -151,25 +193,27 @@
     const role=selectedRole();
     const search=state.search.trim().toLowerCase();
     const rows=state.bundles.filter(bundle=>{
+      if(!isBundleAllowedForRole(bundle,role)) return false;
       const haystack=[bundle.bundle_name,bundle.description,bundleScopeLabel(bundle)].join(' ').toLowerCase();
       return !search || haystack.includes(search);
     });
     if(!rows.length){
-      container.innerHTML='<div class="permissions-empty-state">لا توجد حزم مطابقة للبحث.</div>';
+      container.innerHTML='<div class="permissions-empty-state">لا توجد حزم قابلة للإسناد مطابقة للبحث.</div>';
       return;
     }
     const protectedRole=Boolean(role?.is_super_admin);
     container.innerHTML=rows.map(bundle=>{
       const selected=state.draftBundleIds.has(bundle.id);
-      const disabled=protectedRole || !bundle.is_active || !isAuthorized();
+      const protectedBaseline=Boolean(legacyBaselineRoleKey(bundle));
+      const disabled=protectedRole || protectedBaseline || !bundle.is_active || !isAuthorized();
       const permissionCount=(state.bundlePermissions.get(bundle.id)||new Set()).size;
-      return `<label class="permission-bundle-option ${selected?'is-selected':''} ${!bundle.is_active?'is-inactive':''}">
+      return `<label class="permission-bundle-option ${selected?'is-selected':''} ${!bundle.is_active?'is-inactive':''} ${protectedBaseline?'is-protected':''}">
         <input type="checkbox" data-permission-bundle-id="${safeHtml(bundle.id)}" ${selected?'checked':''} ${disabled?'disabled':''} />
         <span class="permission-bundle-option-mark" aria-hidden="true"></span>
         <span class="permission-bundle-option-body">
           <b>${safeHtml(bundle.bundle_name)}</b>
           <small>${safeHtml(bundle.description||'بدون وصف')}</small>
-          <span class="permission-bundle-option-meta"><em>${safeHtml(bundleScopeLabel(bundle))}</em><em>${permissionCount} صلاحية</em><em>${bundle.is_active?'نشطة':'غير نشطة'}</em></span>
+          <span class="permission-bundle-option-meta"><em>${safeHtml(bundleScopeLabel(bundle))}</em><em>${permissionCount} صلاحية</em><em>${bundle.is_active?'نشطة':'غير نشطة'}</em>${protectedBaseline?'<em>حزمة ترحيل محمية</em>':''}</span>
         </span>
       </label>`;
     }).join('');
@@ -180,7 +224,7 @@
     const selectedCount=state.draftBundleIds.size;
     const setText=(selector,value)=>{ const element=q(selector); if(element) element.textContent=String(value); };
     setText('#permissionsRolesCount',state.roles.filter(item=>item.is_active).length);
-    setText('#permissionsBundlesCount',state.bundles.filter(item=>item.is_active).length);
+    setText('#permissionsBundlesCount',state.bundles.filter(item=>item.is_active && isBundleAllowedForRole(item,role)).length);
     setText('#permissionsSelectedBundlesCount',selectedCount);
     setText('#permissionsEffectiveCount',effectivePermissionCount());
     setText('#permissionsSelectedRoleName',role?.role_name||'—');
@@ -190,9 +234,11 @@
     setText('#permissionsSelectedRolePlants',effectivePlantLabel());
     const warning=q('#permissionsRoleSafetyNote');
     if(warning){
-      warning.className='permissions-role-safety-note '+(role?.is_super_admin?'is-protected':isDirty()?'is-dirty':'');
+      warning.className='permissions-role-safety-note '+(role?.is_super_admin?'is-protected':state.blockedBundleIds.size?'is-blocked':isDirty()?'is-dirty':'');
       warning.textContent=role?.is_super_admin
         ? 'دور Super Admin محمي؛ يعرض الربط الحالي فقط ولا يقبل التعديل.'
+        : state.blockedBundleIds.size
+          ? `تم استبعاد ${state.blockedBundleIds.size} حزمة ترحيل محمية مرتبطة بدور غير مطابق. اختر حزمة صالحة واحفظ لإزالة الربط غير الآمن من نموذج Shadow.`
         : isDirty()
           ? 'هذه التغييرات تخص نموذج Shadow فقط. لن تغيّر صلاحيات التشغيل الحالية قبل P7.'
           : 'P6 إدارة فقط: نظام الصلاحيات القديم ما زال المسؤول الوحيد عن الوصول.';
@@ -208,8 +254,10 @@
 
   function selectRole(roleId){
     state.selectedRoleId=String(roleId||'');
+    const role=selectedRole();
     state.originalBundleIds=new Set(state.roleBundles.get(state.selectedRoleId)||[]);
-    state.draftBundleIds=new Set(state.originalBundleIds);
+    state.draftBundleIds=sanitizedBundleIds(state.originalBundleIds,role);
+    state.blockedBundleIds=new Set([...state.originalBundleIds].filter(bundleId=>!state.draftBundleIds.has(bundleId)));
     renderAll();
   }
 
@@ -262,7 +310,9 @@
         if(preferredRoleId && state.roles.some(role=>role.id===preferredRoleId && role.is_active)) state.selectedRoleId=preferredRoleId;
         renderRoleOptions();
         selectRole(state.selectedRoleId);
-        setStatus('تم تحميل ربط الأدوار بالحزم من النموذج الجديد.','ok');
+        setStatus(state.blockedBundleIds.size
+          ? 'تم اكتشاف ربط محمي غير مطابق واستبعاده من المسودة. اختر حزمة صالحة واحفظ لإزالة الربط غير الآمن.'
+          : 'تم تحميل ربط الأدوار بالحزم من النموذج الجديد.',state.blockedBundleIds.size?'err':'ok');
         return true;
       }catch(error){
         state.loaded=false;
@@ -271,6 +321,7 @@
         state.selectedRoleId='';
         state.originalBundleIds=new Set();
         state.draftBundleIds=new Set();
+        state.blockedBundleIds=new Set();
         renderAll();
         setStatus(errorMessage(error),'err');
         return false;
@@ -300,13 +351,22 @@
       return;
     }
     selectRole(nextRoleId);
-    setStatus('تم تحميل الحزم المرتبطة بالدور المحدد.','ok');
+    setStatus(state.blockedBundleIds.size
+      ? 'تم اكتشاف ربط محمي غير مطابق واستبعاده من المسودة. احفظ بعد اختيار حزمة صالحة لإزالة الربط غير الآمن.'
+      : 'تم تحميل الحزم المرتبطة بالدور المحدد.',state.blockedBundleIds.size?'err':'ok');
   }
 
   function onBundleChange(event){
     const checkbox=event.target.closest('[data-permission-bundle-id]');
     if(!checkbox) return;
     const bundleId=checkbox.dataset.permissionBundleId;
+    const bundle=state.bundles.find(item=>item.id===bundleId);
+    const role=selectedRole();
+    if(checkbox.disabled || !isBundleAllowedForRole(bundle,role) || legacyBaselineRoleKey(bundle)){
+      checkbox.checked=state.draftBundleIds.has(bundleId);
+      setStatus('حزم الترحيل الأساسية محمية ولا يمكن نقلها أو تعديل ربطها.','err');
+      return;
+    }
     if(checkbox.checked) state.draftBundleIds.add(bundleId);
     else state.draftBundleIds.delete(bundleId);
     checkbox.closest('.permission-bundle-option')?.classList.toggle('is-selected',checkbox.checked);
@@ -331,7 +391,7 @@
   function restoreSavedBundles(){
     const role=selectedRole();
     if(!role || role.is_super_admin || !isAuthorized()) return;
-    state.draftBundleIds=new Set(state.originalBundleIds);
+    state.draftBundleIds=sanitizedBundleIds(state.originalBundleIds,role);
     renderBundles();
     renderSummary();
     setStatus('تمت استعادة آخر اختيارات محفوظة لهذا الدور.','ok');
@@ -344,6 +404,11 @@
     if(!role){ setStatus('اختر دورًا أولًا.','err'); return; }
     if(role.is_super_admin){ setStatus('دور Super Admin محمي ولا يمكن تغيير حزمته في P6.','err'); return; }
     if(!state.draftBundleIds.size){ setStatus('اختر حزمة صلاحيات نشطة واحدة على الأقل.','err'); return; }
+    if(!hasRequiredSystemBaseline(role)){ setStatus('حزمة الترحيل الأساسية للدور النظامي محمية ولا يمكن إزالتها.','err'); return; }
+    if([...state.draftBundleIds].some(bundleId=>!isBundleAllowedForRole(state.bundles.find(bundle=>bundle.id===bundleId),role))){
+      setStatus('الاختيار يحتوي على حزمة ترحيل محمية مخصصة لدور آخر.','err');
+      return;
+    }
     if(!isDirty()){ setStatus('لا توجد تغييرات للحفظ.','ok'); return; }
     const activeUserCount=state.roleUserCounts.get(role.id)||0;
     let confirmed=false;
@@ -365,6 +430,7 @@
       });
       if(error) throw error;
       state.originalBundleIds=new Set(state.draftBundleIds);
+      state.blockedBundleIds=new Set();
       if(typeof globalScope.logSystemActivity==='function'){
         await globalScope.logSystemActivity('الصلاحيات','ربط دور بحزم صلاحيات',`P6 Shadow: ${role.role_key} ← ${state.draftBundleIds.size} حزمة`);
       }
