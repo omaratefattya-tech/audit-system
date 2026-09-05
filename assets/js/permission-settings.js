@@ -497,7 +497,7 @@
     if(!bundle){ setStatus('#permissionBundleStatus','تعذر العثور على الحزمة. اضغط تحديث.','err'); return; }
     const roleCount=state.bundleRoleCounts.get(bundle.id)||0;
     const message=roleCount
-      ? `الحزمة «${bundle.bundle_name}» مرتبطة بعدد ${roleCount} من الأدوار. سيؤدي الحذف إلى إزالة هذه الروابط داخل عملية واحدة. لا يؤثر ذلك على النظام القديم في P3.`
+      ? `الحزمة «${bundle.bundle_name}» مرتبطة بعدد ${roleCount} من الأدوار. سيؤدي الحذف إلى إزالة هذه الروابط داخل عملية واحدة. ستتغير صلاحيات واجهة الأدوار المرتبطة بهذه الحزمة عند تحديث صلاحيات الحساب.`
       : `سيتم حذف الحزمة «${bundle.bundle_name}» ومصانعها وعناصرها من النموذج الجديد.`;
     const accepted=typeof globalScope.showAppLiquidConfirm==='function'
       ? await globalScope.showAppLiquidConfirm({title:'حذف حزمة الصلاحيات',message,confirmText:'حذف الحزمة'})

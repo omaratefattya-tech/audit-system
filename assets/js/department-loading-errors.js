@@ -55,10 +55,10 @@
     if(typeof window.escapeHtml==='function') return window.escapeHtml(String(value??''));
     return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
   };
-  const hasAction=action=>typeof window.hasPermission==='function' ? window.hasPermission(SECTION_KEY,action) : false;
-  const canView=()=>hasAction('view');
-  const canAdd=()=>hasAction('add')||hasAction('manage');
-  const canReview=()=>hasAction('approve')||hasAction('manage');
+  const canPlant=code=>window.PermissionRuntime?.can('department_personnel.loading_errors.plant.'+code.toLowerCase()+'.view',code) === true;
+  const canView=()=>canPlant(state.activePlant) && window.PermissionRuntime?.can('department_personnel.loading_errors.'+(state.view==='pending'?'pending_review':'completed')+'.view',state.activePlant) === true;
+  const canAdd=()=>canPlant(state.activePlant) && window.PermissionRuntime?.can('department_personnel.loading_errors.pending_review.create',state.activePlant) === true;
+  const canReview=()=>canPlant(state.activePlant) && window.PermissionRuntime?.can('department_personnel.loading_errors.pending_review.review.complete',documentPlantCode()) === true;
   const plantCatalog=()=>typeof window.getPlantsCatalog==='function' ? window.getPlantsCatalog() : [];
   const plantName=code=>{
     const key=normalizeCode(code);
@@ -131,6 +131,7 @@
   }
 
   function renderView(){
+    document.getElementById(SECTION_KEY)?.setAttribute('data-permission-view',state.view);
     const isPending=state.view==='pending';
     const section=root()?.closest('.department-loading-errors-panel');
     const title=section?.querySelector('.department-screen-head h2');
@@ -457,6 +458,13 @@
   }
 
   async function loadRecords(options={}){
+    if(!canPlant(state.activePlant)){
+      const permitted=PLANT_CODES.find(canPlant); if(!permitted) return false; state.activePlant=permitted;
+    }
+    if(!canView()){
+      const other=state.view==='pending'?'completed':'pending';
+      if(window.PermissionRuntime?.can('department_personnel.loading_errors.'+(other==='pending'?'pending_review':'completed')+'.view',state.activePlant)) state.view=other;
+    }
     renderShell();
     if(!canView()){
       setPendingCount(0);
@@ -648,7 +656,7 @@
     if(!canAdd()){setStatus('لا تملك صلاحية تسجيل خطأ تحميل.','err');return;}
     if(!window.WarehouseDB?.ready){setStatus('Supabase غير متصل. لا يمكن تسجيل خطأ تحميل.','err');return;}
     state.modalMode='register';state.currentDocument=null;state.lines=[createLine()];state.lastTrigger=trigger||document.activeElement;
-    const element=ensureModal();
+    const element=ensureModal();element.dataset.permissionMode=state.modalMode;
     renderRegisterModal();
     element.hidden=false;
     if(typeof window.lockAppModalScroll==='function') window.lockAppModalScroll(MODAL_ID,element);
@@ -670,7 +678,7 @@
       setStatus('تعذر فتح المستند؛ حدّث قائمة الأخطاء التي تحتاج مراجعة.','err');return;
     }
     state.modalMode='review';state.currentDocument=header;state.lastTrigger=trigger||document.activeElement;
-    const element=ensureModal();renderReviewModal();element.hidden=false;
+    const element=ensureModal();element.dataset.permissionMode=state.modalMode;renderReviewModal();element.hidden=false;
     if(typeof window.lockAppModalScroll==='function') window.lockAppModalScroll(MODAL_ID,element);
     setModalStatus('جاري تحميل بيانات أمناء المخازن...');setModalBusy(true,false);
     try{

@@ -1430,9 +1430,9 @@
         <article class="panel glass permissions-management-panel" id="permissionsManagementCapture">
           <div class="permissions-hero">
             <div>
-              <span class="section-badge">P6 — إدارة الحزم</span>
+              <span class="section-badge">إدارة الحزم</span>
               <h2>إدارة الصلاحيات <span class="hero-icon" data-modern-icon="shield" aria-hidden="true"></span></h2>
-              <p class="hint">اختر دورًا واربطه بحزمة صلاحيات واحدة أو أكثر. نظام التشغيل القديم ما زال المسؤول الوحيد عن منح ومنع الوصول حتى مرحلة P7.</p>
+              <p class="hint">اختر دورًا واربطه بحزمة صلاحيات واحدة أو أكثر لتحديد الشاشات والإجراءات والمصانع المتاحة له.</p>
             </div>
             <div class="permissions-hero-actions">
               <button class="primary" id="savePermissionsBtn" type="button" data-permission-settings-management-action><span class="button-svg-icon" data-modern-icon="save" aria-hidden="true"></span> حفظ ربط الحزم</button>
@@ -1485,7 +1485,7 @@
                 <div><dt>مستخدمون نشطون</dt><dd id="permissionsSelectedRoleUsers">0</dd></div>
                 <div><dt>نطاق المصانع</dt><dd id="permissionsSelectedRolePlants">—</dd></div>
               </dl>
-              <p class="permissions-role-safety-note" id="permissionsRoleSafetyNote">P6 إدارة فقط: نظام الصلاحيات القديم ما زال المسؤول الوحيد عن الوصول.</p>
+              <p class="permissions-role-safety-note" id="permissionsRoleSafetyNote">الوصول إلى الواجهة يعتمد على حزم الدور ونطاق المصانع.</p>
             </aside>
           </div>
         </article>
@@ -1686,13 +1686,13 @@
               <div class="permission-settings-shell" id="permissionSettingsShell">
                 <div class="permission-settings-intro glass-soft">
                   <div>
-                    <span class="section-badge">P3 — إدارة فقط</span>
+                    <span class="section-badge">إعدادات الأدوار والحزم</span>
                     <h3>إعدادات الصلاحيات</h3>
-                    <p>إنشاء الأدوار وحزم الصلاحيات داخل النموذج الجديد دون تغيير الصلاحيات الفعلية الحالية.</p>
+                    <p>إنشاء الأدوار وحزم الصلاحيات وتحديد الشاشات والإجراءات المتاحة داخل كل مصنع.</p>
                   </div>
                   <div class="permission-settings-shadow-note" role="note">
                     <span data-modern-icon="shield" aria-hidden="true"></span>
-                    <b>نظام الصلاحيات القديم ما زال مسؤولًا عن الوصول</b>
+                    <b>الحزم تحدد صلاحيات الواجهة</b>
                   </div>
                 </div>
 
@@ -1731,7 +1731,7 @@
 
                     <div class="permission-settings-list-card">
                       <div class="permission-settings-list-head">
-                        <div><h4>الأدوار الحالية</h4><p>الأدوار الديناميكية داخل نموذج P2 الجديد فقط.</p></div>
+                        <div><h4>الأدوار الحالية</h4><p>الأدوار المتاحة لربط المستخدمين بحزم الصلاحيات.</p></div>
                         <button class="secondary" id="permissionRolesRefreshBtn" type="button"><span class="button-svg-icon" data-modern-icon="refresh" aria-hidden="true"></span> تحديث</button>
                       </div>
                       <div class="table-wrap permission-settings-table-wrap">
@@ -1749,7 +1749,7 @@
                     <form id="permissionBundleForm" class="permission-settings-form" novalidate>
                       <input id="permissionBundleIdInput" type="hidden" />
                       <div class="permission-settings-card-head">
-                        <div><h4 id="permissionBundleFormTitle">إنشاء حزمة صلاحيات</h4><p>الحزمة لا تؤثر على أي مستخدم في P3، ولا تُستخدم في Enforcement.</p></div>
+                        <div><h4 id="permissionBundleFormTitle">إنشاء حزمة صلاحيات</h4><p>تعديل الحزمة يغيّر صلاحيات واجهة الأدوار المرتبطة بها عند تحديث صلاحيات الحساب.</p></div>
                         <span class="permission-settings-card-icon" data-modern-icon="shield" aria-hidden="true"></span>
                       </div>
                       <div class="permission-settings-fields">
@@ -2138,17 +2138,18 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=p6-permission-management-20260903-1"></script>
-  <script src="assets/js/permission-registry.js?v=p6-permission-management-20260903-1"></script>
-  <script src="assets/js/permissions.js?v=p4-permission-shadow-20260903-1"></script>
+  <script src="assets/js/app.js?v=p7-20260905-1"></script>
+  <script src="assets/js/permission-registry.js?v=p7-20260905-1"></script>
+  <script src="assets/js/permissions.js?v=p7-20260905-1"></script>
+  <script src="assets/js/permission-ui.js?v=p7-20260905-1"></script>
   <script src="assets/js/permission-data-loader.js?v=p6-complete-permissions-20260905-1"></script>
-  <script src="assets/js/permission-settings.js?v=p6-complete-permissions-20260905-1"></script>
-  <script src="assets/js/permission-management.js?v=p6-complete-permissions-20260905-1"></script>
-  <script src="assets/js/department-weekly-operations.js?v=hr-export-corrections-20260822-1"></script>
+  <script src="assets/js/permission-settings.js?v=p7-20260905-1"></script>
+  <script src="assets/js/permission-management.js?v=p7-20260905-1"></script>
+  <script src="assets/js/department-weekly-operations.js?v=p7-20260905-1"></script>
   <script src="assets/js/custom-date-picker.js?v=loading-error-modal-datepicker-layer-20260902-1"></script>
-  <script src="assets/js/department-loading-errors.js?v=loading-errors-table-tools-20260902-1"></script>
-  <script src="assets/js/department-hr-reports.js?v=hr-performance-presentation-20260902-1"></script>
-  <script src="assets/js/inventory-production-tracking.js?v=production-stagnation-20260822-1"></script>
+  <script src="assets/js/department-loading-errors.js?v=p7-20260905-1"></script>
+  <script src="assets/js/department-hr-reports.js?v=p7-20260905-1"></script>
+  <script src="assets/js/inventory-production-tracking.js?v=p7-20260905-1"></script>
   <script src="assets/js/report-workspace-tools.js?v=loading-errors-table-tools-20260902-1"></script>
   <script>
   </script>

@@ -2,12 +2,11 @@
   'use strict';
 
   /*
-   * P1 canonical inventory, loaded by the P3 settings builder only.
+   * Canonical permission inventory shared by management and the P7 frontend.
    *
    * This file performs no authorization, data access, event binding, storage,
    * or UI mutation. Loading it in P3 exposes labels and hierarchy to the new
-   * management UI only; the legacy resolver in app.js remains the sole runtime
-   * permission engine until an approved cutover phase.
+   * management UI and the P7 resolver. Authorization is owned by permissions.js.
    */
 
   const nodes = [];
@@ -80,9 +79,9 @@
     if (hasDate) filter(`upload_reports.${key}.filter.report_date`, 'تاريخ التقرير', parent, APP, `#${dateId}`);
     action(`upload_reports.${key}.upload`, 'اختيار ورفع الملف', parent, APP, `#${uploadId}`);
     action(`upload_reports.${key}.download_template`, 'تحميل القالب', parent, APP, `#${templateId}`);
-    action(`upload_reports.${key}.history.view`, 'عرض النسخة المرفوعة', parent, APP, `[data-action="view"]`, 'Row action is generated dynamically.');
-    action(`upload_reports.${key}.history.replace`, 'استبدال النسخة المرفوعة', parent, APP, `[data-action="replace"]`, 'Availability depends on the uploader.');
-    action(`upload_reports.${key}.history.delete`, 'حذف النسخة المرفوعة', parent, APP, `[data-action="delete"]`, 'Row action is generated dynamically.');
+    action(`upload_reports.${key}.history.view`, 'عرض النسخة المرفوعة', parent, APP, `[data-upload-panel="${key}"] [data-action="view"]`, 'Row action is generated dynamically.');
+    action(`upload_reports.${key}.history.replace`, 'استبدال النسخة المرفوعة', parent, APP, `[data-upload-panel="${key}"] [data-action="replace"]`, 'Availability depends on the uploader.');
+    action(`upload_reports.${key}.history.delete`, 'حذف النسخة المرفوعة', parent, APP, `[data-upload-panel="${key}"] [data-action="delete"]`, 'Row action is generated dynamically.');
   });
 
   const sales = screen('sales_review', 'مراجعة البيع', APP, '#sales', 'Canonical replacement candidate for legacy sales/sales_audit.');
@@ -142,9 +141,9 @@
   action('inventory.count.finish', 'إنهاء الجرد', count, APP, '#finishInventoryCountBtn');
   action('inventory.count.post_close_adjust', 'تعديلات بعد إنهاء الجرد', count, APP, '#inventoryCountPostCloseInvoiceBtn');
   action('inventory.count.differences.create', 'إنشاء مستند فروق الجرد', count, APP, '#createInventoryDifferenceSnapshotBtn');
-  action('inventory.count.line.edit_actual_balance', 'تعديل الرصيد الفعلي', count, APP, '#inventoryCountLinesTable [data-actual-balance]');
-  action('inventory.count.line.review', 'فتح توصيات مراجعة الصنف', count, APP, '[data-inventory-review-line]');
-  action('inventory.count.line.audit_history', 'عرض سجل تعديلات الصنف', count, APP, '[data-inventory-review-history]');
+  action('inventory.count.line.edit_actual_balance', 'تعديل الرصيد الفعلي', count, APP, '#inventoryCountLinesTable .inventory-opening-balance-input, #inventoryCountLinesTable .inventory-production-quantity-input, #inventoryCountLinesTable .inventory-physical-balance-input, #inventoryCountLinesTable .inventory-oldest-quantity-input, #inventoryCountLinesTable .inventory-oldest-date-input, #inventoryCountLinesTable .inventory-counter-select');
+  action('inventory.count.line.review', 'فتح توصيات مراجعة الصنف', count, APP, '[data-inventory-review-line-id], .inventory-settlement-btn, .inventory-settlement-reverse-btn');
+  action('inventory.count.line.audit_history', 'عرض سجل تعديلات الصنف', count, APP, '[data-inventory-review-tab="history"]');
   button('inventory.count.table.sort', 'ترتيب الجدول', count, APP, '.inventory-count-sort-btn');
   button('inventory.count.filters.reset', 'مسح الفلاتر', count, APP, '#inventoryCountClearFiltersBtn');
   button('inventory.count.columns.manage', 'إدارة الأعمدة', count, APP, '#inventoryCountColumnManagerBtn');
@@ -199,7 +198,7 @@
     ['search', 'بحث', '#departmentStorekeepersSearch'], ['plant', 'الموقع', '#departmentStorekeepersPlantFilter'],
     ['department', 'القسم', '#departmentStorekeepersDepartmentFilter'], ['job', 'الوظيفة', '#departmentStorekeepersJobFilter']
   ].forEach(([key, label, selector]) => filter(`department_personnel.storekeepers.filter.${key}`, label, storekeepers, WEEKLY, selector));
-  button('department_personnel.storekeepers.table.sort', 'ترتيب الجدول', storekeepers, WEEKLY, '[data-storekeepers-sort]');
+  button('department_personnel.storekeepers.table.sort', 'ترتيب الجدول', storekeepers, WEEKLY, '[data-storekeeper-sort]');
   button('department_personnel.storekeepers.refresh', 'إعادة المحاولة', storekeepers, WEEKLY, '#departmentStorekeepersRetryBtn');
   ['excel', 'pdf', 'png'].forEach(format => button(`department_personnel.storekeepers.export_${format}`, `تصدير ${format.toUpperCase()}`, storekeepers, WORKSPACE_TOOLS, `#department_storekeepers [data-report-export="${format}"]`));
   button('department_personnel.storekeepers.focus_mode', 'وضع التركيز', storekeepers, WORKSPACE_TOOLS, '#department_storekeepers [data-focus-target]');
@@ -210,14 +209,14 @@
     ['el01_finished', 'منتج تام الرئيسي - EL01', 'el01-finished'], ['el01_spare_parts', 'قطع غيار الرئيسي - EL01', 'el01-spare-parts'],
     ['el02_finished', 'منتج تام العامرية - EL02', 'el02-finished'], ['el02_spare_parts', 'قطع غيار العامرية - EL02', 'el02-spare-parts']
   ];
-  weeklyScopes.forEach(([key, label, value]) => tab(`department_personnel.weekly_leave.${key}`, label, weekly, WEEKLY, `[data-weekly-tab="${value}"]`));
-  filter('department_personnel.weekly_leave.filter.from_date', 'من تاريخ', weekly, WEEKLY, '[data-weekly-range="from"]');
-  filter('department_personnel.weekly_leave.filter.to_date', 'إلى تاريخ', weekly, WEEKLY, '[data-weekly-range="to"]');
-  button('department_personnel.weekly_leave.week.previous', 'الأسبوع السابق', weekly, WEEKLY, '[data-weekly-action="previous"]');
-  button('department_personnel.weekly_leave.week.current', 'الأسبوع الحالي', weekly, WEEKLY, '[data-weekly-action="current"]');
-  button('department_personnel.weekly_leave.week.next', 'الأسبوع التالي', weekly, WEEKLY, '[data-weekly-action="next"]');
-  button('department_personnel.weekly_leave.table.sort', 'ترتيب الجدول', weekly, WEEKLY, '[data-weekly-sort]');
-  action('department_personnel.weekly_leave.save', 'حفظ الأسبوع', weekly, WEEKLY, '[data-weekly-action="save"]');
+  weeklyScopes.forEach(([key, label, value]) => tab(`department_personnel.weekly_leave.${key}`, label, weekly, WEEKLY, `#department_weekly_leave_schedule [data-weekly-tab="${value}"]`));
+  filter('department_personnel.weekly_leave.filter.from_date', 'من تاريخ', weekly, WEEKLY, '#department_weekly_leave_schedule [data-weekly-range="from"]');
+  filter('department_personnel.weekly_leave.filter.to_date', 'إلى تاريخ', weekly, WEEKLY, '#department_weekly_leave_schedule [data-weekly-range="to"]');
+  button('department_personnel.weekly_leave.week.previous', 'الأسبوع السابق', weekly, WEEKLY, '#department_weekly_leave_schedule [data-weekly-action="previous"]');
+  button('department_personnel.weekly_leave.week.current', 'الأسبوع الحالي', weekly, WEEKLY, '#department_weekly_leave_schedule [data-weekly-action="current"]');
+  button('department_personnel.weekly_leave.week.next', 'الأسبوع التالي', weekly, WEEKLY, '#department_weekly_leave_schedule [data-weekly-action="next"]');
+  button('department_personnel.weekly_leave.table.sort', 'ترتيب الجدول', weekly, WEEKLY, '#department_weekly_leave_schedule [data-weekly-sort]');
+  action('department_personnel.weekly_leave.save', 'حفظ الأسبوع', weekly, WEEKLY, '#department_weekly_leave_schedule [data-weekly-action="save"]');
   ['excel', 'pdf', 'png'].forEach(format => button(`department_personnel.weekly_leave.export_${format}`, `تصدير ${format.toUpperCase()}`, weekly, WORKSPACE_TOOLS, `#department_weekly_leave_schedule [data-report-export="${format}"]`));
   button('department_personnel.weekly_leave.export_weekend_png', 'تصدير الجمعة والسبت PNG', weekly, WORKSPACE_TOOLS, '#department_weekly_leave_schedule [data-report-export="weekend-png"]');
   button('department_personnel.weekly_leave.focus_mode', 'وضع التركيز', weekly, WORKSPACE_TOOLS, '#department_weekly_leave_schedule [data-focus-target]');
@@ -267,13 +266,13 @@
   ['WF01', 'EL01', 'EL02'].forEach(code => tab(`department_personnel.loading_errors.plant.${code.toLowerCase()}`, code, loadingErrors, LOADING_ERRORS, `[data-loading-errors-plant="${code}"]`));
   const completed = tab('department_personnel.loading_errors.completed', 'سجل أخطاء التحميل', loadingErrors, LOADING_ERRORS, '[data-loading-errors-action="completed"]');
   const pending = tab('department_personnel.loading_errors.pending_review', 'أخطاء تحتاج مراجعة', loadingErrors, LOADING_ERRORS, '[data-loading-errors-action="pending"]');
-  filter('department_personnel.loading_errors.completed.filter.registration_date', 'تاريخ تسجيل الخطأ', completed, LOADING_ERRORS, '[data-loading-errors-date-filter]');
-  filter('department_personnel.loading_errors.completed.filter.table_search', 'بحث الجدول', completed, LOADING_ERRORS, '[data-loading-errors-column-filter]');
-  button('department_personnel.loading_errors.completed.table.sort', 'ترتيب الجدول', completed, LOADING_ERRORS, '[data-loading-errors-sort]');
-  button('department_personnel.loading_errors.completed.columns.manage', 'إدارة الأعمدة', completed, LOADING_ERRORS, '[data-loading-errors-action="columns"]');
-  filter('department_personnel.loading_errors.pending_review.filter.table_search', 'بحث الجدول', pending, LOADING_ERRORS, '[data-loading-errors-column-filter]');
-  button('department_personnel.loading_errors.pending_review.table.sort', 'ترتيب الجدول', pending, LOADING_ERRORS, '[data-loading-errors-sort]');
-  button('department_personnel.loading_errors.pending_review.columns.manage', 'إدارة الأعمدة', pending, LOADING_ERRORS, '[data-loading-errors-action="columns"]');
+  filter('department_personnel.loading_errors.completed.filter.registration_date', 'تاريخ تسجيل الخطأ', completed, LOADING_ERRORS, '#department_loading_errors[data-permission-view="completed"] [data-loading-errors-date-filter]');
+  filter('department_personnel.loading_errors.completed.filter.table_search', 'بحث الجدول', completed, LOADING_ERRORS, '#department_loading_errors[data-permission-view="completed"] [data-loading-errors-filter]');
+  button('department_personnel.loading_errors.completed.table.sort', 'ترتيب الجدول', completed, LOADING_ERRORS, '#department_loading_errors[data-permission-view="completed"] [data-loading-errors-sort]');
+  button('department_personnel.loading_errors.completed.columns.manage', 'إدارة الأعمدة', completed, LOADING_ERRORS, '#department_loading_errors[data-permission-view="completed"] [data-loading-errors-action="columns"]');
+  filter('department_personnel.loading_errors.pending_review.filter.table_search', 'بحث الجدول', pending, LOADING_ERRORS, '#department_loading_errors[data-permission-view="pending"] [data-loading-errors-filter]');
+  button('department_personnel.loading_errors.pending_review.table.sort', 'ترتيب الجدول', pending, LOADING_ERRORS, '#department_loading_errors[data-permission-view="pending"] [data-loading-errors-sort]');
+  button('department_personnel.loading_errors.pending_review.columns.manage', 'إدارة الأعمدة', pending, LOADING_ERRORS, '#department_loading_errors[data-permission-view="pending"] [data-loading-errors-action="columns"]');
   action('department_personnel.loading_errors.pending_review.create', 'تسجيل خطأ', pending, LOADING_ERRORS, '[data-loading-errors-action="register"]');
   action('department_personnel.loading_errors.pending_review.line.add', 'إضافة سطر', pending, LOADING_ERRORS, '[data-loading-error-modal-action="add-line"]');
   action('department_personnel.loading_errors.pending_review.line.remove', 'حذف سطر قبل الحفظ', pending, LOADING_ERRORS, '[data-loading-error-modal-action="remove-line"]');
@@ -293,7 +292,7 @@
   filter('users.filter.status', 'الحالة', users, APP, '#usersStatusFilter');
   ['excel', 'pdf', 'png'].forEach(format => button(`users.export_${format}`, `تصدير ${format.toUpperCase()}`, users, APP, `#usersExport${format === 'excel' ? 'Excel' : format === 'pdf' ? 'Pdf' : 'Png'}Btn`));
 
-  const permissions = screen('permissions', 'إدارة الصلاحيات', PERMISSION_MANAGEMENT, '#permissions', 'P6 Role-to-Bundle management UI; legacy enforcement remains unchanged.');
+  const permissions = screen('permissions', 'إدارة الصلاحيات', PERMISSION_MANAGEMENT, '#permissions', 'Role-to-Bundle management UI; frontend grants are enforced by P7.');
   filter('permissions.filter.role', 'اختيار الدور', permissions, PERMISSION_MANAGEMENT, '#permissionsRoleSelect');
   filter('permissions.filter.search', 'بحث الحزم', permissions, PERMISSION_MANAGEMENT, '#permissionsQuickSearch');
   action('permissions.assign', 'حفظ ربط الدور بالحزم', permissions, PERMISSION_MANAGEMENT, '#savePermissionsBtn');
@@ -327,9 +326,9 @@
   button('settings.general.movements.table.sort', 'ترتيب الحركات', generalMovements, APP, '#movementsTable .sort-btn');
 
   const settingsCrud = [
-    ['plants', 'المصنع', '#addPlantBtn', '[data-plant-code] .small-action', '#plantsSettingsTable'],
-    ['warehouses', 'المخزن', '#addWarehouseBtn', '[data-warehouse-code] .small-action', '#warehousesSettingsTable'],
-    ['sales_products', 'صنف البيع', '#addSalesProductBtn', '[data-material-code] .small-action', '#salesProductsSettingsTable'],
+    ['plants', 'المصنع', '#addPlantBtn', '#plantsSettingsTable [data-action="save-plant"]', '#plantsSettingsTable'],
+    ['warehouses', 'المخزن', '#addWarehouseBtn', '#warehousesSettingsTable [data-action="save-warehouse"]', '#warehousesSettingsTable'],
+    ['sales_products', 'صنف البيع', '#addSalesProductBtn', '#salesProductsSettingsTable [data-action="save-sales-product"]', '#salesProductsSettingsTable'],
     ['storekeepers', 'أمين المخزن', '#saveStorekeeperBtn', '[data-action="edit-storekeeper"]', '#storekeepersSettingsTable'],
     ['department_personnel', 'فرد القسم', '#saveDepartmentPersonnelBtn', '[data-action="edit-department-personnel"]', '#departmentPersonnelTable'],
     ['department_status_codes', 'كود الحالة', '#saveDepartmentStatusCodeBtn', '[data-action="edit-department-status"]', '#departmentStatusCodesTable']
@@ -338,8 +337,8 @@
     const parent = settingsParents[key];
     action(`settings.${key}.create`, `إضافة ${label}`, parent, APP, createSelector);
     action(`settings.${key}.edit`, `تعديل ${label}`, parent, APP, editSelector);
-    filter(`settings.${key}.table.column_filter`, `بحث أعمدة ${label}`, parent, APP, `${tableSelector} .settings-col-filter`);
-    button(`settings.${key}.table.sort`, `ترتيب جدول ${label}`, parent, APP, `${tableSelector} .settings-sort-btn`);
+    filter(`settings.${key}.table.column_filter`, `بحث أعمدة ${label}`, parent, APP, `${tableSelector} .settings-table-col-filter`);
+    button(`settings.${key}.table.sort`, `ترتيب جدول ${label}`, parent, APP, `${tableSelector} thead tr:first-child th`);
   });
   action('settings.sales_products.warehouses.assign', 'تحديد مخازن الصنف', settingsParents.sales_products, APP, '#saveSalesProductWarehousesBtn');
   filter('settings.storekeepers.filter.search', 'بحث أمناء المخازن', settingsParents.storekeepers, APP, '#storekeepersSearchInput');
@@ -357,7 +356,7 @@
   button('settings.activity_log.export_excel', 'تصدير Excel', settingsParents.activity_log, APP, '#activityLogExportExcelBtn');
   button('settings.activity_log.export_pdf', 'تصدير PDF', settingsParents.activity_log, APP, '#activityLogExportPdfBtn');
 
-  const permissionSettings = tab('settings.permission_settings', 'إعدادات الصلاحيات', settings, 'assets/js/permission-settings.js', '#settingsPermissionsTab', 'P3 management UI only; it does not participate in permission enforcement.');
+  const permissionSettings = tab('settings.permission_settings', 'إعدادات الصلاحيات', settings, 'assets/js/permission-settings.js', '#settingsPermissionsTab', 'Permission administration is restricted to authenticated Super Admins.');
   const permissionRoles = tab('settings.permission_settings.roles', 'إنشاء دور', permissionSettings, 'assets/js/permission-settings.js', '#permissionSettingsRolesTab');
   action('settings.permission_settings.roles.create', 'إنشاء دور', permissionRoles, 'assets/js/permission-settings.js', '#permissionRoleForm');
   action('settings.permission_settings.roles.edit', 'تعديل دور', permissionRoles, 'assets/js/permission-settings.js', '[data-permission-role-action="edit"]');
@@ -418,7 +417,7 @@
   ].map(([legacyColumn, canonicalCapability, status]) => Object.freeze({ legacyColumn, canonicalCapability, status })));
 
   const registry = Object.freeze({
-    version: 'P3-2026-09-03',
+    version: 'P7-2026-09-05',
     phase: 'P3_PERMISSION_SETTINGS',
     enforcementEnabled: false,
     runtimeLoaded: true,

@@ -75,11 +75,15 @@
   }
   function current(){
     const data=S.data||{};
+    const key='department_personnel.hr_reports.'+S.activeTab+'.view';
+    if(window.PermissionRuntime?.can(key)) return {personnel:arr(data.personnel),codes:arr(data.status_codes),statuses:arr(data.statuses).filter(searchMatch),evaluations:arr(data.evaluations).filter(searchMatch)};
+    const personnel=arr(data.personnel).filter(person=>window.PermissionRuntime?.can(key,person.plant_code || []));
+    const ids=new Set(personnel.map(person=>String(person.id)));
     return {
-      personnel:arr(data.personnel),
+      personnel,
       codes:arr(data.status_codes),
-      statuses:arr(data.statuses).filter(searchMatch),
-      evaluations:arr(data.evaluations).filter(searchMatch)
+      statuses:arr(data.statuses).filter(row=>row.plant_code ? window.PermissionRuntime?.can(key,row.plant_code) : ids.has(String(row.personnel_id))).filter(searchMatch),
+      evaluations:arr(data.evaluations).filter(row=>row.plant_code ? window.PermissionRuntime?.can(key,row.plant_code) : ids.has(String(row.personnel_id))).filter(searchMatch)
     };
   }
   function matchingPersonnel(data=current(),f=filters()){
@@ -152,6 +156,11 @@
   async function load(){
     init();
     const f=filters();
+    const plants=window.PermissionRuntime?.scope('department_personnel.hr_reports.'+S.activeTab+'.view',f.plant || 'all') || [];
+    if(!plants.length){S.data=null;S.loaded=false;S.error='لا تملك صلاحية عرض المصنع المحدد.';renderAll();return;}
+    // This existing RPC accepts one plant or null. A scoped role starts at its
+    // first permitted plant and can select another permitted plant explicitly.
+    if(!f.plant && plants.length < window.PermissionRuntime.plantCodes().length){f.plant=plants[0];if($('departmentHrPlantFilter')) $('departmentHrPlantFilter').value=f.plant;}
     if(!/^\d{4}-\d{2}-\d{2}$/.test(f.from)||!/^\d{4}-\d{2}-\d{2}$/.test(f.to)||f.from>f.to){
       S.error='تحقق من تاريخ البداية والنهاية.'; status(S.error,'error'); renderAll(); return;
     }
@@ -416,7 +425,7 @@
     window.CustomDatePicker?.refresh?.(from);window.CustomDatePicker?.refresh?.(to);
     bind();renderAll();
   }
-  function setActiveTab(key){if(TABS.includes(key))S.activeTab=key;init();renderAll();}
+  function setActiveTab(key){if(!window.PermissionRuntime?.any('department_personnel.hr_reports.'+key+'.view')) return;if(TABS.includes(key))S.activeTab=key;init();renderAll();}
   window.DepartmentHrReports=Object.freeze({
     init,load,setActiveTab,
     getState:()=>({...S,controller:null,data:S.data?{counts:S.data.counts,personnel:arr(S.data.personnel).length,statusCodes:arr(S.data.status_codes).length,statuses:arr(S.data.statuses).length,evaluations:arr(S.data.evaluations).length}:null})

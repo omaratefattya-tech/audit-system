@@ -121,8 +121,10 @@
       baseline:new Map(),dirty:new Map(),invalid:new Set(),sortKey:'full_name',sortDirection:'asc',modalDraft:null
     };
   }
-  function canManageWeeklyData(){
-    return hasPermission('reports','add') || hasPermission('reports','edit') || hasPermission('reports','manage');
+  function weeklyPermissionBase(state){ return state.kind==='evaluations'?'department_personnel.evaluations':'department_personnel.weekly_leave'; }
+  function canViewWeeklyTab(state,tab){ return window.PermissionRuntime?.can(weeklyPermissionBase(state)+'.'+tab.key.replace(/-/g,'_')+'.view',tab.plantCode) === true; }
+  function canManageWeeklyData(state){
+    return canViewWeeklyTab(state,currentTab(state)) && window.PermissionRuntime?.can(weeklyPermissionBase(state)+(state.kind==='evaluations'?'.create':'.save'),currentTab(state).plantCode) === true;
   }
   function hasDirtyWeeklyState(state){return Boolean(state && (state.dirty.size || state.modalDraft?.mode==='new'));}
   function confirmDiscardWeeklyChanges(state){
@@ -304,7 +306,7 @@
   function updateWeeklySaveButton(state){
     const button=weeklyRoot(state)?.querySelector('[data-weekly-action="save"]');
     if(!button) return;
-    const allowed=canManageWeeklyData();
+    const allowed=canManageWeeklyData(state);
     button.disabled=!allowed || state.saving || state.dirty.size===0;
     button.textContent=state.saving?'جاري الحفظ...':(state.dirty.size?'حفظ الأسبوع ('+state.dirty.size+')':'حفظ الأسبوع');
     button.title=allowed?'حفظ الخلايا المعدلة فقط':'الصلاحية الحالية للعرض فقط.';
@@ -501,7 +503,7 @@
       tbody.innerHTML='<tr><td colspan="'+(fixedHeaders.length+7)+'" class="empty-row">لا يوجد أفراد نشطون مطابقون لهذا الموقع والقسم.</td></tr>';
       return;
     }
-    const editable=canManageWeeklyData();
+    const editable=canManageWeeklyData(state);
     tbody.innerHTML=sortedWeeklyPersonnel(state).map(person=>{
       const plant=String(person.plant_code||'');
       let row='<tr data-personnel-id="'+escapeHtml(person.id||'')+'">'
@@ -521,6 +523,11 @@
   async function loadDepartmentWeeklyWorkspace(kind){
     const state=WEEKLY_STATES[kind];
     if(!state) return false;
+    if(!canViewWeeklyTab(state,currentTab(state))){
+      const permitted=WEEKLY_TABS.find(tab=>canViewWeeklyTab(state,tab));
+      if(!permitted) return false;
+      state.activeTab=permitted.key;
+    }
     renderWeeklyShell(state);
     updateWeeklyChrome(state);
     const root=weeklyRoot(state);
@@ -854,7 +861,7 @@
     const validation=validateWeeklyValue(state,draft.key,String(draft.score||'').trim());
     if(!validation.valid || validation.value===''){setEvaluationModalStatus(state,'التقييم غير صحيح. أدخل قيمة من 0 إلى 10 وبحد أقصى منزلتين.','err');return;}
     if(!reason){setEvaluationModalStatus(state,'سبب التقييم إجباري ولا يمكن أن يكون مسافات فقط.','err');reasonInput?.focus();return;}
-    if(!canManageWeeklyData()){setEvaluationModalStatus(state,'الصلاحية الحالية للعرض فقط.','err');return;}
+    if(!canManageWeeklyData(state)){setEvaluationModalStatus(state,'الصلاحية الحالية للعرض فقط.','err');return;}
     if(!WarehouseDB?.ready){setEvaluationModalStatus(state,'Supabase غير متصل. احتفظنا بالتقييم والسبب.','err');return;}
     setEvaluationModalSaving(state,true);
     setEvaluationModalStatus(state,'جاري حفظ التقييم النهائي...');
@@ -876,7 +883,7 @@
   }
   async function saveWeeklyChanges(state){
     if(state.kind!=='statuses' || state.saving || !state.dirty.size) return;
-    if(!canManageWeeklyData()){setWeeklyStatus(state,'الصلاحية الحالية للعرض فقط.','err');return;}
+    if(!canManageWeeklyData(state)){setWeeklyStatus(state,'الصلاحية الحالية للعرض فقط.','err');return;}
     if(state.invalid.size){setWeeklyStatus(state,'صحح الخلايا المميزة قبل حفظ الأسبوع.','err');return;}
     if(!WarehouseDB?.ready){setWeeklyStatus(state,'Supabase غير متصل. احتفظنا بالتعديلات غير المحفوظة.','err');return;}
     const changes=Array.from(state.dirty.values()).map(change=>({
@@ -1046,6 +1053,7 @@
         +'<td>'+escapeHtml(row.deductionCount===null?'—':row.deductionCount)+'</td><td>'+escapeHtml(row.absenceCount===null?'—':row.absenceCount)+'</td></tr>';
     }).join('');
   }  async function loadDepartmentStorekeepers(){
+    if(!window.PermissionRuntime?.any('department_personnel.storekeepers.view')) return false;
     const tbody=document.querySelector('#departmentStorekeepersTable tbody');
     const retry=document.getElementById('departmentStorekeepersRetryBtn');
     if(!tbody) return false;
@@ -1059,7 +1067,8 @@
         .select('id,employee_code,full_name,job_title,plant_code,department,phone_number,hire_date')
         .eq('is_active',true).order('full_name',{ascending:true});
       if(personnelResult.error) throw personnelResult.error;
-      const ids=(personnelResult.data||[]).map(row=>row.id);
+      personnelResult.data=(personnelResult.data||[]).filter(row=>window.PermissionRuntime?.can('department_personnel.storekeepers.view',row.plant_code || []));
+      const ids=personnelResult.data.map(row=>row.id);
       let statuses=[];
       if(ids.length){
         const statusResult=await WarehouseDB.client.from(DAILY_STATUSES_TABLE)

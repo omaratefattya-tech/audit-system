@@ -318,6 +318,13 @@
   }
 
   async function load() {
+    const canPlant=code=>window.PermissionRuntime?.can('inventory.production_dates.'+code.toLowerCase()+'.view',code) === true;
+    if(!canPlant(STATE.plantCode)){
+      const permitted=['WF01','EL01','EL02'].find(canPlant);
+      if(!permitted) return;
+      STATE.plantCode=permitted;
+      document.querySelector('[data-inventory-expiry-tab="'+permitted+'"]')?.click();
+    }
     if (!STATE.initialized) return;
     const config = plantConfig(STATE.plantCode);
     if (!config) {

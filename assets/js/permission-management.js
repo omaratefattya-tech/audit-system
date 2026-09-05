@@ -46,11 +46,11 @@
     if(/PGRST202|Could not find the function|does not exist|schema cache/i.test(message)) return 'ملف قاعدة بيانات P6 غير مطبق أو لم يتم تحديث Schema Cache بعد.';
     if(/P6_ROLE_NOT_FOUND|P6_BUNDLE_NOT_FOUND/i.test(message)) return 'الدور أو إحدى الحزم لم يعد موجودًا. حدّث البيانات وحاول مرة أخرى.';
     if(/P6_ROLE_INACTIVE/i.test(message)) return 'لا يمكن تعديل دور غير نشط.';
-    if(/P6_SUPER_ADMIN_ROLE_PROTECTED/i.test(message)) return 'دور Super Admin محمي ولا يمكن تغيير حزمته في P6.';
+    if(/P6_SUPER_ADMIN_ROLE_PROTECTED/i.test(message)) return 'دور Super Admin محمي ولا يمكن تغيير حزمته.';
     if(/P6_BUNDLE_REQUIRED/i.test(message)) return 'يجب اختيار حزمة صلاحيات نشطة واحدة على الأقل.';
     if(/P6_INACTIVE_OR_UNKNOWN_BUNDLE/i.test(message)) return 'الاختيار يحتوي على حزمة غير موجودة أو غير نشطة.';
     if(/P6_INVALID_BUNDLE_CONFIGURATION/i.test(message)) return 'إحدى الحزم المختارة بلا صلاحيات أو بلا نطاق مصنع صالح.';
-    if(/P6_ASSIGNED_USERS_CONFIRMATION_REQUIRED/i.test(message)) return 'الدور مرتبط بمستخدمين حاليين ويحتاج تأكيدًا صريحًا قبل تغيير حزم Shadow.';
+    if(/P6_ASSIGNED_USERS_CONFIRMATION_REQUIRED/i.test(message)) return 'الدور مرتبط بمستخدمين حاليين ويحتاج تأكيدًا صريحًا قبل تغيير حزم الصلاحيات.';
     return message ? 'تعذر تنفيذ العملية: '+message : 'تعذر تنفيذ العملية.';
   }
 
@@ -152,7 +152,7 @@
         : !hasCompleteData()
           ? 'يلزم اكتمال تحميل بيانات الصلاحيات'
         : role?.is_super_admin
-          ? 'دور Super Admin محمي في P6'
+          ? 'دور Super Admin محمي'
           : !isDirty()
             ? 'لا توجد تغييرات للحفظ'
             : state.draftBundleIds.size===0
@@ -246,10 +246,10 @@
       warning.textContent=role?.is_super_admin
         ? 'دور Super Admin محمي؛ يعرض الربط الحالي فقط ولا يقبل التعديل.'
         : state.blockedBundleIds.size
-          ? `تم استبعاد ${state.blockedBundleIds.size} حزمة ترحيل محمية مرتبطة بدور غير مطابق. اختر حزمة صالحة واحفظ لإزالة الربط غير الآمن من نموذج Shadow.`
+          ? `تم استبعاد ${state.blockedBundleIds.size} حزمة ترحيل محمية مرتبطة بدور غير مطابق. اختر حزمة صالحة واحفظ لإزالة الربط غير الآمن من ربط الدور.`
         : isDirty()
-          ? 'هذه التغييرات تخص نموذج Shadow فقط. لن تغيّر صلاحيات التشغيل الحالية قبل P7.'
-          : 'P6 إدارة فقط: نظام الصلاحيات القديم ما زال المسؤول الوحيد عن الوصول.';
+          ? 'التغييرات المحفوظة تحدد الشاشات والإجراءات المتاحة للمستخدمين عند تحديث صلاحيات حساباتهم.'
+          : 'الوصول إلى الواجهة يعتمد على حزم الدور ونطاق المصانع.';
     }
     syncActionState();
   }
@@ -428,7 +428,7 @@
     if(!isAuthorized()){ setStatus('يلزم حساب Super Admin للحفظ.','err'); return; }
     if(!isReady()){ setStatus('Supabase غير متصل.','err'); return; }
     if(!role){ setStatus('اختر دورًا أولًا.','err'); return; }
-    if(role.is_super_admin){ setStatus('دور Super Admin محمي ولا يمكن تغيير حزمته في P6.','err'); return; }
+    if(role.is_super_admin){ setStatus('دور Super Admin محمي ولا يمكن تغيير حزمته.','err'); return; }
     if(!state.draftBundleIds.size){ setStatus('اختر حزمة صلاحيات نشطة واحدة على الأقل.','err'); return; }
     if(!hasRequiredSystemBaseline(role)){ setStatus('حزمة الترحيل الأساسية للدور النظامي محمية ولا يمكن إزالتها.','err'); return; }
     if([...state.draftBundleIds].some(bundleId=>!isBundleAllowedForRole(state.bundles.find(bundle=>bundle.id===bundleId),role))){
@@ -439,9 +439,9 @@
     const activeUserCount=state.roleUserCounts.get(role.id)||0;
     let confirmed=false;
     if(activeUserCount>0){
-      const message=`الدور «${role.role_name}» مرتبط بعدد ${activeUserCount} مستخدم نشط. الحفظ سيغير نموذج Shadow فقط، لكنه سيجعل بوابة التطابق التالية تفشل حتى مراجعة الاختيارات. هل تريد المتابعة؟`;
+      const message=`الدور «${role.role_name}» مرتبط بعدد ${activeUserCount} مستخدم نشط. الحفظ سيغير صلاحيات واجهة هؤلاء المستخدمين عند تحديث صلاحيات حساباتهم. هل تريد المتابعة؟`;
       confirmed=typeof globalScope.showAppLiquidConfirm==='function'
-        ? await globalScope.showAppLiquidConfirm({title:'تأكيد تغيير حزم دور مستخدم',message,confirmText:'حفظ ربط Shadow'})
+        ? await globalScope.showAppLiquidConfirm({title:'تأكيد تغيير حزم دور مستخدم',message,confirmText:'حفظ ربط الحزم'})
         : globalScope.confirm(message);
       if(!confirmed) return;
     }
@@ -460,10 +460,10 @@
       state.originalBundleIds=new Set(state.draftBundleIds);
       state.blockedBundleIds=new Set();
       if(typeof globalScope.logSystemActivity==='function'){
-        await globalScope.logSystemActivity('الصلاحيات','ربط دور بحزم صلاحيات',`P6 Shadow: ${role.role_key} ← ${state.draftBundleIds.size} حزمة`);
+        await globalScope.logSystemActivity('الصلاحيات','ربط دور بحزم صلاحيات',`ربط الحزم: ${role.role_key} ← ${state.draftBundleIds.size} حزمة`);
       }
       const reloaded=await load({force:true,roleId:role.id});
-      setStatus(reloaded?`تم حفظ ${Number(data?.bundle_count||state.draftBundleIds.size)} حزمة للدور «${role.role_name}». صلاحيات التشغيل القديمة لم تتغير.`:'تم حفظ الربط، لكن تعذر إعادة تحميل الصلاحيات كاملة. اضغط تحديث قبل أي تعديل آخر.',reloaded?'ok':'err');
+      setStatus(reloaded?`تم حفظ ${Number(data?.bundle_count||state.draftBundleIds.size)} حزمة للدور «${role.role_name}». تظهر صلاحيات الواجهة الجديدة للمستخدمين بعد تحديث صلاحيات حساباتهم.`:'تم حفظ الربط، لكن تعذر إعادة تحميل الصلاحيات كاملة. اضغط تحديث قبل أي تعديل آخر.',reloaded?'ok':'err');
     }catch(error){
       setStatus(errorMessage(error),'err');
     }finally{

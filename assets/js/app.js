@@ -530,6 +530,7 @@ function inboundRowMatchesTopFilters(row,filters){
   if(!filters) return true;
   const whCode=String(row.mb51_warehouse_code || row.scale_warehouse_code || '').trim().toUpperCase();
   const meta=warehouseMetaByCode(whCode);
+  if(!window.PermissionRuntime?.can('inbound_review.view',meta.plant_code || [])) return false;
   const movement=String(row.incoming_movement_type || row.raw_result?.movement_type || '').trim().toUpperCase();
   if(!inboundLegacyFilterMatches(filters.plant,meta.plant_code,v=>String(v||'').toUpperCase())) return false;
   if(!inboundLegacyFilterMatches(filters.warehouse,whCode,v=>String(v||'').toUpperCase())) return false;
@@ -1347,7 +1348,7 @@ function renderDashboardKPIs(stats){
 }
 function getDashboardFilters(){
   return {
-    plant: enterpriseSelectValues('dashboardPlantFilter'),
+    plant: permissionFilterPlants('dashboard.view',enterpriseSelectValues('dashboardPlantFilter')),
     warehouse: enterpriseSelectValues('dashboardWarehouseFilter'),
     from: normalizeDateISO($('#dashboardFromDate')?.value || ''),
     to: normalizeDateISO($('#dashboardToDate')?.value || '')
@@ -2449,6 +2450,7 @@ async function fetchUnifiedSalesRows(filters={},options={}){
   }
 }
 async function loadDashboardRealData(options={}){
+  if(!window.PermissionRuntime?.any('dashboard.view')) return;
   if(!WarehouseDB?.ready) return;
   await ensureDashboardDefaultDate(options);
   initEnterpriseMultiSelectFilters($('#dashboard'));
@@ -2723,6 +2725,7 @@ function syncDepartmentPersonnelNavigation(section=currentActiveSection()){
   $$('.mobile-drawer-item[data-mobile-section]').forEach(item=>item.classList.toggle('active',item.dataset.mobileSection===section));
 }
 function switchSection(section,options={}){
+  if(!canViewSection(section)){ showPermissionDenied(section); return false; }
   if(typeof canLeaveDepartmentWeeklyWorkspace==='function' && !canLeaveDepartmentWeeklyWorkspace(section)) return false;
   closeActiveApplicationModals({restoreFocus:false});
   if(document.body.classList.contains('focus-mode-active')) exitFocusMode({restoreScroll:false});
@@ -2740,7 +2743,7 @@ function switchSection(section,options={}){
   closeMobileDashboardPanels();
   updateFiltersVisibility(section);
   if(options.persistView!==false) rememberApplicationViewState(section);
-  if(section==='reports') setTimeout(()=>loadExecutiveReport(),50);
+  if(section==='reports') setTimeout(()=>loadActiveReport(),50);
   if(section==='raw_materials') setTimeout(()=>loadRawMaterialsScreen(),50);
   if(section==='users') setTimeout(()=>loadUsersManagement(),50);
   if(section==='permissions') setTimeout(()=>window.PermissionManagement?.load?.(),50);
@@ -3771,6 +3774,7 @@ function formatFileSize(bytes){
   return `${(n/1024/1024).toFixed(2)} MB`;
 }
 async function loadSalesBatches(){
+  if(!window.PermissionRuntime?.can('upload_reports.sales.view')) return;
   const tbl=$('#salesBatchesTable');
   if(!tbl || !WarehouseDB?.ready){ return; }
   const {data,error}=await WarehouseDB.client
@@ -3892,6 +3896,7 @@ async function handleIncomingFile(file){
   }
 }
 async function loadIncomingBatches(){
+  if(!window.PermissionRuntime?.can('upload_reports.incoming.view')) return;
   const tbl=$('#incomingBatchesTable');
   if(!tbl || !WarehouseDB?.ready){ return; }
   const {data,error}=await WarehouseDB.client
@@ -4005,6 +4010,7 @@ async function handleScaleFile(file){
   }
 }
 async function loadScaleBatches(){
+  if(!window.PermissionRuntime?.can('upload_reports.scale.view')) return;
   const tbl=$('#scaleBatchesTable');
   if(!tbl || !WarehouseDB?.ready){ return; }
   const {data,error}=await WarehouseDB.client
@@ -4111,6 +4117,7 @@ async function refreshInboundReportDates(){
   return [];
 }
 async function loadInboundAuditReport(date='',options={}){
+  if(!window.PermissionRuntime?.any('inbound_review.view')) return;
   const tbl=$('#inboundTable');
   if(!tbl || !WarehouseDB?.ready) return;
   const savedFilters=options.useSavedFilters ? readSavedInboundFilters() : null;
@@ -4242,6 +4249,7 @@ async function handleFreightFile(file){
   }
 }
 async function loadFreightBatches(){
+  if(!window.PermissionRuntime?.can('upload_reports.freight.view')) return;
   const tbl=$('#freightBatchesTable');
   if(!tbl || !WarehouseDB?.ready) return;
   const {data,error}=await WarehouseDB.client
@@ -4356,6 +4364,8 @@ function initSalesUploader(){
   refreshSalesReportDates();
 }
 async function loadSalesReport(warehouseCode){
+  const plant=warehouseMetaByCode(warehouseCode)?.plant_code;
+  if(!window.PermissionRuntime?.can('sales_review.view',plant || [])) return;
   activeSalesWarehouse=warehouseCode;
   if(!WarehouseDB?.ready){ return; }
   let query=WarehouseDB.client.from('sales_audit_report').select('*').eq('warehouse_code',warehouseCode);
@@ -4649,6 +4659,7 @@ function readSystemSettingsForm(){
   };
 }
 async function loadSystemSettings(){
+  if(!window.PermissionRuntime?.can('settings.system.view')) return;
   fillSystemSettingsForm(APP_SYSTEM_SETTINGS);
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   try{
@@ -4830,7 +4841,9 @@ function canViewGeneralSettingsTab(key){
 }
 function canViewSettingsTab(key){
   if(key==='general') return Object.keys(GENERAL_SETTINGS_TAB_PERMISSION_MAP).some(canViewGeneralSettingsTab);
-  if(key==='permission-settings') return isSuperAdmin();
+  if(key==='permission-settings') return isSuperAdmin() && window.PermissionRuntime.any('settings.permission_settings.view');
+  if(key==='department-personnel') return window.PermissionRuntime?.can('settings.department_personnel.view') === true;
+  if(key==='department-status-codes') return window.PermissionRuntime?.can('settings.department_status_codes.view') === true;
   return hasPermission(SETTINGS_TAB_PERMISSION_MAP[key]||'settings','view');
 }
 function syncGeneralSettingsTabs(){
@@ -4914,9 +4927,11 @@ function applySettingsSubPermissions(){
   syncGeneralSettingsTabs();
   syncSettingsMobileTabSelect?.();
 
-  setElementsDisabled('#saveProfileBtn,#profileForm input',!hasPermission('settings_profile','edit'));
+  setElementsDisabled('#saveProfileBtn,#profileForm input:not(#profileAvatarInput)',!hasCanonicalPermission('settings.profile.update'));
+  setElementsDisabled('#profileAvatarInput',!hasCanonicalPermission('settings.profile.avatar.upload'));
   setElementsDisabled('#savePasswordBtn,#passwordChangeForm input,#passwordChangeForm button',!hasPermission('settings_account','edit'));
-  setElementsDisabled('#systemSettingsForm input,#systemSettingsForm select,#saveSystemSettingsBtn,#clearSystemCacheBtn',!hasPermission('settings_system','edit'));
+  setElementsDisabled('#systemSettingsForm input,#systemSettingsForm select,#saveSystemSettingsBtn',!hasCanonicalPermission('settings.system.update'));
+  setElementsDisabled('#clearSystemCacheBtn',!hasCanonicalPermission('settings.system.cache.clear'));
 
   const canAddPlants=hasPermission('settings_plants','add');
   const canEditPlants=hasPermission('settings_plants','edit');
@@ -5026,6 +5041,7 @@ function applyVerifiedPlantSettingsRow(verifiedRow, rows=[]){
   return merged.sort((a,b)=>(Number(a.sort_order||0)-Number(b.sort_order||0)) || String(a.plant_code||'').localeCompare(String(b.plant_code||'')));
 }
 async function loadPlantsSettings(){
+  if(!window.PermissionRuntime?.can('settings.plants.view')) return;
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   setPlantsSettingsStatus('\u062C\u0627\u0631\u064A \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u0635\u0627\u0646\u0639...');
   try{
@@ -5241,6 +5257,7 @@ async function fetchWarehouseSettingsRowDirect(warehouseCode){
     .eq('warehouse_code',warehouseCode);
 }
 async function loadWarehousesSettings(){
+  if(!window.PermissionRuntime?.can('settings.warehouses.view')) return;
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   fillWarehousePlantInput();
   setWarehousesSettingsStatus('\u062C\u0627\u0631\u064A \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u062E\u0627\u0632\u0646...');
@@ -5656,6 +5673,7 @@ async function fetchSalesProductSettingsRowDirect(materialCode){
     .eq('material_code',materialCode);
 }
 async function loadSalesProductsSettings(){
+  if(!window.PermissionRuntime?.can('settings.sales_products.view')) return;
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   setSalesProductsSettingsStatus('\u062C\u0627\u0631\u064A \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0635\u0646\u0627\u0641 \u0627\u0644\u0628\u064A\u0639...');
   try{
@@ -5811,49 +5829,97 @@ function setMainAuthMessage(message,type=''){
   el.textContent=message;
   el.className='login-status '+(type||'');
 }
+let APPLICATION_AUTH_GENERATION=0;
+let APPLICATION_AUTH_PENDING=null;
+let APPLICATION_READY_USER_ID='';
+let APPLICATION_PERMISSION_SIGNATURE='';
+let APPLICATION_RELOAD_REQUIRED=false;
+window.addEventListener('audit-permission-runtime-updated',event=>{
+  if(event.detail.status!=='READY') return;
+  const snapshot=window.PermissionRuntime.getSnapshot();
+  const signature=JSON.stringify({user:snapshot.userId,role:snapshot.payload.role_key,plants:snapshot.payload.plants});
+  if(APPLICATION_READY_USER_ID && APPLICATION_PERMISSION_SIGNATURE && APPLICATION_PERMISSION_SIGNATURE!==signature){
+    APPLICATION_RELOAD_REQUIRED=true;
+    $('#appShell')?.classList.add('app-hidden');window.PermissionRuntime.reset('permissions-changed');
+    $('#loginScreen')?.classList.remove('login-hidden');setMainAuthMessage('تغيرت صلاحيات الحساب. أعد تحميل البرنامج.','err');
+    window.location.reload();return;
+  }
+  APPLICATION_PERMISSION_SIGNATURE=signature;
+});
 function showLoginScreen(){
+  const hadUser=Boolean(CURRENT_AUTH_USER?.id);
+  APPLICATION_AUTH_GENERATION++;
+  APPLICATION_AUTH_PENDING=null;
+  APPLICATION_READY_USER_ID='';
   APPLICATION_VIEW_RESTORED_USER_ID='';
+  CURRENT_AUTH_USER=null;
+  CURRENT_APP_PROFILE=null;
   closeActiveApplicationModals({restoreFocus:false});
   resetAppModalScrollLocks();
   window.PermissionSettings?.resetSession?.();
-  window.PermissionShadow?.reset?.();
+  window.PermissionRuntime?.reset();
   $('#loginScreen')?.classList.remove('login-hidden');
   $('#appShell')?.classList.add('app-hidden');
   document.body.classList.remove('mobile-app-shell-active','mobile-dashboard-active','mobile-inbound-active','mobile-upload-reports-active','mobile-reports-active','mobile-dashboard-filter-open','mobile-dashboard-drawer-open','mobile-inbound-filter-open','mobile-reports-filter-open');
+  if(hadUser){APPLICATION_RELOAD_REQUIRED=true;window.location.reload();}
 }
 async function showApplication(user){
+  if(!user?.id) return false;
+  if(APPLICATION_RELOAD_REQUIRED){window.location.reload();return false;}
+  if(CURRENT_AUTH_USER?.id && CURRENT_AUTH_USER.id!==user.id){APPLICATION_RELOAD_REQUIRED=true;window.PermissionRuntime?.reset('account-changed');$('#appShell')?.classList.add('app-hidden');window.location.reload();return false;}
+  if(APPLICATION_AUTH_PENDING?.userId===user.id) return APPLICATION_AUTH_PENDING.promise;
+  if(APPLICATION_READY_USER_ID===user.id && window.PermissionRuntime?.isReady()) return true;
+  const generation=++APPLICATION_AUTH_GENERATION;
+  const current=()=>generation===APPLICATION_AUTH_GENERATION;
+  $('#appShell')?.classList.add('app-hidden');
   CURRENT_AUTH_USER=user;
-  const profile=await fetchCurrentAppProfile(user);
-  if(profile.inactive){
-    await WarehouseDB.signOut();
-    showLoginScreen();
-    setMainAuthMessage('هذا المستخدم غير مفعل. راجع مدير النظام.','err');
-    return;
-  }
-  CURRENT_APP_PROFILE=profile;
-  await loadCurrentUserPermissions();
-  $('#loginScreen')?.classList.add('login-hidden');
-  $('#appShell')?.classList.remove('app-hidden');
-  applyProfileToHeader(profile);
-  fillProfileForm(profile,user);
-  fillSettingsAccountPanel(profile,user);
-  await loadPlantsCatalog({force:true});
-  refreshPlantsCatalogConsumers();
-  SYSTEM_SETTINGS_LOADED_USER_ID=null;
-  PLANTS_SETTINGS_LOADED=false;
-  applyNavigationPermissions();
-  nav();
-  initMobileDashboardShell();
-  restoreApplicationViewState();
-  setTimeout(()=>{
-    loadSalesBatches();
-    loadIncomingBatches();
-    loadScaleBatches();
-    refreshSalesReportDates();
-    refreshInboundReportDates();
-    loadSalesReport(activeSalesWarehouse);
-    loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});
-  },250);
+  setMainAuthMessage('جاري التحقق من صلاحيات الحساب...');
+  const promise=(async()=>{
+    try{
+      const profile=await fetchCurrentAppProfile(user);
+      if(!current()) return false;
+      if(profile.inactive) throw new Error('هذا المستخدم غير مفعل. راجع مدير النظام.');
+      CURRENT_APP_PROFILE=profile;
+      if(!await loadCurrentUserPermissions()) throw new Error('تعذر تحميل صلاحيات الحساب. أعد المحاولة، أو راجع مدير النظام للتأكد من تعيين دور وحزمة صالحة.');
+      if(!current()) return false;
+      if(![...$$('.nav-item[data-section]')].some(btn=>canViewSection(btn.dataset.section))) throw new Error('لا توجد شاشات متاحة لهذا الحساب. راجع مدير النظام.');
+      await loadPlantsCatalog({force:true});
+      if(!current()) return false;
+      refreshPlantsCatalogConsumers();
+      applyProfileToHeader(profile);
+      fillProfileForm(profile,user);
+      fillSettingsAccountPanel(profile,user);
+      SYSTEM_SETTINGS_LOADED_USER_ID=null;
+      PLANTS_SETTINGS_LOADED=false;
+      APPLICATION_READY_USER_ID=user.id;
+      $('#loginScreen')?.classList.add('login-hidden');
+      $('#appShell')?.classList.remove('app-hidden');
+      applyNavigationPermissions();
+      nav();
+      initMobileDashboardShell();
+      restoreApplicationViewState();
+      applySettingsSubPermissions();
+      window.PermissionUI?.apply();
+      setTimeout(()=>{
+        if(!current() || !window.PermissionRuntime?.isReady()) return;
+        if(canViewSection('upload')) {loadSalesBatches();loadIncomingBatches();loadScaleBatches();}
+        if(canViewSection('sales')) {refreshSalesReportDates();loadSalesReport(activeSalesWarehouse);}
+        if(canViewSection('inbound')) {refreshInboundReportDates();loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});}
+        if(canViewSection('dashboard')) loadDashboardRealData();
+      },250);
+      return true;
+    }catch(error){
+      if(current()){
+        APPLICATION_READY_USER_ID='';
+        $('#appShell')?.classList.add('app-hidden');
+        $('#loginScreen')?.classList.remove('login-hidden');
+        setMainAuthMessage(error.message || 'تعذر تحميل صلاحيات الحساب. أعد المحاولة.','err');
+      }
+      return false;
+    }finally{ if(current()) APPLICATION_AUTH_PENDING=null; }
+  })();
+  APPLICATION_AUTH_PENDING={userId:user.id,promise};
+  return promise;
 }
 async function checkMainSession(){
   if(!window.WarehouseDB?.ready){
@@ -6058,6 +6124,7 @@ function renderActivityLogTable(){
   }
 }
 async function loadActivityLog(options={}){
+  if(!window.PermissionRuntime?.can('settings.activity_log.view')) return;
   if(!$('#activityLogTable')) return;
   if(!WarehouseDB?.ready){ setActivityLogStatus('Supabase غير متصل.','err'); return; }
   if(!options.silent) setActivityLogStatus('جاري تحميل سجل الحركات...');
@@ -6215,18 +6282,6 @@ function initSettingsTabs(){
 
 
 // === Permissions Engine ===
-const PERMISSION_ACTIONS = [
-  {key:'view', label:'عرض'},
-  {key:'add', label:'إضافة'},
-  {key:'edit', label:'تعديل'},
-  {key:'delete', label:'حذف'},
-  {key:'upload', label:'رفع'},
-  {key:'export_excel', label:'Excel'},
-  {key:'export_pdf', label:'PDF'},
-  {key:'export_png', label:'PNG'},
-  {key:'approve', label:'اعتماد'},
-  {key:'manage', label:'إدارة'}
-];
 const PERMISSION_SCREENS = [
   {key:'dashboard', label:'الرئيسية', description:'عرض لوحة المؤشرات والشاشة الرئيسية'},
   {key:'upload', label:'رفع التقارير', description:'رفع ملفات البيع والوارد والميزان والنولون'},
@@ -6249,167 +6304,86 @@ const PERMISSION_SCREENS = [
   {key:'settings_sales_product_warehouses', label:'الإعدادات / ربط أصناف البيع بالمخازن', description:'عرض وإضافة وحذف ربط أصناف البيع بالمخازن'},
   {key:'settings', label:'الإعدادات', description:'بيانات الحساب وإعدادات النظام'}
 ];
-let CURRENT_ROLE_PERMISSIONS = {};
-function permissionColumn(action){ return 'can_'+action; }
-function defaultPermissionValue(role,screen,action){
-  if(screen==='raw_materials') return false;
-  if(role==='admin') return true;
-  if(role==='auditor'){
-    if(String(screen||'').startsWith('settings_')) return false;
-    if(['users','permissions','settings'].includes(screen)) return false;
-    if(['delete','manage','approve'].includes(action)) return false;
-    if(action==='add') return ['upload'].includes(screen);
-    if(action==='edit') return ['sales','inbound','reports'].includes(screen);
-    return ['view','upload','export_excel','export_pdf','export_png'].includes(action);
-  }
-  if(role==='viewer'){
-    if(String(screen||'').startsWith('settings_')) return false;
-    if(['users','permissions','settings','upload'].includes(screen)) return false;
-    return ['view','export_excel','export_pdf','export_png'].includes(action);
-  }
-  return false;
+// Section aliases are routing only; grants always use one canonical key.
+const PERMISSION_SECTION_KEYS=Object.freeze({
+  dashboard:'dashboard',upload:'upload_reports',sales:'sales_review',inbound:'inbound_review',raw_materials:'raw_materials',
+  inventory_count:'inventory.count',inventory_closing:'inventory.count',inventory_differences:'inventory.differences',inventory_expiry_tracking:'inventory.production_dates',
+  reports:'reports',department_storekeepers:'department_personnel.storekeepers',department_weekly_leave_schedule:'department_personnel.weekly_leave',
+  department_hr_reports:'department_personnel.hr_reports',department_evaluations:'department_personnel.evaluations',department_loading_errors:'department_personnel.loading_errors',
+  users:'users',permissions:'permissions',settings:'settings',plants:'settings.general.plants_and_warehouses',movements:'settings.general.movements',
+  settings_profile:'settings.profile',settings_account:'settings.account',settings_system:'settings.system',settings_plants:'settings.plants',
+  settings_warehouses:'settings.warehouses',settings_sales_products:'settings.sales_products',settings_storekeepers:'settings.storekeepers',
+  settings_activity_log:'settings.activity_log',settings_sales_product_warehouses:'settings.sales_products.warehouses',
+  settings_department_personnel:'settings.department_personnel',settings_department_status_codes:'settings.department_status_codes'
+});
+function isSuperAdmin(){ return window.PermissionRuntime?.isSuperAdmin() === true; }
+function permissionKeyForSection(section){ return PERMISSION_SECTION_KEYS[section] || ''; }
+function permissionFilterPlants(key, requested){
+  const scope=window.PermissionRuntime?.scope(key,requested) || [];
+  return scope.length ? scope : ['__P7_DENIED__'];
 }
-function buildDefaultPermissions(role){
-  const map={};
-  PERMISSION_SCREENS.forEach(sc=>{
-    map[sc.key]={screen_key:sc.key, role};
-    PERMISSION_ACTIONS.forEach(a=>{ map[sc.key][permissionColumn(a.key)] = defaultPermissionValue(role,sc.key,a.key); });
-  });
-  return map;
-}
-function normalizePermissionRow(row, role){
-  const key=row?.screen_key || row?.screen || row?.section_key || '';
-  const out={screen_key:key, role:row?.role || role};
-  PERMISSION_ACTIONS.forEach(a=>{
-    const col=permissionColumn(a.key);
-    out[col]=row && Object.prototype.hasOwnProperty.call(row,col) ? row[col] === true : defaultPermissionValue(role,key,a.key);
-  });
-  return out;
-}
-function permissionsForRoleFromRows(role, rows){
-  const defaults=buildDefaultPermissions(role);
-  (rows||[]).forEach(r=>{
-    const nr=normalizePermissionRow(r,role);
-    if(nr.screen_key && defaults[nr.screen_key]) defaults[nr.screen_key]={...defaults[nr.screen_key],...nr};
-  });
-  return defaults;
-}
-function isSuperAdmin(){ return CURRENT_APP_PROFILE?.role === 'super_admin'; }
-function permissionKeyForSection(section){
-  if(isInventoryAuditSection(section)) return 'inventory_count';
-  if(isDepartmentPersonnelSection(section)) return 'reports';
-  return section;
+function hasCanonicalPermission(key, scope){
+  return window.PermissionRuntime?.can(key,scope === undefined ? window.PermissionUI?.scopeFor(key) || [] : scope) === true;
 }
 function hasPermission(section, action='view'){
-  if(isSuperAdmin()) return true;
-  if(!section) return true;
-  const permissionKey=permissionKeyForSection(section);
-  const row=CURRENT_ROLE_PERMISSIONS?.[permissionKey];
-  if(!row) return action==='view' ? ['dashboard'].includes(permissionKey) : false;
-  return row[permissionColumn(action)] === true;
+  const base=permissionKeyForSection(section);
+  if(!base) return false;
+  if(action==='view'){
+    if(base==='settings.sales_products.warehouses') return window.PermissionRuntime?.can('settings.sales_products.view') === true;
+    return (/^(users|permissions|settings)(\.|$)/.test(base) ? window.PermissionRuntime?.can(base+'.view') : window.PermissionRuntime?.any(base+'.view')) === true;
+  }
+  const special={
+    'settings.profile:edit':'update','settings.account:edit':'password.change','settings.system:edit':'update',
+    'settings.sales_products.warehouses:add':'assign','settings.sales_products.warehouses:delete':'assign',
+    'permissions:manage':'assign','inventory.count:add':'create','inventory.count:edit':'line.edit_actual_balance'
+  };
+  const suffix=special[base+':'+action] || (action==='add'?'create':action);
+  return hasCanonicalPermission(base+'.'+suffix);
 }
 function canViewSection(section){
-  if(section==='settings') return hasPermission('settings','view') || canViewSettingsTab('general');
-  return hasPermission(section,'view');
+  const key=permissionKeyForSection(section);
+  return Boolean(key && (['users','permissions','settings'].includes(section) ? window.PermissionRuntime?.can(key+'.view') : window.PermissionRuntime?.any(key+'.view')));
 }
 function showPermissionDenied(section){
-  const permissionKey=permissionKeyForSection(section);
-  const label=PERMISSION_SCREENS.find(x=>x.key===permissionKey)?.label || section;
+  const label=PERMISSION_SCREENS.find(x=>x.key===section)?.label || section;
   alert(`غير مسموح بالوصول إلى: ${label}\nراجع مدير النظام لتعديل الصلاحيات.`);
 }
-async function loadCurrentUserPermissions(){
-  if(isSuperAdmin()){
-    CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions('admin');
-    applySettingsSubPermissions();
-    syncDashboardPngButtonState();
-    window.PermissionShadow?.refresh?.('legacy-permissions-loaded');
-    return;
-  }
-  const role=CURRENT_APP_PROFILE?.role || 'viewer';
-  if(!WarehouseDB?.ready){
-    CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions(role);
-    applySettingsSubPermissions();
-    syncDashboardPngButtonState();
-    window.PermissionShadow?.refresh?.('legacy-permissions-fallback');
-    return;
-  }
-  try{
-    const {data,error}=await WarehouseDB.client.from('app_role_permissions').select('*').eq('role',role);
-    CURRENT_ROLE_PERMISSIONS = error ? buildDefaultPermissions(role) : permissionsForRoleFromRows(role,data||[]);
-  }catch(_){ CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions(role); }
+async function loadCurrentUserPermissions(reason='sign-in'){
+  const ready=await window.PermissionRuntime?.refresh({userId:CURRENT_AUTH_USER?.id,reason});
+  if(!ready || !window.PermissionRuntime?.isReady() || APPLICATION_RELOAD_REQUIRED) return false;
   applySettingsSubPermissions();
   syncDashboardPngButtonState();
-  window.PermissionShadow?.refresh?.('legacy-permissions-loaded');
+  return true;
 }
 function applyNavigationPermissions(){
-  $$('.nav-item').forEach(btn=>{
-    const section=btn.dataset.section;
+  $$('.nav-item,[data-mobile-section]').forEach(btn=>{
+    const section=btn.dataset.section || btn.dataset.mobileSection;
+    if(!section) return;
     const allowed=canViewSection(section);
     btn.classList.toggle('permission-hidden',!allowed);
     btn.disabled=!allowed;
     btn.title=allowed?'':'غير مسموح حسب صلاحيات الدور';
   });
-  const rawMobileItem=$('.mobile-drawer-item[data-mobile-section="raw_materials"]');
-  if(rawMobileItem){
-    const allowed=canViewSection('raw_materials');
-    rawMobileItem.classList.toggle('permission-hidden',!allowed);
-    rawMobileItem.hidden=!allowed;
-    rawMobileItem.disabled=!allowed;
-  }
-  const inventoryAllowed=canViewSection('inventory_closing');
-  $$('[data-inventory-nav-group],[data-inventory-mobile-nav-group]').forEach(group=>{
-    group.classList.toggle('permission-hidden',!inventoryAllowed);
-    group.hidden=!inventoryAllowed;
+  const groups=[
+    ['[data-inventory-nav-group],[data-inventory-mobile-nav-group]',['inventory_closing','inventory_differences','inventory_expiry_tracking']],
+    ['[data-department-personnel-nav-group],[data-department-personnel-mobile-nav-group]',['department_storekeepers','department_weekly_leave_schedule','department_hr_reports','department_evaluations','department_loading_errors']]
+  ];
+  groups.forEach(([selector,sections])=>{
+    const allowed=sections.some(canViewSection);
+    $$(selector).forEach(group=>{group.classList.toggle('permission-hidden',!allowed);group.hidden=!allowed;});
   });
-  $$('.mobile-drawer-item[data-mobile-section="inventory_closing"],.mobile-drawer-item[data-mobile-section="inventory_differences"],.mobile-drawer-item[data-mobile-section="inventory_expiry_tracking"]').forEach(item=>{
-    item.disabled=!inventoryAllowed;
-    item.classList.toggle('permission-hidden',!inventoryAllowed);
-  });
-  const departmentPersonnelAllowed=canViewSection('department_storekeepers');
-  $$('[data-department-personnel-nav-group],[data-department-personnel-mobile-nav-group]').forEach(group=>{
-    group.classList.toggle('permission-hidden',!departmentPersonnelAllowed);
-    group.hidden=!departmentPersonnelAllowed;
-  });
-  $$('.mobile-drawer-item[data-mobile-section="department_storekeepers"],.mobile-drawer-item[data-mobile-section="department_weekly_leave_schedule"],.mobile-drawer-item[data-mobile-section="department_hr_reports"],.mobile-drawer-item[data-mobile-section="department_evaluations"],.mobile-drawer-item[data-mobile-section="department_loading_errors"]').forEach(item=>{
-    item.disabled=!departmentPersonnelAllowed;
-    item.classList.toggle('permission-hidden',!departmentPersonnelAllowed);
-  });
-  const active=$('.nav-item.active');
-  if(active && active.disabled){
-    const first=[...$$('.nav-item')].find(b=>!b.disabled);
+  if(!window.PermissionRuntime?.isReady()) return;
+  const active=$('.section.active-section');
+  if(!active || !canViewSection(active.id)){
+    active?.classList.remove('active-section');
+    const first=[...$$('.nav-item[data-section]')].find(btn=>!btn.disabled);
     if(first) switchSection(first.dataset.section);
   }
 }
-function disableByPermission(selector, section, action, message){
-  $$(selector).forEach(el=>{
-    const allowed=hasPermission(section,action);
-    el.disabled=!allowed;
-    el.classList.toggle('permission-disabled',!allowed);
-    if(!allowed) el.title=message || 'غير مسموح حسب صلاحيات الدور';
-  });
-}
 function applyPermissionActionGuards(section){
   applyNavigationPermissions();
-  if(!section) return;
-  if(section==='settings'){
-    applySettingsSubPermissions();
-    return;
-  }
-  disableByPermission('button[id*="ExportExcel"],button[id*="Excel"],button[id*="exportExcel"],button[id*="ExcelBtn"]',section,'export_excel','لا تملك صلاحية تصدير Excel');
-  disableByPermission('button[id*="ExportPdf"],button[id*="Pdf"],button[id*="exportPdf"],button[id*="PdfBtn"]',section,'export_pdf','لا تملك صلاحية تصدير PDF');
-  disableByPermission('button[id*="ExportPng"],button[id*="Png"],.png-export-btn',section,'export_png','لا تملك صلاحية تصدير PNG');
-  disableByPermission('.delete-user-btn,.delete-batch-btn,button[id*="Delete"],button.danger',section,'delete','لا تملك صلاحية الحذف');
-  disableByPermission('button[id*="Upload"],button[id*="pick"],.upload-report-tab',section,'upload','لا تملك صلاحية الرفع');
-  disableByPermission('button[id*="save"]:not([data-permission-settings-management-action]),button[id*="Save"]:not([data-permission-settings-management-action]),button[id*="edit"],.edit-user-btn',section,'edit','لا تملك صلاحية التعديل');
-  if(section==='dashboard') syncDashboardPngButtonState();
-  if(section==='inventory_closing'){
-    disableByPermission('#createInventoryCountBtn','inventory_count','add',"غير متاح للصلاحية الحالية");
-    disableByPermission('#createInventoryDifferenceSnapshotBtn','inventory_count','add',"غير متاح للصلاحية الحالية");
-    disableByPermission('#finishInventoryCountBtn,#inventoryCountPostCloseInvoiceBtn','inventory_count','edit',"لا تملك صلاحية تعديل مستند الجرد");
-    if(typeof inventoryCountUpdateCreateButton === 'function') inventoryCountUpdateCreateButton();
-    if(typeof updateInventoryDifferenceSnapshotButton === 'function') updateInventoryDifferenceSnapshotButton();
-    if(typeof updateInventoryCountFinalizationControls === 'function') updateInventoryCountFinalizationControls();
-  }
+  if(section==='settings') applySettingsSubPermissions();
+  window.PermissionUI?.apply();
 }
 // === Users Management ===
 const USER_ROLE_LABELS={super_admin:'منشئ النظام',admin:'Admin',auditor:'Auditor',viewer:'Viewer',authenticated:'Authenticated'};
@@ -6576,6 +6550,7 @@ async function selectAppUsersForManagement(){
   return last || {data:[],error:null};
 }
 async function loadUsersManagement(){
+  if(!window.PermissionRuntime?.can('users.view')) return;
   if(!$('#usersManagementTable')) return;
   if(!WarehouseDB?.ready){ setUsersStatus('Supabase غير متصل.','err'); return; }
   setUsersStatus('جاري تحميل المستخدمين...');
@@ -6591,6 +6566,7 @@ async function loadUsersManagement(){
   setUsersStatus(`تم تحميل ${merged.length} مستخدم.`,'ok');
 }
 function openUserManagementModal(mode='create'){
+  if(!hasCanonicalPermission(mode==='create'?'users.create':'users.edit')) return;
   const modal=$('#userManagementModal');
   if(!modal) return;
   modal.classList.add('app-liquid-modal-backdrop');
@@ -6629,6 +6605,7 @@ function resetUserManagementForm(closeStatus=true){
   if(closeStatus) setUsersStatus('');
 }
 function fillUserFormForEdit(userId){
+  if(!hasCanonicalPermission('users.edit')) return;
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
   if(!u) return;
   if(u.role==='super_admin' && !u.is_current){ setUsersStatus('حساب منشئ النظام لا يتم تعديله من شاشة المستخدمين.','err'); return; }
@@ -6645,6 +6622,7 @@ function fillUserFormForEdit(userId){
   openUserManagementModal('edit');
 }
 function viewManagedUser(userId){
+  if(!hasCanonicalPermission('users.details.view')){ showPermissionDenied('users');return; }
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
   if(!u) return;
   alert(`بيانات المستخدم\n\nالاسم: ${u.full_name||'--'}\nالبريد: ${u.email||'--'}\nالدور: ${roleLabel(u.role)}\nالحالة: ${u.is_active?'نشط':'معطل'}\nالوظيفة: ${u.job_title||'--'}\nالهاتف: ${u.phone||'--'}`);
@@ -6673,6 +6651,8 @@ async function upsertManagedUserProfile(payload){
   throw lastError || new Error('تعذر حفظ بيانات المستخدم.');
 }
 async function saveManagedUser(e){
+  const permissionKey=$('#managedUserId')?.value ? 'users.edit' : 'users.create';
+  if(!hasCanonicalPermission(permissionKey)){ e?.preventDefault();showPermissionDenied('users');return; }
   e?.preventDefault?.();
   if(!WarehouseDB?.ready){ setUsersStatus('Supabase غير متصل.','err'); return; }
   const existingId=$('#managedUserId')?.value || '';
@@ -6715,6 +6695,7 @@ async function saveManagedUser(e){
   }
 }
 async function toggleManagedUser(userId,currentActive){
+  if(!hasCanonicalPermission('users.status.toggle')){ showPermissionDenied('users');return; }
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
   if(!userId || !WarehouseDB?.ready) return;
   if(u?.role==='super_admin' || u?.is_current){ setUsersStatus('لا يمكن تعطيل هذا الحساب من شاشة إدارة المستخدمين.','err'); return; }
@@ -6732,6 +6713,7 @@ async function toggleManagedUser(userId,currentActive){
 }
 
 async function deleteManagedUserForever(userId){
+  if(!hasCanonicalPermission('users.delete')){ showPermissionDenied('users');return; }
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
   if(!userId || !WarehouseDB?.ready) return;
   if(!u){ setUsersStatus('المستخدم غير موجود في الجدول الحالي.','err'); return; }
@@ -6896,7 +6878,7 @@ function initMainLoginGate(){
       const {data,error}=await WarehouseDB.signIn(email,password);
       if(error){ setMainAuthMessage('خطأ في تسجيل الدخول: '+error.message,'err'); return; }
       setMainAuthMessage('تم تسجيل الدخول بنجاح.','ok');
-      await showApplication(data.user);
+      if(!await showApplication(data.user)) return;
       await logSystemActivity('المستخدمين','تسجيل دخول',`تسجيل دخول: ${CURRENT_APP_PROFILE?.full_name || data.user?.email || email}`);
     };
     [emailInput,passInput].forEach(inp=>{ if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter') loginBtn.click(); }); });
@@ -6910,9 +6892,21 @@ function initMainLoginGate(){
     };
   }
   if(WarehouseDB?.client?.auth){
-    WarehouseDB.client.auth.onAuthStateChange((_event,session)=>{
-      if(session?.user) showApplication(session.user);
-      else showLoginScreen();
+    WarehouseDB.client.auth.onAuthStateChange((event,session)=>{
+      if(!session?.user){ showLoginScreen(); return; }
+      // Defer SDK work outside its auth callback; sign-in and getUser coalesce.
+      const generation=APPLICATION_AUTH_GENERATION;
+      setTimeout(async()=>{
+        if(generation!==APPLICATION_AUTH_GENERATION) return;
+        if(event==='TOKEN_REFRESHED' && APPLICATION_READY_USER_ID===session.user.id){
+          $('#appShell')?.classList.add('app-hidden');
+          const ready=await loadCurrentUserPermissions('token-refreshed');
+          if(generation!==APPLICATION_AUTH_GENERATION) return;
+          if(!ready){ APPLICATION_READY_USER_ID=''; $('#loginScreen')?.classList.remove('login-hidden');setMainAuthMessage('تعذر تحديث صلاحيات الحساب. أعد تسجيل الدخول.','err');return; }
+          applyPermissionActionGuards($('.section.active-section')?.id);
+          $('#appShell')?.classList.remove('app-hidden');
+        }else await showApplication(session.user);
+      },0);
     });
   }
   checkMainSession();
@@ -7395,7 +7389,7 @@ function rawMaterialsBuildMergedRows(stockRows,metricRows){
 }
 function rawMaterialsFilterValues(){
   return {
-    plant:enterpriseSelectValues('rawMaterialsPlantFilter'),
+    plant:permissionFilterPlants('raw_materials.'+rawMaterialsCurrentTabKey()+'.view',enterpriseSelectValues('rawMaterialsPlantFilter')),
     warehouse:enterpriseSelectValues('rawMaterialsWarehouseFilter'),
     warehouseType:enterpriseSelectValues('rawMaterialsWarehouseTypeFilter'),
     group:enterpriseSelectValues('rawMaterialsGroupFilter'),
@@ -7465,6 +7459,7 @@ function rawMaterialsVisibleRows(tabKey){
   const rows=RAW_MATERIALS_SCREEN_STATE.mergedRows
     .map(row=>rawMaterialsRowForWarehouseFilter(row,filters))
     .filter(Boolean)
+    .filter(row=>window.PermissionRuntime?.can('raw_materials.'+tabKey+'.view',row.plant_code || []))
     .filter(row=>rawMaterialsTabForGroup(row.material_group)===tabKey)
     .filter(row=>rawMaterialsMatchesDimensionFilters(row,filters));
   if(tabKey==='bran'){
@@ -7698,6 +7693,7 @@ function syncRawMaterialsFilterOptions(){
   if(typeField) typeField.hidden=typeMap.size===0;
 }
 async function loadRawMaterialsScreen(force=false){
+  if(!window.PermissionRuntime?.any('raw_materials.view')) return;
   if(RAW_MATERIALS_SCREEN_STATE.loading) return;
   if(RAW_MATERIALS_SCREEN_STATE.loaded && !force){ renderRawMaterialsActiveTab(); return; }
   if(!WarehouseDB?.ready){ rawMaterialsSetStatus('Supabase غير متصل. لا يمكن تحميل بيانات متابعة الخامات.','err'); return; }
@@ -7709,11 +7705,11 @@ async function loadRawMaterialsScreen(force=false){
       fetchAllRows('raw_material_consumption_metrics','material_code,material_description,plant_code,plant_name,material_group,material_group_description,unit_of_measure,average_daily_consumption,period_start,period_end'),
       rawMaterialsLoadBranConsumptionRows()
     ]);
-    RAW_MATERIALS_SCREEN_STATE.stockRows=stockRows||[];
-    RAW_MATERIALS_SCREEN_STATE.metricRows=metricRows||[];
+    RAW_MATERIALS_SCREEN_STATE.stockRows=(stockRows||[]).filter(row=>window.PermissionRuntime?.can('raw_materials.view',row.plant_code || []));
+    RAW_MATERIALS_SCREEN_STATE.metricRows=(metricRows||[]).filter(row=>window.PermissionRuntime?.can('raw_materials.view',row.plant_code || []));
     RAW_MATERIALS_SCREEN_STATE.branConsumptionRows=branConsumption.rows||[];
     RAW_MATERIALS_SCREEN_STATE.branConsumptionPeriod={periodStart:branConsumption.periodStart||'',periodEnd:branConsumption.periodEnd||''};
-    RAW_MATERIALS_SCREEN_STATE.mergedRows=rawMaterialsBuildMergedRows(stockRows,metricRows);
+    RAW_MATERIALS_SCREEN_STATE.mergedRows=rawMaterialsBuildMergedRows(RAW_MATERIALS_SCREEN_STATE.stockRows,RAW_MATERIALS_SCREEN_STATE.metricRows);
     RAW_MATERIALS_SCREEN_STATE.loaded=true;
     syncRawMaterialsFilterOptions();
     renderRawMaterialsActiveTab();
@@ -7819,8 +7815,8 @@ async function ensureReportDefaultDates(options={}){
     if(!error && data?.[0]?.report_date){ fromEl.value=normalizeDateISO(data[0].report_date); toEl.value=normalizeDateISO(data[0].report_date); }
   }catch(_){ }
 }
-function getReportFilters(){
-  return {plant:enterpriseSelectValues('reportPlantFilter'),warehouse:enterpriseSelectValues('reportWarehouseFilter'),from:normalizeDateISO($('#reportFromDate')?.value||''),to:normalizeDateISO($('#reportToDate')?.value||'')};
+function getReportFilters(permissionKey=window.PermissionUI?.reportKey() || 'reports.executive.view'){
+  return {plant:permissionFilterPlants(permissionKey,enterpriseSelectValues('reportPlantFilter')),warehouse:enterpriseSelectValues('reportWarehouseFilter'),from:normalizeDateISO($('#reportFromDate')?.value||''),to:normalizeDateISO($('#reportToDate')?.value||'')};
 }
 function reportFilterLabel(filters){
   const plant=enterpriseFilterText(filters.plant,$('#reportPlantFilter'),'جميع المصانع');
@@ -7943,7 +7939,8 @@ function renderItemsExportTable(items,summary){
   tbl.innerHTML=`<thead><tr><th>#</th><th>كود الصنف</th><th>اسم الصنف</th><th>البيع</th><th>الإنتاج</th><th>الصادرة</th><th>الواردة</th><th>التحميل</th><th>فرق الإنتاج/البيع</th><th>نسبة البيع للإنتاج</th><th>الحالة</th></tr></thead><tbody>${rows}</tbody>`;
 }
 async function loadItemsReport(options={}){
-  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
+  if(!window.PermissionRuntime?.any('reports.items.view')) return;
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.items.view');
   let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:true,orderBy:'material_code'}); }catch(error){console.warn('items report load error',error);return;} const map={};
   (data||[]).forEach(r=>{const key=String(r.material_code||r.material_name||'غير محدد'); if(!map[key]) map[key]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0}; const it=map[key]; it.sales+=toNumber(r.sales_quantity); it.production+=toNumber(r.production_quantity); it.outgoing+=toNumber(r.outgoing_transfer_quantity); it.incoming+=toNumber(r.incoming_transfer_quantity); it.loading+=toNumber(r.total_loading_quantity);});
   const items=Object.values(map).sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales));
@@ -8148,6 +8145,7 @@ function renderItemAnalyticsReport(model){
   renderItemAnalyticsHealth(model);renderItemAnalyticsKpis(model.stats);renderItemAnalyticsHeatmap('#itemAnalyticsSalesHeatmap',model.daily,'sales');renderItemAnalyticsHeatmap('#itemAnalyticsProductionHeatmap',model.daily,'production');renderItemAnalyticsPerformance(model);renderItemAnalyticsComparison(model);renderItemAnalyticsContribution(model);renderItemAnalyticsSeasonality(model);renderItemAnalyticsInventorySignals(model);renderItemAnalyticsForecast(model);renderItemAnalyticsAlertsRecommendations(model);renderItemAnalyticsAuditTrail(model);renderItemAnalyticsComparisonTable(model);renderItemAnalyticsExportTable(model);
 }
 async function loadItemAnalyticsReport(options={}){
+  if(!window.PermissionRuntime?.any('reports.item_analytics.view')) return;
   if(!WarehouseDB?.ready) return;fillReportFilters();itemAnalyticsSyncFilterVisibility(ITEM_ANALYTICS_TAB);await ensureReportDefaultDates(options);await fillItemAnalyticsItemFilter({keepSelection:true});
   const filters=getItemAnalyticsFilters();const error=itemAnalyticsValidateFilters(filters);if(error){itemAnalyticsSetEmpty(error);return;}
   itemAnalyticsShowResults();const meta=$('#itemAnalyticsMeta');if(meta)meta.textContent='جاري تحميل تحليلات الأصناف...';
@@ -8264,7 +8262,8 @@ function renderWarehousesReportTables(warehouses,summary){
   const exp=$('#warehousesReportExportTable'); if(exp) exp.innerHTML=headers+`<tbody>${warehouses.map((w,i)=>{const pct=summary.sales?Math.abs(w.sales||0)/Math.abs(summary.sales)*100:0;return `<tr><td>${i+1}</td><td>${escapeHtml(w.code)}</td><td>${escapeHtml(w.name)}</td><td>${escapeHtml(w.plant)}</td><td>${fmt(w.sales)}</td><td>${fmt(w.production)}</td><td>${fmt(w.outgoing)}</td><td>${fmt(w.incoming)}</td><td>${fmt(w.loading)}</td><td>${fmt(pct)}%</td></tr>`;}).join('')}</tbody>`;
 }
 async function loadWarehousesReport(options={}){
-  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
+  if(!window.PermissionRuntime?.any('reports.warehouses.view')) return;
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.warehouses.view');
   let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:true,orderBy:'warehouse_code'}); }catch(error){console.warn('warehouses report load error',error);return;} const map={}, summary={sales:0,production:0,outgoing:0,incoming:0,loading:0};
   (data||[]).forEach(r=>{const code=String(r.warehouse_code||'').toUpperCase()||'-'; const meta=dashboardWhMeta(code); const plant=r.plant_code||meta.plant||'-'; if(!map[code]) map[code]={code,name:meta.name||r.warehouse_name||'-',plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0}; const w=map[code]; const sales=toNumber(r.sales_quantity),prod=toNumber(r.production_quantity),out=toNumber(r.outgoing_transfer_quantity),inc=toNumber(r.incoming_transfer_quantity),load=toNumber(r.total_loading_quantity); w.sales+=sales;w.production+=prod;w.outgoing+=out;w.incoming+=inc;w.loading+=load;w.totalActivity+=Math.abs(sales)+Math.abs(prod)+Math.abs(out)+Math.abs(inc)+Math.abs(load); summary.sales+=sales;summary.production+=prod;summary.outgoing+=out;summary.incoming+=inc;summary.loading+=load;});
   const warehouses=Object.values(map).sort((a,b)=>(b.totalActivity||0)-(a.totalActivity||0));
@@ -8413,7 +8412,8 @@ function renderExceptionsTables(exceptions){
   const count=$('#exceptionsReportCount'); if(count) count.textContent=`عدد الاستثناءات: ${exceptions.length}`;
 }
 async function loadExceptionsReport(options={}){
-  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
+  if(!window.PermissionRuntime?.any('reports.exceptions.view')) return;
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.exceptions.view');
   let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:false}); }catch(error){console.warn('exceptions report load error',error);return;}
   const items=buildSalesAuditItemMap(data||[]), exceptions=flattenExceptions(items);
   const summary={total:exceptions.length,high:exceptions.filter(e=>e.severity==='high').length,medium:exceptions.filter(e=>e.severity==='medium').length,items:new Set(exceptions.map(e=>e.code)).size,maxGap:0,byType:{}};
@@ -9082,7 +9082,8 @@ function renderSmartExportTable(model){
   tbl.innerHTML=`<thead><tr><th>النوع</th><th>#</th><th>الكود</th><th>البيان</th><th>المؤشر</th><th>القيمة</th></tr></thead><tbody><tr><td>ملخص</td><td>-</td><td>الصحة العامة للمراجعة</td><td>-</td><td>${escapeHtml(model.auditScores?.status?.label||'')}</td><td>${Math.round(model.auditScores?.overall||0)}%</td></tr><tr><td>ملخص</td><td>-</td><td>إجمالي البيع</td><td>-</td><td>طن</td><td>${fmt(model.stats.salesQty)}</td></tr><tr><td>ملخص</td><td>-</td><td>إجمالي الإنتاج</td><td>-</td><td>طن</td><td>${fmt(model.stats.productionQty)}</td></tr>${scoreRows}${topRows}</tbody>`;
 }
 async function loadSmartAnalyticsReport(options={}){
-  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
+  if(!window.PermissionRuntime?.any('reports.smart.view')) return;
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.smart.view');
   let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:true}); }catch(error){console.warn('smart analytics load error',error);return;}
   const model=buildSmartAnalyticsModel(data||[],filters);
   SMART_ANALYTICS_STATE=model;
@@ -9209,7 +9210,8 @@ function renderProductionExportTable(model){
   tbl.innerHTML=`<thead><tr><th>النوع</th><th>#</th><th>الكود</th><th>البيان</th><th>الإنتاج</th><th>النسبة</th></tr></thead><tbody><tr><td>إجمالي</td><td>-</td><td>-</td><td>إجمالي إنتاج المصانع</td><td>${fmt(model.summary?.total||0)}</td><td>100%</td></tr>${plantRows}${productRows}</tbody>`;
 }
 async function loadProductionAnalyticsReport(options={}){
-  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
+  if(!window.PermissionRuntime?.any('reports.production.view')) return;
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.production.view');
   let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:true}); }catch(error){console.warn('production analytics load error',error);return;}
   const model=buildProductionAnalyticsModel(data||[],filters); PRODUCTION_ANALYTICS_STATE=model;
   if($('#productionAnalyticsMeta')) $('#productionAnalyticsMeta').textContent=reportFilterLabel(filters);
@@ -9256,13 +9258,14 @@ function renderSalesTotalsReport(groups,filters){
   if($('#salesTotalsReportMeta')) $('#salesTotalsReportMeta').textContent=`الفترة: ${formatDisplayDate(filters.from,'--')} → ${formatDisplayDate(filters.to,'--')} `;
 }
 async function loadSalesTotalsReport(options={}){
+  if(!window.PermissionRuntime?.any('reports.sales_totals.view')) return;
   if(!WarehouseDB?.ready) return;
   const reportPerfStart=salesPerfNow();
   const reportPerfLabel='loadSalesTotalsReport';
   console.time(reportPerfLabel);
   fillReportFilters();
   await ensureReportDefaultDates(options);
-  const filters=getReportFilters();
+  const filters=getReportFilters('reports.sales_totals.view');
   let rows=[];
   try{ rows=await fetchUnifiedSalesRows(filters,{ascending:true}); }catch(error){ console.warn('sales totals report load error',error); return; }
   const catalog=await loadSalesReviewCatalog();
@@ -9329,6 +9332,8 @@ function initMobileReportsUI(){
   });
 }
 function switchReportTab(tab){
+  const key='reports.'+(tab==='salesTotals'?'sales_totals':tab)+'.view';
+  if(!window.PermissionRuntime?.any(key)) return;
   ACTIVE_REPORT_TAB=tab;
   itemAnalyticsSyncFilterVisibility(tab);
   syncMobileReportsDropdown(tab);
@@ -9899,7 +9904,8 @@ async function exportActiveReportVisualPdf(){
 }
 
 async function loadExecutiveReport(options={}){
-  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
+  if(!window.PermissionRuntime?.any('reports.executive.view')) return;
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.executive.view');
   let rows=[]; try{ rows=await fetchAllSalesAuditRows(filters,{ascending:false}); }catch(error){console.warn('executive report load error',error);return;}
   const stats={salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0}; const daily={}, productMap={}, whMap={}, whSalesMap={}, plantStats={}; getPlantsCatalog().forEach(p=>plantStats[p.code]={sales:0,production:0,outgoing:0,incoming:0,loading:0});
   rows.forEach(r=>{const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0}; const wh=String(r.warehouse_code||'').toUpperCase(); const meta=dashboardWhMeta(wh); const plant=r.plant_code||meta.plant||'غير محدد'; if(!plantStats[plant]) plantStats[plant]={sales:0,production:0,outgoing:0,incoming:0,loading:0}; const sales=toNumber(r.sales_quantity), prod=toNumber(r.production_quantity), out=toNumber(r.outgoing_transfer_quantity), inc=toNumber(r.incoming_transfer_quantity), load=toNumber(r.total_loading_quantity); stats.salesQty+=sales;stats.productionQty+=prod;stats.outgoingTransferQty+=out;stats.incomingTransferQty+=inc;stats.totalLoadingQty+=load; daily[d].sales+=Math.abs(sales);daily[d].production+=Math.abs(prod);daily[d].outgoing+=Math.abs(out);daily[d].incoming+=Math.abs(inc); plantStats[plant].sales+=sales;plantStats[plant].production+=prod;plantStats[plant].outgoing+=out;plantStats[plant].incoming+=inc;plantStats[plant].loading+=load; if(sales) whSalesMap[wh]=(whSalesMap[wh]||0)+Math.abs(sales); const pk=String(r.material_code||r.material_name||'غير محدد'); if(!productMap[pk]) productMap[pk]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0}; productMap[pk].sales+=sales;productMap[pk].production+=prod;productMap[pk].outgoing+=out;productMap[pk].incoming+=inc;productMap[pk].loading+=load; if(!whMap[wh]) whMap[wh]={code:wh,name:meta.name||r.warehouse_name||'-',plant:plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0}; whMap[wh].sales+=sales;whMap[wh].production+=prod;whMap[wh].outgoing+=out;whMap[wh].incoming+=inc;whMap[wh].loading+=load;whMap[wh].totalActivity+=Math.abs(sales)+Math.abs(prod)+Math.abs(out)+Math.abs(inc)+Math.abs(load);});
@@ -10250,7 +10256,7 @@ function inventoryCountRejectNegativeManualValue(input,label,updateWidth){
 function updateInventoryDifferenceSnapshotButton(){
   const btn=$('#createInventoryDifferenceSnapshotBtn');
   if(!btn) return;
-  const canAdd=hasPermission('inventory_count','add');
+  const canAdd=hasCanonicalPermission('inventory.count.differences.create');
   const busy=!!INVENTORY_COUNT_STATE.loading || !!INVENTORY_COUNT_STATE.creating || !!INVENTORY_COUNT_STATE.snapshotCreating || !!INVENTORY_COUNT_STATE.finalizing;
   const ready=!!INVENTORY_COUNT_STATE.documentId && !!INVENTORY_COUNT_STATE.versionId && (INVENTORY_COUNT_STATE.lines || []).length > 0 && INVENTORY_COUNT_STATE.documentStatus !== 'archived';
   const phaseLocked=inventoryCountSettlementPhaseStarted();
@@ -10269,7 +10275,7 @@ function inventoryCountUnresolvedVarianceCount(){
 function updateInventoryCountFinalizationControls(){
   const finishBtn=$('#finishInventoryCountBtn');
   const invoiceBtn=$('#inventoryCountPostCloseInvoiceBtn');
-  const canEdit=hasPermission('inventory_count','edit');
+  const canEdit=hasCanonicalPermission('inventory.count.finish');
   const finalized=inventoryCountIsFinalized();
   const hasVersion=!!INVENTORY_COUNT_STATE.documentId && !!INVENTORY_COUNT_STATE.versionId && (INVENTORY_COUNT_STATE.lines || []).length>0;
   const unresolved=inventoryCountUnresolvedVarianceCount();
@@ -10285,17 +10291,17 @@ function updateInventoryCountFinalizationControls(){
           : (unresolved>0 ? `لا يمكن إنهاء الجرد قبل تسوية جميع الفروق. عدد الأصناف المتبقية: ${unresolved}` : 'إنهاء مستند الجرد نهائيًا وقفل جميع الخانات.')));
   }
   if(invoiceBtn){
-    invoiceBtn.disabled=busy || !canEdit || !hasVersion || !finalized;
-    invoiceBtn.classList.toggle('permission-disabled',!canEdit || !hasVersion || !finalized);
+    invoiceBtn.disabled=busy || !hasCanonicalPermission('inventory.count.post_close_adjust') || !hasVersion || !finalized;
+    invoiceBtn.classList.toggle('permission-disabled',!hasCanonicalPermission('inventory.count.post_close_adjust') || !hasVersion || !finalized);
     invoiceBtn.title=finalized
-      ? (canEdit ? 'إضافة تعديل بيع أو تحويل أو إنتاج بعد إنهاء الجرد.' : 'لا تملك صلاحية تعديل مستند الجرد.')
+      ? (hasCanonicalPermission('inventory.count.post_close_adjust') ? 'إضافة تعديل بيع أو تحويل أو إنتاج بعد إنهاء الجرد.' : 'لا تملك صلاحية تعديل مستند الجرد.')
       : 'يصبح هذا الزر متاحًا بعد إنهاء الجرد.';
   }
 }
 function inventoryCountUpdateCreateButton(){
   const btn=$('#createInventoryCountBtn');
   if(!btn) return;
-  const canAdd=hasPermission('inventory_count','add');
+  const canAdd=hasCanonicalPermission('inventory.count.create');
   const busy=!!INVENTORY_COUNT_STATE.loading || !!INVENTORY_COUNT_STATE.creating;
   const hasCurrent=!!INVENTORY_COUNT_STATE.versionId || INVENTORY_COUNT_STATE.status==='found';
   const blocked=INVENTORY_COUNT_STATE.status==='no_current_version';
@@ -10718,6 +10724,7 @@ function renderInventoryCountLineAuditHistory(modal,data){
   });
 }
 async function loadInventoryCountLineAuditHistory(lineId,versionId,modal){
+  if(!hasCanonicalPermission('inventory.count.line.audit_history')) return;
   const seq=++INVENTORY_COUNT_STATE.auditHistoryRequestSeq;INVENTORY_COUNT_STATE.auditHistoryLineId=String(lineId || '');INVENTORY_COUNT_STATE.auditHistoryVersionId=String(versionId || '');
   const status=modal?.querySelector('.inventory-review-history-status');const timeline=modal?.querySelector('.inventory-review-timeline');if(status){status.textContent='جاري تحميل سجل الصنف...';status.classList.remove('is-error');}timeline?.replaceChildren();
   try{
@@ -12610,7 +12617,7 @@ function inventoryCountSettlementModalValidation(modal){
   else if(!inventorySettlementSnapshotMatchesLine(row,contextLine)) status='snapshot_stale';
   else if(contextLine.physical_balance===null || contextLine.physical_balance===undefined) status='physical_balance_required';
   else if(Math.abs(normalizeInventorySettlementNumber(row.inventory_variance))<0.0005) status='zero_variance';
-  else if(!hasPermission('inventory_count','edit')) status='permission_denied';
+  else if(!hasCanonicalPermission('inventory.count.line.review')) status='permission_denied';
   else if(inventoryCountLineHasActiveSave(lineId) && !INVENTORY_COUNT_STATE.settlementSaving.has(lineId)) status='row_version_conflict';
   else if(!getInventorySettlementReason(reasonCode)) status='invalid_reason';
   else if(requiresQ && (rawQ===null || rawQ===undefined || String(rawQ).trim()==='')) status='correction_quantity_required';
@@ -12675,7 +12682,7 @@ function openInventoryCountSettlementModalFromButton(button){
     return;
   }
   if(Math.abs(normalizeInventorySettlementNumber(row.inventory_variance))<0.0005) return;
-  if(!hasPermission('inventory_count','edit')){
+  if(!hasCanonicalPermission('inventory.count.line.review')){
     showInventoryCountToast('لا تملك صلاحية تعديل مستند الجرد.','error');
     return;
   }
@@ -12728,6 +12735,7 @@ function inventorySettlementStatusFromError(err){
   return statuses.find(status=>message.includes(status)) || '';
 }
 async function submitInventoryCountSettlement(){
+  if(!hasCanonicalPermission('inventory.count.line.review')) return;
   const modal=$('#inventorySettlementModal');
   if(!modal) return;
   const validation=syncInventoryCountSettlementModal(modal);
@@ -12925,7 +12933,7 @@ function openInventoryCountSettlementReversalModalFromButton(button){
   const contextLine=inventorySettlementContextLine(lineId);
   if(!row || !contextLine || String(contextLine.active_settlement_id || contextLine.settlement_id || '')!==settlementId) return;
   if(inventoryCountLineHasActiveSave(lineId)){showInventoryCountToast('انتظر اكتمال حفظ بيانات الصنف.','warning');return;}
-  if(!hasPermission('inventory_count','edit')){showInventoryCountToast('لا تملك صلاحية تعديل مستند الجرد.','error');return;}
+  if(!hasCanonicalPermission('inventory.count.line.review')){showInventoryCountToast('لا تملك صلاحية تعديل مستند الجرد.','error');return;}
   const modal=ensureInventoryCountSettlementReversalModal();
   modal._inventorySettlementReversalReturnFocus=button;
   modal.dataset.serverError='';
@@ -13020,6 +13028,7 @@ function inventorySettlementReversalStatusFromError(err){
   return statuses.find(status=>message.includes(status)) || '';
 }
 async function submitInventoryCountSettlementReversal(){
+  if(!hasCanonicalPermission('inventory.count.line.review')) return;
   const modal=$('#inventorySettlementReversalModal');
   const validation=syncInventoryCountSettlementReversalModal(modal);
   if(!modal || !validation?.valid) return;
@@ -13076,7 +13085,7 @@ function renderInventorySettlementCell(row){
     const rawLineId=String(row?.id || '');
     const lineId=escapeHtml(rawLineId);
     const settlementId=escapeHtml(String(contextLine.active_settlement_id || contextLine.settlement_id || ''));
-    if(!hasPermission('inventory_count','edit') || contextLine.can_reverse===false){
+    if(!hasCanonicalPermission('inventory.count.line.review') || contextLine.can_reverse===false){
       return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-reverse-btn" type="button" disabled title="لا تملك صلاحية تعديل مستند الجرد.">تراجع</button></td>';
     }
     if(INVENTORY_COUNT_STATE.reversalSaving instanceof Set && INVENTORY_COUNT_STATE.reversalSaving.has(rawLineId)){
@@ -13120,7 +13129,7 @@ function renderInventorySettlementCell(row){
   if(Math.abs(variance)<0.0005){
     return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn" type="button" disabled title="لا يوجد فرق جرد يحتاج إلى تسوية.">تسوية الجرد</button></td>';
   }
-  if(!hasPermission('inventory_count','edit') || contextLine.can_settle===false){
+  if(!hasCanonicalPermission('inventory.count.line.review') || contextLine.can_settle===false){
     return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn" type="button" disabled title="لا تملك صلاحية تعديل مستند الجرد أو أن السطر غير صالح للتسوية.">تسوية الجرد</button></td>';
   }
   if(inventoryCountLineHasActiveSave(row?.id)){
@@ -13320,6 +13329,13 @@ function setInventoryCountInputsFromResult(data){
   persistInventoryCountViewState();
 }
 async function openDefaultInventoryCountFromUi(options={}){
+  if(!window.PermissionRuntime?.any('inventory.count.view')) return;
+  if(!window.PermissionRuntime.can('inventory.count.view')){
+    const select=$('#inventoryCountPlantSelect');
+    const plants=window.PermissionRuntime.allowedPlants('inventory.count.view');
+    if(select && !plants.includes(select.value)) {select.value=plants[0];syncInventoryCountWarehouse();}
+    return openExistingInventoryCountFromUi(options);
+  }
   closeInventoryReviewRecommendationsModal({restoreFocus:false});
   clearInventoryCountSettlementContext();
   const {showLoading=false}=options;
@@ -13379,6 +13395,7 @@ async function openDefaultInventoryCountFromUi(options={}){
   }
 }
 async function openExistingInventoryCountFromUi(options={}){
+  if(!hasCanonicalPermission('inventory.count.view')){resetInventoryCountView('لا تملك صلاحية عرض المصنع المحدد.');return;}
   closeInventoryReviewRecommendationsModal({restoreFocus:false});
   clearInventoryCountSettlementContext();
   const {showLoading=false}=options;
@@ -13470,7 +13487,7 @@ async function createInventoryCountFromUi(){
   if(INVENTORY_COUNT_STATE.creating || INVENTORY_COUNT_STATE.loading) return;
   if(INVENTORY_COUNT_STATE.versionId || INVENTORY_COUNT_STATE.status==='found') return;
   if(INVENTORY_COUNT_STATE.status==='no_current_version') return;
-  if(!hasPermission('inventory_count','add')){
+  if(!hasCanonicalPermission('inventory.count.create')){
     showInventoryCountToast('غير متاح للصلاحية الحالية','error');
     return;
   }
@@ -13529,6 +13546,7 @@ async function createInventoryCountFromUi(){
   }
 }
 async function saveInventoryOpeningBalanceInput(input){
+  if(!hasCanonicalPermission('inventory.count.line.edit_actual_balance')) return;
   if(inventoryCountBlockManualEditIfSettlementPhaseStarted()) return;
   if(!input || INVENTORY_COUNT_STATE.openingBalanceMode!=='manual_first_day') return;
   const lineId=input.dataset.lineId || '';
@@ -13590,6 +13608,7 @@ async function saveInventoryOpeningBalanceInput(input){
   }
 }
 async function saveInventoryProductionQuantityInput(input){
+  if(!hasCanonicalPermission('inventory.count.line.edit_actual_balance')) return;
   if(inventoryCountBlockManualEditIfSettlementPhaseStarted()) return;
   if(!input) return;
   const lineId=input.dataset.lineId || '';
@@ -13652,6 +13671,7 @@ async function saveInventoryProductionQuantityInput(input){
   }
 }
 async function saveInventoryPhysicalBalanceInput(input){
+  if(!hasCanonicalPermission('inventory.count.line.edit_actual_balance')) return;
   if(inventoryCountBlockManualEditIfSettlementPhaseStarted()) return;
   if(!input) return;
   const lineId=input.dataset.lineId || '';
@@ -13714,6 +13734,7 @@ async function saveInventoryPhysicalBalanceInput(input){
   }
 }
 async function saveInventoryOldestQuantityInput(input){
+  if(!hasCanonicalPermission('inventory.count.line.edit_actual_balance')) return;
   if(inventoryCountBlockManualEditIfSettlementPhaseStarted()) return;
   if(!input) return;
   const lineId=input.dataset.lineId || '';
@@ -13774,6 +13795,7 @@ async function saveInventoryOldestQuantityInput(input){
   }
 }
 async function saveInventoryOldestDateInput(input){
+  if(!hasCanonicalPermission('inventory.count.line.edit_actual_balance')) return;
   if(inventoryCountBlockManualEditIfSettlementPhaseStarted()) return;
   if(!input) return;
   const lineId=input.dataset.lineId || '';
@@ -13818,6 +13840,7 @@ async function saveInventoryOldestDateInput(input){
   }
 }
 async function saveInventoryCounterSelect(select){
+  if(!hasCanonicalPermission('inventory.count.line.edit_actual_balance')) return;
   if(inventoryCountBlockManualEditIfSettlementPhaseStarted()) return;
   if(!select) return;
   const lineId=select.dataset.lineId || '';
@@ -14404,7 +14427,7 @@ function renderInventoryDifferenceLines(lines=[]){
       '<td>'+formatInventoryManualThreeDecimal(total('oldest_quantity'))+'</td><td></td><td></td></tr>';
   }
 }
-async function loadInventoryDifferenceSnapshot(snapshotId=null){
+async function loadInventoryDifferenceSnapshot(snapshotId=null,permissionKey='inventory.differences.document.view_current'){
   const requestedSnapshotId=String(snapshotId||'').trim();
   if(!requestedSnapshotId){
     ++INVENTORY_DIFFERENCE_STATE.requestSeq;
@@ -14431,6 +14454,7 @@ async function loadInventoryDifferenceSnapshot(snapshotId=null){
       return;
     }
     const header=data.header || {};
+    if(!window.PermissionRuntime?.can(permissionKey,header.plant_code || [])){inventoryDifferenceShowEmpty('لا تملك صلاحية عرض المصنع المحدد.');return;}
     const returnedSnapshotId=String(header.snapshot_id||'').trim();
     if(!returnedSnapshotId || returnedSnapshotId.toLowerCase()!==requestedSnapshotId.toLowerCase()){
       INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=null;
@@ -14489,6 +14513,7 @@ function renderInventoryDifferenceHistory(rows=[]){
   }).join('');
 }
 async function loadInventoryDifferenceHistory(sourceVersionId){
+  if(!hasCanonicalPermission('inventory.differences.document.view_replaced')) return;
   const requestedSourceVersionId=String(sourceVersionId||'').trim();
   if(!requestedSourceVersionId) return;
   if(!WarehouseDB?.ready){ showInventoryCountToast('قاعدة البيانات غير متصلة.','error'); return; }
@@ -14520,6 +14545,7 @@ async function loadInventoryDifferenceHistory(sourceVersionId){
   }
 }
 async function loadInventoryDifferenceScreen(options={}){
+  if(!window.PermissionRuntime?.any('inventory.differences.view')) return;
   const listRequestSeq=++INVENTORY_DIFFERENCE_STATE.listRequestSeq;
   ++INVENTORY_DIFFERENCE_STATE.requestSeq;
   INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=null;
@@ -14534,7 +14560,7 @@ async function loadInventoryDifferenceScreen(options={}){
     const {data,error}=await WarehouseDB.client.rpc('list_inventory_difference_snapshots');
     if(error) throw error;
     if(listRequestSeq!==INVENTORY_DIFFERENCE_STATE.listRequestSeq) return [];
-    const rows=Array.isArray(data) ? data : [];
+    const rows=(Array.isArray(data) ? data : []).filter(row=>window.PermissionRuntime?.can('inventory.differences.view',row.plant_code || []));
     INVENTORY_DIFFERENCE_STATE.snapshots=rows;
     const preferredSnapshotId=String(options.preferredSnapshotId||'').trim();
     const preferredPlantCode=String(options.preferredPlantCode||'').trim().toUpperCase();
@@ -14629,6 +14655,7 @@ function syncInventoryDifferenceReplaceReason(){
   if(submit) submit.disabled=value.trim().length<5 || value.length>500 || INVENTORY_DIFFERENCE_STATE.replacing;
 }
 async function submitInventoryDifferenceReplacement(){
+  if(!hasCanonicalPermission('inventory.differences.document.replace')) return;
   const modal=ensureInventoryDifferenceReplaceModal();
   const reason=String(modal.querySelector('#inventoryDifferenceReplaceReason')?.value || '').trim();
   if(reason.length<5){ showInventoryCountToast('سبب الاستبدال مطلوب.','warning',6000); return; }
@@ -14661,7 +14688,7 @@ async function submitInventoryDifferenceReplacement(){
 async function createInventoryDifferenceSnapshotFromUi(){
   if(!WarehouseDB?.ready){ showInventoryCountToast('قاعدة البيانات غير متصلة.','error'); return; }
   if(inventoryCountSettlementPhaseStarted()){ showInventoryCountToast(inventoryCountSettlementPhaseLockMessage(),'warning',6000); return; }
-  if(!hasPermission('inventory_count','add')){ showInventoryCountToast('غير متاح للصلاحية الحالية','error'); return; }
+  if(!hasCanonicalPermission('inventory.count.differences.create')){ showInventoryCountToast('غير متاح للصلاحية الحالية','error'); return; }
   if(!INVENTORY_COUNT_STATE.versionId || !(INVENTORY_COUNT_STATE.lines || []).length){ showInventoryCountToast('افتح مستند جرد يحتوي على أصناف أولًا','warning'); return; }
   if(INVENTORY_COUNT_STATE.snapshotCreating) return;
   INVENTORY_COUNT_STATE.snapshotCreating=true;
@@ -14804,7 +14831,7 @@ async function finishInventoryCountFromUi(){
     showInventoryCountToast('افتح مستند جرد أولاً.','warning');
     return;
   }
-  if(!hasPermission('inventory_count','edit')){
+  if(!hasCanonicalPermission('inventory.count.finish')){
     showInventoryCountToast('لا تملك صلاحية إنهاء مستند الجرد.','error');
     return;
   }
@@ -15146,7 +15173,7 @@ function openInventoryCountPostCloseInvoiceModal(){
     showInventoryCountToast('يجب إنهاء مستند الجرد أولاً.','warning');
     return;
   }
-  if(!hasPermission('inventory_count','edit')){
+  if(!hasCanonicalPermission('inventory.count.post_close_adjust')){
     showInventoryCountToast('لا تملك صلاحية تنفيذ تعديلات ما بعد إنهاء الجرد.','error');
     return;
   }
@@ -15225,6 +15252,7 @@ function openInventoryCountPostCloseInvoiceModal(){
   requestAnimationFrame(()=>modal.querySelector('[data-post-close-panel="sales"] [data-post-close-code]')?.focus({preventScroll:true}));
 }
 async function submitInventoryCountPostCloseAdjustments(modal){
+  if(!hasCanonicalPermission('inventory.count.post_close_adjust')) return;
   if(!modal || INVENTORY_COUNT_STATE.postCloseInvoiceSaving) return;
   syncInventoryCountPostCloseInvoiceModal(modal);
   const collection=modal._postCloseCollection || inventoryCountPostCloseCollectItems(modal);
@@ -16085,6 +16113,7 @@ async function ensureStorekeepersLoaded() {
 }
 
 async function loadStorekeepersTable() {
+  if(!window.PermissionRuntime?.can('settings.storekeepers.view')) return;
   const tbody = document.querySelector('#storekeepersSettingsTable tbody');
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري التحميل...</td></tr>';
@@ -16584,10 +16613,10 @@ function syncDepartmentStatusBlockingField(){
 }
 
 function canAddDepartmentCodingSettings(){
-  return hasPermission('settings','add') || hasPermission('settings','manage');
+  return hasCanonicalPermission(($('#settingsDepartmentStatusCodesPanel')?.classList.contains('active') ? 'settings.department_status_codes' : 'settings.department_personnel')+'.create');
 }
 function canEditDepartmentCodingSettings(){
-  return hasPermission('settings','edit') || hasPermission('settings','manage');
+  return hasCanonicalPermission(($('#settingsDepartmentStatusCodesPanel')?.classList.contains('active') ? 'settings.department_status_codes' : 'settings.department_personnel')+'.edit');
 }
 function setDepartmentPersonnelStatus(message,type=''){
   const status=$('#departmentPersonnelStatus');
@@ -16675,6 +16704,7 @@ function renderDepartmentPersonnelTable(rows=[]){
   applyDepartmentPersonnelPermissions();
 }
 async function loadDepartmentPersonnelTable(options={}){
+  if(!window.PermissionRuntime?.can('settings.department_personnel.view')) return;
   const tbody=$('#departmentPersonnelTable tbody');
   if(!tbody) return false;
   if(!WarehouseDB?.ready){
@@ -16870,6 +16900,7 @@ function renderDepartmentStatusCodesTable(rows=[]){
   applyDepartmentStatusCodesPermissions();
 }
 async function loadDepartmentStatusCodesTable(options={}){
+  if(!window.PermissionRuntime?.can('settings.department_status_codes.view')) return;
   const tbody=$('#departmentStatusCodesTable tbody');
   if(!tbody) return false;
   if(!WarehouseDB?.ready){
