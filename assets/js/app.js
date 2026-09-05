@@ -6392,11 +6392,65 @@ const SYSTEM_OWNER_EMAILS=new Set(['ahmed.alaa842001@gmail.com']);
 function isSystemOwnerEmail(email){ return SYSTEM_OWNER_EMAILS.has(String(email||'').trim().toLowerCase()); }
 let USERS_MANAGEMENT_ROWS=[];
 let USERS_MANAGEMENT_VIEW=[];
+let USERS_ROLE_CATALOG=null;
+let USERS_LOAD_GENERATION=0;
+let USERS_SAVE_BUSY=false;
+let USERS_PENDING_AUTH=null;
+let USERS_EDIT_DRAFT=null;
+function managedPermissionRole(user){
+  return USERS_ROLE_CATALOG?.roles.find(role=>role.id===user?.permission_role_id);
+}
+function managedRoleKey(user){ return managedPermissionRole(user)?.role_key || 'unassigned'; }
+function managedRoleLabel(user){ return managedPermissionRole(user)?.role_name || 'غير معيّن'; }
+function setManagedUserLocks(){
+  const ready=!!USERS_ROLE_CATALOG && USERS_ROLE_CATALOG.user_id===window.PermissionRuntime?.userId();
+  const current=USERS_EDIT_DRAFT?.id===$('#managedUserId')?.value ? USERS_EDIT_DRAFT : null;
+  const owner=current?.role==='super_admin';
+  const selected=USERS_ROLE_CATALOG?.roles.find(role=>role.id===$('#managedUserPermissionRole')?.value);
+  const assign=ready && USERS_ROLE_CATALOG.can_assign;
+  $('#userManagementForm')?.querySelectorAll('input,select,button').forEach(el=>{
+    if(el.id!=='cancelUserModalBtn') el.disabled=USERS_SAVE_BUSY || !ready;
+  });
+  if($('#managedUserEmail')) $('#managedUserEmail').disabled=USERS_SAVE_BUSY || !ready || !!current || !!USERS_PENDING_AUTH;
+  if($('#managedUserPassword')) $('#managedUserPassword').disabled=USERS_SAVE_BUSY || !ready || !!current || !!USERS_PENDING_AUTH;
+  if($('#managedUserPermissionRole')) $('#managedUserPermissionRole').disabled=USERS_SAVE_BUSY || !ready || !assign || owner || !!current?.is_current;
+  if($('#managedUserRole')) $('#managedUserRole').disabled=USERS_SAVE_BUSY || !ready || owner || !!current?.is_current
+    || (assign && !!selected?.is_system) || (!!current && selected && !selected.is_system);
+  if($('#managedUserActive')) $('#managedUserActive').disabled=USERS_SAVE_BUSY || !ready || owner || !!current?.is_current;
+  document.querySelectorAll('.users-open-create').forEach(el=>{el.disabled=USERS_SAVE_BUSY || !ready;});
+}
+function fillManagedRoleOptions(user=null){
+  const select=$('#managedUserPermissionRole');
+  if(!select) return;
+  const roles=USERS_ROLE_CATALOG?.roles||[];
+  select.innerHTML='<option value="">اختر دور الصلاحيات</option>'+roles.filter(role=>(role.is_active && !role.is_super_admin && role.role_key!=='super_admin') || role.id===user?.permission_role_id)
+    .map(role=>`<option value="${escapeHtml(role.id)}" ${!role.is_active || role.bundle_count<1 ? 'disabled' : ''}>${escapeHtml(role.role_name)} (${escapeHtml(role.role_key)})${!role.is_active?' — غير نشط':''}</option>`).join('');
+  select.value=user?.permission_role_id || roles.find(role=>role.role_key==='viewer' && role.is_active)?.id || '';
+  if(user?.role==='super_admin'){
+    const legacy=$('#managedUserRole');
+    if(legacy && ![...legacy.options].some(o=>o.value==='super_admin')) legacy.add(new Option('منشئ النظام','super_admin'));
+    if(legacy) legacy.value='super_admin';
+  }
+  setManagedUserLocks();
+}
+function handleManagedRoleChange(){
+  const selected=USERS_ROLE_CATALOG?.roles.find(role=>role.id===$('#managedUserPermissionRole')?.value);
+  const current=USERS_EDIT_DRAFT?.id===$('#managedUserId')?.value ? USERS_EDIT_DRAFT : null;
+  const legacy=$('#managedUserRole');
+  if(legacy && selected){
+    if(selected.is_system && USER_ROLE_CREATE_VALUES.has(selected.role_key)) legacy.value=selected.role_key;
+    else if(current) legacy.value=current.role;
+  }
+  setManagedUserLocks();
+}
+
 function setUsersStatus(message,type=''){
-  const el=$('#userManagementStatus');
-  if(!el) return;
-  el.className='upload-status users-status-bar '+(type||'');
-  el.textContent=message||'';
+  ['#userManagementStatus','#managedUserFormStatus'].forEach(selector=>{
+    const el=$(selector);
+    if(!el) return;
+    el.className='upload-status users-status-bar '+(type||'');
+    el.textContent=message||'';
+  });
 }
 function roleLabel(role){ return USER_ROLE_LABELS[role] || role || 'Viewer'; }
 function userInitial(name,email){ return String((name||email||'م').trim()).charAt(0).toUpperCase() || 'م'; }
@@ -6411,6 +6465,7 @@ function normalizeManagedUser(row){
     job_title: row?.job_title || '',
     phone: row?.phone || '',
     role: row?.role || 'viewer',
+    permission_role_id: row?.permission_role_id || null,
     is_active: row?.is_active !== false,
     avatar_url: row?.avatar_url || '',
     created_at: row?.created_at || '',
@@ -6419,53 +6474,10 @@ function normalizeManagedUser(row){
     is_fallback: !!row?.is_fallback
   };
 }
-async function ensureCurrentUserProfileFallback(rows){
-  let list=(rows||[]).map(normalizeManagedUser);
-  try{
-    const {data:userData}=await WarehouseDB.getUser();
-    const user=userData?.user;
-    if(!user?.id) return list;
-    const exists=list.some(u=>String(u.id)===String(user.id));
-    if(exists){
-      list=list.map(u=>String(u.id)===String(user.id)?{...u,is_current:true}:u);
-      return list;
-    }
-    const profile=CURRENT_APP_PROFILE || {};
-    const fallback=normalizeManagedUser({
-      id:user.id,
-      email:user.email,
-      full_name:profile.full_name || user.user_metadata?.full_name || user.email,
-      job_title:profile.job_title || profile.position || '',
-      phone:profile.phone || '',
-      avatar_url:profile.avatar_url || '',
-      role:profile.role || (isSystemOwnerEmail(user.email) ? 'super_admin' : 'authenticated'),
-      is_active:true,
-      created_at:user.created_at || new Date().toISOString(),
-      updated_at:new Date().toISOString(),
-      is_current:true,
-      is_fallback:true
-    });
-    list.unshift(fallback);
-    // Best effort sync so the current authenticated user appears later from app_users too.
-    try{
-      await WarehouseDB.client.from('app_users').upsert({
-        id:user.id,
-        email:user.email,
-        full_name:fallback.full_name || user.email,
-        job_title:fallback.job_title,
-        phone:fallback.phone,
-        role:isSystemOwnerEmail(user.email) ? 'super_admin' : (fallback.role==='authenticated'?'viewer':fallback.role),
-        is_active:true,
-        updated_at:new Date().toISOString()
-      },{onConflict:'id'});
-    }catch(syncErr){ console.warn('Current profile sync skipped',syncErr); }
-  }catch(err){ console.warn('Unable to merge current user',err); }
-  return list;
-}
 function usersKpiUpdate(rows){
   const total=rows.length;
   const active=rows.filter(u=>u.is_active).length;
-  const count=role=>rows.filter(u=>u.role===role).length;
+  const count=role=>rows.filter(u=>managedRoleKey(u)===role).length;
   const set=(id,val)=>{ const el=$(id); if(el) el.textContent=val; };
   set('#usersTotalCount',total);
   set('#usersActiveCount',active);
@@ -6485,8 +6497,8 @@ function currentUsersFilters(){
 function applyUsersFilters(){
   const f=currentUsersFilters();
   USERS_MANAGEMENT_VIEW=USERS_MANAGEMENT_ROWS.filter(u=>{
-    const hay=[u.full_name,u.email,u.job_title,u.phone,roleLabel(u.role)].join(' ').toLowerCase();
-    const roleOk=enterpriseFilterIsAll(f.role) || enterpriseFilterMatches(f.role,u.role) || (enterpriseFilterActiveValues(f.role).includes('viewer') && u.role==='authenticated');
+    const hay=[u.full_name,u.email,u.job_title,u.phone,managedRoleLabel(u),managedRoleKey(u)].join(' ').toLowerCase();
+    const roleOk=enterpriseFilterIsAll(f.role) || enterpriseFilterMatches(f.role,managedRoleKey(u));
     const statusOk=enterpriseFilterIsAll(f.status) || (enterpriseFilterActiveValues(f.status).includes('active') && u.is_active) || (enterpriseFilterActiveValues(f.status).includes('inactive') && !u.is_active);
     return (!f.q || hay.includes(f.q)) && roleOk && statusOk;
   });
@@ -6500,7 +6512,7 @@ function renderUsersManagementTableBody(rows){
     return;
   }
   tbody.innerHTML=rows.map((u,i)=>{
-    const isSuper=u.role==='super_admin';
+    const isSuper=u.role==='super_admin' || managedPermissionRole(u)?.is_super_admin;
     const roleClass=(u.role||'viewer').replace(/[^a-z_]/g,'');
     const canToggle=!isSuper && !u.is_current;
     const canEdit=!isSuper || u.is_current;
@@ -6512,7 +6524,7 @@ function renderUsersManagementTableBody(rows){
       <td>${escapeHtml(u.job_title||'--')}</td>
       <td class="ltr-cell">${escapeHtml(u.email||'غير مخزن')}</td>
       <td class="ltr-cell">${escapeHtml(u.phone||'--')}</td>
-      <td><span class="role-badge role-${roleClass}">${escapeHtml(roleLabel(u.role))}</span></td>
+      <td><span class="role-badge role-${roleClass}">${escapeHtml(managedRoleLabel(u))}</span></td>
       <td><span class="status-pill ${u.is_active?'ok':'danger'}">${u.is_active?'نشط':'معطل'}</span></td>
       <td>${escapeHtml(userDateText(u.updated_at))}</td>
       <td>
@@ -6541,31 +6553,62 @@ async function selectAppUsersForManagement(){
   ];
   let last=null;
   for(const v of variants){
-    let q=WarehouseDB.client.from('app_users').select(v.select);
-    if(v.order) q=q.order(v.order,{ascending:false});
-    const res=await q;
+    let res;
+    try{ res=await window.AuditPermissionData.readAll(WarehouseDB.client,'app_users',v.select,{order:v.order?[[v.order,false]]:[]}); }
+    catch(error){ res={data:null,error}; }
     if(!res.error) return res;
     last=res;
   }
   return last || {data:[],error:null};
 }
 async function loadUsersManagement(){
-  if(!window.PermissionRuntime?.can('users.view')) return;
-  if(!$('#usersManagementTable')) return;
-  if(!WarehouseDB?.ready){ setUsersStatus('Supabase غير متصل.','err'); return; }
-  setUsersStatus('جاري تحميل المستخدمين...');
-  const {data,error}=await selectAppUsersForManagement();
-  if(error){
-    const merged=await ensureCurrentUserProfileFallback([]);
-    renderUsersManagementTable(merged);
-    setUsersStatus('تعذر تحميل جدول المستخدمين من Supabase: '+(error.message||error)+' — تم عرض المستخدم الحالي مؤقتاً. شغل ملف SQL المحدث لإصلاح سياسات RLS.','err');
-    return;
+  if(!window.PermissionRuntime?.can('users.view') || !$('#usersManagementTable')) return false;
+  const generation=++USERS_LOAD_GENERATION;
+  const actor=window.PermissionRuntime.userId();
+  USERS_ROLE_CATALOG=null;
+  setManagedUserLocks();
+  setUsersStatus('جاري تحميل المستخدمين وأدوار الصلاحيات...');
+  try{
+    if(!WarehouseDB?.ready || !window.AuditPermissionData) throw new Error('ملفات قراءة الصلاحيات أو اتصال Supabase غير جاهزة.');
+    const [profiles,catalog]=await Promise.all([
+      selectAppUsersForManagement(),WarehouseDB.client.rpc('app_permission_p7_user_role_catalog')
+    ]);
+    if(generation!==USERS_LOAD_GENERATION || actor!==window.PermissionRuntime.userId()) return false;
+    if(profiles.error) throw profiles.error;
+    if(catalog.error) throw catalog.error;
+    const data=catalog.data;
+    if(!data || data.contract_version!==1 || data.user_id!==actor || typeof data.can_assign!=='boolean'
+      || !Array.isArray(data.roles) || data.roles.length!==data.role_count
+      || !Array.isArray(data.assignments) || data.assignments.length!==data.assignment_count
+      || new Set(data.roles.map(r=>r.id)).size!==data.roles.length
+      || new Set(data.assignments.map(a=>a.user_id)).size!==data.assignments.length
+      || data.assignments.some(a=>!data.roles.some(r=>r.id===a.role_id))){
+      throw new Error('تعذر التحقق من اكتمال بيانات أدوار المستخدمين.');
+    }
+    USERS_ROLE_CATALOG=data;
+    const assignments=new Map(data.assignments.map(a=>[a.user_id,a.role_id]));
+    const rows=(profiles.data||[]).map(u=>({...u,is_current:u.id===actor,permission_role_id:assignments.get(u.id)||null}));
+    const filter=$('#usersRoleFilter');
+    if(filter){
+      const previous=enterpriseSelectValues('usersRoleFilter');
+      filter.innerHTML='<option value="all">كل الأدوار</option>'+data.roles.map(role=>`<option value="${escapeHtml(role.role_key)}">${escapeHtml(role.role_name)}</option>`).join('')+'<option value="unassigned">غير معيّن</option>';
+      enterpriseSetMultiSelectValues(filter,previous,{silent:true});
+    }
+    renderUsersManagementTable(rows);
+    setUsersStatus(`تم تحميل ${rows.length} مستخدم مع أدوار الصلاحيات الفعلية.`,'ok');
+    setManagedUserLocks();
+    return true;
+  }catch(error){
+    if(generation!==USERS_LOAD_GENERATION || actor!==window.PermissionRuntime.userId()) return false;
+    USERS_ROLE_CATALOG=null;
+    renderUsersManagementTable([]);
+    setManagedUserLocks();
+    setUsersStatus('تعذر تحميل أدوار المستخدمين؛ الحفظ متوقف لحين نجاح التحديث. '+(error.message||error),'err');
+    return false;
   }
-  const merged=await ensureCurrentUserProfileFallback(data||[]);
-  renderUsersManagementTable(merged);
-  setUsersStatus(`تم تحميل ${merged.length} مستخدم.`,'ok');
 }
 function openUserManagementModal(mode='create'){
+  if(USERS_SAVE_BUSY || !USERS_ROLE_CATALOG || USERS_ROLE_CATALOG.user_id!==window.PermissionRuntime?.userId()){ setUsersStatus('حدّث بيانات المستخدمين والأدوار أولًا.','err');return; }
   if(!hasCanonicalPermission(mode==='create'?'users.create':'users.edit')) return;
   const modal=$('#userManagementModal');
   if(!modal) return;
@@ -6592,6 +6635,10 @@ function closeUserManagementModal(options={}){
   if(options.restoreFocus!==false && returnFocus?.isConnected) requestAnimationFrame(()=>returnFocus.focus({preventScroll:true}));
 }
 function resetUserManagementForm(closeStatus=true){
+  if(USERS_SAVE_BUSY) return;
+  USERS_PENDING_AUTH=null;
+  USERS_EDIT_DRAFT=null;
+  $('#managedUserRole')?.querySelector('option[value="super_admin"]')?.remove();
   if($('#managedUserId')) $('#managedUserId').value='';
   if($('#managedUserEmail')) { $('#managedUserEmail').value=''; $('#managedUserEmail').disabled=false; }
   if($('#managedUserPassword')) { $('#managedUserPassword').value=''; $('#managedUserPassword').disabled=false; $('#managedUserPassword').placeholder='مطلوبة عند إضافة مستخدم جديد'; }
@@ -6602,12 +6649,17 @@ function resetUserManagementForm(closeStatus=true){
   if($('#managedUserActive')) { $('#managedUserActive').checked=true; $('#managedUserActive').disabled=false; }
   if($('#userFormTitle')) $('#userFormTitle').textContent='إضافة مستخدم جديد';
   if($('#saveManagedUserBtn')) $('#saveManagedUserBtn').textContent='إنشاء المستخدم';
+  fillManagedRoleOptions();
+  handleManagedRoleChange();
   if(closeStatus) setUsersStatus('');
 }
 function fillUserFormForEdit(userId){
+  if(USERS_SAVE_BUSY || !USERS_ROLE_CATALOG) return;
+  USERS_PENDING_AUTH=null;
   if(!hasCanonicalPermission('users.edit')) return;
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
   if(!u) return;
+  USERS_EDIT_DRAFT={...u};
   if(u.role==='super_admin' && !u.is_current){ setUsersStatus('حساب منشئ النظام لا يتم تعديله من شاشة المستخدمين.','err'); return; }
   if($('#managedUserId')) $('#managedUserId').value=u.id;
   if($('#managedUserEmail')) { $('#managedUserEmail').value=u.email||''; $('#managedUserEmail').disabled=true; }
@@ -6619,13 +6671,14 @@ function fillUserFormForEdit(userId){
   if($('#managedUserActive')) { $('#managedUserActive').checked=u.is_active; $('#managedUserActive').disabled=u.role==='super_admin'; }
   if($('#userFormTitle')) $('#userFormTitle').textContent='تعديل مستخدم';
   if($('#saveManagedUserBtn')) $('#saveManagedUserBtn').textContent='حفظ التعديل';
+  fillManagedRoleOptions(u);
   openUserManagementModal('edit');
 }
 function viewManagedUser(userId){
   if(!hasCanonicalPermission('users.details.view')){ showPermissionDenied('users');return; }
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
   if(!u) return;
-  alert(`بيانات المستخدم\n\nالاسم: ${u.full_name||'--'}\nالبريد: ${u.email||'--'}\nالدور: ${roleLabel(u.role)}\nالحالة: ${u.is_active?'نشط':'معطل'}\nالوظيفة: ${u.job_title||'--'}\nالهاتف: ${u.phone||'--'}`);
+  alert(`بيانات المستخدم\n\nالاسم: ${u.full_name||'--'}\nالبريد: ${u.email||'--'}\nدور الصلاحيات: ${managedRoleLabel(u)}\nدور التشغيل الحالي: ${roleLabel(u.role)}\nالحالة: ${u.is_active?'نشط':'معطل'}\nالوظيفة: ${u.job_title||'--'}\nالهاتف: ${u.phone||'--'}`);
 }
 async function createAuthUserWithIsolatedClient(email,password){
   const cfg=window.WAREHOUSE_SUPABASE_CONFIG || {};
@@ -6635,63 +6688,77 @@ async function createAuthUserWithIsolatedClient(email,password){
   if(error) throw error;
   return data?.user;
 }
-async function upsertManagedUserProfile(payload){
-  const attempts=[];
-  attempts.push(payload);
-  const {email,...withoutEmail}=payload;
-  attempts.push(withoutEmail);
-  const {updated_at,...withoutUpdated}=withoutEmail;
-  attempts.push(withoutUpdated);
-  let lastError=null;
-  for(const body of attempts){
-    const res=await WarehouseDB.client.from('app_users').upsert(body,{onConflict:'id'}).select('*').single();
-    if(!res.error) return res.data;
-    lastError=res.error;
-  }
-  throw lastError || new Error('تعذر حفظ بيانات المستخدم.');
-}
 async function saveManagedUser(e){
-  const permissionKey=$('#managedUserId')?.value ? 'users.edit' : 'users.create';
-  if(!hasCanonicalPermission(permissionKey)){ e?.preventDefault();showPermissionDenied('users');return; }
   e?.preventDefault?.();
-  if(!WarehouseDB?.ready){ setUsersStatus('Supabase غير متصل.','err'); return; }
+  if(USERS_SAVE_BUSY) return;
   const existingId=$('#managedUserId')?.value || '';
+  const current=USERS_EDIT_DRAFT?.id===existingId ? USERS_EDIT_DRAFT : null;
+  const permissionKey=existingId?'users.edit':'users.create';
+  if(!hasCanonicalPermission(permissionKey)){ showPermissionDenied('users');return; }
+  const actor=window.PermissionRuntime?.userId();
+  if(!USERS_ROLE_CATALOG || USERS_ROLE_CATALOG.user_id!==actor){ setUsersStatus('حدّث بيانات المستخدمين والأدوار أولًا.','err');return; }
   const email=($('#managedUserEmail')?.value||'').trim().toLowerCase();
   const password=$('#managedUserPassword')?.value || '';
   const fullName=($('#managedUserFullName')?.value||'').trim();
-  const role=$('#managedUserRole')?.value || 'viewer';
+  const role=$('#managedUserRole')?.value || '';
   const jobTitle=($('#managedUserJobTitle')?.value||'').trim();
   const phone=($('#managedUserPhone')?.value||'').trim();
   const active=$('#managedUserActive')?.checked !== false;
-  if(!fullName){ setUsersStatus('اسم المستخدم مطلوب.','err'); return; }
-  if(!USER_ROLE_CREATE_VALUES.has(role)){ setUsersStatus('لا يمكن اختيار Super Admin من هذه الشاشة.','err'); return; }
+  const selected=USERS_ROLE_CATALOG.roles.find(r=>r.id===$('#managedUserPermissionRole')?.value);
+  const assign=USERS_ROLE_CATALOG.can_assign;
+  if(!fullName){ setUsersStatus('اسم المستخدم مطلوب.','err');return; }
+  if(assign && (!selected?.is_active || selected.bundle_count<1)){ setUsersStatus('اختر دورًا نشطًا مرتبطًا بحزمة صلاحيات صالحة.','err');return; }
+  if(role==='super_admin' && (!current?.is_current || current.role!=='super_admin')){ setUsersStatus('حساب منشئ النظام محمي.','err');return; }
+  if(role!=='super_admin' && !USER_ROLE_CREATE_VALUES.has(role)){ setUsersStatus('دور التشغيل غير صالح.','err');return; }
+  if(!existingId && !USERS_PENDING_AUTH && (!email || password.length<6)){ setUsersStatus('البريد وكلمة مرور لا تقل عن 6 أحرف مطلوبان لإنشاء المستخدم.','err');return; }
+  USERS_SAVE_BUSY=true;
+  setManagedUserLocks();
+  let saved=false;
   try{
-    setUsersStatus(existingId?'جاري حفظ التعديل...':'جاري إنشاء المستخدم...');
-    let userId=existingId;
-    if(!existingId){
-      if(!email){ setUsersStatus('البريد الإلكتروني مطلوب عند إضافة مستخدم جديد.','err'); return; }
-      if(!password || password.length<6){ setUsersStatus('كلمة المرور مطلوبة ولا تقل عن 6 أحرف عند إضافة مستخدم جديد.','err'); return; }
+    if(assign && current && selected.id!==current.permission_role_id){
+      const confirmed=await showAppLiquidConfirm({message:`تغيير دور صلاحيات ${fullName} إلى «${selected.role_name}»؟ سيُحمّل الحساب صلاحياته الجديدة عند تسجيل الدخول أو تحديث جلسته.`});
+      if(!confirmed) return;
+    }
+    if(actor!==window.PermissionRuntime?.userId() || !hasCanonicalPermission(permissionKey)) throw new Error('تغيرت جلسة الدخول. أعد فتح الشاشة.');
+    setUsersStatus(existingId?'جاري حفظ بيانات المستخدم ودوره...':'جاري إنشاء المستخدم وحفظ دوره...');
+    let userId=existingId || USERS_PENDING_AUTH?.id;
+    if(!userId){
       const authUser=await createAuthUserWithIsolatedClient(email,password);
       userId=authUser?.id;
-      if(!userId) throw new Error('تم إرسال دعوة/تأكيد للمستخدم ولكن لم يتم إرجاع معرف الحساب. راجع إعدادات Supabase Auth.');
+      if(!userId) throw new Error('لم يتم إرجاع معرف الحساب. راجع إعدادات Supabase Auth.');
+      USERS_PENDING_AUTH={id:userId,email};
     }
-    await upsertManagedUserProfile({
-      id:userId,
-      email,
-      full_name:fullName,
-      job_title:jobTitle,
-      phone,
-      role,
-      is_active:active,
-      updated_at:new Date().toISOString()
+    if(actor!==window.PermissionRuntime?.userId()) throw new Error('تغيرت جلسة الدخول.');
+    const result=await WarehouseDB.client.rpc('app_permission_p7_save_managed_user',{
+      p_profile:{id:userId,email:USERS_PENDING_AUTH?.email||email,full_name:fullName,job_title:jobTitle,phone,role,is_active:active},
+      p_role_id:assign?selected.id:null,
+      p_expected_role_id:current?.permission_role_id||null,
+      p_expected_legacy_role:current?.role||null,
+      p_create:!existingId
     });
-    setUsersStatus(existingId?'تم حفظ تعديل المستخدم.':'تم إنشاء المستخدم وحفظ بياناته.','ok');
-    await logSystemActivity('المستخدمين',existingId?'تعديل مستخدم':'إضافة مستخدم',`${existingId?'تعديل مستخدم':'إضافة مستخدم'}: ${fullName}`);
+    if(result.error) throw result.error;
+    if(!result.data?.saved || result.data.user_id!==userId) throw new Error('لم يتم تأكيد نتيجة الحفظ. حدّث القائمة للتحقق.');
+    saved=true;
+    USERS_PENDING_AUTH=null;
+    if(actor!==window.PermissionRuntime?.userId()) return;
     closeUserManagementModal();
-    resetUserManagementForm(false);
-    await loadUsersManagement();
-  }catch(err){
-    setUsersStatus('خطأ: '+(err.message||err),'err');
+    try{ await logSystemActivity('المستخدمين',existingId?'تعديل مستخدم':'إضافة مستخدم',`${fullName} — دور الصلاحيات: ${selected?.role_name||role}`); }catch(error){ console.warn('User saved; activity log failed',error); }
+    const loaded=await loadUsersManagement();
+    if(loaded) setUsersStatus('تم حفظ بيانات المستخدم ودور الصلاحيات. يدخل الحساب مجددًا لتحميل صلاحياته.','ok');
+    else setUsersStatus('تم الحفظ، لكن تحديث القائمة لم يكتمل. اضغط تحديث قبل تعديل آخر.','err');
+  }catch(error){
+    if(actor===window.PermissionRuntime?.userId()){
+      const hints={P7_USERS_CHANGED_RELOAD:'تغيّر دور المستخدم منذ فتح النموذج. أغلقه واضغط تحديث ثم أعد المحاولة.',
+        P7_USERS_VALID_BUNDLE_REQUIRED:'الدور مرتبط بحزمة غير صالحة أو فارغة أو محمية لدور آخر.',
+        P7_USERS_ACTIVE_ROLE_REQUIRED:'الدور غير موجود أو غير نشط.',P7_USERS_ACCOUNT_PROTECTED:'لا يمكن تغيير دور حسابك الحالي أو المساس بحساب منشئ النظام.',
+        P7_USERS_KEEP_LEGACY_ROLE:'يجب الحفاظ على دور التشغيل الحالي عند تعيين دور مخصص.',
+        P7_USERS_PERMISSION_PARENT_REQUIRED:'صلاحيات الدور تحتوي عناصر بدون صلاحياتها الرئيسية. راجع الحزم أولًا.'};
+      setUsersStatus((hints[error.message]||'تعذر الحفظ: '+(error.message||error))+(USERS_PENDING_AUTH?' تم إنشاء حساب الدخول؛ أعد الحفظ من نفس النموذج لاستكمال البيانات دون إنشاء حساب آخر.':''),'err');
+    }
+  }finally{
+    USERS_SAVE_BUSY=false;
+    if(saved) resetUserManagementForm(false);
+    setManagedUserLocks();
   }
 }
 async function toggleManagedUser(userId,currentActive){
@@ -6765,6 +6832,14 @@ async function exportUsersPanelPng(){
   }catch(err){ alert('تعذر تصدير صورة إدارة المستخدمين.'); }
 }
 function initUsersManagement(){
+  $('#managedUserPermissionRole')?.addEventListener('change',handleManagedRoleChange);
+  $('#managedUserRole')?.addEventListener('change',()=>{
+    if(USERS_ROLE_CATALOG && !USERS_ROLE_CATALOG.can_assign){
+      const mapped=USERS_ROLE_CATALOG.roles.find(role=>role.is_system && role.role_key===$('#managedUserRole')?.value);
+      if(mapped && $('#managedUserPermissionRole')) $('#managedUserPermissionRole').value=mapped.id;
+    }
+    setManagedUserLocks();
+  });
   const form=$('#userManagementForm');
   if(form) form.addEventListener('submit',saveManagedUser);
   $('#resetManagedUserFormBtn')?.addEventListener('click',()=>resetUserManagementForm());

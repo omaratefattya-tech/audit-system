@@ -1382,11 +1382,12 @@
           <div class="modal-head users-modal-head">
             <div>
               <h3 id="userFormTitle">إضافة مستخدم جديد</h3>
-              <p class="hint small-hint">Super Admin لا يتم إنشاؤه من هذه الشاشة. الأدوار المتاحة: Admin / Auditor / Viewer فقط.</p>
+              <p class="hint small-hint">دور الصلاحيات يحدد الشاشات والإجراءات والمصانع المتاحة. تعيينه متاح لمنشئ النظام فقط.</p>
             </div>
             <button type="button" class="modal-close" id="closeUserModalBtn">×</button>
           </div>
           <form id="userManagementForm" class="user-form-card users-modal-form">
+            <div id="managedUserFormStatus" class="upload-status users-status-bar" role="status" aria-live="polite"></div>
             <input type="hidden" id="managedUserId" />
             <div class="users-form-grid">
               <label>الاسم
@@ -1404,7 +1405,10 @@
               <label>كلمة المرور المؤقتة
                 <input type="password" id="managedUserPassword" placeholder="مطلوبة عند إضافة مستخدم جديد" autocomplete="new-password" />
               </label>
-              <label>الدور
+              <label>دور الصلاحيات
+                <select id="managedUserPermissionRole"><option value="">جاري تحميل الأدوار...</option></select>
+              </label>
+              <label>دور التشغيل الحالي
                 <select id="managedUserRole">
                   <option value="admin">Admin</option>
                   <option value="auditor">Auditor</option>
@@ -1412,6 +1416,7 @@
                 </select>
               </label>
             </div>
+            <p class="hint small-hint">عند تعيين دور مخصص لمستخدم موجود، يُحفظ دور تشغيله الحالي. للحساب الجديد اختر دور تشغيل مناسبًا؛ صلاحيات الخادم ما زالت تعتمد عليه خلال هذه المرحلة.</p>
             <label class="inline-check users-active-check">
               <input type="checkbox" id="managedUserActive" checked />
               <span>مستخدم مفعل</span>
@@ -2138,7 +2143,7 @@
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
-  <script src="assets/js/app.js?v=p7-20260905-1"></script>
+  <script src="assets/js/app.js?v=p7-users-20260905-1"></script>
   <script src="assets/js/permission-registry.js?v=p7-20260905-1"></script>
   <script src="assets/js/permissions.js?v=p7-20260905-1"></script>
   <script src="assets/js/permission-ui.js?v=p7-20260905-1"></script>
