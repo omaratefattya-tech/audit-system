@@ -28,6 +28,7 @@
     : String(value??'').replace(/[&<>\"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[char]));
   const isAuthorized=()=>typeof globalScope.isSuperAdmin==='function' && globalScope.isSuperAdmin();
   const isReady=()=>Boolean(globalScope.WarehouseDB?.ready && globalScope.WarehouseDB?.client);
+  const hasCompleteData=()=>state.loaded && !state.loadingPromise;
 
   function setStatus(message,type=''){
     const element=q('#permissionsManagementStatus');
@@ -38,6 +39,7 @@
 
   function errorMessage(error){
     const message=String(error?.message || error || '');
+    if(/PERMISSION_DATA_INCOMPLETE|PERMISSION_DATA_CHANGED|PERMISSION_DATA_LOADER_UNAVAILABLE/.test(message)) return 'لم يكتمل تحميل بيانات الصلاحيات أو تغيّرت أثناء التحميل. تم منع الحفظ؛ اضغط تحديث لإعادة تحميل البيانات كاملة.';
     if(/P6_PROTECTED_BASELINE_BUNDLE/i.test(message)) return 'إحدى حزم الترحيل المحمية مخصصة لدور نظامي آخر ولا يمكن إسنادها لهذا الدور.';
     if(/P6_SYSTEM_BASELINE_REQUIRED/i.test(message)) return 'لا يمكن إزالة حزمة الترحيل الأساسية المحمية من الدور النظامي.';
     if(/42501|permission denied|row-level security|P6_PERMISSION_DENIED/i.test(message)) return 'غير مسموح بإدارة ربط الأدوار بالحزم. يلزم حساب Super Admin نشط.';
@@ -140,13 +142,15 @@
     const role=selectedRole();
     const authorized=isAuthorized();
     const save=q('#savePermissionsBtn');
-    const canSave=authorized && role && !role.is_super_admin && role.is_active && state.draftBundleIds.size>0 && hasRequiredSystemBaseline(role) && isDirty() && !state.saving;
+    const canSave=authorized && hasCompleteData() && role && !role.is_super_admin && role.is_active && state.draftBundleIds.size>0 && hasRequiredSystemBaseline(role) && isDirty() && !state.saving;
     if(save){
       save.disabled=!canSave;
       save.dataset.permissionSettingsSaving=state.saving?'1':'0';
       save.classList.toggle('permission-disabled',!authorized);
       save.title=!authorized
         ? 'يلزم حساب Super Admin'
+        : !hasCompleteData()
+          ? 'يلزم اكتمال تحميل بيانات الصلاحيات'
         : role?.is_super_admin
           ? 'دور Super Admin محمي في P6'
           : !isDirty()
@@ -160,7 +164,7 @@
     qa(MANAGEMENT_SELECTOR).forEach(button=>{
       if(button===save) return;
       button.classList.toggle('permission-disabled',!authorized);
-      if(!authorized) button.disabled=true;
+      button.disabled=!authorized || Boolean(state.loadingPromise) || state.saving || (button.id!=='reloadPermissionsBtn' && !state.loaded);
     });
   }
 
@@ -190,6 +194,10 @@
   function renderBundles(){
     const container=q('#permissionsBundleGrid');
     if(!container) return;
+    if(!state.loaded){
+      container.innerHTML=`<div class="permissions-empty-state">${state.loadingPromise?'جاري تحميل حزم الصلاحيات كاملة...':'لم يكتمل تحميل الحزم. اضغط تحديث.'}</div>`;
+      return;
+    }
     const role=selectedRole();
     const search=state.search.trim().toLowerCase();
     const rows=state.bundles.filter(bundle=>{
@@ -226,7 +234,7 @@
     setText('#permissionsRolesCount',state.roles.filter(item=>item.is_active).length);
     setText('#permissionsBundlesCount',state.bundles.filter(item=>item.is_active && isBundleAllowedForRole(item,role)).length);
     setText('#permissionsSelectedBundlesCount',selectedCount);
-    setText('#permissionsEffectiveCount',effectivePermissionCount());
+    setText('#permissionsEffectiveCount',state.loaded?effectivePermissionCount():'—');
     setText('#permissionsSelectedRoleName',role?.role_name||'—');
     setText('#permissionsSelectedRoleKey',role?.role_key||'—');
     setText('#permissionsSelectedRoleType',role?.is_super_admin?'Super Admin محمي':role?.is_system?'دور نظامي':'دور مخصص');
@@ -265,14 +273,16 @@
     if(!isAuthorized()) throw new Error('P6_PERMISSION_DENIED');
     if(!isReady()) throw new Error('Supabase غير متصل.');
     const client=globalScope.WarehouseDB.client;
+    const readAll=globalScope.AuditPermissionData?.readAll;
+    if(typeof readAll!=='function') throw new Error('PERMISSION_DATA_LOADER_UNAVAILABLE');
     const [rolesResult,bundlesResult,plantsResult,itemsResult,linksResult,userRolesResult,usersResult]=await Promise.all([
-      client.from('app_permission_roles').select('id,role_key,role_name,description,is_system,is_super_admin,is_active').order('is_system',{ascending:false}).order('role_name',{ascending:true}),
-      client.from('app_permission_bundles').select('id,bundle_name,description,all_plants,is_active').order('bundle_name',{ascending:true}),
-      client.from('app_permission_bundle_plants').select('bundle_id,plant_code'),
-      client.from('app_permission_bundle_items').select('bundle_id,permission_key'),
-      client.from('app_permission_role_bundles').select('role_id,bundle_id'),
-      client.from('app_permission_user_roles').select('role_id,user_id'),
-      client.from('app_users').select('id,is_active')
+      readAll(client,'app_permission_roles','id,role_key,role_name,description,is_system,is_super_admin,is_active',{order:[['is_system',false],['role_name',true]]}),
+      readAll(client,'app_permission_bundles','id,bundle_name,description,all_plants,is_active',{order:[['bundle_name',true]]}),
+      readAll(client,'app_permission_bundle_plants','bundle_id,plant_code',{keys:['bundle_id','plant_code']}),
+      readAll(client,'app_permission_bundle_items','bundle_id,permission_key',{keys:['bundle_id','permission_key']}),
+      readAll(client,'app_permission_role_bundles','role_id,bundle_id',{keys:['role_id','bundle_id']}),
+      readAll(client,'app_permission_user_roles','role_id,user_id',{keys:['role_id','user_id']}),
+      readAll(client,'app_users','id,is_active')
     ]);
     const failed=[rolesResult,bundlesResult,plantsResult,itemsResult,linksResult,userRolesResult,usersResult].find(result=>result.error);
     if(failed?.error) throw failed.error;
@@ -297,11 +307,12 @@
       return false;
     }
     if(state.loadingPromise) return state.loadingPromise;
-    if(isDirty() && !options.force){
+    if(state.loaded && isDirty() && !options.force){
       renderAll();
       return true;
     }
     const preferredRoleId=options.roleId || state.selectedRoleId;
+    state.loaded=false;
     state.loadingPromise=(async()=>{
       setStatus('جاري تحميل الأدوار وحزم الصلاحيات...');
       try{
@@ -318,6 +329,10 @@
         state.loaded=false;
         state.roles=[];
         state.bundles=[];
+        state.bundlePlants=new Map();
+        state.bundlePermissions=new Map();
+        state.roleBundles=new Map();
+        state.roleUserCounts=new Map();
         state.selectedRoleId='';
         state.originalBundleIds=new Set();
         state.draftBundleIds=new Set();
@@ -327,8 +342,13 @@
         return false;
       }finally{
         state.loadingPromise=null;
+        syncActionState();
+        renderBundles();
       }
     })();
+    syncActionState();
+    renderBundles();
+    renderSummary();
     return state.loadingPromise;
   }
 
@@ -343,6 +363,7 @@
   }
 
   async function onRoleChange(event){
+    if(!hasCompleteData() || state.saving){ event.target.value=state.selectedRoleId; return; }
     const nextRoleId=event.target.value;
     if(nextRoleId===state.selectedRoleId) return;
     const currentRoleId=state.selectedRoleId;
@@ -357,6 +378,7 @@
   }
 
   function onBundleChange(event){
+    if(!hasCompleteData() || state.saving){ renderBundles(); return; }
     const checkbox=event.target.closest('[data-permission-bundle-id]');
     if(!checkbox) return;
     const bundleId=checkbox.dataset.permissionBundleId;
@@ -375,6 +397,7 @@
   }
 
   function setVisibleBundles(value){
+    if(!hasCompleteData() || state.saving) return;
     const role=selectedRole();
     if(!role || role.is_super_admin || !isAuthorized()) return;
     qa('#permissionsBundleGrid [data-permission-bundle-id]').forEach(checkbox=>{
@@ -389,6 +412,7 @@
   }
 
   function restoreSavedBundles(){
+    if(!hasCompleteData() || state.saving) return;
     const role=selectedRole();
     if(!role || role.is_super_admin || !isAuthorized()) return;
     state.draftBundleIds=sanitizedBundleIds(state.originalBundleIds,role);
@@ -398,6 +422,8 @@
   }
 
   async function save(){
+    if(state.saving) return;
+    if(!hasCompleteData()){ setStatus('انتظر اكتمال تحميل الصلاحيات أو اضغط تحديث قبل الحفظ.','err'); return; }
     const role=selectedRole();
     if(!isAuthorized()){ setStatus('يلزم حساب Super Admin للحفظ.','err'); return; }
     if(!isReady()){ setStatus('Supabase غير متصل.','err'); return; }
@@ -419,6 +445,8 @@
         : globalScope.confirm(message);
       if(!confirmed) return;
     }
+    if(state.saving) return;
+    if(!hasCompleteData() || selectedRole()?.id!==role.id){ setStatus('تغيّرت بيانات الدور أثناء التأكيد. أعد تحميل البيانات وراجع الاختيارات قبل الحفظ.','err'); return; }
     state.saving=true;
     syncActionState();
     setStatus('جاري حفظ ربط الدور بالحزم...');
@@ -434,8 +462,8 @@
       if(typeof globalScope.logSystemActivity==='function'){
         await globalScope.logSystemActivity('الصلاحيات','ربط دور بحزم صلاحيات',`P6 Shadow: ${role.role_key} ← ${state.draftBundleIds.size} حزمة`);
       }
-      await load({force:true,roleId:role.id});
-      setStatus(`تم حفظ ${Number(data?.bundle_count||state.draftBundleIds.size)} حزمة للدور «${role.role_name}». صلاحيات التشغيل القديمة لم تتغير.`,'ok');
+      const reloaded=await load({force:true,roleId:role.id});
+      setStatus(reloaded?`تم حفظ ${Number(data?.bundle_count||state.draftBundleIds.size)} حزمة للدور «${role.role_name}». صلاحيات التشغيل القديمة لم تتغير.`:'تم حفظ الربط، لكن تعذر إعادة تحميل الصلاحيات كاملة. اضغط تحديث قبل أي تعديل آخر.',reloaded?'ok':'err');
     }catch(error){
       setStatus(errorMessage(error),'err');
     }finally{

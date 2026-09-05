@@ -7,7 +7,7 @@
   const BUNDLE_DELETE_RPC='app_permission_p3_delete_bundle';
   const SCREEN_PICKER_MODAL_ID='permissionScreenPickerOverlay';
   const SCREEN_EDITOR_MODAL_ID='permissionScreenEditorOverlay';
-  const MANAGEMENT_ACTION_SELECTOR='[data-permission-settings-management-action]';
+  const MANAGEMENT_ACTION_SELECTOR='#permissionSettingsShell [data-permission-settings-management-action], #permissionScreenEditorOverlay [data-permission-settings-management-action]';
 
   const state={
     initialized:false,
@@ -39,12 +39,13 @@
   const roots=()=>nodes().filter(node=>node.type==='SCREEN' && !node.parent);
   const isAuthorized=()=>typeof globalScope.isSuperAdmin==='function' && globalScope.isSuperAdmin();
   const isReady=()=>Boolean(globalScope.WarehouseDB?.ready && globalScope.WarehouseDB?.client);
+  const hasCompleteData=()=>state.loaded && !state.loadingPromise;
 
   function syncManagementActionAccess(){
     const allowed=isAuthorized();
     qa(MANAGEMENT_ACTION_SELECTOR).forEach(button=>{
       const saving=button.dataset.permissionSettingsSaving==='1';
-      button.disabled=!allowed || saving;
+      button.disabled=!allowed || saving || !hasCompleteData();
       button.classList.toggle('permission-disabled',!allowed);
       if(allowed && button.title==='لا تملك صلاحية التعديل') button.removeAttribute('title');
     });
@@ -59,6 +60,7 @@
 
   function errorMessage(error){
     const message=String(error?.message || error || '');
+    if(/PERMISSION_DATA_INCOMPLETE|PERMISSION_DATA_CHANGED|PERMISSION_DATA_LOADER_UNAVAILABLE/.test(message)) return 'لم يكتمل تحميل بيانات الصلاحيات أو تغيّرت أثناء التحميل. تم منع الحفظ؛ اضغط تحديث لإعادة تحميل البيانات كاملة.';
     if(/42501|permission denied|row-level security|P3_PERMISSION_DENIED/i.test(message)) return 'غير مسموح بإدارة نموذج الصلاحيات الجديد. يلزم تسجيل الدخول بحساب Super Admin نشط.';
     if(/PGRST202|Could not find the function|does not exist|schema cache/i.test(message)) return 'ملفات قاعدة بيانات P3 غير مطبقة أو لم يتم تحديث Schema Cache بعد.';
     if(/23505|duplicate key|unique constraint/i.test(message)) return 'المفتاح أو الاسم مستخدم بالفعل. استخدم قيمة مختلفة.';
@@ -158,6 +160,10 @@
   function renderRoles(){
     const tbody=q('#permissionRolesTable tbody');
     if(!tbody) return;
+    if(!state.loaded){
+      tbody.innerHTML=`<tr><td colspan="5" class="empty-row">${state.loadingPromise?'جاري تحميل الأدوار كاملة...':'لم يكتمل تحميل الأدوار. اضغط تحديث.'}</td></tr>`;
+      return;
+    }
     if(!state.roles.length){
       tbody.innerHTML='<tr><td colspan="5" class="empty-row">لا توجد أدوار في النموذج الجديد.</td></tr>';
       return;
@@ -180,6 +186,10 @@
   function renderBundles(){
     const tbody=q('#permissionBundlesTable tbody');
     if(!tbody) return;
+    if(!state.loaded){
+      tbody.innerHTML=`<tr><td colspan="6" class="empty-row">${state.loadingPromise?'جاري تحميل حزم الصلاحيات كاملة...':'لم يكتمل تحميل الحزم. اضغط تحديث.'}</td></tr>`;
+      return;
+    }
     if(!state.bundles.length){
       tbody.innerHTML='<tr><td colspan="6" class="empty-row">لا توجد حزم صلاحيات بعد.</td></tr>';
       return;
@@ -213,16 +223,18 @@
     if(!isAuthorized()) throw new Error('P3_PERMISSION_DENIED');
     if(!isReady()) throw new Error('Supabase غير متصل.');
     const client=globalScope.WarehouseDB.client;
+    const readAll=globalScope.AuditPermissionData?.readAll;
+    if(typeof readAll!=='function') throw new Error('PERMISSION_DATA_LOADER_UNAVAILABLE');
     const plantPromise=typeof globalScope.loadPlantsCatalog==='function'
       ? globalScope.loadPlantsCatalog({force:true})
       : Promise.resolve([]);
     const [plantRows,rolesResult,bundlesResult,plantsResult,itemsResult,linksResult]=await Promise.all([
       plantPromise,
-      client.from('app_permission_roles').select('id,role_key,role_name,description,is_system,is_super_admin,is_active,created_at,updated_at').order('is_system',{ascending:false}).order('role_name',{ascending:true}),
-      client.from('app_permission_bundles').select('id,bundle_name,description,all_plants,is_active,created_at,updated_at').order('created_at',{ascending:false}),
-      client.from('app_permission_bundle_plants').select('bundle_id,plant_code'),
-      client.from('app_permission_bundle_items').select('bundle_id,permission_key'),
-      client.from('app_permission_role_bundles').select('role_id,bundle_id')
+      readAll(client,'app_permission_roles','id,role_key,role_name,description,is_system,is_super_admin,is_active,created_at,updated_at',{order:[['is_system',false],['role_name',true]]}),
+      readAll(client,'app_permission_bundles','id,bundle_name,description,all_plants,is_active,created_at,updated_at',{order:[['created_at',false]]}),
+      readAll(client,'app_permission_bundle_plants','bundle_id,plant_code',{keys:['bundle_id','plant_code']}),
+      readAll(client,'app_permission_bundle_items','bundle_id,permission_key',{keys:['bundle_id','permission_key']}),
+      readAll(client,'app_permission_role_bundles','role_id,bundle_id',{keys:['role_id','bundle_id']})
     ]);
     const failed=[rolesResult,bundlesResult,plantsResult,itemsResult,linksResult].find(result=>result.error);
     if(failed?.error) throw failed.error;
@@ -246,10 +258,11 @@
       return false;
     }
     if(state.loadingPromise) return state.loadingPromise;
-    if(isDirty() && !options.force){
+    if(state.loaded && isDirty() && !options.force){
       renderAll();
       return true;
     }
+    state.loaded=false;
     state.loadingPromise=(async()=>{
       setStatus('#permissionRoleStatus','جاري تحميل الأدوار...');
       setStatus('#permissionBundleStatus','جاري تحميل حزم الصلاحيات...');
@@ -275,8 +288,14 @@
         return false;
       }finally{
         state.loadingPromise=null;
+        syncManagementActionAccess();
+        renderRoles();
+        renderBundles();
       }
     })();
+    syncManagementActionAccess();
+    renderRoles();
+    renderBundles();
     return state.loadingPromise;
   }
 
@@ -342,6 +361,8 @@
 
   async function saveRole(event){
     event.preventDefault();
+    if(!hasCompleteData()){ setStatus('#permissionRoleStatus','انتظر اكتمال تحميل البيانات أو اضغط تحديث قبل الحفظ.','err'); return; }
+    if(q('#permissionRoleSaveBtn')?.dataset.permissionSettingsSaving==='1') return;
     const id=String(q('#permissionRoleIdInput')?.value||'').trim()||null;
     const roleKey=normalizeRoleKey(q('#permissionRoleKeyInput')?.value);
     const roleName=String(q('#permissionRoleNameInput')?.value||'').trim();
@@ -369,8 +390,8 @@
       button.disabled=false;
       delete button.dataset.originalHtml;
       resetRoleForm();
-      await load({force:true});
-      setStatus('#permissionRoleStatus',id?'تم تعديل الدور بنجاح.':'تم إنشاء الدور بنجاح.','ok');
+      const reloaded=await load({force:true});
+      setStatus('#permissionRoleStatus',reloaded?(id?'تم تعديل الدور بنجاح.':'تم إنشاء الدور بنجاح.'):'تم حفظ الدور، لكن تعذر إعادة تحميل البيانات كاملة. اضغط تحديث قبل أي تعديل آخر.',reloaded?'ok':'err');
     }catch(error){
       setStatus('#permissionRoleStatus',errorMessage(error),'err');
     }finally{
@@ -380,6 +401,7 @@
 
   async function editRole(roleId){
     if(!(await confirmDiscard('role'))) return;
+    if(!hasCompleteData()){ setStatus('#permissionRoleStatus','أعد تحميل البيانات كاملة قبل التعديل.','err'); return; }
     const role=state.roles.find(item=>String(item.id)===String(roleId));
     if(!role){ setStatus('#permissionRoleStatus','تعذر العثور على الدور. اضغط تحديث.','err'); return; }
     if(role.is_system){ setStatus('#permissionRoleStatus','الدور النظامي محمي خلال الهجرة المرحلية.','err'); return; }
@@ -396,12 +418,14 @@
   }
 
   async function deleteRole(roleId){
+    if(!hasCompleteData()){ setStatus('#permissionRoleStatus','أعد تحميل البيانات كاملة قبل الحذف.','err'); return; }
     const role=state.roles.find(item=>String(item.id)===String(roleId));
     if(!role || role.is_system){ setStatus('#permissionRoleStatus','لا يمكن حذف هذا الدور.','err'); return; }
     const accepted=typeof globalScope.showAppLiquidConfirm==='function'
       ? await globalScope.showAppLiquidConfirm({title:'حذف الدور',message:`سيتم حذف الدور «${role.role_name}» فقط إذا لم يكن مرتبطًا بمستخدمين أو حزم.`,confirmText:'حذف الدور'})
       : globalScope.confirm('هل تريد حذف الدور؟');
     if(!accepted) return;
+    if(!hasCompleteData()){ setStatus('#permissionRoleStatus','أعد تحميل البيانات كاملة قبل الحذف.','err'); return; }
     try{
       const {error}=await globalScope.WarehouseDB.client.rpc(ROLE_DELETE_RPC,{p_role_id:role.id});
       if(error) throw error;
@@ -429,6 +453,7 @@
 
   async function requestEditBundle(bundleId){
     if(!(await confirmDiscard('bundle'))) return;
+    if(!hasCompleteData()){ setStatus('#permissionBundleStatus','أعد تحميل الصلاحيات كاملة قبل التعديل.','err'); return; }
     const bundle=state.bundles.find(item=>String(item.id)===String(bundleId));
     if(!bundle){ setStatus('#permissionBundleStatus','تعذر العثور على الحزمة. اضغط تحديث.','err'); return; }
     editBundle(bundle);
@@ -436,6 +461,8 @@
 
   async function saveBundle(event){
     event.preventDefault();
+    if(!hasCompleteData()){ setStatus('#permissionBundleStatus','انتظر اكتمال تحميل الصلاحيات أو اضغط تحديث قبل الحفظ.','err'); return; }
+    if(q('#permissionBundleSaveBtn')?.dataset.permissionSettingsSaving==='1') return;
     const id=String(q('#permissionBundleIdInput')?.value||'').trim()||null;
     const name=String(q('#permissionBundleNameInput')?.value||'').trim();
     const description=String(q('#permissionBundleDescriptionInput')?.value||'').trim()||null;
@@ -455,8 +482,8 @@
       button.disabled=false;
       delete button.dataset.originalHtml;
       resetBundleForm();
-      await load({force:true});
-      setStatus('#permissionBundleStatus',id?'تم تعديل الحزمة بنجاح.':'تم إنشاء الحزمة بنجاح.','ok');
+      const reloaded=await load({force:true});
+      setStatus('#permissionBundleStatus',reloaded?(id?'تم تعديل الحزمة بنجاح.':'تم إنشاء الحزمة بنجاح.'):'تم حفظ الحزمة، لكن تعذر إعادة تحميل الصلاحيات كاملة. اضغط تحديث قبل أي تعديل آخر.',reloaded?'ok':'err');
     }catch(error){
       setStatus('#permissionBundleStatus',errorMessage(error),'err');
     }finally{
@@ -465,6 +492,7 @@
   }
 
   async function deleteBundle(bundleId){
+    if(!hasCompleteData()){ setStatus('#permissionBundleStatus','أعد تحميل الصلاحيات كاملة قبل الحذف.','err'); return; }
     const bundle=state.bundles.find(item=>String(item.id)===String(bundleId));
     if(!bundle){ setStatus('#permissionBundleStatus','تعذر العثور على الحزمة. اضغط تحديث.','err'); return; }
     const roleCount=state.bundleRoleCounts.get(bundle.id)||0;
@@ -475,6 +503,7 @@
       ? await globalScope.showAppLiquidConfirm({title:'حذف حزمة الصلاحيات',message,confirmText:'حذف الحزمة'})
       : globalScope.confirm('هل تريد حذف الحزمة؟');
     if(!accepted) return;
+    if(!hasCompleteData()){ setStatus('#permissionBundleStatus','أعد تحميل الصلاحيات كاملة قبل الحذف.','err'); return; }
     try{
       const {error}=await globalScope.WarehouseDB.client.rpc(BUNDLE_DELETE_RPC,{p_bundle_id:bundle.id,p_confirm_linked_roles:roleCount>0});
       if(error) throw error;
@@ -746,6 +775,7 @@
     if(bundlesBody) bundlesBody.innerHTML='<tr><td colspan="6" class="empty-row">يتم تحميل الحزم عند فتح التبويب.</td></tr>';
     setStatus('#permissionRoleStatus','');
     setStatus('#permissionBundleStatus','');
+    syncManagementActionAccess();
   }
 
   globalScope.PermissionSettings=Object.freeze({init,load,isDirty,closeModals,resetSession});
