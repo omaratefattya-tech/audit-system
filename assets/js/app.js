@@ -2752,7 +2752,7 @@ function switchSection(section,options={}){
     setTimeout(()=>openSelected ? openExistingInventoryCountFromUi({showLoading:true}) : openDefaultInventoryCountFromUi({showLoading:true}),50);
   }
   if(section==='inventory_differences') setTimeout(()=>loadInventoryDifferenceScreen(),50);
-  if(section==='inventory_expiry_tracking') setTimeout(()=>window.InventoryProductionTracking?.load(),50);
+  if(section==='inventory_expiry_tracking') setTimeout(()=>window.InventoryProductionTracking?.loadLatestCompleted(),50);
   if(section==='department_storekeepers') setTimeout(()=>loadDepartmentStorekeepers(),50);
   if(section==='department_weekly_leave_schedule') setTimeout(()=>loadDepartmentWeeklyWorkspace('statuses'),50);
   if(section==='department_hr_reports') setTimeout(()=>window.DepartmentHrReports?.load(),50);
@@ -10486,6 +10486,14 @@ function inventoryCountIsoDateParts(value){
   if(date.getFullYear()!==year || date.getMonth()!==month-1 || date.getDate()!==day) return null;
   return {year,month,day,date,iso:text};
 }
+function inventoryCountShiftIsoDate(value,days){
+  const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value||'').trim());
+  if(!match) return '';
+  const date=new Date(Date.UTC(Number(match[1]),Number(match[2])-1,Number(match[3])));
+  if(Number.isNaN(date.getTime())) return '';
+  date.setUTCDate(date.getUTCDate()+Number(days||0));
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth()+1).padStart(2,'0')}-${String(date.getUTCDate()).padStart(2,'0')}`;
+}
 function inventoryCountSelectedDayName(value){
   const parts=inventoryCountIsoDateParts(value);
   if(!parts) return '';
@@ -13465,16 +13473,28 @@ function setInventoryCountInputsFromResult(data){
   persistInventoryCountViewState();
 }
 async function openDefaultInventoryCountFromUi(options={}){
-  if(!window.PermissionRuntime?.any('inventory.count.view')) return;
-  if(!window.PermissionRuntime.can('inventory.count.view')){
-    const select=$('#inventoryCountPlantSelect');
-    const plants=window.PermissionRuntime.allowedPlants('inventory.count.view');
-    if(select && !plants.includes(select.value)) {select.value=plants[0];syncInventoryCountWarehouse();}
-    return openExistingInventoryCountFromUi(options);
+  if(!window.PermissionRuntime?.any('inventory.count.view')){
+    resetInventoryCountView('لا تملك صلاحية عرض مستند الجرد.');
+    return;
   }
   closeInventoryReviewRecommendationsModal({restoreFocus:false});
   clearInventoryCountSettlementContext();
   const {showLoading=false}=options;
+  const plantSelect=$('#inventoryCountPlantSelect');
+  const permittedPlants=(window.PermissionRuntime.allowedPlants('inventory.count.view') || [])
+    .map(code=>String(code||'').trim().toUpperCase())
+    .filter(code=>INVENTORY_COUNT_WAREHOUSE_BY_PLANT[code]);
+  if(!permittedPlants.length){
+    resetInventoryCountView('لا يوجد مصنع متاح لصلاحية مستند الجرد الحالية.');
+    return;
+  }
+  let plantCode=String(plantSelect?.value || '').trim().toUpperCase();
+  if(!permittedPlants.includes(plantCode)){
+    plantCode=permittedPlants[0];
+    if(plantSelect) plantSelect.value=plantCode;
+  }
+  syncInventoryCountWarehouse();
+  const warehouseCode=INVENTORY_COUNT_WAREHOUSE_BY_PLANT[plantCode] || '';
   const requestSeq=++INVENTORY_COUNT_STATE.requestSeq;
   if(!window.WarehouseDB?.ready){
     resetInventoryCountView('قاعدة البيانات غير متصلة.');
@@ -13492,15 +13512,17 @@ async function openDefaultInventoryCountFromUi(options={}){
   renderInventoryCountLines([]);
   const meta=$('#inventoryCountCurrentVersionMeta');
   if(meta) meta.textContent='الإصدار: — | عدد الأصناف: 0';
-  if(showLoading) inventoryCountSetLoading(true,'جاري تحميل آخر جرد...');
-  inventoryCountSetStatus('جاري تحميل آخر جرد...');
+  if(showLoading) inventoryCountSetLoading(true,'جاري تحميل آخر جرد للمصنع المحدد...');
+  inventoryCountSetStatus('جاري تحميل آخر جرد للمصنع المحدد...');
   inventoryCountUpdateCreateButton();
   try{
-    const {data,error}=await WarehouseDB.client.rpc('get_default_inventory_count');
+    const {data,error}=await WarehouseDB.client.rpc('get_default_inventory_count_for_plant',{
+      p_plant_code:plantCode
+    });
     if(error) throw error;
     if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
-    const status=data?.status || '';
-    if(status==='open_inventory_count_found' || status==='completed_inventory_count_found'){
+    const status=String(data?.status || '');
+    if(status==='open_inventory_count_found'){
       setInventoryCountInputsFromResult(data);
       INVENTORY_COUNT_STATE.documentId=data.document_id || null;
       INVENTORY_COUNT_STATE.versionId=data.version_id || null;
@@ -13511,11 +13533,46 @@ async function openDefaultInventoryCountFromUi(options={}){
       INVENTORY_COUNT_STATE.status='found';
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,requestSeq);
       if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
-      inventoryCountSetStatus(status==='open_inventory_count_found' ? 'تم فتح آخر جرد مفتوح.' : 'تم فتح آخر جرد مكتمل.','ok');
+      inventoryCountSetStatus('تم فتح آخر جرد مفتوح للمصنع المحدد.','ok');
       inventoryCountUpdateCreateButton();
       return;
     }
-    resetInventoryCountView('لم يتم إنشاء أي جرد بعد.');
+    if(status==='completed_inventory_count_found'){
+      const completedDate=formatInventoryDateInputValue(data?.inventory_date);
+      const today=inventoryCountTodayIso();
+      if(completedDate && completedDate<today){
+        const dueDate=inventoryCountShiftIsoDate(completedDate,1) || today;
+        setInventoryCountInputsFromResult({
+          plant_code:data?.plant_code || plantCode,
+          warehouse_code:data?.warehouse_code || warehouseCode,
+          inventory_date:dueDate
+        });
+        resetInventoryCountView(`لا يوجد جرد مفتوح. تاريخ الجرد المستحق بعد آخر جرد منتهٍ هو ${formatDisplayDate(dueDate,'—')}.`);
+        INVENTORY_COUNT_STATE.status='not_found';
+        inventoryCountUpdateCreateButton();
+        return;
+      }
+      setInventoryCountInputsFromResult(data);
+      INVENTORY_COUNT_STATE.documentId=data.document_id || null;
+      INVENTORY_COUNT_STATE.versionId=data.version_id || null;
+      INVENTORY_COUNT_STATE.versionNo=Number(data.version_no || 1) || 1;
+      INVENTORY_COUNT_STATE.documentStatus=data.document_status || null;
+      INVENTORY_COUNT_STATE.versionStatus=data.version_status || null;
+      setInventoryCountReviewerFromResult(data);
+      INVENTORY_COUNT_STATE.status='found';
+      await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,requestSeq);
+      if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
+      inventoryCountSetStatus('تم فتح آخر جرد مكتمل للمصنع المحدد.','ok');
+      inventoryCountUpdateCreateButton();
+      return;
+    }
+    const dueDate=inventoryCountTodayIso();
+    setInventoryCountInputsFromResult({
+      plant_code:plantCode,
+      warehouse_code:warehouseCode,
+      inventory_date:dueDate
+    });
+    resetInventoryCountView(`لا يوجد جرد مفتوح أو جرد مكتمل سابق للمصنع المحدد. تاريخ الجرد المستحق هو ${formatDisplayDate(dueDate,'—')}.`);
     INVENTORY_COUNT_STATE.status='not_found';
     inventoryCountUpdateCreateButton();
   }catch(err){
@@ -13530,6 +13587,7 @@ async function openDefaultInventoryCountFromUi(options={}){
     }
   }
 }
+
 async function openExistingInventoryCountFromUi(options={}){
   if(!hasCanonicalPermission('inventory.count.view')){resetInventoryCountView('لا تملك صلاحية عرض المصنع المحدد.');return;}
   closeInventoryReviewRecommendationsModal({restoreFocus:false});
@@ -15488,7 +15546,7 @@ function initInventoryCountScreen(){
       clearInventoryCountSettlementContext();
       syncInventoryCountWarehouse();
       persistInventoryCountViewState();
-      scheduleInventoryCountOpen();
+      openDefaultInventoryCountFromUi({showLoading:true});
     });
   }
   if(warehouseSelect && warehouseSelect.dataset.inventoryCountOpenBound!=='1'){

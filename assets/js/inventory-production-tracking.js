@@ -111,6 +111,18 @@
     if (node) node.textContent = displayDate(shiftIsoDate(STATE.reportDate, -1));
   }
 
+  function setReportDate(value) {
+    const normalized = /^\d{4}-\d{2}-\d{2}$/.test(String(value || '').slice(0, 10)) ? String(value).slice(0, 10) : '';
+    STATE.reportDate = normalized;
+    const input = document.getElementById('inventoryProductionReportDateInput');
+    if (input) {
+      input.value = normalized;
+      input.max = todayIso();
+      window.CustomDatePicker?.refresh?.(input);
+    }
+    updateComparisonDate();
+  }
+
   function setSharedStatus(message = '', type = '') {
     const status = document.getElementById('inventoryProductionReportStatus');
     const retry = document.getElementById('inventoryProductionRetryBtn');
@@ -317,6 +329,76 @@
     return data;
   }
 
+  async function loadLatestCompleted() {
+    const canPlant=code=>window.PermissionRuntime?.can('inventory.production_dates.'+code.toLowerCase()+'.view',code) === true;
+    if(!canPlant(STATE.plantCode)){
+      const permitted=['WF01','EL01','EL02'].find(canPlant);
+      if(!permitted){
+        setReportDate('');
+        STATE.status='no_permission';
+        STATE.message='لا يوجد مصنع متاح لصلاحية تتبع تواريخ الإنتاج الحالية.';
+        STATE.loading=false;
+        setSharedStatus(STATE.message,'warning');
+        render();
+        return;
+      }
+      STATE.plantCode=permitted;
+      document.querySelector('[data-inventory-expiry-tab="'+permitted+'"]')?.click();
+    }
+    if (!STATE.initialized) return;
+    const config = plantConfig(STATE.plantCode);
+    if (!config) {
+      STATE.error = 'تعذر تحديد المخزن المرتبط بالمصنع من إعدادات مستند الجرد.';
+      STATE.loading = false;
+      setSharedStatus(STATE.error, 'error');
+      render();
+      return;
+    }
+    const sequence=++STATE.requestSequence;
+    STATE.requestController?.abort?.();
+    STATE.requestController=null;
+    setReportDate('');
+    STATE.loading=true;
+    STATE.error='';
+    STATE.status='loading';
+    STATE.message='';
+    STATE.rows=[];
+    STATE.summary=null;
+    setSharedStatus(`جاري تحديد آخر جرد مكتمل لمصنع ${config.plantCode}...`);
+    render();
+    try{
+      if(!window.WarehouseDB?.ready || !window.WarehouseDB?.client) throw new Error('قاعدة البيانات غير متصلة.');
+      const {data,error}=await window.WarehouseDB.client.rpc('get_latest_completed_inventory_count_for_plant',{
+        p_plant_code:config.plantCode
+      });
+      if(sequence!==STATE.requestSequence) return;
+      if(error) throw error;
+      const payload=normalizePayload(data);
+      if(!payload) throw new Error('استجابة تاريخ آخر جرد مكتمل غير صالحة.');
+      const latestDate=String(payload.inventory_date || '').slice(0,10);
+      if(String(payload.status || '')!=='latest_completed_inventory_count_found' || !/^\d{4}-\d{2}-\d{2}$/.test(latestDate)){
+        STATE.loading=false;
+        STATE.status='no_completed_inventory';
+        STATE.message=String(payload.message || 'لا يوجد جرد مكتمل لهذا المصنع حتى الآن.');
+        setReportDate('');
+        setSharedStatus(STATE.message,'warning');
+        render();
+        return;
+      }
+      if(latestDate>todayIso()) throw new Error('تاريخ آخر جرد مكتمل أكبر من تاريخ اليوم.');
+      setReportDate(latestDate);
+      STATE.loading=false;
+      return load();
+    }catch(error){
+      if(sequence!==STATE.requestSequence) return;
+      STATE.loading=false;
+      STATE.status='error';
+      STATE.error=String(error?.message || error || 'خطأ غير معروف');
+      setSharedStatus(`تعذر تحديد آخر جرد مكتمل: ${STATE.error}`,'error');
+      render();
+    }
+  }
+
   async function load() {
     const canPlant=code=>window.PermissionRuntime?.can('inventory.production_dates.'+code.toLowerCase()+'.view',code) === true;
     if(!canPlant(STATE.plantCode)){
@@ -387,7 +469,7 @@
     if (!['WF01', 'EL01', 'EL02'].includes(normalized)) return;
     const changed = STATE.plantCode !== normalized;
     STATE.plantCode = normalized;
-    if (STATE.initialized && changed && rootElement()?.classList.contains('active-section')) load();
+    if (STATE.initialized && changed && rootElement()?.classList.contains('active-section')) loadLatestCompleted();
   }
 
   function changeSort(key) {
@@ -431,7 +513,8 @@
       const retry = event.target.closest('[data-production-retry],#inventoryProductionRetryBtn');
       if (retry) {
         event.preventDefault();
-        load();
+        if(STATE.reportDate) load();
+        else loadLatestCompleted();
         return;
       }
       const sort = event.target.closest('[data-production-sort]');
@@ -447,10 +530,8 @@
     if (!root || !input || root.dataset.inventoryProductionBound === '1') return;
     root.dataset.inventoryProductionBound = '1';
     STATE.initialized = true;
-    STATE.reportDate = todayIso();
-    input.value = STATE.reportDate;
-    input.max = STATE.reportDate;
-    updateComparisonDate();
+    input.max = todayIso();
+    setReportDate('');
     window.CustomDatePicker?.init?.(input.parentElement || root);
     window.CustomDatePicker?.refresh?.(input);
     bindEvents(root);
@@ -460,6 +541,7 @@
   window.InventoryProductionTracking = Object.freeze({
     init,
     load,
+    loadLatestCompleted,
     onPlantChanged,
     getState: () => ({ ...STATE, requestController: null })
   });
