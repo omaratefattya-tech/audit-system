@@ -4946,11 +4946,14 @@ function applySettingsSubPermissions(){
 
   const canAddProducts=hasPermission('settings_sales_products','add');
   const canEditProducts=hasPermission('settings_sales_products','edit');
-  const canViewLinks=hasPermission('settings_sales_product_warehouses','view');
-  const canEditLinks=hasPermission('settings_sales_product_warehouses','add') || hasPermission('settings_sales_product_warehouses','delete');
+  const canAssignProductWarehouses=window.PermissionRuntime?.any('settings.sales_products.warehouses.assign') === true;
+  const canViewLinks=canAssignProductWarehouses;
+  const canEditLinks=canAssignProductWarehouses;
   setElementsDisabled('#salesProductSettingsForm input,#addSalesProductBtn',!canAddProducts,true);
   setElementsDisabled('#selectSalesProductWarehousesBeforeAddBtn',!canAddProducts || !canViewLinks,true);
-  setElementsDisabled('#salesProductsSettingsTable .sales-product-name-edit,#salesProductsSettingsTable .sales-product-unit-edit,#salesProductsSettingsTable .sales-product-use-edit,#salesProductsSettingsTable .sales-product-active-edit,#salesProductsSettingsTable .sales-product-sort-edit,#salesProductsSettingsTable [data-action="save-sales-product"]',!canEditProducts,true);
+  setElementsDisabled('#salesProductsSettingsTable .sales-product-name-edit',!canEditProducts,true);
+  $$('#salesProductsSettingsTable .sales-product-name-readonly').forEach(el=>el.classList.toggle('permission-hidden',canEditProducts));
+  setElementsDisabled('#salesProductsSettingsTable .sales-product-unit-edit,#salesProductsSettingsTable .sales-product-use-edit,#salesProductsSettingsTable .sales-product-active-edit,#salesProductsSettingsTable .sales-product-sort-edit,#salesProductsSettingsTable [data-action="save-sales-product"]',!canEditProducts,true);
   setElementsDisabled('#salesProductsSettingsTable [data-action="sales-product-warehouses"]',!canViewLinks,true);
   setElementsDisabled('#salesProductWarehousesList input,#saveSalesProductWarehousesBtn',!canEditLinks,true);
 
@@ -5438,29 +5441,45 @@ function normalizeSalesProductWarehouseCatalogRow(row,index=0){
     source:row?.source||'supabase'
   };
 }
+function salesProductWarehouseAllowedPlantCodes(){
+  return new Set((window.PermissionRuntime?.allowedPlants('settings.sales_products.warehouses.assign')||[])
+    .map(code=>String(code||'').trim().toUpperCase()).filter(Boolean));
+}
+function filterSalesProductWarehousesCatalogByPermission(rows=[]){
+  const allowedPlants=salesProductWarehouseAllowedPlantCodes();
+  return (rows||[]).filter(row=>allowedPlants.has(String(row?.plant_code||'').trim().toUpperCase()));
+}
 async function loadSalesProductWarehousesCatalog(){
-  if(!WarehouseDB?.ready) return fallbackSalesProductWarehousesCatalog();
+  const allowedPlants=[...salesProductWarehouseAllowedPlantCodes()];
+  if(!allowedPlants.length) return [];
+  if(!WarehouseDB?.ready) return filterSalesProductWarehousesCatalogByPermission(fallbackSalesProductWarehousesCatalog());
   try{
     const {data,error}=await WarehouseDB.client
       .from('warehouses')
       .select('warehouse_code,warehouse_name,plant_code,is_active,sort_order')
       .eq('is_active',true)
+      .in('plant_code',allowedPlants)
       .order('plant_code',{ascending:true})
       .order('sort_order',{ascending:true})
       .order('warehouse_code',{ascending:true});
     if(error) throw error;
-    return (data||[]).map(normalizeSalesProductWarehouseCatalogRow).filter(w=>w.warehouse_code);
+    const catalog=(data||[]).map(normalizeSalesProductWarehouseCatalogRow).filter(w=>w.warehouse_code);
+    return filterSalesProductWarehousesCatalogByPermission(catalog);
   }catch(err){
     console.warn('[sales-product-warehouses] fallback to APP_DATA warehouses',err);
-    return fallbackSalesProductWarehousesCatalog();
+    return filterSalesProductWarehousesCatalogByPermission(fallbackSalesProductWarehousesCatalog());
   }
 }
-async function fetchSalesProductWarehouseLinks(materialCode){
+async function fetchSalesProductWarehouseLinks(materialCode,warehouseCodes=null){
   if(!WarehouseDB?.ready) return [];
-  const {data,error}=await WarehouseDB.client
+  const scopedCodes=warehouseCodes===null ? null : [...new Set((warehouseCodes||[]).map(normalizeWarehouseSettingsCode).filter(Boolean))];
+  if(scopedCodes && !scopedCodes.length) return [];
+  let query=WarehouseDB.client
     .from('sales_product_warehouses')
     .select('warehouse_code,is_active')
     .eq('material_code',materialCode);
+  if(scopedCodes) query=query.in('warehouse_code',scopedCodes);
+  const {data,error}=await query;
   if(error) throw error;
   return data||[];
 }
@@ -5478,10 +5497,17 @@ function getSelectedSalesProductWarehouseCodes(){
     .map(input=>normalizeWarehouseSettingsCode(input.value))
     .filter(Boolean);
 }
-async function saveSalesProductWarehouseCodes(materialCode,selectedCodes=[]){
-  const selected=[...new Set((selectedCodes||[]).map(normalizeWarehouseSettingsCode).filter(Boolean))];
-  const existing=await fetchSalesProductWarehouseLinks(materialCode);
-  const existingActiveCodes=(existing||[]).filter(l=>parseSalesProductBoolean(l.is_active)).map(l=>normalizeWarehouseSettingsCode(l.warehouse_code)).filter(Boolean);
+async function saveSalesProductWarehouseCodes(materialCode,selectedCodes=[],allowedWarehouses=[]){
+  const catalog=(allowedWarehouses||[]).length ? allowedWarehouses : await loadSalesProductWarehousesCatalog();
+  const allowedCodes=new Set((catalog||[]).map(w=>normalizeWarehouseSettingsCode(w.warehouse_code)).filter(Boolean));
+  const requested=[...new Set((selectedCodes||[]).map(normalizeWarehouseSettingsCode).filter(Boolean))];
+  if(requested.some(code=>!allowedCodes.has(code))) throw new Error('يتضمن الاختيار مخزنًا خارج نطاق الصلاحية الحالية.');
+  const selected=requested.filter(code=>allowedCodes.has(code));
+  const existing=await fetchSalesProductWarehouseLinks(materialCode,[...allowedCodes]);
+  const existingActiveCodes=(existing||[])
+    .filter(l=>parseSalesProductBoolean(l.is_active))
+    .map(l=>normalizeWarehouseSettingsCode(l.warehouse_code))
+    .filter(code=>Boolean(code) && allowedCodes.has(code));
   const selectedSet=new Set(selected);
   const toEnable=selected.filter(code=>!existingActiveCodes.includes(code));
   const toDisable=existingActiveCodes.filter(code=>!selectedSet.has(code));
@@ -5513,7 +5539,7 @@ async function saveSalesProductWarehouseCodes(materialCode,selectedCodes=[]){
     await logSystemActivity('الإعدادات','حذف ربط',`حذف ربط الصنف: ${materialCode} من المخزن: ${warehouseCode}`);
   }
   clearSalesReviewEngineCache();
-  return await fetchSalesProductWarehouseLinks(materialCode);
+  return await fetchSalesProductWarehouseLinks(materialCode,[...allowedCodes]);
 }
 async function getNewSalesProductWarehouseSelection(){
   if(SALES_PRODUCT_WAREHOUSES_STATE.mode==='create'){
@@ -5552,7 +5578,7 @@ function renderSalesProductWarehousesPanel(){
   }).join('');
 }
 async function openSalesProductWarehousesPanel(source){
-  if(!hasPermission('settings_sales_product_warehouses','view')){ setSalesProductWarehousesStatus('غير متاح للصلاحية الحالية','err'); return; }
+  if(window.PermissionRuntime?.any('settings.sales_products.warehouses.assign') !== true){ setSalesProductWarehousesStatus('غير متاح للصلاحية الحالية','err'); return; }
   const row=source?.closest ? (source.closest('[data-material-code]') || source.closest('tr')) : source;
   const panel=$('#salesProductWarehousesPanel');
   if(!row || !panel) return;
@@ -5563,10 +5589,8 @@ async function openSalesProductWarehousesPanel(source){
   setSalesProductWarehousesStatus('جاري تحميل مخازن الصنف...');
   renderSalesProductWarehousesPanel();
   try{
-    const [warehouses,links]=await Promise.all([
-      loadSalesProductWarehousesCatalog(),
-      fetchSalesProductWarehouseLinks(materialCode)
-    ]);
+    const warehouses=await loadSalesProductWarehousesCatalog();
+    const links=await fetchSalesProductWarehouseLinks(materialCode,warehouses.map(w=>w.warehouse_code));
     SALES_PRODUCT_WAREHOUSES_STATE={mode:'existing',materialCode,materialName,warehouses,links};
     renderSalesProductWarehousesPanel();
     setSalesProductWarehousesStatus('تم تحميل مخازن الصنف.','ok');
@@ -5577,7 +5601,7 @@ async function openSalesProductWarehousesPanel(source){
   }
 }
 async function openNewSalesProductWarehousesPanel(){
-  if(!hasPermission('settings_sales_product_warehouses','view') || !hasPermission('settings_sales_products','add')){ setSalesProductWarehousesStatus('غير متاح للصلاحية الحالية','err'); return; }
+  if(window.PermissionRuntime?.any('settings.sales_products.warehouses.assign') !== true || !hasPermission('settings_sales_products','add')){ setSalesProductWarehousesStatus('غير متاح للصلاحية الحالية','err'); return; }
   const panel=$('#salesProductWarehousesPanel');
   if(!panel) return;
   const materialCode=normalizeSalesProductCode($('#salesProductCodeInput')?.value) || 'NEW';
@@ -5607,7 +5631,7 @@ function closeSalesProductWarehousesPanel(){
   setSalesProductWarehousesStatus('');
 }
 async function saveSalesProductWarehouses(){
-  if(!hasPermission('settings_sales_product_warehouses','add') && !hasPermission('settings_sales_product_warehouses','delete')){ setSalesProductWarehousesStatus('غير متاح للصلاحية الحالية','err'); return; }
+  if(window.PermissionRuntime?.any('settings.sales_products.warehouses.assign') !== true){ setSalesProductWarehousesStatus('غير متاح للصلاحية الحالية','err'); return; }
   const materialCode=normalizeSalesProductCode(SALES_PRODUCT_WAREHOUSES_STATE.materialCode);
   if(!materialCode){ setSalesProductWarehousesStatus('اختر صنفًا أولاً.','err'); return; }
   const selected=getSelectedSalesProductWarehouseCodes();
@@ -5620,7 +5644,7 @@ async function saveSalesProductWarehouses(){
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setSalesProductWarehousesStatus('سجل الدخول أولاً لحفظ مخازن الصنف.','err'); return; }
   setSalesProductWarehousesStatus('جاري حفظ مخازن الصنف...');
   try{
-    const links=await saveSalesProductWarehouseCodes(materialCode,selected);
+    const links=await saveSalesProductWarehouseCodes(materialCode,selected,SALES_PRODUCT_WAREHOUSES_STATE.warehouses);
     SALES_PRODUCT_WAREHOUSES_STATE.links=links;
     renderSalesProductWarehousesPanel();
     setSalesProductWarehousesStatus('تم حفظ مخازن الصنف بنجاح.','ok');
@@ -5648,7 +5672,7 @@ function renderSalesProductsSettingsTable(rows=[]){
     const statusClass=active?'sales-product-status-active':'sales-product-status-inactive';
     return '<tr data-sales-product-id="'+id+'" data-material-code="'+code+'">'
       +'<td><span class="sales-product-code-readonly">'+code+'</span></td>'
-      +'<td><input type="text" class="sales-product-name-edit" value="'+name+'" /></td>'
+      +'<td><span class="sales-product-name-readonly">'+name+'</span><input type="text" class="sales-product-name-edit" value="'+name+'" /></td>'
       +'<td><input type="text" class="sales-product-unit-edit" value="'+unit+'" /></td>'
       +'<td><select class="sales-product-use-edit"><option value="true" '+(useReports?'selected':'')+'>\u0646\u0639\u0645</option><option value="false" '+(!useReports?'selected':'')+'>\u0644\u0627</option></select></td>'
       +'<td><select class="sales-product-active-edit"><option value="true" '+(active?'selected':'')+'>\u0646\u0634\u0637</option><option value="false" '+(!active?'selected':'')+'>\u063A\u064A\u0631 \u0646\u0634\u0637</option></select><div class="'+statusClass+'">'+statusText+'</div></td>'
@@ -5719,6 +5743,7 @@ async function addSalesProductSettingsRow(e){
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id){ setSalesProductsSettingsStatus('\u0633\u062C\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0623\u0648\u0644\u0627\u064B \u0644\u0625\u062F\u0627\u0631\u0629 \u0623\u0635\u0646\u0627\u0641 \u0627\u0644\u0628\u064A\u0639.','err'); return; }
   const payload=readSalesProductSettingsForm();
   if(!payload.material_code || !payload.material_name){ setSalesProductsSettingsStatus('\u0643\u0648\u062F \u0627\u0644\u0635\u0646\u0641 \u0648\u0627\u0633\u0645\u0647 \u0645\u0637\u0644\u0648\u0628\u0627\u0646.','err'); return; }
+  if(window.PermissionRuntime?.any('settings.sales_products.warehouses.assign') !== true){ setSalesProductsSettingsStatus('غير متاح للصلاحية الحالية','err'); return; }
   setSalesProductsSettingsStatus('\u062C\u0627\u0631\u064A \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0635\u0646\u0641...');
   let selectedWarehouseCodes=[];
   try{
