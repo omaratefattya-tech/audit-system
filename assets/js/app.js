@@ -4964,11 +4964,45 @@ function applySettingsSubPermissions(){
   setElementsDisabled('#activityLogExportExcelBtn',!hasPermission('settings_activity_log','export_excel'),true);
   setElementsDisabled('#activityLogExportPdfBtn',!hasPermission('settings_activity_log','export_pdf'),true);
 }
+function permissionAllowedPlantSet(permissionKey){
+  return new Set((window.PermissionRuntime?.allowedPlants(permissionKey)||[])
+    .map(code=>String(code||'').trim().toUpperCase()).filter(Boolean));
+}
+function scopeSettingsPlantSelect(select,allowedPlants,{allowAll=false}={}){
+  if(!select) return;
+  const allowed=allowedPlants instanceof Set ? allowedPlants : new Set(allowedPlants||[]);
+  [...select.options].forEach(option=>{
+    if(option.dataset.permissionScopeBaseDisabled===undefined) option.dataset.permissionScopeBaseDisabled=option.disabled?'1':'0';
+    if(option.dataset.permissionScopeBaseHidden===undefined) option.dataset.permissionScopeBaseHidden=option.hidden?'1':'0';
+    const value=String(option.value||'').trim().toUpperCase();
+    const special=!value || (allowAll && value==='ALL');
+    const permitted=special || allowed.has(value);
+    option.disabled=option.dataset.permissionScopeBaseDisabled==='1' || !permitted;
+    option.hidden=option.dataset.permissionScopeBaseHidden==='1' || !permitted;
+  });
+  const current=String(select.value||'').trim().toUpperCase();
+  if(current && current!=='ALL' && !allowed.has(current)){
+    const blank=[...select.options].find(option=>!option.value && !option.hidden);
+    const first=[...select.options].find(option=>option.value && String(option.value).trim().toUpperCase()!=='ALL' && !option.disabled && !option.hidden);
+    if(blank) select.value='';
+    else if(first) select.value=first.value;
+    else if(allowAll) select.value='all';
+    else select.selectedIndex=-1;
+  }
+}
+function syncStorekeepersSettingsPlantScope(){
+  const viewAllowed=permissionAllowedPlantSet('settings.storekeepers.view');
+  scopeSettingsPlantSelect($('#storekeepersPlantFilter'),viewAllowed,{allowAll:true});
+  const actionKey=isStorekeepersSettingsEditing()?'settings.storekeepers.edit':'settings.storekeepers.create';
+  scopeSettingsPlantSelect($('#storekeeperPlantInput'),permissionAllowedPlantSet(actionKey));
+  return viewAllowed;
+}
 function canAddStorekeepersSettings(){ return hasPermission('settings_storekeepers','add'); }
 function canEditStorekeepersSettings(){ return hasPermission('settings_storekeepers','edit'); }
 function notifyStorekeepersPermissionDenied(){ alert('\u063A\u064A\u0631 \u0645\u062A\u0627\u062D \u0644\u0644\u0635\u0644\u0627\u062D\u064A\u0629 \u0627\u0644\u062D\u0627\u0644\u064A\u0629'); }
 function isStorekeepersSettingsEditing(){ return Boolean($('#storekeeperIdInput')?.value); }
 function applyStorekeepersSettingsPermissions(){
+  syncStorekeepersSettingsPlantScope();
   const canAdd=canAddStorekeepersSettings();
   const canEdit=canEditStorekeepersSettings();
   const isEditing=isStorekeepersSettingsEditing();
@@ -16221,7 +16255,13 @@ async function loadStorekeepersTable() {
   tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري التحميل...</td></tr>';
   
   try {
-    let query = WarehouseDB.client.from('storekeepers').select('*').order('created_at', { ascending: false });
+    const allowedPlantSet=syncStorekeepersSettingsPlantScope();
+    const allowedPlants=[...allowedPlantSet];
+    if(!allowedPlants.length){
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;" class="empty-row">لا توجد مصانع متاحة للصلاحية الحالية</td></tr>';
+      return;
+    }
+    let query = WarehouseDB.client.from('storekeepers').select('*').in('plant_code',allowedPlants).order('created_at', { ascending: false });
     
     const searchVal = document.getElementById('storekeepersSearchInput')?.value.trim().toLowerCase();
     const plantVal = document.getElementById('storekeepersPlantFilter')?.value;
@@ -16240,12 +16280,13 @@ async function loadStorekeepersTable() {
     const { data, error } = await query;
     if (error) throw error;
     
-    if (!data || data.length === 0) {
+    const scopedData=(data||[]).filter(st=>allowedPlantSet.has(String(st?.plant_code||'').trim().toUpperCase()));
+    if (!scopedData.length) {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;" class="empty-row">لا يوجد بيانات لعرضها</td></tr>';
       return;
     }
     
-    tbody.innerHTML = data.map(st => `
+    tbody.innerHTML = scopedData.map(st => `
       <tr>
         <td>${escapeHtml(st.full_name || '')}</td>
         <td>${escapeHtml(st.job_title || '')}</td>
@@ -16262,7 +16303,7 @@ async function loadStorekeepersTable() {
               تعديل
             </button>
             <button class="small-action ${st.is_active ? 'delete' : 'view'}" type="button" data-action="toggle-storekeeper"
-              onclick="toggleStorekeeperStatus('${st.id}', ${!st.is_active})">
+              onclick="toggleStorekeeperStatus('${st.id}', ${!st.is_active}, '${escapeHtml(st.plant_code || '')}')">
               ${st.is_active ? 'إيقاف' : 'تفعيل'}
             </button>
           </div>
@@ -16301,6 +16342,13 @@ document.getElementById('storekeeperSettingsForm')?.addEventListener('submit', a
     const job_title = document.getElementById('storekeeperTitleInput').value.trim();
     const plant_code = document.getElementById('storekeeperPlantInput').value;
     const is_active = document.getElementById('storekeeperActiveInput').checked;
+    const actionKey=id?'settings.storekeepers.edit':'settings.storekeepers.create';
+    const originalPlant=String(document.getElementById('storekeeperIdInput')?.dataset.originalPlantCode||plant_code).trim().toUpperCase();
+    if(window.PermissionRuntime?.can(actionKey,plant_code)!==true || (id && window.PermissionRuntime?.can(actionKey,originalPlant)!==true)){
+      notifyStorekeepersPermissionDenied();
+      applyStorekeepersSettingsPermissions();
+      return;
+    }
     
     if (id) {
       // Update
@@ -16337,6 +16385,7 @@ function editStorekeeper(id, full_name, job_title, plant_code, is_active) {
     return;
   }
   document.getElementById('storekeeperIdInput').value = id;
+  document.getElementById('storekeeperIdInput').dataset.originalPlantCode = String(plant_code||'').trim().toUpperCase();
   document.getElementById('storekeeperNameInput').value = full_name;
   document.getElementById('storekeeperTitleInput').value = job_title;
   document.getElementById('storekeeperPlantInput').value = plant_code;
@@ -16354,6 +16403,7 @@ function resetStorekeeperForm() {
     return;
   }
   document.getElementById('storekeeperIdInput').value = '';
+  delete document.getElementById('storekeeperIdInput').dataset.originalPlantCode;
   document.getElementById('storekeeperSettingsForm').reset();
   document.getElementById('saveStorekeeperBtn').textContent = 'حفظ أمين المخزن';
   document.getElementById('cancelStorekeeperBtn').style.display = 'none';
@@ -16362,8 +16412,8 @@ function resetStorekeeperForm() {
 
 document.getElementById('cancelStorekeeperBtn')?.addEventListener('click', resetStorekeeperForm);
 
-async function toggleStorekeeperStatus(id, newStatus) {
-  if(!canEditStorekeepersSettings()){
+async function toggleStorekeeperStatus(id, newStatus, plantCode='') {
+  if(!canEditStorekeepersSettings() || window.PermissionRuntime?.can('settings.storekeepers.status.toggle',plantCode)!==true){
     notifyStorekeepersPermissionDenied();
     applyStorekeepersSettingsPermissions();
     return;
@@ -16748,7 +16798,15 @@ function departmentCodingErrorMessage(error,codeLabel){
   }
   return message ? 'تعذر تنفيذ العملية: '+message : 'تعذر تنفيذ العملية في Supabase.';
 }
+function syncDepartmentPersonnelPlantScope(){
+  const viewAllowed=permissionAllowedPlantSet('settings.department_personnel.view');
+  const editing=Boolean($('#departmentPersonnelIdInput')?.value);
+  const actionKey=editing?'settings.department_personnel.edit':'settings.department_personnel.create';
+  scopeSettingsPlantSelect($('#departmentPersonnelPlantInput'),permissionAllowedPlantSet(actionKey));
+  return viewAllowed;
+}
 function applyDepartmentPersonnelPermissions(){
+  syncDepartmentPersonnelPlantScope();
   const canAdd=canAddDepartmentCodingSettings();
   const canEdit=canEditDepartmentCodingSettings();
   const editing=Boolean($('#departmentPersonnelIdInput')?.value);
@@ -16819,12 +16877,20 @@ async function loadDepartmentPersonnelTable(options={}){
     setDepartmentPersonnelStatus('');
   }
   try{
+    const allowedPlantSet=syncDepartmentPersonnelPlantScope();
+    const allowedPlants=[...allowedPlantSet];
+    if(!allowedPlants.length){
+      DEPARTMENT_PERSONNEL_ROWS=[];
+      renderDepartmentPersonnelTable([]);
+      return true;
+    }
     const {data,error}=await WarehouseDB.client
       .from(DEPARTMENT_PERSONNEL_TABLE)
       .select('id,employee_code,full_name,job_title,plant_code,department,phone_number,hire_date,is_active,created_at,updated_at')
+      .in('plant_code',allowedPlants)
       .order('created_at',{ascending:false});
     if(error) throw error;
-    DEPARTMENT_PERSONNEL_ROWS=data||[];
+    DEPARTMENT_PERSONNEL_ROWS=(data||[]).filter(row=>allowedPlantSet.has(String(row?.plant_code||'').trim().toUpperCase()));
     renderDepartmentPersonnelTable(DEPARTMENT_PERSONNEL_ROWS);
     return true;
   }catch(error){
@@ -16847,6 +16913,7 @@ function resetDepartmentPersonnelForm(){
   if(!form) return;
   form.reset();
   $('#departmentPersonnelIdInput').value='';
+  delete $('#departmentPersonnelIdInput').dataset.originalPlantCode;
   $('#departmentPersonnelActiveInput').checked=true;
   const hireDateInput=$('#departmentPersonnelHireDateInput');
   if(hireDateInput) hireDateInput.value='';
@@ -16866,6 +16933,7 @@ function editDepartmentPersonnel(recordId){
     return;
   }
   $('#departmentPersonnelIdInput').value=row.id||'';
+  $('#departmentPersonnelIdInput').dataset.originalPlantCode=String(row.plant_code||'').trim().toUpperCase();
   $('#departmentPersonnelCodeInput').value=row.employee_code||'';
   $('#departmentPersonnelNameInput').value=row.full_name||'';
   $('#departmentPersonnelJobTitleInput').value=row.job_title||'';
@@ -16907,6 +16975,13 @@ async function saveDepartmentPersonnel(event){
     hire_date:String($('#departmentPersonnelHireDateInput')?.value||'').trim() || null,
     is_active:Boolean($('#departmentPersonnelActiveInput')?.checked)
   };
+  const actionKey=id?'settings.department_personnel.edit':'settings.department_personnel.create';
+  const originalPlant=String($('#departmentPersonnelIdInput')?.dataset.originalPlantCode||payload.plant_code).trim().toUpperCase();
+  if(window.PermissionRuntime?.can(actionKey,payload.plant_code)!==true || (id && window.PermissionRuntime?.can(actionKey,originalPlant)!==true)){
+    setDepartmentPersonnelStatus('غير مسموح بالحفظ خارج نطاق المصنع المحدد في الحزمة.','err');
+    applyDepartmentPersonnelPermissions();
+    return;
+  }
   if(!isValidDepartmentPhone(payload.phone_number)){
     setDepartmentPersonnelStatus('رقم التليفون يحتوي على حروف أو رموز غير مسموحة.','err');
     return;
@@ -16948,7 +17023,8 @@ async function saveDepartmentPersonnel(event){
 }
 async function toggleDepartmentPersonnelStatus(recordId,nextActive){
   if(DEPARTMENT_PERSONNEL_STATUS_PENDING.has(recordId)) return;
-  if(!canEditDepartmentCodingSettings()){
+  const row=DEPARTMENT_PERSONNEL_ROWS.find(item=>String(item.id)===String(recordId));
+  if(!canEditDepartmentCodingSettings() || !row || window.PermissionRuntime?.can('settings.department_personnel.status.toggle',row.plant_code)!==true){
     setDepartmentPersonnelStatus('غير متاح للصلاحية الحالية.','err');
     return;
   }
