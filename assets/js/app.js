@@ -530,7 +530,6 @@ function inboundRowMatchesTopFilters(row,filters){
   if(!filters) return true;
   const whCode=String(row.mb51_warehouse_code || row.scale_warehouse_code || '').trim().toUpperCase();
   const meta=warehouseMetaByCode(whCode);
-  if(!window.PermissionRuntime?.can('inbound_review.view',meta.plant_code || [])) return false;
   const movement=String(row.incoming_movement_type || row.raw_result?.movement_type || '').trim().toUpperCase();
   if(!inboundLegacyFilterMatches(filters.plant,meta.plant_code,v=>String(v||'').toUpperCase())) return false;
   if(!inboundLegacyFilterMatches(filters.warehouse,whCode,v=>String(v||'').toUpperCase())) return false;
@@ -1076,8 +1075,7 @@ function initReportExportButtons(){
   $('#rawMaterialsExportPngBtn')?.addEventListener('click',exportRawMaterialsPng);
 }
 
-function renderMovementsTable(){table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']))}
-function renderTables(){renderMovementsTable();table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحويل'],APP_DATA.salesReviewSample);table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample)}
+function renderTables(){table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']));table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحويل'],APP_DATA.salesReviewSample);table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample)}
 function renderTabs(){const salesWh=APP_DATA.plants.flatMap(p=>p.warehouses.filter(w=>['W401','W402','N401','N402','N411','N412','E401','E402'].includes(w[0])).map(w=>w[0]));$('#salesTabs').innerHTML=salesWh.map((w,i)=>`<button class="${i===0?'active':''}">${w}</button>`).join('');$('#inboundTabs').innerHTML=getPlantsCatalog().map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('')}
 
 
@@ -1348,7 +1346,7 @@ function renderDashboardKPIs(stats){
 }
 function getDashboardFilters(){
   return {
-    plant: permissionFilterPlants('dashboard.view',enterpriseSelectValues('dashboardPlantFilter')),
+    plant: enterpriseSelectValues('dashboardPlantFilter'),
     warehouse: enterpriseSelectValues('dashboardWarehouseFilter'),
     from: normalizeDateISO($('#dashboardFromDate')?.value || ''),
     to: normalizeDateISO($('#dashboardToDate')?.value || '')
@@ -2450,7 +2448,6 @@ async function fetchUnifiedSalesRows(filters={},options={}){
   }
 }
 async function loadDashboardRealData(options={}){
-  if(!window.PermissionRuntime?.any('dashboard.view')) return;
   if(!WarehouseDB?.ready) return;
   await ensureDashboardDefaultDate(options);
   initEnterpriseMultiSelectFilters($('#dashboard'));
@@ -2694,8 +2691,6 @@ function syncMobileDashboardShellState(){
 }
 const INVENTORY_AUDIT_SECTION_IDS = new Set(['inventory_closing','inventory_differences','inventory_expiry_tracking']);
 function isInventoryAuditSection(section){ return INVENTORY_AUDIT_SECTION_IDS.has(section); }
-const DEPARTMENT_PERSONNEL_SECTION_IDS = new Set(['department_storekeepers','department_weekly_leave_schedule','department_hr_reports','department_evaluations','department_loading_errors']);
-function isDepartmentPersonnelSection(section){ return DEPARTMENT_PERSONNEL_SECTION_IDS.has(section); }
 function setInventoryAuditNavGroupOpen(group,open){
   if(!group) return;
   group.classList.toggle('is-open',!!open);
@@ -2710,23 +2705,7 @@ function syncInventoryAuditNavigation(section=currentActiveSection()){
   $$('[data-inventory-nav-toggle],[data-inventory-mobile-toggle]').forEach(toggle=>toggle.classList.toggle('active',active));
   $$('.mobile-drawer-item[data-mobile-section]').forEach(item=>item.classList.toggle('active',item.dataset.mobileSection===section));
 }
-function setDepartmentPersonnelNavGroupOpen(group,open){
-  if(!group) return;
-  group.classList.toggle('is-open',!!open);
-  const submenu=group.querySelector('.department-personnel-nav-submenu,.department-personnel-mobile-submenu');
-  const toggle=group.querySelector('[data-department-personnel-nav-toggle],[data-department-personnel-mobile-toggle]');
-  if(submenu) submenu.hidden=!open;
-  if(toggle) toggle.setAttribute('aria-expanded',open?'true':'false');
-}
-function syncDepartmentPersonnelNavigation(section=currentActiveSection()){
-  const active=isDepartmentPersonnelSection(section);
-  $$('[data-department-personnel-nav-group],[data-department-personnel-mobile-nav-group]').forEach(group=>{ if(active) setDepartmentPersonnelNavGroupOpen(group,true); });
-  $$('[data-department-personnel-nav-toggle],[data-department-personnel-mobile-toggle]').forEach(toggle=>toggle.classList.toggle('active',active));
-  $$('.mobile-drawer-item[data-mobile-section]').forEach(item=>item.classList.toggle('active',item.dataset.mobileSection===section));
-}
 function switchSection(section,options={}){
-  if(!canViewSection(section)){ showPermissionDenied(section); return false; }
-  if(typeof canLeaveDepartmentWeeklyWorkspace==='function' && !canLeaveDepartmentWeeklyWorkspace(section)) return false;
   closeActiveApplicationModals({restoreFocus:false});
   if(document.body.classList.contains('focus-mode-active')) exitFocusMode({restoreScroll:false});
   if(!canViewSection(section)){
@@ -2735,7 +2714,6 @@ function switchSection(section,options={}){
   }
   $$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.section===section));
   syncInventoryAuditNavigation(section);
-  syncDepartmentPersonnelNavigation(section);
   $$('.section').forEach(s=>s.classList.remove('active-section'));
   const target=$('#'+section);
   if(target) target.classList.add('active-section');
@@ -2743,23 +2721,16 @@ function switchSection(section,options={}){
   closeMobileDashboardPanels();
   updateFiltersVisibility(section);
   if(options.persistView!==false) rememberApplicationViewState(section);
-  if(section==='reports') setTimeout(()=>loadActiveReport(),50);
+  if(section==='reports') setTimeout(()=>loadExecutiveReport(),50);
   if(section==='raw_materials') setTimeout(()=>loadRawMaterialsScreen(),50);
   if(section==='users') setTimeout(()=>loadUsersManagement(),50);
-  if(section==='permissions') setTimeout(()=>window.PermissionManagement?.load?.(),50);
+  if(section==='permissions') setTimeout(()=>loadPermissionsManagement(),50);
   if(section==='inventory_closing'){
     const openSelected=options.inventoryOpenMode==='selected';
     setTimeout(()=>openSelected ? openExistingInventoryCountFromUi({showLoading:true}) : openDefaultInventoryCountFromUi({showLoading:true}),50);
   }
   if(section==='inventory_differences') setTimeout(()=>loadInventoryDifferenceScreen(),50);
-  if(section==='inventory_expiry_tracking') setTimeout(()=>window.InventoryProductionTracking?.load(),50);
-  if(section==='department_storekeepers') setTimeout(()=>loadDepartmentStorekeepers(),50);
-  if(section==='department_weekly_leave_schedule') setTimeout(()=>loadDepartmentWeeklyWorkspace('statuses'),50);
-  if(section==='department_hr_reports') setTimeout(()=>window.DepartmentHrReports?.load(),50);
-  if(section==='department_evaluations') setTimeout(()=>loadDepartmentWeeklyWorkspace('evaluations'),50);
-  if(section==='department_loading_errors') setTimeout(()=>window.DepartmentLoadingErrors?.load(),50);
   setTimeout(()=>applyPermissionActionGuards(section),80);
-  return true;
 }
 function closeMobileDashboardPanels(){
   const drawer=$('#mobileDashboardDrawer');
@@ -3014,13 +2985,6 @@ function initMobileDashboardShell(){
       setInventoryAuditNavGroupOpen(group,!group?.classList.contains('is-open'));
       return;
     }
-    const departmentPersonnelMobileToggle=event.target.closest('[data-department-personnel-mobile-toggle]');
-    if(departmentPersonnelMobileToggle){
-      event.preventDefault();
-      const group=departmentPersonnelMobileToggle.closest('[data-department-personnel-mobile-nav-group]');
-      setDepartmentPersonnelNavGroupOpen(group,!group?.classList.contains('is-open'));
-      return;
-    }
     const drawerItem=event.target.closest('.mobile-drawer-item[data-mobile-section]');
     if(drawerItem){
       event.preventDefault();
@@ -3037,50 +3001,14 @@ function initMobileDashboardControls(){
 function nav(){
   $$('.nav-item[data-section]').forEach(b=>b.onclick=()=>switchSection(b.dataset.section));
   $$('[data-inventory-nav-toggle]').forEach(btn=>{ btn.onclick=()=>{ const group=btn.closest('[data-inventory-nav-group]'); setInventoryAuditNavGroupOpen(group,!group?.classList.contains('is-open')); }; });
-  $$('[data-department-personnel-nav-toggle]').forEach(btn=>{ btn.onclick=()=>{
-    const group=btn.closest('[data-department-personnel-nav-group]');
-    const shell=$('#appShell');
-    if(shell?.classList.contains('sidebar-collapsed')){
-      $('#sidebarToggleBtn')?.click();
-      setDepartmentPersonnelNavGroupOpen(group,true);
-      return;
-    }
-    setDepartmentPersonnelNavGroupOpen(group,!group?.classList.contains('is-open'));
-  }; });
   const active=$('.nav-item.active')?.dataset.section || 'dashboard';
   syncInventoryAuditNavigation(active);
-  syncDepartmentPersonnelNavigation(active);
   updateMobileDashboardState(active);
   updateFiltersVisibility(active);
 }
 
-const FOCUS_MODE_SECTIONS = new Set([
-  'sales','inbound','raw_materials','inventory_closing',
-  'inventory_expiry_tracking','department_storekeepers','department_weekly_leave_schedule',
-  'department_hr_reports','department_evaluations','department_loading_errors'
-]);
+const FOCUS_MODE_SECTIONS = new Set(['sales','inbound','raw_materials','inventory_closing']);
 let FOCUS_MODE_SCROLL_Y = 0;
-let FOCUS_MODE_CONTEXT = null;
-function captureFocusModeScrollState(target){
-  if(!target) return [];
-  return Array.from(target.querySelectorAll([
-    '.table-wrap','.department-weekly-table-wrap','.department-operational-table-wrap',
-    '.department-hr-table-wrap','.inventory-production-table-wrap',
-    '.department-hr-filters-scroll','.department-hr-tabs-scroll'
-  ].join(','))).filter(node=>node.scrollHeight>node.clientHeight || node.scrollWidth>node.clientWidth || node.scrollTop || node.scrollLeft).map(node=>({
-    node,top:node.scrollTop,left:node.scrollLeft
-  }));
-}
-function restoreFocusModeScrollState(context){
-  if(!context) return;
-  window.scrollTo({top:context.windowY,behavior:'auto'});
-  context.scrollNodes.forEach(item=>{
-    if(!item.node?.isConnected) return;
-    item.node.scrollTop=item.top;
-    item.node.scrollLeft=item.left;
-  });
-  if(context.trigger?.isConnected) context.trigger.focus({preventScroll:true});
-}
 function setFocusModeButtonState(){
   const active=document.body.classList.contains('focus-mode-active');
   const section=document.body.dataset.focusSection || '';
@@ -3098,16 +3026,8 @@ function enterFocusMode(section){
   if(!FOCUS_MODE_SECTIONS.has(section)) return;
   const target=$('#'+section);
   if(!target) return;
-  if(document.body.classList.contains('focus-mode-active') && document.body.dataset.focusSection===section) return;
-  if(document.body.classList.contains('focus-mode-active')) exitFocusMode({restoreScroll:false});
   if(currentActiveSection()!==section) switchSection(section);
   FOCUS_MODE_SCROLL_Y=window.scrollY || document.documentElement.scrollTop || 0;
-  FOCUS_MODE_CONTEXT={
-    section,
-    windowY:FOCUS_MODE_SCROLL_Y,
-    scrollNodes:captureFocusModeScrollState(target),
-    trigger:document.activeElement
-  };
   document.body.classList.add('focus-mode-active');
   document.body.dataset.focusSection=section;
   rememberApplicationViewState(section);
@@ -3118,15 +3038,13 @@ function enterFocusMode(section){
 }
 function exitFocusMode(options={}){
   const wasActive=document.body.classList.contains('focus-mode-active');
-  const context=FOCUS_MODE_CONTEXT;
   document.body.classList.remove('focus-mode-active');
   delete document.body.dataset.focusSection;
   rememberApplicationViewState(currentActiveSection());
   syncApplicationModalScrollRoot();
   setFocusModeButtonState();
   updateInventoryCountFreezePanes();
-  FOCUS_MODE_CONTEXT=null;
-  if(wasActive && options.restoreScroll!==false) requestAnimationFrame(()=>restoreFocusModeScrollState(context));
+  if(wasActive && options.restoreScroll!==false) requestAnimationFrame(()=>window.scrollTo({top:FOCUS_MODE_SCROLL_Y,behavior:'auto'}));
 }
 function initFocusModeControls(){
   if(document.body.dataset.focusModeBound==='1') return;
@@ -3151,11 +3069,6 @@ function initFocusModeControls(){
   });
   setFocusModeButtonState();
 }
-window.ReportFocusMode=Object.freeze({
-  enter:enterFocusMode,
-  exit:exitFocusMode,
-  isActive:section=>document.body.classList.contains('focus-mode-active') && (!section || document.body.dataset.focusSection===section)
-});
 
 function initSidebarToggle(){
   const shell = $('#appShell');
@@ -3774,7 +3687,6 @@ function formatFileSize(bytes){
   return `${(n/1024/1024).toFixed(2)} MB`;
 }
 async function loadSalesBatches(){
-  if(!window.PermissionRuntime?.can('upload_reports.sales.view')) return;
   const tbl=$('#salesBatchesTable');
   if(!tbl || !WarehouseDB?.ready){ return; }
   const {data,error}=await WarehouseDB.client
@@ -3896,7 +3808,6 @@ async function handleIncomingFile(file){
   }
 }
 async function loadIncomingBatches(){
-  if(!window.PermissionRuntime?.can('upload_reports.incoming.view')) return;
   const tbl=$('#incomingBatchesTable');
   if(!tbl || !WarehouseDB?.ready){ return; }
   const {data,error}=await WarehouseDB.client
@@ -4010,7 +3921,6 @@ async function handleScaleFile(file){
   }
 }
 async function loadScaleBatches(){
-  if(!window.PermissionRuntime?.can('upload_reports.scale.view')) return;
   const tbl=$('#scaleBatchesTable');
   if(!tbl || !WarehouseDB?.ready){ return; }
   const {data,error}=await WarehouseDB.client
@@ -4117,7 +4027,6 @@ async function refreshInboundReportDates(){
   return [];
 }
 async function loadInboundAuditReport(date='',options={}){
-  if(!window.PermissionRuntime?.any('inbound_review.view')) return;
   const tbl=$('#inboundTable');
   if(!tbl || !WarehouseDB?.ready) return;
   const savedFilters=options.useSavedFilters ? readSavedInboundFilters() : null;
@@ -4249,7 +4158,6 @@ async function handleFreightFile(file){
   }
 }
 async function loadFreightBatches(){
-  if(!window.PermissionRuntime?.can('upload_reports.freight.view')) return;
   const tbl=$('#freightBatchesTable');
   if(!tbl || !WarehouseDB?.ready) return;
   const {data,error}=await WarehouseDB.client
@@ -4364,8 +4272,6 @@ function initSalesUploader(){
   refreshSalesReportDates();
 }
 async function loadSalesReport(warehouseCode){
-  const plant=warehouseMetaByCode(warehouseCode)?.plant_code;
-  if(!window.PermissionRuntime?.can('sales_review.view',plant || [])) return;
   activeSalesWarehouse=warehouseCode;
   if(!WarehouseDB?.ready){ return; }
   let query=WarehouseDB.client.from('sales_audit_report').select('*').eq('warehouse_code',warehouseCode);
@@ -4659,7 +4565,6 @@ function readSystemSettingsForm(){
   };
 }
 async function loadSystemSettings(){
-  if(!window.PermissionRuntime?.can('settings.system.view')) return;
   fillSystemSettingsForm(APP_SYSTEM_SETTINGS);
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   try{
@@ -4819,83 +4724,20 @@ function initAllSettingsTableControls(){
   initSettingsTableControls('warehousesSettingsTable');
   initSettingsTableControls('salesProductsSettingsTable');
   initSettingsTableControls('storekeepersSettingsTable');
-  initSettingsTableControls('departmentPersonnelTable');
-  initSettingsTableControls('departmentStatusCodesTable');
 }
 
 const SETTINGS_TAB_PERMISSION_MAP={
   profile:'settings_profile',
   account:'settings_account',
   system:'settings_system',
-  'permission-settings':'permissions',
   'plants-settings':'settings_plants',
   'warehouses-settings':'settings_warehouses',
   'sales-products-settings':'settings_sales_products',
   'storekeepers':'settings_storekeepers',
   'activity-log':'settings_activity_log'
 };
-const GENERAL_SETTINGS_TAB_PERMISSION_MAP=Object.freeze({plants:'plants',movements:'movements'});
-function canViewGeneralSettingsTab(key){
-  const permissionKey=GENERAL_SETTINGS_TAB_PERMISSION_MAP[key];
-  return Boolean(permissionKey && hasPermission(permissionKey,'view'));
-}
 function canViewSettingsTab(key){
-  if(key==='general') return Object.keys(GENERAL_SETTINGS_TAB_PERMISSION_MAP).some(canViewGeneralSettingsTab);
-  if(key==='permission-settings') return isSuperAdmin() && window.PermissionRuntime.any('settings.permission_settings.view');
-  if(key==='department-personnel') return window.PermissionRuntime?.can('settings.department_personnel.view') === true;
-  if(key==='department-status-codes') return window.PermissionRuntime?.can('settings.department_status_codes.view') === true;
   return hasPermission(SETTINGS_TAB_PERMISSION_MAP[key]||'settings','view');
-}
-function syncGeneralSettingsTabs(){
-  const root=$('#settingsGeneralPanel');
-  if(!root) return;
-  const tabs=[...root.querySelectorAll('[data-general-settings-tab]')];
-  const panels=[...root.querySelectorAll('[data-general-settings-panel]')];
-  tabs.forEach(tab=>{
-    const allowed=canViewGeneralSettingsTab(tab.dataset.generalSettingsTab);
-    tab.hidden=!allowed;
-    tab.disabled=!allowed;
-  });
-  let active=tabs.find(tab=>tab.classList.contains('active') && !tab.hidden && !tab.disabled);
-  if(!active) active=tabs.find(tab=>!tab.hidden && !tab.disabled);
-  tabs.forEach(tab=>{
-    const selected=tab===active;
-    tab.classList.toggle('active',selected);
-    tab.setAttribute('aria-selected',selected?'true':'false');
-  });
-  panels.forEach(panel=>{
-    const selected=Boolean(active && panel.dataset.generalSettingsPanel===active.dataset.generalSettingsTab);
-    panel.classList.toggle('active',selected);
-    panel.hidden=!selected;
-  });
-}
-function initGeneralSettingsTabs(){
-  const root=$('#settingsGeneralPanel');
-  if(!root) return;
-  const tabs=[...root.querySelectorAll('[data-general-settings-tab]')];
-  const panels=[...root.querySelectorAll('[data-general-settings-panel]')];
-  if(root.dataset.generalSettingsTabsBound==='1'){
-    syncGeneralSettingsTabs();
-    return;
-  }
-  root.dataset.generalSettingsTabsBound='1';
-  tabs.forEach(tab=>tab.addEventListener('click',()=>{
-    const key=tab.dataset.generalSettingsTab;
-    if(!canViewGeneralSettingsTab(key)) return;
-    tabs.forEach(item=>{
-      const selected=item===tab;
-      item.classList.toggle('active',selected);
-      item.setAttribute('aria-selected',selected?'true':'false');
-    });
-    panels.forEach(panel=>{
-      const selected=panel.dataset.generalSettingsPanel===key;
-      panel.classList.toggle('active',selected);
-      panel.hidden=!selected;
-    });
-    if(key==='plants') renderPlants();
-    if(key==='movements') renderMovementsTable();
-  }));
-  syncGeneralSettingsTabs();
 }
 function setElementsDisabled(selector,disabled,hide=false){
   $$(selector).forEach(el=>{
@@ -4924,14 +4766,11 @@ function applySettingsSubPermissions(){
     const first=tabs.find(tab=>!tab.hidden);
     if(first) first.click();
   }
-  syncGeneralSettingsTabs();
   syncSettingsMobileTabSelect?.();
 
-  setElementsDisabled('#saveProfileBtn,#profileForm input:not(#profileAvatarInput)',!hasCanonicalPermission('settings.profile.update'));
-  setElementsDisabled('#profileAvatarInput',!hasCanonicalPermission('settings.profile.avatar.upload'));
+  setElementsDisabled('#saveProfileBtn,#profileForm input',!hasPermission('settings_profile','edit'));
   setElementsDisabled('#savePasswordBtn,#passwordChangeForm input,#passwordChangeForm button',!hasPermission('settings_account','edit'));
-  setElementsDisabled('#systemSettingsForm input,#systemSettingsForm select,#saveSystemSettingsBtn',!hasCanonicalPermission('settings.system.update'));
-  setElementsDisabled('#clearSystemCacheBtn',!hasCanonicalPermission('settings.system.cache.clear'));
+  setElementsDisabled('#systemSettingsForm input,#systemSettingsForm select,#saveSystemSettingsBtn,#clearSystemCacheBtn',!hasPermission('settings_system','edit'));
 
   const canAddPlants=hasPermission('settings_plants','add');
   const canEditPlants=hasPermission('settings_plants','edit');
@@ -4954,8 +4793,6 @@ function applySettingsSubPermissions(){
   setElementsDisabled('#salesProductWarehousesList input,#saveSalesProductWarehousesBtn',!canEditLinks,true);
 
   applyStorekeepersSettingsPermissions();
-  applyDepartmentPersonnelPermissions();
-  applyDepartmentStatusCodesPermissions();
 
   setElementsDisabled('#activityLogExportExcelBtn',!hasPermission('settings_activity_log','export_excel'),true);
   setElementsDisabled('#activityLogExportPdfBtn',!hasPermission('settings_activity_log','export_pdf'),true);
@@ -5041,7 +4878,6 @@ function applyVerifiedPlantSettingsRow(verifiedRow, rows=[]){
   return merged.sort((a,b)=>(Number(a.sort_order||0)-Number(b.sort_order||0)) || String(a.plant_code||'').localeCompare(String(b.plant_code||'')));
 }
 async function loadPlantsSettings(){
-  if(!window.PermissionRuntime?.can('settings.plants.view')) return;
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   setPlantsSettingsStatus('\u062C\u0627\u0631\u064A \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u0635\u0627\u0646\u0639...');
   try{
@@ -5257,7 +5093,6 @@ async function fetchWarehouseSettingsRowDirect(warehouseCode){
     .eq('warehouse_code',warehouseCode);
 }
 async function loadWarehousesSettings(){
-  if(!window.PermissionRuntime?.can('settings.warehouses.view')) return;
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   fillWarehousePlantInput();
   setWarehousesSettingsStatus('\u062C\u0627\u0631\u064A \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u062E\u0627\u0632\u0646...');
@@ -5673,7 +5508,6 @@ async function fetchSalesProductSettingsRowDirect(materialCode){
     .eq('material_code',materialCode);
 }
 async function loadSalesProductsSettings(){
-  if(!window.PermissionRuntime?.can('settings.sales_products.view')) return;
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   setSalesProductsSettingsStatus('\u062C\u0627\u0631\u064A \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0635\u0646\u0627\u0641 \u0627\u0644\u0628\u064A\u0639...');
   try{
@@ -5829,97 +5663,47 @@ function setMainAuthMessage(message,type=''){
   el.textContent=message;
   el.className='login-status '+(type||'');
 }
-let APPLICATION_AUTH_GENERATION=0;
-let APPLICATION_AUTH_PENDING=null;
-let APPLICATION_READY_USER_ID='';
-let APPLICATION_PERMISSION_SIGNATURE='';
-let APPLICATION_RELOAD_REQUIRED=false;
-window.addEventListener('audit-permission-runtime-updated',event=>{
-  if(event.detail.status!=='READY') return;
-  const snapshot=window.PermissionRuntime.getSnapshot();
-  const signature=JSON.stringify({user:snapshot.userId,role:snapshot.payload.role_key,plants:snapshot.payload.plants});
-  if(APPLICATION_READY_USER_ID && APPLICATION_PERMISSION_SIGNATURE && APPLICATION_PERMISSION_SIGNATURE!==signature){
-    APPLICATION_RELOAD_REQUIRED=true;
-    $('#appShell')?.classList.add('app-hidden');window.PermissionRuntime.reset('permissions-changed');
-    $('#loginScreen')?.classList.remove('login-hidden');setMainAuthMessage('تغيرت صلاحيات الحساب. أعد تحميل البرنامج.','err');
-    window.location.reload();return;
-  }
-  APPLICATION_PERMISSION_SIGNATURE=signature;
-});
 function showLoginScreen(){
-  const hadUser=Boolean(CURRENT_AUTH_USER?.id);
-  APPLICATION_AUTH_GENERATION++;
-  APPLICATION_AUTH_PENDING=null;
-  APPLICATION_READY_USER_ID='';
   APPLICATION_VIEW_RESTORED_USER_ID='';
-  CURRENT_AUTH_USER=null;
-  CURRENT_APP_PROFILE=null;
   closeActiveApplicationModals({restoreFocus:false});
   resetAppModalScrollLocks();
-  window.PermissionSettings?.resetSession?.();
-  window.PermissionRuntime?.reset();
   $('#loginScreen')?.classList.remove('login-hidden');
   $('#appShell')?.classList.add('app-hidden');
   document.body.classList.remove('mobile-app-shell-active','mobile-dashboard-active','mobile-inbound-active','mobile-upload-reports-active','mobile-reports-active','mobile-dashboard-filter-open','mobile-dashboard-drawer-open','mobile-inbound-filter-open','mobile-reports-filter-open');
-  if(hadUser){APPLICATION_RELOAD_REQUIRED=true;window.location.reload();}
 }
 async function showApplication(user){
-  if(!user?.id) return false;
-  if(APPLICATION_RELOAD_REQUIRED){window.location.reload();return false;}
-  if(CURRENT_AUTH_USER?.id && CURRENT_AUTH_USER.id!==user.id){APPLICATION_RELOAD_REQUIRED=true;window.PermissionRuntime?.reset('account-changed');$('#appShell')?.classList.add('app-hidden');window.location.reload();return false;}
-  if(APPLICATION_AUTH_PENDING?.userId===user.id) return APPLICATION_AUTH_PENDING.promise;
-  if(APPLICATION_READY_USER_ID===user.id && window.PermissionRuntime?.isReady()) return true;
-  const generation=++APPLICATION_AUTH_GENERATION;
-  const current=()=>generation===APPLICATION_AUTH_GENERATION;
-  $('#appShell')?.classList.add('app-hidden');
   CURRENT_AUTH_USER=user;
-  setMainAuthMessage('جاري التحقق من صلاحيات الحساب...');
-  const promise=(async()=>{
-    try{
-      const profile=await fetchCurrentAppProfile(user);
-      if(!current()) return false;
-      if(profile.inactive) throw new Error('هذا المستخدم غير مفعل. راجع مدير النظام.');
-      CURRENT_APP_PROFILE=profile;
-      if(!await loadCurrentUserPermissions()) throw new Error('تعذر تحميل صلاحيات الحساب. أعد المحاولة، أو راجع مدير النظام للتأكد من تعيين دور وحزمة صالحة.');
-      if(!current()) return false;
-      if(![...$$('.nav-item[data-section]')].some(btn=>canViewSection(btn.dataset.section))) throw new Error('لا توجد شاشات متاحة لهذا الحساب. راجع مدير النظام.');
-      await loadPlantsCatalog({force:true});
-      if(!current()) return false;
-      refreshPlantsCatalogConsumers();
-      applyProfileToHeader(profile);
-      fillProfileForm(profile,user);
-      fillSettingsAccountPanel(profile,user);
-      SYSTEM_SETTINGS_LOADED_USER_ID=null;
-      PLANTS_SETTINGS_LOADED=false;
-      APPLICATION_READY_USER_ID=user.id;
-      $('#loginScreen')?.classList.add('login-hidden');
-      $('#appShell')?.classList.remove('app-hidden');
-      applyNavigationPermissions();
-      nav();
-      initMobileDashboardShell();
-      restoreApplicationViewState();
-      applySettingsSubPermissions();
-      window.PermissionUI?.apply();
-      setTimeout(()=>{
-        if(!current() || !window.PermissionRuntime?.isReady()) return;
-        if(canViewSection('upload')) {loadSalesBatches();loadIncomingBatches();loadScaleBatches();}
-        if(canViewSection('sales')) {refreshSalesReportDates();loadSalesReport(activeSalesWarehouse);}
-        if(canViewSection('inbound')) {refreshInboundReportDates();loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});}
-        if(canViewSection('dashboard')) loadDashboardRealData();
-      },250);
-      return true;
-    }catch(error){
-      if(current()){
-        APPLICATION_READY_USER_ID='';
-        $('#appShell')?.classList.add('app-hidden');
-        $('#loginScreen')?.classList.remove('login-hidden');
-        setMainAuthMessage(error.message || 'تعذر تحميل صلاحيات الحساب. أعد المحاولة.','err');
-      }
-      return false;
-    }finally{ if(current()) APPLICATION_AUTH_PENDING=null; }
-  })();
-  APPLICATION_AUTH_PENDING={userId:user.id,promise};
-  return promise;
+  const profile=await fetchCurrentAppProfile(user);
+  if(profile.inactive){
+    await WarehouseDB.signOut();
+    showLoginScreen();
+    setMainAuthMessage('هذا المستخدم غير مفعل. راجع مدير النظام.','err');
+    return;
+  }
+  CURRENT_APP_PROFILE=profile;
+  await loadCurrentUserPermissions();
+  $('#loginScreen')?.classList.add('login-hidden');
+  $('#appShell')?.classList.remove('app-hidden');
+  applyProfileToHeader(profile);
+  fillProfileForm(profile,user);
+  fillSettingsAccountPanel(profile,user);
+  await loadPlantsCatalog({force:true});
+  refreshPlantsCatalogConsumers();
+  SYSTEM_SETTINGS_LOADED_USER_ID=null;
+  PLANTS_SETTINGS_LOADED=false;
+  applyNavigationPermissions();
+  nav();
+  initMobileDashboardShell();
+  restoreApplicationViewState();
+  setTimeout(()=>{
+    loadSalesBatches();
+    loadIncomingBatches();
+    loadScaleBatches();
+    refreshSalesReportDates();
+    refreshInboundReportDates();
+    loadSalesReport(activeSalesWarehouse);
+    loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});
+  },250);
 }
 async function checkMainSession(){
   if(!window.WarehouseDB?.ready){
@@ -6124,7 +5908,6 @@ function renderActivityLogTable(){
   }
 }
 async function loadActivityLog(options={}){
-  if(!window.PermissionRuntime?.can('settings.activity_log.view')) return;
   if(!$('#activityLogTable')) return;
   if(!WarehouseDB?.ready){ setActivityLogStatus('Supabase غير متصل.','err'); return; }
   if(!options.silent) setActivityLogStatus('جاري تحميل سجل الحركات...');
@@ -6242,7 +6025,6 @@ function initSettingsMobileTabSelect(){
 function initSettingsTabs(){
   const root=$('#settings');
   if(!root) return;
-  initGeneralSettingsTabs();
   const tabs=[...root.querySelectorAll('[data-settings-tab]')];
   const panels=[...root.querySelectorAll('[data-settings-panel]')];
   if(root.dataset.settingsTabsBound==='1'){
@@ -6262,14 +6044,10 @@ function initSettingsTabs(){
     tabs.forEach(t=>{const active=t===tab;t.classList.toggle('active',active);t.setAttribute('aria-selected',active?'true':'false');});
     panels.forEach(panel=>panel.classList.toggle('active',panel.dataset.settingsPanel===key));
     if(key==='system') ensureSystemSettingsLoaded();
-    if(key==='general') syncGeneralSettingsTabs();
-    if(key==='permission-settings') window.PermissionSettings?.load();
     if(key==='plants-settings') ensurePlantsSettingsLoaded();
     if(key==='warehouses-settings') ensureWarehousesSettingsLoaded();
     if(key==='sales-products-settings') ensureSalesProductsSettingsLoaded();
     if(key==='storekeepers') ensureStorekeepersLoaded();
-    if(key==='department-personnel') ensureDepartmentPersonnelLoaded();
-    if(key==='department-status-codes') ensureDepartmentStatusCodesLoaded();
     if(key==='activity-log') ensureActivityLogLoaded();
     initAllSettingsTableControls();
     applySettingsSubPermissions();
@@ -6282,6 +6060,18 @@ function initSettingsTabs(){
 
 
 // === Permissions Engine ===
+const PERMISSION_ACTIONS = [
+  {key:'view', label:'عرض'},
+  {key:'add', label:'إضافة'},
+  {key:'edit', label:'تعديل'},
+  {key:'delete', label:'حذف'},
+  {key:'upload', label:'رفع'},
+  {key:'export_excel', label:'Excel'},
+  {key:'export_pdf', label:'PDF'},
+  {key:'export_png', label:'PNG'},
+  {key:'approve', label:'اعتماد'},
+  {key:'manage', label:'إدارة'}
+];
 const PERMISSION_SCREENS = [
   {key:'dashboard', label:'الرئيسية', description:'عرض لوحة المؤشرات والشاشة الرئيسية'},
   {key:'upload', label:'رفع التقارير', description:'رفع ملفات البيع والوارد والميزان والنولون'},
@@ -6304,87 +6094,268 @@ const PERMISSION_SCREENS = [
   {key:'settings_sales_product_warehouses', label:'الإعدادات / ربط أصناف البيع بالمخازن', description:'عرض وإضافة وحذف ربط أصناف البيع بالمخازن'},
   {key:'settings', label:'الإعدادات', description:'بيانات الحساب وإعدادات النظام'}
 ];
-// Section aliases are routing only; grants always use one canonical key.
-const PERMISSION_SECTION_KEYS=Object.freeze({
-  dashboard:'dashboard',upload:'upload_reports',sales:'sales_review',inbound:'inbound_review',raw_materials:'raw_materials',
-  inventory_count:'inventory.count',inventory_closing:'inventory.count',inventory_differences:'inventory.differences',inventory_expiry_tracking:'inventory.production_dates',
-  reports:'reports',department_storekeepers:'department_personnel.storekeepers',department_weekly_leave_schedule:'department_personnel.weekly_leave',
-  department_hr_reports:'department_personnel.hr_reports',department_evaluations:'department_personnel.evaluations',department_loading_errors:'department_personnel.loading_errors',
-  users:'users',permissions:'permissions',settings:'settings',plants:'settings.general.plants_and_warehouses',movements:'settings.general.movements',
-  settings_profile:'settings.profile',settings_account:'settings.account',settings_system:'settings.system',settings_plants:'settings.plants',
-  settings_warehouses:'settings.warehouses',settings_sales_products:'settings.sales_products',settings_storekeepers:'settings.storekeepers',
-  settings_activity_log:'settings.activity_log',settings_sales_product_warehouses:'settings.sales_products.warehouses',
-  settings_department_personnel:'settings.department_personnel',settings_department_status_codes:'settings.department_status_codes'
-});
-function isSuperAdmin(){ return window.PermissionRuntime?.isSuperAdmin() === true; }
-function permissionKeyForSection(section){ return PERMISSION_SECTION_KEYS[section] || ''; }
-function permissionFilterPlants(key, requested){
-  const scope=window.PermissionRuntime?.scope(key,requested) || [];
-  return scope.length ? scope : ['__P7_DENIED__'];
-}
-function hasCanonicalPermission(key, scope){
-  return window.PermissionRuntime?.can(key,scope === undefined ? window.PermissionUI?.scopeFor(key) || [] : scope) === true;
-}
-function hasPermission(section, action='view'){
-  const base=permissionKeyForSection(section);
-  if(!base) return false;
-  if(action==='view'){
-    if(base==='settings.sales_products.warehouses') return window.PermissionRuntime?.can('settings.sales_products.view') === true;
-    return (/^(users|permissions|settings)(\.|$)/.test(base) ? window.PermissionRuntime?.can(base+'.view') : window.PermissionRuntime?.any(base+'.view')) === true;
+const PERMISSION_ROLE_LABELS={admin:'Admin',auditor:'Auditor',viewer:'Viewer'};
+let CURRENT_ROLE_PERMISSIONS = {};
+let PERMISSIONS_MANAGEMENT_STATE={role:'admin', rows:[], view:[], dirty:false};
+function permissionColumn(action){ return 'can_'+action; }
+function defaultPermissionValue(role,screen,action){
+  if(screen==='raw_materials') return false;
+  if(role==='admin') return true;
+  if(role==='auditor'){
+    if(String(screen||'').startsWith('settings_')) return false;
+    if(['users','permissions','settings'].includes(screen)) return false;
+    if(['delete','manage','approve'].includes(action)) return false;
+    if(action==='add') return ['upload'].includes(screen);
+    if(action==='edit') return ['sales','inbound','reports'].includes(screen);
+    return ['view','upload','export_excel','export_pdf','export_png'].includes(action);
   }
-  const special={
-    'settings.profile:edit':'update','settings.account:edit':'password.change','settings.system:edit':'update',
-    'settings.sales_products.warehouses:add':'assign','settings.sales_products.warehouses:delete':'assign',
-    'permissions:manage':'assign','inventory.count:add':'create','inventory.count:edit':'line.edit_actual_balance'
-  };
-  const suffix=special[base+':'+action] || (action==='add'?'create':action);
-  return hasCanonicalPermission(base+'.'+suffix);
+  if(role==='viewer'){
+    if(String(screen||'').startsWith('settings_')) return false;
+    if(['users','permissions','settings','upload'].includes(screen)) return false;
+    return ['view','export_excel','export_pdf','export_png'].includes(action);
+  }
+  return false;
 }
-function canViewSection(section){
-  const key=permissionKeyForSection(section);
-  return Boolean(key && (['users','permissions','settings'].includes(section) ? window.PermissionRuntime?.can(key+'.view') : window.PermissionRuntime?.any(key+'.view')));
+function buildDefaultPermissions(role){
+  const map={};
+  PERMISSION_SCREENS.forEach(sc=>{
+    map[sc.key]={screen_key:sc.key, role};
+    PERMISSION_ACTIONS.forEach(a=>{ map[sc.key][permissionColumn(a.key)] = defaultPermissionValue(role,sc.key,a.key); });
+  });
+  return map;
 }
+function normalizePermissionRow(row, role){
+  const key=row?.screen_key || row?.screen || row?.section_key || '';
+  const out={screen_key:key, role:row?.role || role};
+  PERMISSION_ACTIONS.forEach(a=>{
+    const col=permissionColumn(a.key);
+    out[col]=row && Object.prototype.hasOwnProperty.call(row,col) ? row[col] === true : defaultPermissionValue(role,key,a.key);
+  });
+  return out;
+}
+function permissionsForRoleFromRows(role, rows){
+  const defaults=buildDefaultPermissions(role);
+  (rows||[]).forEach(r=>{
+    const nr=normalizePermissionRow(r,role);
+    if(nr.screen_key && defaults[nr.screen_key]) defaults[nr.screen_key]={...defaults[nr.screen_key],...nr};
+  });
+  return defaults;
+}
+function isSuperAdmin(){ return CURRENT_APP_PROFILE?.role === 'super_admin'; }
+function permissionKeyForSection(section){ return isInventoryAuditSection(section) ? 'inventory_count' : section; }
+function hasPermission(section, action='view'){
+  if(isSuperAdmin()) return true;
+  if(!section) return true;
+  const permissionKey=permissionKeyForSection(section);
+  const row=CURRENT_ROLE_PERMISSIONS?.[permissionKey];
+  if(!row) return action==='view' ? ['dashboard'].includes(permissionKey) : false;
+  return row[permissionColumn(action)] === true;
+}
+function canViewSection(section){ return hasPermission(section,'view'); }
 function showPermissionDenied(section){
-  const label=PERMISSION_SCREENS.find(x=>x.key===section)?.label || section;
+  const permissionKey=permissionKeyForSection(section);
+  const label=PERMISSION_SCREENS.find(x=>x.key===permissionKey)?.label || section;
   alert(`غير مسموح بالوصول إلى: ${label}\nراجع مدير النظام لتعديل الصلاحيات.`);
 }
-async function loadCurrentUserPermissions(reason='sign-in'){
-  const ready=await window.PermissionRuntime?.refresh({userId:CURRENT_AUTH_USER?.id,reason});
-  if(!ready || !window.PermissionRuntime?.isReady() || APPLICATION_RELOAD_REQUIRED) return false;
+async function loadCurrentUserPermissions(){
+  if(isSuperAdmin()){
+    CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions('admin');
+    applySettingsSubPermissions();
+    syncDashboardPngButtonState();
+    return;
+  }
+  const role=CURRENT_APP_PROFILE?.role || 'viewer';
+  if(!WarehouseDB?.ready){
+    CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions(role);
+    applySettingsSubPermissions();
+    syncDashboardPngButtonState();
+    return;
+  }
+  try{
+    const {data,error}=await WarehouseDB.client.from('app_role_permissions').select('*').eq('role',role);
+    CURRENT_ROLE_PERMISSIONS = error ? buildDefaultPermissions(role) : permissionsForRoleFromRows(role,data||[]);
+  }catch(_){ CURRENT_ROLE_PERMISSIONS=buildDefaultPermissions(role); }
   applySettingsSubPermissions();
   syncDashboardPngButtonState();
-  return true;
 }
 function applyNavigationPermissions(){
-  $$('.nav-item,[data-mobile-section]').forEach(btn=>{
-    const section=btn.dataset.section || btn.dataset.mobileSection;
-    if(!section) return;
+  $$('.nav-item').forEach(btn=>{
+    const section=btn.dataset.section;
     const allowed=canViewSection(section);
     btn.classList.toggle('permission-hidden',!allowed);
     btn.disabled=!allowed;
     btn.title=allowed?'':'غير مسموح حسب صلاحيات الدور';
   });
-  const groups=[
-    ['[data-inventory-nav-group],[data-inventory-mobile-nav-group]',['inventory_closing','inventory_differences','inventory_expiry_tracking']],
-    ['[data-department-personnel-nav-group],[data-department-personnel-mobile-nav-group]',['department_storekeepers','department_weekly_leave_schedule','department_hr_reports','department_evaluations','department_loading_errors']]
-  ];
-  groups.forEach(([selector,sections])=>{
-    const allowed=sections.some(canViewSection);
-    $$(selector).forEach(group=>{group.classList.toggle('permission-hidden',!allowed);group.hidden=!allowed;});
+  const rawMobileItem=$('.mobile-drawer-item[data-mobile-section="raw_materials"]');
+  if(rawMobileItem){
+    const allowed=canViewSection('raw_materials');
+    rawMobileItem.classList.toggle('permission-hidden',!allowed);
+    rawMobileItem.hidden=!allowed;
+    rawMobileItem.disabled=!allowed;
+  }
+  const inventoryAllowed=canViewSection('inventory_closing');
+  $$('[data-inventory-nav-group],[data-inventory-mobile-nav-group]').forEach(group=>{
+    group.classList.toggle('permission-hidden',!inventoryAllowed);
+    group.hidden=!inventoryAllowed;
   });
-  if(!window.PermissionRuntime?.isReady()) return;
-  const active=$('.section.active-section');
-  if(!active || !canViewSection(active.id)){
-    active?.classList.remove('active-section');
-    const first=[...$$('.nav-item[data-section]')].find(btn=>!btn.disabled);
+  $$('.mobile-drawer-item[data-mobile-section="inventory_closing"],.mobile-drawer-item[data-mobile-section="inventory_differences"],.mobile-drawer-item[data-mobile-section="inventory_expiry_tracking"]').forEach(item=>{
+    item.disabled=!inventoryAllowed;
+    item.classList.toggle('permission-hidden',!inventoryAllowed);
+  });
+  const active=$('.nav-item.active');
+  if(active && active.disabled){
+    const first=[...$$('.nav-item')].find(b=>!b.disabled);
     if(first) switchSection(first.dataset.section);
   }
 }
+function disableByPermission(selector, section, action, message){
+  $$(selector).forEach(el=>{
+    const allowed=hasPermission(section,action);
+    el.disabled=!allowed;
+    el.classList.toggle('permission-disabled',!allowed);
+    if(!allowed) el.title=message || 'غير مسموح حسب صلاحيات الدور';
+  });
+}
 function applyPermissionActionGuards(section){
   applyNavigationPermissions();
-  if(section==='settings') applySettingsSubPermissions();
-  window.PermissionUI?.apply();
+  if(!section) return;
+  if(section==='settings'){
+    applySettingsSubPermissions();
+    return;
+  }
+  disableByPermission('button[id*="ExportExcel"],button[id*="Excel"],button[id*="exportExcel"],button[id*="ExcelBtn"]',section,'export_excel','لا تملك صلاحية تصدير Excel');
+  disableByPermission('button[id*="ExportPdf"],button[id*="Pdf"],button[id*="exportPdf"],button[id*="PdfBtn"]',section,'export_pdf','لا تملك صلاحية تصدير PDF');
+  disableByPermission('button[id*="ExportPng"],button[id*="Png"],.png-export-btn',section,'export_png','لا تملك صلاحية تصدير PNG');
+  disableByPermission('.delete-user-btn,.delete-batch-btn,button[id*="Delete"],button.danger',section,'delete','لا تملك صلاحية الحذف');
+  disableByPermission('button[id*="Upload"],button[id*="pick"],.upload-report-tab',section,'upload','لا تملك صلاحية الرفع');
+  disableByPermission('button[id*="save"],button[id*="Save"],button[id*="edit"],.edit-user-btn',section,'edit','لا تملك صلاحية التعديل');
+  if(section==='dashboard') syncDashboardPngButtonState();
+  if(section==='inventory_closing'){
+    disableByPermission('#createInventoryCountBtn','inventory_count','add',"غير متاح للصلاحية الحالية");
+    disableByPermission('#createInventoryDifferenceSnapshotBtn','inventory_count','add',"غير متاح للصلاحية الحالية");
+    disableByPermission('#finishInventoryCountBtn,#inventoryCountPostCloseInvoiceBtn','inventory_count','edit',"لا تملك صلاحية تعديل مستند الجرد");
+    if(typeof inventoryCountUpdateCreateButton === 'function') inventoryCountUpdateCreateButton();
+    if(typeof updateInventoryDifferenceSnapshotButton === 'function') updateInventoryDifferenceSnapshotButton();
+    if(typeof updateInventoryCountFinalizationControls === 'function') updateInventoryCountFinalizationControls();
+  }
 }
+function setPermissionsStatus(message,type=''){
+  const el=$('#permissionsManagementStatus');
+  if(!el) return;
+  el.className='upload-status permissions-status-bar '+(type||'');
+  el.textContent=message||'';
+}
+function permissionsKpiUpdate(rows){
+  const total=rows.length*PERMISSION_ACTIONS.length;
+  let enabled=0;
+  rows.forEach(r=>PERMISSION_ACTIONS.forEach(a=>{ if(r[permissionColumn(a.key)]) enabled++; }));
+  const set=(id,v)=>{const el=$(id); if(el) el.textContent=v;};
+  set('#permissionsScreensCount',rows.length);
+  set('#permissionsEnabledCount',enabled);
+  set('#permissionsDisabledCount',Math.max(0,total-enabled));
+  set('#permissionsSelectedRoleLabel',PERMISSION_ROLE_LABELS[PERMISSIONS_MANAGEMENT_STATE.role]||PERMISSIONS_MANAGEMENT_STATE.role);
+}
+function renderPermissionsMatrix(rows){
+  const tbody=$('#permissionsMatrixTable tbody');
+  if(!tbody) return;
+  if(!rows.length){ tbody.innerHTML='<tr><td colspan="11" class="empty-row">لا توجد شاشات مطابقة.</td></tr>'; return; }
+  tbody.innerHTML=rows.map(sc=>{
+    const row=PERMISSIONS_MANAGEMENT_STATE.rows.find(r=>r.screen_key===sc.key) || buildDefaultPermissions(PERMISSIONS_MANAGEMENT_STATE.role)[sc.key];
+    const cells=PERMISSION_ACTIONS.map(a=>{
+      const col=permissionColumn(a.key);
+      return `<td><label class="perm-toggle"><input type="checkbox" data-screen="${escapeHtml(sc.key)}" data-action="${escapeHtml(a.key)}" ${row[col]?'checked':''}><span></span></label></td>`;
+    }).join('');
+    return `<tr data-screen="${escapeHtml(sc.key)}"><td class="permission-screen-cell"><b>${escapeHtml(sc.label)}</b><small>${escapeHtml(sc.description||'')}</small></td>${cells}</tr>`;
+  }).join('');
+  tbody.querySelectorAll('input[type="checkbox"]').forEach(chk=>chk.addEventListener('change',onPermissionToggleChange));
+}
+function applyPermissionsSearch(){
+  const q=($('#permissionsQuickSearch')?.value||'').trim().toLowerCase();
+  PERMISSIONS_MANAGEMENT_STATE.view=PERMISSION_SCREENS.filter(sc=>!q || [sc.key,sc.label,sc.description].join(' ').toLowerCase().includes(q));
+  renderPermissionsMatrix(PERMISSIONS_MANAGEMENT_STATE.view);
+  permissionsKpiUpdate(PERMISSIONS_MANAGEMENT_STATE.rows);
+}
+function onPermissionToggleChange(e){
+  const screen=e.target.dataset.screen;
+  const action=e.target.dataset.action;
+  const row=PERMISSIONS_MANAGEMENT_STATE.rows.find(r=>r.screen_key===screen);
+  if(row){ row[permissionColumn(action)]=e.target.checked; PERMISSIONS_MANAGEMENT_STATE.dirty=true; }
+  permissionsKpiUpdate(PERMISSIONS_MANAGEMENT_STATE.rows);
+}
+function setAllVisiblePermissions(value){
+  PERMISSIONS_MANAGEMENT_STATE.view.forEach(sc=>{
+    const row=PERMISSIONS_MANAGEMENT_STATE.rows.find(r=>r.screen_key===sc.key);
+    if(row) PERMISSION_ACTIONS.forEach(a=>row[permissionColumn(a.key)]=value);
+  });
+  PERMISSIONS_MANAGEMENT_STATE.dirty=true;
+  applyPermissionsSearch();
+}
+function resetPermissionsToDefaults(){
+  const role=PERMISSIONS_MANAGEMENT_STATE.role;
+  PERMISSIONS_MANAGEMENT_STATE.rows=Object.values(buildDefaultPermissions(role));
+  PERMISSIONS_MANAGEMENT_STATE.dirty=true;
+  applyPermissionsSearch();
+  setPermissionsStatus('تم استعادة الصلاحيات الافتراضية. اضغط حفظ لاعتمادها.','ok');
+}
+async function loadPermissionsManagement(){
+  if(!$('#permissionsMatrixTable')) return;
+  if(!isSuperAdmin() && !hasPermission('permissions','manage')){
+    setPermissionsStatus('غير مسموح بإدارة الصلاحيات لهذا الدور.','err');
+    return;
+  }
+  const role=$('#permissionsRoleSelect')?.value || PERMISSIONS_MANAGEMENT_STATE.role || 'admin';
+  PERMISSIONS_MANAGEMENT_STATE.role=role;
+  setPermissionsStatus('جاري تحميل الصلاحيات...');
+  try{
+    let rows=[];
+    if(WarehouseDB?.ready){
+      const {data,error}=await WarehouseDB.client.from('app_role_permissions').select('*').eq('role',role);
+      if(error) throw error;
+      rows=data||[];
+    }
+    PERMISSIONS_MANAGEMENT_STATE.rows=Object.values(permissionsForRoleFromRows(role,rows));
+    PERMISSIONS_MANAGEMENT_STATE.dirty=false;
+    const info=$('#permissionsRoleInfo');
+    if(info) info.innerHTML=`<b>${PERMISSION_ROLE_LABELS[role]}</b><span>عدد الصلاحيات: ${PERMISSIONS_MANAGEMENT_STATE.rows.length*PERMISSION_ACTIONS.length}</span>`;
+    applyPermissionsSearch();
+    setPermissionsStatus('تم تحميل الصلاحيات.','ok');
+  }catch(err){
+    PERMISSIONS_MANAGEMENT_STATE.rows=Object.values(buildDefaultPermissions(role));
+    applyPermissionsSearch();
+    setPermissionsStatus('تعذر تحميل الصلاحيات من Supabase، تم عرض الافتراضي: '+(err.message||err),'err');
+  }
+}
+async function savePermissionsManagement(){
+  if(!WarehouseDB?.ready){ setPermissionsStatus('Supabase غير متصل.','err'); return; }
+  if(!isSuperAdmin() && !hasPermission('permissions','manage')){ setPermissionsStatus('غير مسموح بحفظ الصلاحيات.','err'); return; }
+  const role=PERMISSIONS_MANAGEMENT_STATE.role;
+  if(role==='super_admin'){ setPermissionsStatus('لا يمكن تعديل صلاحيات Super Admin.','err'); return; }
+  try{
+    setPermissionsStatus('جاري حفظ الصلاحيات...');
+    const payload=PERMISSIONS_MANAGEMENT_STATE.rows.map(r=>{
+      const obj={role,screen_key:r.screen_key,updated_at:new Date().toISOString()};
+      PERMISSION_ACTIONS.forEach(a=>obj[permissionColumn(a.key)] = r[permissionColumn(a.key)] === true);
+      return obj;
+    });
+    const {error}=await WarehouseDB.client.from('app_role_permissions').upsert(payload,{onConflict:'role,screen_key'});
+    if(error) throw error;
+    PERMISSIONS_MANAGEMENT_STATE.dirty=false;
+    setPermissionsStatus('تم حفظ الصلاحيات بنجاح.','ok');
+    await logSystemActivity('الصلاحيات','تعديل صلاحيات مستخدم',`تعديل صلاحيات الدور: ${role}`);
+    await loadCurrentUserPermissions();
+    applyNavigationPermissions();
+  }catch(err){ setPermissionsStatus('تعذر حفظ الصلاحيات: '+(err.message||err),'err'); }
+}
+function initPermissionsManagement(){
+  $('#permissionsRoleSelect')?.addEventListener('change',loadPermissionsManagement);
+  $('#permissionsQuickSearch')?.addEventListener('input',applyPermissionsSearch);
+  $('#savePermissionsBtn')?.addEventListener('click',savePermissionsManagement);
+  $('#reloadPermissionsBtn')?.addEventListener('click',loadPermissionsManagement);
+  $('#permissionsSelectAllBtn')?.addEventListener('click',()=>setAllVisiblePermissions(true));
+  $('#permissionsClearAllBtn')?.addEventListener('click',()=>setAllVisiblePermissions(false));
+  $('#permissionsDefaultsBtn')?.addEventListener('click',resetPermissionsToDefaults);
+}
+
 // === Users Management ===
 const USER_ROLE_LABELS={super_admin:'منشئ النظام',admin:'Admin',auditor:'Auditor',viewer:'Viewer',authenticated:'Authenticated'};
 const USER_ROLE_CREATE_VALUES=new Set(['admin','auditor','viewer']);
@@ -6392,65 +6363,11 @@ const SYSTEM_OWNER_EMAILS=new Set(['ahmed.alaa842001@gmail.com']);
 function isSystemOwnerEmail(email){ return SYSTEM_OWNER_EMAILS.has(String(email||'').trim().toLowerCase()); }
 let USERS_MANAGEMENT_ROWS=[];
 let USERS_MANAGEMENT_VIEW=[];
-let USERS_ROLE_CATALOG=null;
-let USERS_LOAD_GENERATION=0;
-let USERS_SAVE_BUSY=false;
-let USERS_PENDING_AUTH=null;
-let USERS_EDIT_DRAFT=null;
-function managedPermissionRole(user){
-  return USERS_ROLE_CATALOG?.roles.find(role=>role.id===user?.permission_role_id);
-}
-function managedRoleKey(user){ return managedPermissionRole(user)?.role_key || 'unassigned'; }
-function managedRoleLabel(user){ return managedPermissionRole(user)?.role_name || 'غير معيّن'; }
-function setManagedUserLocks(){
-  const ready=!!USERS_ROLE_CATALOG && USERS_ROLE_CATALOG.user_id===window.PermissionRuntime?.userId();
-  const current=USERS_EDIT_DRAFT?.id===$('#managedUserId')?.value ? USERS_EDIT_DRAFT : null;
-  const owner=current?.role==='super_admin';
-  const selected=USERS_ROLE_CATALOG?.roles.find(role=>role.id===$('#managedUserPermissionRole')?.value);
-  const assign=ready && USERS_ROLE_CATALOG.can_assign;
-  $('#userManagementForm')?.querySelectorAll('input,select,button').forEach(el=>{
-    if(el.id!=='cancelUserModalBtn') el.disabled=USERS_SAVE_BUSY || !ready;
-  });
-  if($('#managedUserEmail')) $('#managedUserEmail').disabled=USERS_SAVE_BUSY || !ready || !!current || !!USERS_PENDING_AUTH;
-  if($('#managedUserPassword')) $('#managedUserPassword').disabled=USERS_SAVE_BUSY || !ready || !!current || !!USERS_PENDING_AUTH;
-  if($('#managedUserPermissionRole')) $('#managedUserPermissionRole').disabled=USERS_SAVE_BUSY || !ready || !assign || owner || !!current?.is_current;
-  if($('#managedUserRole')) $('#managedUserRole').disabled=USERS_SAVE_BUSY || !ready || owner || !!current?.is_current
-    || (assign && !!selected?.is_system) || (!!current && selected && !selected.is_system);
-  if($('#managedUserActive')) $('#managedUserActive').disabled=USERS_SAVE_BUSY || !ready || owner || !!current?.is_current;
-  document.querySelectorAll('.users-open-create').forEach(el=>{el.disabled=USERS_SAVE_BUSY || !ready;});
-}
-function fillManagedRoleOptions(user=null){
-  const select=$('#managedUserPermissionRole');
-  if(!select) return;
-  const roles=USERS_ROLE_CATALOG?.roles||[];
-  select.innerHTML='<option value="">اختر دور الصلاحيات</option>'+roles.filter(role=>(role.is_active && !role.is_super_admin && role.role_key!=='super_admin') || role.id===user?.permission_role_id)
-    .map(role=>`<option value="${escapeHtml(role.id)}" ${!role.is_active || role.bundle_count<1 ? 'disabled' : ''}>${escapeHtml(role.role_name)} (${escapeHtml(role.role_key)})${!role.is_active?' — غير نشط':''}</option>`).join('');
-  select.value=user?.permission_role_id || roles.find(role=>role.role_key==='viewer' && role.is_active)?.id || '';
-  if(user?.role==='super_admin'){
-    const legacy=$('#managedUserRole');
-    if(legacy && ![...legacy.options].some(o=>o.value==='super_admin')) legacy.add(new Option('منشئ النظام','super_admin'));
-    if(legacy) legacy.value='super_admin';
-  }
-  setManagedUserLocks();
-}
-function handleManagedRoleChange(){
-  const selected=USERS_ROLE_CATALOG?.roles.find(role=>role.id===$('#managedUserPermissionRole')?.value);
-  const current=USERS_EDIT_DRAFT?.id===$('#managedUserId')?.value ? USERS_EDIT_DRAFT : null;
-  const legacy=$('#managedUserRole');
-  if(legacy && selected){
-    if(selected.is_system && USER_ROLE_CREATE_VALUES.has(selected.role_key)) legacy.value=selected.role_key;
-    else if(current) legacy.value=current.role;
-  }
-  setManagedUserLocks();
-}
-
 function setUsersStatus(message,type=''){
-  ['#userManagementStatus','#managedUserFormStatus'].forEach(selector=>{
-    const el=$(selector);
-    if(!el) return;
-    el.className='upload-status users-status-bar '+(type||'');
-    el.textContent=message||'';
-  });
+  const el=$('#userManagementStatus');
+  if(!el) return;
+  el.className='upload-status users-status-bar '+(type||'');
+  el.textContent=message||'';
 }
 function roleLabel(role){ return USER_ROLE_LABELS[role] || role || 'Viewer'; }
 function userInitial(name,email){ return String((name||email||'م').trim()).charAt(0).toUpperCase() || 'م'; }
@@ -6465,7 +6382,6 @@ function normalizeManagedUser(row){
     job_title: row?.job_title || '',
     phone: row?.phone || '',
     role: row?.role || 'viewer',
-    permission_role_id: row?.permission_role_id || null,
     is_active: row?.is_active !== false,
     avatar_url: row?.avatar_url || '',
     created_at: row?.created_at || '',
@@ -6474,10 +6390,53 @@ function normalizeManagedUser(row){
     is_fallback: !!row?.is_fallback
   };
 }
+async function ensureCurrentUserProfileFallback(rows){
+  let list=(rows||[]).map(normalizeManagedUser);
+  try{
+    const {data:userData}=await WarehouseDB.getUser();
+    const user=userData?.user;
+    if(!user?.id) return list;
+    const exists=list.some(u=>String(u.id)===String(user.id));
+    if(exists){
+      list=list.map(u=>String(u.id)===String(user.id)?{...u,is_current:true}:u);
+      return list;
+    }
+    const profile=CURRENT_APP_PROFILE || {};
+    const fallback=normalizeManagedUser({
+      id:user.id,
+      email:user.email,
+      full_name:profile.full_name || user.user_metadata?.full_name || user.email,
+      job_title:profile.job_title || profile.position || '',
+      phone:profile.phone || '',
+      avatar_url:profile.avatar_url || '',
+      role:profile.role || (isSystemOwnerEmail(user.email) ? 'super_admin' : 'authenticated'),
+      is_active:true,
+      created_at:user.created_at || new Date().toISOString(),
+      updated_at:new Date().toISOString(),
+      is_current:true,
+      is_fallback:true
+    });
+    list.unshift(fallback);
+    // Best effort sync so the current authenticated user appears later from app_users too.
+    try{
+      await WarehouseDB.client.from('app_users').upsert({
+        id:user.id,
+        email:user.email,
+        full_name:fallback.full_name || user.email,
+        job_title:fallback.job_title,
+        phone:fallback.phone,
+        role:isSystemOwnerEmail(user.email) ? 'super_admin' : (fallback.role==='authenticated'?'viewer':fallback.role),
+        is_active:true,
+        updated_at:new Date().toISOString()
+      },{onConflict:'id'});
+    }catch(syncErr){ console.warn('Current profile sync skipped',syncErr); }
+  }catch(err){ console.warn('Unable to merge current user',err); }
+  return list;
+}
 function usersKpiUpdate(rows){
   const total=rows.length;
   const active=rows.filter(u=>u.is_active).length;
-  const count=role=>rows.filter(u=>managedRoleKey(u)===role).length;
+  const count=role=>rows.filter(u=>u.role===role).length;
   const set=(id,val)=>{ const el=$(id); if(el) el.textContent=val; };
   set('#usersTotalCount',total);
   set('#usersActiveCount',active);
@@ -6497,8 +6456,8 @@ function currentUsersFilters(){
 function applyUsersFilters(){
   const f=currentUsersFilters();
   USERS_MANAGEMENT_VIEW=USERS_MANAGEMENT_ROWS.filter(u=>{
-    const hay=[u.full_name,u.email,u.job_title,u.phone,managedRoleLabel(u),managedRoleKey(u)].join(' ').toLowerCase();
-    const roleOk=enterpriseFilterIsAll(f.role) || enterpriseFilterMatches(f.role,managedRoleKey(u));
+    const hay=[u.full_name,u.email,u.job_title,u.phone,roleLabel(u.role)].join(' ').toLowerCase();
+    const roleOk=enterpriseFilterIsAll(f.role) || enterpriseFilterMatches(f.role,u.role) || (enterpriseFilterActiveValues(f.role).includes('viewer') && u.role==='authenticated');
     const statusOk=enterpriseFilterIsAll(f.status) || (enterpriseFilterActiveValues(f.status).includes('active') && u.is_active) || (enterpriseFilterActiveValues(f.status).includes('inactive') && !u.is_active);
     return (!f.q || hay.includes(f.q)) && roleOk && statusOk;
   });
@@ -6512,7 +6471,7 @@ function renderUsersManagementTableBody(rows){
     return;
   }
   tbody.innerHTML=rows.map((u,i)=>{
-    const isSuper=u.role==='super_admin' || managedPermissionRole(u)?.is_super_admin;
+    const isSuper=u.role==='super_admin';
     const roleClass=(u.role||'viewer').replace(/[^a-z_]/g,'');
     const canToggle=!isSuper && !u.is_current;
     const canEdit=!isSuper || u.is_current;
@@ -6524,7 +6483,7 @@ function renderUsersManagementTableBody(rows){
       <td>${escapeHtml(u.job_title||'--')}</td>
       <td class="ltr-cell">${escapeHtml(u.email||'غير مخزن')}</td>
       <td class="ltr-cell">${escapeHtml(u.phone||'--')}</td>
-      <td><span class="role-badge role-${roleClass}">${escapeHtml(managedRoleLabel(u))}</span></td>
+      <td><span class="role-badge role-${roleClass}">${escapeHtml(roleLabel(u.role))}</span></td>
       <td><span class="status-pill ${u.is_active?'ok':'danger'}">${u.is_active?'نشط':'معطل'}</span></td>
       <td>${escapeHtml(userDateText(u.updated_at))}</td>
       <td>
@@ -6553,63 +6512,30 @@ async function selectAppUsersForManagement(){
   ];
   let last=null;
   for(const v of variants){
-    let res;
-    try{ res=await window.AuditPermissionData.readAll(WarehouseDB.client,'app_users',v.select,{order:v.order?[[v.order,false]]:[]}); }
-    catch(error){ res={data:null,error}; }
+    let q=WarehouseDB.client.from('app_users').select(v.select);
+    if(v.order) q=q.order(v.order,{ascending:false});
+    const res=await q;
     if(!res.error) return res;
     last=res;
   }
   return last || {data:[],error:null};
 }
 async function loadUsersManagement(){
-  if(!window.PermissionRuntime?.can('users.view') || !$('#usersManagementTable')) return false;
-  const generation=++USERS_LOAD_GENERATION;
-  const actor=window.PermissionRuntime.userId();
-  USERS_ROLE_CATALOG=null;
-  setManagedUserLocks();
-  setUsersStatus('جاري تحميل المستخدمين وأدوار الصلاحيات...');
-  try{
-    if(!WarehouseDB?.ready || !window.AuditPermissionData) throw new Error('ملفات قراءة الصلاحيات أو اتصال Supabase غير جاهزة.');
-    const [profiles,catalog]=await Promise.all([
-      selectAppUsersForManagement(),WarehouseDB.client.rpc('app_permission_p7_user_role_catalog')
-    ]);
-    if(generation!==USERS_LOAD_GENERATION || actor!==window.PermissionRuntime.userId()) return false;
-    if(profiles.error) throw profiles.error;
-    if(catalog.error) throw catalog.error;
-    const data=catalog.data;
-    if(!data || data.contract_version!==1 || data.user_id!==actor || typeof data.can_assign!=='boolean'
-      || !Array.isArray(data.roles) || data.roles.length!==data.role_count
-      || !Array.isArray(data.assignments) || data.assignments.length!==data.assignment_count
-      || new Set(data.roles.map(r=>r.id)).size!==data.roles.length
-      || new Set(data.assignments.map(a=>a.user_id)).size!==data.assignments.length
-      || data.assignments.some(a=>!data.roles.some(r=>r.id===a.role_id))){
-      throw new Error('تعذر التحقق من اكتمال بيانات أدوار المستخدمين.');
-    }
-    USERS_ROLE_CATALOG=data;
-    const assignments=new Map(data.assignments.map(a=>[a.user_id,a.role_id]));
-    const rows=(profiles.data||[]).map(u=>({...u,is_current:u.id===actor,permission_role_id:assignments.get(u.id)||null}));
-    const filter=$('#usersRoleFilter');
-    if(filter){
-      const previous=enterpriseSelectValues('usersRoleFilter');
-      filter.innerHTML='<option value="all">كل الأدوار</option>'+data.roles.map(role=>`<option value="${escapeHtml(role.role_key)}">${escapeHtml(role.role_name)}</option>`).join('')+'<option value="unassigned">غير معيّن</option>';
-      enterpriseSetMultiSelectValues(filter,previous,{silent:true});
-    }
-    renderUsersManagementTable(rows);
-    setUsersStatus(`تم تحميل ${rows.length} مستخدم مع أدوار الصلاحيات الفعلية.`,'ok');
-    setManagedUserLocks();
-    return true;
-  }catch(error){
-    if(generation!==USERS_LOAD_GENERATION || actor!==window.PermissionRuntime.userId()) return false;
-    USERS_ROLE_CATALOG=null;
-    renderUsersManagementTable([]);
-    setManagedUserLocks();
-    setUsersStatus('تعذر تحميل أدوار المستخدمين؛ الحفظ متوقف لحين نجاح التحديث. '+(error.message||error),'err');
-    return false;
+  if(!$('#usersManagementTable')) return;
+  if(!WarehouseDB?.ready){ setUsersStatus('Supabase غير متصل.','err'); return; }
+  setUsersStatus('جاري تحميل المستخدمين...');
+  const {data,error}=await selectAppUsersForManagement();
+  if(error){
+    const merged=await ensureCurrentUserProfileFallback([]);
+    renderUsersManagementTable(merged);
+    setUsersStatus('تعذر تحميل جدول المستخدمين من Supabase: '+(error.message||error)+' — تم عرض المستخدم الحالي مؤقتاً. شغل ملف SQL المحدث لإصلاح سياسات RLS.','err');
+    return;
   }
+  const merged=await ensureCurrentUserProfileFallback(data||[]);
+  renderUsersManagementTable(merged);
+  setUsersStatus(`تم تحميل ${merged.length} مستخدم.`,'ok');
 }
 function openUserManagementModal(mode='create'){
-  if(USERS_SAVE_BUSY || !USERS_ROLE_CATALOG || USERS_ROLE_CATALOG.user_id!==window.PermissionRuntime?.userId()){ setUsersStatus('حدّث بيانات المستخدمين والأدوار أولًا.','err');return; }
-  if(!hasCanonicalPermission(mode==='create'?'users.create':'users.edit')) return;
   const modal=$('#userManagementModal');
   if(!modal) return;
   modal.classList.add('app-liquid-modal-backdrop');
@@ -6635,10 +6561,6 @@ function closeUserManagementModal(options={}){
   if(options.restoreFocus!==false && returnFocus?.isConnected) requestAnimationFrame(()=>returnFocus.focus({preventScroll:true}));
 }
 function resetUserManagementForm(closeStatus=true){
-  if(USERS_SAVE_BUSY) return;
-  USERS_PENDING_AUTH=null;
-  USERS_EDIT_DRAFT=null;
-  $('#managedUserRole')?.querySelector('option[value="super_admin"]')?.remove();
   if($('#managedUserId')) $('#managedUserId').value='';
   if($('#managedUserEmail')) { $('#managedUserEmail').value=''; $('#managedUserEmail').disabled=false; }
   if($('#managedUserPassword')) { $('#managedUserPassword').value=''; $('#managedUserPassword').disabled=false; $('#managedUserPassword').placeholder='مطلوبة عند إضافة مستخدم جديد'; }
@@ -6649,17 +6571,11 @@ function resetUserManagementForm(closeStatus=true){
   if($('#managedUserActive')) { $('#managedUserActive').checked=true; $('#managedUserActive').disabled=false; }
   if($('#userFormTitle')) $('#userFormTitle').textContent='إضافة مستخدم جديد';
   if($('#saveManagedUserBtn')) $('#saveManagedUserBtn').textContent='إنشاء المستخدم';
-  fillManagedRoleOptions();
-  handleManagedRoleChange();
   if(closeStatus) setUsersStatus('');
 }
 function fillUserFormForEdit(userId){
-  if(USERS_SAVE_BUSY || !USERS_ROLE_CATALOG) return;
-  USERS_PENDING_AUTH=null;
-  if(!hasCanonicalPermission('users.edit')) return;
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
   if(!u) return;
-  USERS_EDIT_DRAFT={...u};
   if(u.role==='super_admin' && !u.is_current){ setUsersStatus('حساب منشئ النظام لا يتم تعديله من شاشة المستخدمين.','err'); return; }
   if($('#managedUserId')) $('#managedUserId').value=u.id;
   if($('#managedUserEmail')) { $('#managedUserEmail').value=u.email||''; $('#managedUserEmail').disabled=true; }
@@ -6671,14 +6587,12 @@ function fillUserFormForEdit(userId){
   if($('#managedUserActive')) { $('#managedUserActive').checked=u.is_active; $('#managedUserActive').disabled=u.role==='super_admin'; }
   if($('#userFormTitle')) $('#userFormTitle').textContent='تعديل مستخدم';
   if($('#saveManagedUserBtn')) $('#saveManagedUserBtn').textContent='حفظ التعديل';
-  fillManagedRoleOptions(u);
   openUserManagementModal('edit');
 }
 function viewManagedUser(userId){
-  if(!hasCanonicalPermission('users.details.view')){ showPermissionDenied('users');return; }
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
   if(!u) return;
-  alert(`بيانات المستخدم\n\nالاسم: ${u.full_name||'--'}\nالبريد: ${u.email||'--'}\nدور الصلاحيات: ${managedRoleLabel(u)}\nدور التشغيل الحالي: ${roleLabel(u.role)}\nالحالة: ${u.is_active?'نشط':'معطل'}\nالوظيفة: ${u.job_title||'--'}\nالهاتف: ${u.phone||'--'}`);
+  alert(`بيانات المستخدم\n\nالاسم: ${u.full_name||'--'}\nالبريد: ${u.email||'--'}\nالدور: ${roleLabel(u.role)}\nالحالة: ${u.is_active?'نشط':'معطل'}\nالوظيفة: ${u.job_title||'--'}\nالهاتف: ${u.phone||'--'}`);
 }
 async function createAuthUserWithIsolatedClient(email,password){
   const cfg=window.WAREHOUSE_SUPABASE_CONFIG || {};
@@ -6688,81 +6602,64 @@ async function createAuthUserWithIsolatedClient(email,password){
   if(error) throw error;
   return data?.user;
 }
+async function upsertManagedUserProfile(payload){
+  const attempts=[];
+  attempts.push(payload);
+  const {email,...withoutEmail}=payload;
+  attempts.push(withoutEmail);
+  const {updated_at,...withoutUpdated}=withoutEmail;
+  attempts.push(withoutUpdated);
+  let lastError=null;
+  for(const body of attempts){
+    const res=await WarehouseDB.client.from('app_users').upsert(body,{onConflict:'id'}).select('*').single();
+    if(!res.error) return res.data;
+    lastError=res.error;
+  }
+  throw lastError || new Error('تعذر حفظ بيانات المستخدم.');
+}
 async function saveManagedUser(e){
   e?.preventDefault?.();
-  if(USERS_SAVE_BUSY) return;
+  if(!WarehouseDB?.ready){ setUsersStatus('Supabase غير متصل.','err'); return; }
   const existingId=$('#managedUserId')?.value || '';
-  const current=USERS_EDIT_DRAFT?.id===existingId ? USERS_EDIT_DRAFT : null;
-  const permissionKey=existingId?'users.edit':'users.create';
-  if(!hasCanonicalPermission(permissionKey)){ showPermissionDenied('users');return; }
-  const actor=window.PermissionRuntime?.userId();
-  if(!USERS_ROLE_CATALOG || USERS_ROLE_CATALOG.user_id!==actor){ setUsersStatus('حدّث بيانات المستخدمين والأدوار أولًا.','err');return; }
   const email=($('#managedUserEmail')?.value||'').trim().toLowerCase();
   const password=$('#managedUserPassword')?.value || '';
   const fullName=($('#managedUserFullName')?.value||'').trim();
-  const role=$('#managedUserRole')?.value || '';
+  const role=$('#managedUserRole')?.value || 'viewer';
   const jobTitle=($('#managedUserJobTitle')?.value||'').trim();
   const phone=($('#managedUserPhone')?.value||'').trim();
   const active=$('#managedUserActive')?.checked !== false;
-  const selected=USERS_ROLE_CATALOG.roles.find(r=>r.id===$('#managedUserPermissionRole')?.value);
-  const assign=USERS_ROLE_CATALOG.can_assign;
-  if(!fullName){ setUsersStatus('اسم المستخدم مطلوب.','err');return; }
-  if(assign && (!selected?.is_active || selected.bundle_count<1)){ setUsersStatus('اختر دورًا نشطًا مرتبطًا بحزمة صلاحيات صالحة.','err');return; }
-  if(role==='super_admin' && (!current?.is_current || current.role!=='super_admin')){ setUsersStatus('حساب منشئ النظام محمي.','err');return; }
-  if(role!=='super_admin' && !USER_ROLE_CREATE_VALUES.has(role)){ setUsersStatus('دور التشغيل غير صالح.','err');return; }
-  if(!existingId && !USERS_PENDING_AUTH && (!email || password.length<6)){ setUsersStatus('البريد وكلمة مرور لا تقل عن 6 أحرف مطلوبان لإنشاء المستخدم.','err');return; }
-  USERS_SAVE_BUSY=true;
-  setManagedUserLocks();
-  let saved=false;
+  if(!fullName){ setUsersStatus('اسم المستخدم مطلوب.','err'); return; }
+  if(!USER_ROLE_CREATE_VALUES.has(role)){ setUsersStatus('لا يمكن اختيار Super Admin من هذه الشاشة.','err'); return; }
   try{
-    if(assign && current && selected.id!==current.permission_role_id){
-      const confirmed=await showAppLiquidConfirm({message:`تغيير دور صلاحيات ${fullName} إلى «${selected.role_name}»؟ سيُحمّل الحساب صلاحياته الجديدة عند تسجيل الدخول أو تحديث جلسته.`});
-      if(!confirmed) return;
-    }
-    if(actor!==window.PermissionRuntime?.userId() || !hasCanonicalPermission(permissionKey)) throw new Error('تغيرت جلسة الدخول. أعد فتح الشاشة.');
-    setUsersStatus(existingId?'جاري حفظ بيانات المستخدم ودوره...':'جاري إنشاء المستخدم وحفظ دوره...');
-    let userId=existingId || USERS_PENDING_AUTH?.id;
-    if(!userId){
+    setUsersStatus(existingId?'جاري حفظ التعديل...':'جاري إنشاء المستخدم...');
+    let userId=existingId;
+    if(!existingId){
+      if(!email){ setUsersStatus('البريد الإلكتروني مطلوب عند إضافة مستخدم جديد.','err'); return; }
+      if(!password || password.length<6){ setUsersStatus('كلمة المرور مطلوبة ولا تقل عن 6 أحرف عند إضافة مستخدم جديد.','err'); return; }
       const authUser=await createAuthUserWithIsolatedClient(email,password);
       userId=authUser?.id;
-      if(!userId) throw new Error('لم يتم إرجاع معرف الحساب. راجع إعدادات Supabase Auth.');
-      USERS_PENDING_AUTH={id:userId,email};
+      if(!userId) throw new Error('تم إرسال دعوة/تأكيد للمستخدم ولكن لم يتم إرجاع معرف الحساب. راجع إعدادات Supabase Auth.');
     }
-    if(actor!==window.PermissionRuntime?.userId()) throw new Error('تغيرت جلسة الدخول.');
-    const result=await WarehouseDB.client.rpc('app_permission_p7_save_managed_user',{
-      p_profile:{id:userId,email:USERS_PENDING_AUTH?.email||email,full_name:fullName,job_title:jobTitle,phone,role,is_active:active},
-      p_role_id:assign?selected.id:null,
-      p_expected_role_id:current?.permission_role_id||null,
-      p_expected_legacy_role:current?.role||null,
-      p_create:!existingId
+    await upsertManagedUserProfile({
+      id:userId,
+      email,
+      full_name:fullName,
+      job_title:jobTitle,
+      phone,
+      role,
+      is_active:active,
+      updated_at:new Date().toISOString()
     });
-    if(result.error) throw result.error;
-    if(!result.data?.saved || result.data.user_id!==userId) throw new Error('لم يتم تأكيد نتيجة الحفظ. حدّث القائمة للتحقق.');
-    saved=true;
-    USERS_PENDING_AUTH=null;
-    if(actor!==window.PermissionRuntime?.userId()) return;
+    setUsersStatus(existingId?'تم حفظ تعديل المستخدم.':'تم إنشاء المستخدم وحفظ بياناته.','ok');
+    await logSystemActivity('المستخدمين',existingId?'تعديل مستخدم':'إضافة مستخدم',`${existingId?'تعديل مستخدم':'إضافة مستخدم'}: ${fullName}`);
     closeUserManagementModal();
-    try{ await logSystemActivity('المستخدمين',existingId?'تعديل مستخدم':'إضافة مستخدم',`${fullName} — دور الصلاحيات: ${selected?.role_name||role}`); }catch(error){ console.warn('User saved; activity log failed',error); }
-    const loaded=await loadUsersManagement();
-    if(loaded) setUsersStatus('تم حفظ بيانات المستخدم ودور الصلاحيات. يدخل الحساب مجددًا لتحميل صلاحياته.','ok');
-    else setUsersStatus('تم الحفظ، لكن تحديث القائمة لم يكتمل. اضغط تحديث قبل تعديل آخر.','err');
-  }catch(error){
-    if(actor===window.PermissionRuntime?.userId()){
-      const hints={P7_USERS_CHANGED_RELOAD:'تغيّر دور المستخدم منذ فتح النموذج. أغلقه واضغط تحديث ثم أعد المحاولة.',
-        P7_USERS_VALID_BUNDLE_REQUIRED:'الدور مرتبط بحزمة غير صالحة أو فارغة أو محمية لدور آخر.',
-        P7_USERS_ACTIVE_ROLE_REQUIRED:'الدور غير موجود أو غير نشط.',P7_USERS_ACCOUNT_PROTECTED:'لا يمكن تغيير دور حسابك الحالي أو المساس بحساب منشئ النظام.',
-        P7_USERS_KEEP_LEGACY_ROLE:'يجب الحفاظ على دور التشغيل الحالي عند تعيين دور مخصص.',
-        P7_USERS_PERMISSION_PARENT_REQUIRED:'صلاحيات الدور تحتوي عناصر بدون صلاحياتها الرئيسية. راجع الحزم أولًا.'};
-      setUsersStatus((hints[error.message]||'تعذر الحفظ: '+(error.message||error))+(USERS_PENDING_AUTH?' تم إنشاء حساب الدخول؛ أعد الحفظ من نفس النموذج لاستكمال البيانات دون إنشاء حساب آخر.':''),'err');
-    }
-  }finally{
-    USERS_SAVE_BUSY=false;
-    if(saved) resetUserManagementForm(false);
-    setManagedUserLocks();
+    resetUserManagementForm(false);
+    await loadUsersManagement();
+  }catch(err){
+    setUsersStatus('خطأ: '+(err.message||err),'err');
   }
 }
 async function toggleManagedUser(userId,currentActive){
-  if(!hasCanonicalPermission('users.status.toggle')){ showPermissionDenied('users');return; }
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
   if(!userId || !WarehouseDB?.ready) return;
   if(u?.role==='super_admin' || u?.is_current){ setUsersStatus('لا يمكن تعطيل هذا الحساب من شاشة إدارة المستخدمين.','err'); return; }
@@ -6780,7 +6677,6 @@ async function toggleManagedUser(userId,currentActive){
 }
 
 async function deleteManagedUserForever(userId){
-  if(!hasCanonicalPermission('users.delete')){ showPermissionDenied('users');return; }
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
   if(!userId || !WarehouseDB?.ready) return;
   if(!u){ setUsersStatus('المستخدم غير موجود في الجدول الحالي.','err'); return; }
@@ -6832,14 +6728,6 @@ async function exportUsersPanelPng(){
   }catch(err){ alert('تعذر تصدير صورة إدارة المستخدمين.'); }
 }
 function initUsersManagement(){
-  $('#managedUserPermissionRole')?.addEventListener('change',handleManagedRoleChange);
-  $('#managedUserRole')?.addEventListener('change',()=>{
-    if(USERS_ROLE_CATALOG && !USERS_ROLE_CATALOG.can_assign){
-      const mapped=USERS_ROLE_CATALOG.roles.find(role=>role.is_system && role.role_key===$('#managedUserRole')?.value);
-      if(mapped && $('#managedUserPermissionRole')) $('#managedUserPermissionRole').value=mapped.id;
-    }
-    setManagedUserLocks();
-  });
   const form=$('#userManagementForm');
   if(form) form.addEventListener('submit',saveManagedUser);
   $('#resetManagedUserFormBtn')?.addEventListener('click',()=>resetUserManagementForm());
@@ -6882,63 +6770,6 @@ function initLoginPasswordToggle(){
     input.focus();
   });
 }
-let MOBILE_APPLICATION_RELOAD_PENDING=false;
-function isMobileApplicationRefreshViewport(){
-  return window.matchMedia ? window.matchMedia('(max-width: 768px)').matches : window.innerWidth<=768;
-}
-function hasApplicationUnsavedChanges(){
-  const departmentDirty=typeof window.hasUnsavedDepartmentPersonnelWork==='function' && window.hasUnsavedDepartmentPersonnelWork();
-  const permissionsDirty=Boolean(window.PermissionManagement?.isDirty?.());
-  const permissionSettingsDirty=Boolean(window.PermissionSettings?.isDirty?.());
-  return Boolean(departmentDirty || permissionsDirty || permissionSettingsDirty);
-}
-function requestSafeApplicationReload(){
-  if(MOBILE_APPLICATION_RELOAD_PENDING || !isMobileApplicationRefreshViewport()) return false;
-  const authenticatedView=!$('#appShell')?.classList.contains('app-hidden');
-  if(authenticatedView && hasApplicationUnsavedChanges()){
-    const confirmed=window.confirm('توجد تعديلات غير محفوظة. سيؤدي تحديث البرنامج إلى فقدها. هل تريد المتابعة؟');
-    if(!confirmed) return false;
-  }
-  if(authenticatedView && typeof window.approveDepartmentPersonnelReloadOnce==='function') window.approveDepartmentPersonnelReloadOnce();
-  MOBILE_APPLICATION_RELOAD_PENDING=true;
-  window.location.reload();
-  return true;
-}
-function syncMobileApplicationRefreshControls(){
-  const mobile=isMobileApplicationRefreshViewport();
-  const loginRefresh=$('#loginLogoRefreshBtn');
-  const appRefresh=$('#mobileDashboardRefreshBtn');
-  if(loginRefresh){
-    loginRefresh.disabled=!mobile;
-    loginRefresh.tabIndex=mobile?0:-1;
-    loginRefresh.setAttribute('aria-disabled',mobile?'false':'true');
-  }
-  if(appRefresh){
-    appRefresh.disabled=!mobile;
-    appRefresh.tabIndex=mobile?0:-1;
-    appRefresh.setAttribute('aria-disabled',mobile?'false':'true');
-  }
-}
-function initMobileApplicationRefresh(){
-  const bind=element=>{
-    if(!element || element.dataset.refreshBound==='1') return;
-    element.dataset.refreshBound='1';
-    element.addEventListener('click',event=>{
-      event.preventDefault();
-      event.stopPropagation();
-      requestSafeApplicationReload();
-    });
-  };
-  bind($('#loginLogoRefreshBtn'));
-  bind($('#mobileDashboardRefreshBtn'));
-  if(document.documentElement.dataset.mobileRefreshResizeBound!=='1'){
-    document.documentElement.dataset.mobileRefreshResizeBound='1';
-    window.addEventListener('resize',syncMobileApplicationRefreshControls,{passive:true});
-  }
-  syncMobileApplicationRefreshControls();
-}
-window.requestSafeApplicationReload=requestSafeApplicationReload;
-
 function initMainLoginGate(){
   const loginBtn=$('#mainLoginBtn');
   const emailInput=$('#mainLoginEmail');
@@ -6953,7 +6784,7 @@ function initMainLoginGate(){
       const {data,error}=await WarehouseDB.signIn(email,password);
       if(error){ setMainAuthMessage('خطأ في تسجيل الدخول: '+error.message,'err'); return; }
       setMainAuthMessage('تم تسجيل الدخول بنجاح.','ok');
-      if(!await showApplication(data.user)) return;
+      await showApplication(data.user);
       await logSystemActivity('المستخدمين','تسجيل دخول',`تسجيل دخول: ${CURRENT_APP_PROFILE?.full_name || data.user?.email || email}`);
     };
     [emailInput,passInput].forEach(inp=>{ if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter') loginBtn.click(); }); });
@@ -6967,44 +6798,21 @@ function initMainLoginGate(){
     };
   }
   if(WarehouseDB?.client?.auth){
-    WarehouseDB.client.auth.onAuthStateChange((event,session)=>{
-      if(!session?.user){ showLoginScreen(); return; }
-      // Defer SDK work outside its auth callback; sign-in and getUser coalesce.
-      const generation=APPLICATION_AUTH_GENERATION;
-      setTimeout(async()=>{
-        if(generation!==APPLICATION_AUTH_GENERATION) return;
-        if(event==='TOKEN_REFRESHED' && APPLICATION_READY_USER_ID===session.user.id){
-          $('#appShell')?.classList.add('app-hidden');
-          const ready=await loadCurrentUserPermissions('token-refreshed');
-          if(generation!==APPLICATION_AUTH_GENERATION) return;
-          if(!ready){ APPLICATION_READY_USER_ID=''; $('#loginScreen')?.classList.remove('login-hidden');setMainAuthMessage('تعذر تحديث صلاحيات الحساب. أعد تسجيل الدخول.','err');return; }
-          applyPermissionActionGuards($('.section.active-section')?.id);
-          $('#appShell')?.classList.remove('app-hidden');
-        }else await showApplication(session.user);
-      },0);
+    WarehouseDB.client.auth.onAuthStateChange((_event,session)=>{
+      if(session?.user) showApplication(session.user);
+      else showLoginScreen();
     });
   }
   checkMainSession();
 }
-document.addEventListener('DOMContentLoaded',()=>{initMobileApplicationRefresh();initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initAllSettingsTableControls();initActivityLogSettings();applySettingsSubPermissions();initUsersManagement();window.PermissionManagement?.init?.();});
+document.addEventListener('DOMContentLoaded',()=>{initMainLoginGate();initProfileSettings();initSettingsTabs();initSettingsAccountSecurity();initSystemSettings();initPlantsSettings();initWarehousesSettings();initSalesProductsSettings();initAllSettingsTableControls();initActivityLogSettings();applySettingsSubPermissions();initUsersManagement();initPermissionsManagement();});
 
 // Raw materials report upload helpers
 const RAW_MATERIALS_UPLOAD_CHUNK_SIZE=250;
 const RAW_MATERIALS_TEMPLATE_HEADERS={
-  current_plant_stock:{sheetName:'Data',headers:['المادة','وصف المادة','وحدة القياس','رصيد غير مقيد','قيد فحص الجودة','مجموعة المواد','وصف مجموعة المواد','المصنع','إسم المصنع','المخزن','إسم المخزن']},
-  consumption_rate:{sheetName:'Data',headers:['المادة','وصف المادة','الكمية','وحدة القياس','نوع الحركة','وصف نوع الحركة','المصنع','إسم المصنع','مجموعه المواد','وصف مجموعه المواد','التاريخ']}
+  current_plant_stock:{fileName:'رصيد المصنع الحالي.xlsx',sheetName:'Data',headers:['المادة','وصف المادة','وحدة القياس','رصيد غير مقيد','قيد فحص الجودة','مجموعة المواد','وصف مجموعة المواد','المصنع','إسم المصنع','المخزن','إسم المخزن']},
+  consumption_rate:{fileName:'حساب معدل إستهدلاك الخامات.xlsx',sheetName:'Data',headers:['المادة','وصف المادة','الكمية','وحدة القياس','نوع الحركة','وصف نوع الحركة','المصنع','إسم المصنع','مجموعه المواد','وصف مجموعه المواد','التاريخ']}
 };
-const UPLOAD_REPORT_TEMPLATE_FILES=Object.freeze({
-  sales:{path:'assets/templates/upload-reports/sales-review.xlsx',fileName:'مراجعة مبيعات المنتج التام والتحويلات المخزنية.xlsx'},
-  incoming:{path:'assets/templates/upload-reports/incoming-mb51.xlsx',fileName:'الوارد من MB51.xlsx'},
-  scale:{path:'assets/templates/upload-reports/scale-report.xlsx',fileName:'تقرير الميزان.xlsx'},
-  freight:{path:'assets/templates/upload-reports/incoming-freight.xlsx',fileName:'نولون الوارد.xlsx'},
-  current_plant_stock:{path:'assets/templates/upload-reports/current-plant-stock.xlsx',fileName:'رصيد المصنع الحالي.xlsx'},
-  consumption_rate:{path:'assets/templates/upload-reports/consumption-rate.xlsx',fileName:'حساب معدل إستهدلاك الخامات.xlsx'},
-  inventory_closing_wf01:{path:'assets/templates/upload-reports/inventory-closing-wf01.xlsx',fileName:'مراجعة مبيعات المنتج التام والتحويلات المخزنية WF01.xlsx'},
-  inventory_closing_el01:{path:'assets/templates/upload-reports/inventory-closing-el01.xlsx',fileName:'مراجعة مبيعات المنتج التام والتحويلات المخزنية EL01.xlsx'},
-  inventory_closing_el02:{path:'assets/templates/upload-reports/inventory-closing-el02.xlsx',fileName:'مراجعة مبيعات المنتج التام والتحويلات المخزنية EL02.xlsx'}
-});
 const RAW_MATERIALS_UPLOAD_CONFIG={
   current_plant_stock:{
     statusId:'currentPlantStockUploadStatus',inputId:'currentPlantStockExcelInput',buttonId:'pickCurrentPlantStockFileBtn',dropId:'currentPlantStockDropZone',tableId:'currentPlantStockBatchesTable',chunkRpc:'append_current_plant_stock_upload_chunk',finalizeRpc:'finalize_current_plant_stock_upload',title:'رصيد المصنع الحالي'
@@ -7014,16 +6822,16 @@ const RAW_MATERIALS_UPLOAD_CONFIG={
   }
 };
 const RAW_MATERIALS_UPLOAD_BUSY={current_plant_stock:false,consumption_rate:false};
-function downloadUploadReportTemplate(key){
-  const spec=UPLOAD_REPORT_TEMPLATE_FILES[key];
+async function downloadRawMaterialsTemplate(key){
+  const spec=RAW_MATERIALS_TEMPLATE_HEADERS[key];
   if(!spec) return;
-  const link=document.createElement('a');
-  link.href=spec.path;
-  link.download=spec.fileName;
-  link.hidden=true;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+  if(!window.XLSX){ alert('مكتبة Excel غير محملة.'); return; }
+  const ws=XLSX.utils.aoa_to_sheet([spec.headers]);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,spec.sheetName);
+  const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  await saveBlobWithPicker(blob,spec.fileName,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 function cleanRawMaterialsHeader(value){
   return stripHiddenUnicode(value).trim();
@@ -7292,13 +7100,13 @@ function initRawMaterialsReportUploaders(){
   bindRawMaterialsUploader('current_plant_stock');
   bindRawMaterialsUploader('consumption_rate');
 }
-function initUploadReportTemplateDownloads(){
+function initRawMaterialsTemplateDownloads(){
   document.querySelectorAll('[data-template-key]').forEach(btn=>{
-    if(btn.dataset.uploadTemplateBound==='1') return;
-    btn.dataset.uploadTemplateBound='1';
+    if(btn.dataset.rawTemplateBound==='1') return;
+    btn.dataset.rawTemplateBound='1';
     btn.addEventListener('click',event=>{
       event.preventDefault();
-      downloadUploadReportTemplate(btn.dataset.templateKey);
+      downloadRawMaterialsTemplate(btn.dataset.templateKey);
     });
   });
 }
@@ -7464,7 +7272,7 @@ function rawMaterialsBuildMergedRows(stockRows,metricRows){
 }
 function rawMaterialsFilterValues(){
   return {
-    plant:permissionFilterPlants('raw_materials.'+rawMaterialsCurrentTabKey()+'.view',enterpriseSelectValues('rawMaterialsPlantFilter')),
+    plant:enterpriseSelectValues('rawMaterialsPlantFilter'),
     warehouse:enterpriseSelectValues('rawMaterialsWarehouseFilter'),
     warehouseType:enterpriseSelectValues('rawMaterialsWarehouseTypeFilter'),
     group:enterpriseSelectValues('rawMaterialsGroupFilter'),
@@ -7534,7 +7342,6 @@ function rawMaterialsVisibleRows(tabKey){
   const rows=RAW_MATERIALS_SCREEN_STATE.mergedRows
     .map(row=>rawMaterialsRowForWarehouseFilter(row,filters))
     .filter(Boolean)
-    .filter(row=>window.PermissionRuntime?.can('raw_materials.'+tabKey+'.view',row.plant_code || []))
     .filter(row=>rawMaterialsTabForGroup(row.material_group)===tabKey)
     .filter(row=>rawMaterialsMatchesDimensionFilters(row,filters));
   if(tabKey==='bran'){
@@ -7768,7 +7575,6 @@ function syncRawMaterialsFilterOptions(){
   if(typeField) typeField.hidden=typeMap.size===0;
 }
 async function loadRawMaterialsScreen(force=false){
-  if(!window.PermissionRuntime?.any('raw_materials.view')) return;
   if(RAW_MATERIALS_SCREEN_STATE.loading) return;
   if(RAW_MATERIALS_SCREEN_STATE.loaded && !force){ renderRawMaterialsActiveTab(); return; }
   if(!WarehouseDB?.ready){ rawMaterialsSetStatus('Supabase غير متصل. لا يمكن تحميل بيانات متابعة الخامات.','err'); return; }
@@ -7780,11 +7586,11 @@ async function loadRawMaterialsScreen(force=false){
       fetchAllRows('raw_material_consumption_metrics','material_code,material_description,plant_code,plant_name,material_group,material_group_description,unit_of_measure,average_daily_consumption,period_start,period_end'),
       rawMaterialsLoadBranConsumptionRows()
     ]);
-    RAW_MATERIALS_SCREEN_STATE.stockRows=(stockRows||[]).filter(row=>window.PermissionRuntime?.can('raw_materials.view',row.plant_code || []));
-    RAW_MATERIALS_SCREEN_STATE.metricRows=(metricRows||[]).filter(row=>window.PermissionRuntime?.can('raw_materials.view',row.plant_code || []));
+    RAW_MATERIALS_SCREEN_STATE.stockRows=stockRows||[];
+    RAW_MATERIALS_SCREEN_STATE.metricRows=metricRows||[];
     RAW_MATERIALS_SCREEN_STATE.branConsumptionRows=branConsumption.rows||[];
     RAW_MATERIALS_SCREEN_STATE.branConsumptionPeriod={periodStart:branConsumption.periodStart||'',periodEnd:branConsumption.periodEnd||''};
-    RAW_MATERIALS_SCREEN_STATE.mergedRows=rawMaterialsBuildMergedRows(RAW_MATERIALS_SCREEN_STATE.stockRows,RAW_MATERIALS_SCREEN_STATE.metricRows);
+    RAW_MATERIALS_SCREEN_STATE.mergedRows=rawMaterialsBuildMergedRows(stockRows,metricRows);
     RAW_MATERIALS_SCREEN_STATE.loaded=true;
     syncRawMaterialsFilterOptions();
     renderRawMaterialsActiveTab();
@@ -7842,7 +7648,7 @@ function initRawMaterialsTabs(){
   $('#rawMaterialsMobileTabSelect')?.addEventListener('change',event=>switchRawMaterialsTab(event.target.value));
   switchRawMaterialsTab('main');
 }
-document.addEventListener('DOMContentLoaded',()=>{initUploadReportTemplateDownloads();initRawMaterialsReportUploaders();initRawMaterialsTabs();});
+document.addEventListener('DOMContentLoaded',()=>{initRawMaterialsTemplateDownloads();initRawMaterialsReportUploaders();initRawMaterialsTabs();});
 // Upload reports tabs controller
 function initUploadReportTabs(){
   const tabs=document.querySelectorAll('[data-upload-tab]');
@@ -7890,8 +7696,8 @@ async function ensureReportDefaultDates(options={}){
     if(!error && data?.[0]?.report_date){ fromEl.value=normalizeDateISO(data[0].report_date); toEl.value=normalizeDateISO(data[0].report_date); }
   }catch(_){ }
 }
-function getReportFilters(permissionKey=window.PermissionUI?.reportKey() || 'reports.executive.view'){
-  return {plant:permissionFilterPlants(permissionKey,enterpriseSelectValues('reportPlantFilter')),warehouse:enterpriseSelectValues('reportWarehouseFilter'),from:normalizeDateISO($('#reportFromDate')?.value||''),to:normalizeDateISO($('#reportToDate')?.value||'')};
+function getReportFilters(){
+  return {plant:enterpriseSelectValues('reportPlantFilter'),warehouse:enterpriseSelectValues('reportWarehouseFilter'),from:normalizeDateISO($('#reportFromDate')?.value||''),to:normalizeDateISO($('#reportToDate')?.value||'')};
 }
 function reportFilterLabel(filters){
   const plant=enterpriseFilterText(filters.plant,$('#reportPlantFilter'),'جميع المصانع');
@@ -8014,8 +7820,7 @@ function renderItemsExportTable(items,summary){
   tbl.innerHTML=`<thead><tr><th>#</th><th>كود الصنف</th><th>اسم الصنف</th><th>البيع</th><th>الإنتاج</th><th>الصادرة</th><th>الواردة</th><th>التحميل</th><th>فرق الإنتاج/البيع</th><th>نسبة البيع للإنتاج</th><th>الحالة</th></tr></thead><tbody>${rows}</tbody>`;
 }
 async function loadItemsReport(options={}){
-  if(!window.PermissionRuntime?.any('reports.items.view')) return;
-  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.items.view');
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
   let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:true,orderBy:'material_code'}); }catch(error){console.warn('items report load error',error);return;} const map={};
   (data||[]).forEach(r=>{const key=String(r.material_code||r.material_name||'غير محدد'); if(!map[key]) map[key]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0}; const it=map[key]; it.sales+=toNumber(r.sales_quantity); it.production+=toNumber(r.production_quantity); it.outgoing+=toNumber(r.outgoing_transfer_quantity); it.incoming+=toNumber(r.incoming_transfer_quantity); it.loading+=toNumber(r.total_loading_quantity);});
   const items=Object.values(map).sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales));
@@ -8220,7 +8025,6 @@ function renderItemAnalyticsReport(model){
   renderItemAnalyticsHealth(model);renderItemAnalyticsKpis(model.stats);renderItemAnalyticsHeatmap('#itemAnalyticsSalesHeatmap',model.daily,'sales');renderItemAnalyticsHeatmap('#itemAnalyticsProductionHeatmap',model.daily,'production');renderItemAnalyticsPerformance(model);renderItemAnalyticsComparison(model);renderItemAnalyticsContribution(model);renderItemAnalyticsSeasonality(model);renderItemAnalyticsInventorySignals(model);renderItemAnalyticsForecast(model);renderItemAnalyticsAlertsRecommendations(model);renderItemAnalyticsAuditTrail(model);renderItemAnalyticsComparisonTable(model);renderItemAnalyticsExportTable(model);
 }
 async function loadItemAnalyticsReport(options={}){
-  if(!window.PermissionRuntime?.any('reports.item_analytics.view')) return;
   if(!WarehouseDB?.ready) return;fillReportFilters();itemAnalyticsSyncFilterVisibility(ITEM_ANALYTICS_TAB);await ensureReportDefaultDates(options);await fillItemAnalyticsItemFilter({keepSelection:true});
   const filters=getItemAnalyticsFilters();const error=itemAnalyticsValidateFilters(filters);if(error){itemAnalyticsSetEmpty(error);return;}
   itemAnalyticsShowResults();const meta=$('#itemAnalyticsMeta');if(meta)meta.textContent='جاري تحميل تحليلات الأصناف...';
@@ -8337,8 +8141,7 @@ function renderWarehousesReportTables(warehouses,summary){
   const exp=$('#warehousesReportExportTable'); if(exp) exp.innerHTML=headers+`<tbody>${warehouses.map((w,i)=>{const pct=summary.sales?Math.abs(w.sales||0)/Math.abs(summary.sales)*100:0;return `<tr><td>${i+1}</td><td>${escapeHtml(w.code)}</td><td>${escapeHtml(w.name)}</td><td>${escapeHtml(w.plant)}</td><td>${fmt(w.sales)}</td><td>${fmt(w.production)}</td><td>${fmt(w.outgoing)}</td><td>${fmt(w.incoming)}</td><td>${fmt(w.loading)}</td><td>${fmt(pct)}%</td></tr>`;}).join('')}</tbody>`;
 }
 async function loadWarehousesReport(options={}){
-  if(!window.PermissionRuntime?.any('reports.warehouses.view')) return;
-  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.warehouses.view');
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
   let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:true,orderBy:'warehouse_code'}); }catch(error){console.warn('warehouses report load error',error);return;} const map={}, summary={sales:0,production:0,outgoing:0,incoming:0,loading:0};
   (data||[]).forEach(r=>{const code=String(r.warehouse_code||'').toUpperCase()||'-'; const meta=dashboardWhMeta(code); const plant=r.plant_code||meta.plant||'-'; if(!map[code]) map[code]={code,name:meta.name||r.warehouse_name||'-',plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0}; const w=map[code]; const sales=toNumber(r.sales_quantity),prod=toNumber(r.production_quantity),out=toNumber(r.outgoing_transfer_quantity),inc=toNumber(r.incoming_transfer_quantity),load=toNumber(r.total_loading_quantity); w.sales+=sales;w.production+=prod;w.outgoing+=out;w.incoming+=inc;w.loading+=load;w.totalActivity+=Math.abs(sales)+Math.abs(prod)+Math.abs(out)+Math.abs(inc)+Math.abs(load); summary.sales+=sales;summary.production+=prod;summary.outgoing+=out;summary.incoming+=inc;summary.loading+=load;});
   const warehouses=Object.values(map).sort((a,b)=>(b.totalActivity||0)-(a.totalActivity||0));
@@ -8487,8 +8290,7 @@ function renderExceptionsTables(exceptions){
   const count=$('#exceptionsReportCount'); if(count) count.textContent=`عدد الاستثناءات: ${exceptions.length}`;
 }
 async function loadExceptionsReport(options={}){
-  if(!window.PermissionRuntime?.any('reports.exceptions.view')) return;
-  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.exceptions.view');
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
   let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:false}); }catch(error){console.warn('exceptions report load error',error);return;}
   const items=buildSalesAuditItemMap(data||[]), exceptions=flattenExceptions(items);
   const summary={total:exceptions.length,high:exceptions.filter(e=>e.severity==='high').length,medium:exceptions.filter(e=>e.severity==='medium').length,items:new Set(exceptions.map(e=>e.code)).size,maxGap:0,byType:{}};
@@ -9157,8 +8959,7 @@ function renderSmartExportTable(model){
   tbl.innerHTML=`<thead><tr><th>النوع</th><th>#</th><th>الكود</th><th>البيان</th><th>المؤشر</th><th>القيمة</th></tr></thead><tbody><tr><td>ملخص</td><td>-</td><td>الصحة العامة للمراجعة</td><td>-</td><td>${escapeHtml(model.auditScores?.status?.label||'')}</td><td>${Math.round(model.auditScores?.overall||0)}%</td></tr><tr><td>ملخص</td><td>-</td><td>إجمالي البيع</td><td>-</td><td>طن</td><td>${fmt(model.stats.salesQty)}</td></tr><tr><td>ملخص</td><td>-</td><td>إجمالي الإنتاج</td><td>-</td><td>طن</td><td>${fmt(model.stats.productionQty)}</td></tr>${scoreRows}${topRows}</tbody>`;
 }
 async function loadSmartAnalyticsReport(options={}){
-  if(!window.PermissionRuntime?.any('reports.smart.view')) return;
-  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.smart.view');
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
   let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:true}); }catch(error){console.warn('smart analytics load error',error);return;}
   const model=buildSmartAnalyticsModel(data||[],filters);
   SMART_ANALYTICS_STATE=model;
@@ -9285,8 +9086,7 @@ function renderProductionExportTable(model){
   tbl.innerHTML=`<thead><tr><th>النوع</th><th>#</th><th>الكود</th><th>البيان</th><th>الإنتاج</th><th>النسبة</th></tr></thead><tbody><tr><td>إجمالي</td><td>-</td><td>-</td><td>إجمالي إنتاج المصانع</td><td>${fmt(model.summary?.total||0)}</td><td>100%</td></tr>${plantRows}${productRows}</tbody>`;
 }
 async function loadProductionAnalyticsReport(options={}){
-  if(!window.PermissionRuntime?.any('reports.production.view')) return;
-  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.production.view');
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
   let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:true}); }catch(error){console.warn('production analytics load error',error);return;}
   const model=buildProductionAnalyticsModel(data||[],filters); PRODUCTION_ANALYTICS_STATE=model;
   if($('#productionAnalyticsMeta')) $('#productionAnalyticsMeta').textContent=reportFilterLabel(filters);
@@ -9333,14 +9133,13 @@ function renderSalesTotalsReport(groups,filters){
   if($('#salesTotalsReportMeta')) $('#salesTotalsReportMeta').textContent=`الفترة: ${formatDisplayDate(filters.from,'--')} → ${formatDisplayDate(filters.to,'--')} `;
 }
 async function loadSalesTotalsReport(options={}){
-  if(!window.PermissionRuntime?.any('reports.sales_totals.view')) return;
   if(!WarehouseDB?.ready) return;
   const reportPerfStart=salesPerfNow();
   const reportPerfLabel='loadSalesTotalsReport';
   console.time(reportPerfLabel);
   fillReportFilters();
   await ensureReportDefaultDates(options);
-  const filters=getReportFilters('reports.sales_totals.view');
+  const filters=getReportFilters();
   let rows=[];
   try{ rows=await fetchUnifiedSalesRows(filters,{ascending:true}); }catch(error){ console.warn('sales totals report load error',error); return; }
   const catalog=await loadSalesReviewCatalog();
@@ -9407,8 +9206,6 @@ function initMobileReportsUI(){
   });
 }
 function switchReportTab(tab){
-  const key='reports.'+(tab==='salesTotals'?'sales_totals':tab)+'.view';
-  if(!window.PermissionRuntime?.any(key)) return;
   ACTIVE_REPORT_TAB=tab;
   itemAnalyticsSyncFilterVisibility(tab);
   syncMobileReportsDropdown(tab);
@@ -9979,8 +9776,7 @@ async function exportActiveReportVisualPdf(){
 }
 
 async function loadExecutiveReport(options={}){
-  if(!window.PermissionRuntime?.any('reports.executive.view')) return;
-  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.executive.view');
+  if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters();
   let rows=[]; try{ rows=await fetchAllSalesAuditRows(filters,{ascending:false}); }catch(error){console.warn('executive report load error',error);return;}
   const stats={salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0}; const daily={}, productMap={}, whMap={}, whSalesMap={}, plantStats={}; getPlantsCatalog().forEach(p=>plantStats[p.code]={sales:0,production:0,outgoing:0,incoming:0,loading:0});
   rows.forEach(r=>{const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0}; const wh=String(r.warehouse_code||'').toUpperCase(); const meta=dashboardWhMeta(wh); const plant=r.plant_code||meta.plant||'غير محدد'; if(!plantStats[plant]) plantStats[plant]={sales:0,production:0,outgoing:0,incoming:0,loading:0}; const sales=toNumber(r.sales_quantity), prod=toNumber(r.production_quantity), out=toNumber(r.outgoing_transfer_quantity), inc=toNumber(r.incoming_transfer_quantity), load=toNumber(r.total_loading_quantity); stats.salesQty+=sales;stats.productionQty+=prod;stats.outgoingTransferQty+=out;stats.incomingTransferQty+=inc;stats.totalLoadingQty+=load; daily[d].sales+=Math.abs(sales);daily[d].production+=Math.abs(prod);daily[d].outgoing+=Math.abs(out);daily[d].incoming+=Math.abs(inc); plantStats[plant].sales+=sales;plantStats[plant].production+=prod;plantStats[plant].outgoing+=out;plantStats[plant].incoming+=inc;plantStats[plant].loading+=load; if(sales) whSalesMap[wh]=(whSalesMap[wh]||0)+Math.abs(sales); const pk=String(r.material_code||r.material_name||'غير محدد'); if(!productMap[pk]) productMap[pk]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0}; productMap[pk].sales+=sales;productMap[pk].production+=prod;productMap[pk].outgoing+=out;productMap[pk].incoming+=inc;productMap[pk].loading+=load; if(!whMap[wh]) whMap[wh]={code:wh,name:meta.name||r.warehouse_name||'-',plant:plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0}; whMap[wh].sales+=sales;whMap[wh].production+=prod;whMap[wh].outgoing+=out;whMap[wh].incoming+=inc;whMap[wh].loading+=load;whMap[wh].totalActivity+=Math.abs(sales)+Math.abs(prod)+Math.abs(out)+Math.abs(inc)+Math.abs(load);});
@@ -10331,7 +10127,7 @@ function inventoryCountRejectNegativeManualValue(input,label,updateWidth){
 function updateInventoryDifferenceSnapshotButton(){
   const btn=$('#createInventoryDifferenceSnapshotBtn');
   if(!btn) return;
-  const canAdd=hasCanonicalPermission('inventory.count.differences.create');
+  const canAdd=hasPermission('inventory_count','add');
   const busy=!!INVENTORY_COUNT_STATE.loading || !!INVENTORY_COUNT_STATE.creating || !!INVENTORY_COUNT_STATE.snapshotCreating || !!INVENTORY_COUNT_STATE.finalizing;
   const ready=!!INVENTORY_COUNT_STATE.documentId && !!INVENTORY_COUNT_STATE.versionId && (INVENTORY_COUNT_STATE.lines || []).length > 0 && INVENTORY_COUNT_STATE.documentStatus !== 'archived';
   const phaseLocked=inventoryCountSettlementPhaseStarted();
@@ -10350,7 +10146,7 @@ function inventoryCountUnresolvedVarianceCount(){
 function updateInventoryCountFinalizationControls(){
   const finishBtn=$('#finishInventoryCountBtn');
   const invoiceBtn=$('#inventoryCountPostCloseInvoiceBtn');
-  const canEdit=hasCanonicalPermission('inventory.count.finish');
+  const canEdit=hasPermission('inventory_count','edit');
   const finalized=inventoryCountIsFinalized();
   const hasVersion=!!INVENTORY_COUNT_STATE.documentId && !!INVENTORY_COUNT_STATE.versionId && (INVENTORY_COUNT_STATE.lines || []).length>0;
   const unresolved=inventoryCountUnresolvedVarianceCount();
@@ -10366,17 +10162,17 @@ function updateInventoryCountFinalizationControls(){
           : (unresolved>0 ? `لا يمكن إنهاء الجرد قبل تسوية جميع الفروق. عدد الأصناف المتبقية: ${unresolved}` : 'إنهاء مستند الجرد نهائيًا وقفل جميع الخانات.')));
   }
   if(invoiceBtn){
-    invoiceBtn.disabled=busy || !hasCanonicalPermission('inventory.count.post_close_adjust') || !hasVersion || !finalized;
-    invoiceBtn.classList.toggle('permission-disabled',!hasCanonicalPermission('inventory.count.post_close_adjust') || !hasVersion || !finalized);
+    invoiceBtn.disabled=busy || !canEdit || !hasVersion || !finalized;
+    invoiceBtn.classList.toggle('permission-disabled',!canEdit || !hasVersion || !finalized);
     invoiceBtn.title=finalized
-      ? (hasCanonicalPermission('inventory.count.post_close_adjust') ? 'إضافة تعديل بيع أو تحويل أو إنتاج بعد إنهاء الجرد.' : 'لا تملك صلاحية تعديل مستند الجرد.')
+      ? (canEdit ? 'إضافة تعديل بيع أو تحويل أو إنتاج بعد إنهاء الجرد.' : 'لا تملك صلاحية تعديل مستند الجرد.')
       : 'يصبح هذا الزر متاحًا بعد إنهاء الجرد.';
   }
 }
 function inventoryCountUpdateCreateButton(){
   const btn=$('#createInventoryCountBtn');
   if(!btn) return;
-  const canAdd=hasCanonicalPermission('inventory.count.create');
+  const canAdd=hasPermission('inventory_count','add');
   const busy=!!INVENTORY_COUNT_STATE.loading || !!INVENTORY_COUNT_STATE.creating;
   const hasCurrent=!!INVENTORY_COUNT_STATE.versionId || INVENTORY_COUNT_STATE.status==='found';
   const blocked=INVENTORY_COUNT_STATE.status==='no_current_version';
@@ -10799,7 +10595,6 @@ function renderInventoryCountLineAuditHistory(modal,data){
   });
 }
 async function loadInventoryCountLineAuditHistory(lineId,versionId,modal){
-  if(!hasCanonicalPermission('inventory.count.line.audit_history')) return;
   const seq=++INVENTORY_COUNT_STATE.auditHistoryRequestSeq;INVENTORY_COUNT_STATE.auditHistoryLineId=String(lineId || '');INVENTORY_COUNT_STATE.auditHistoryVersionId=String(versionId || '');
   const status=modal?.querySelector('.inventory-review-history-status');const timeline=modal?.querySelector('.inventory-review-timeline');if(status){status.textContent='جاري تحميل سجل الصنف...';status.classList.remove('is-error');}timeline?.replaceChildren();
   try{
@@ -11427,8 +11222,8 @@ function inventoryCountExportExcelRow(row){
     inventoryCountSettlementExportLabel(row)
   ];
 }
-function inventoryCountExportTotalRow(display=true,sourceRows=null){
-  const rows=Array.isArray(sourceRows) ? sourceRows : (INVENTORY_COUNT_STATE.lines || []);
+function inventoryCountExportTotalRow(display=true){
+  const rows=INVENTORY_COUNT_STATE.lines || [];
   const total=key=>rows.reduce((sum,row)=>sum+inventoryCountTotalNumber(row?.[key]),0);
   const numeric=value=>display ? formatInventoryCountThreeDecimalQuantity(value) : value;
   return [
@@ -11449,13 +11244,6 @@ function inventoryCountExportTotalRow(display=true,sourceRows=null){
     '', '', ''
   ];
 }
-function inventoryCountPngCellValue(key,displayValue,rawValue){
-  if(INVENTORY_COUNT_SORT_COLUMNS[key]==='number' && rawValue!==null && rawValue!==undefined && rawValue!==''){
-    const numericValue=Number(rawValue);
-    if(Number.isFinite(numericValue) && numericValue===0) return '_';
-  }
-  return displayValue ?? '';
-}
 function inventoryCountExportColumnLayout(visibleKeys=[]){
   const weights={
     material_code:2.3,
@@ -11472,355 +11260,14 @@ function inventoryCountExportColumnLayout(visibleKeys=[]){
     width:totalWeight ? ((weights[key] || fallbackWeight)/totalWeight)*100 : 0
   }));
 }
-const INVENTORY_COUNT_PDF_LAYOUT=Object.freeze({
-  pageWidthMm:210,
-  pageHeightMm:297,
-  marginMm:5,
-  pageNumberReserveMm:6,
-  preferredCaptureScale:2
-});
-function inventoryCountPdfMmToPx(value){
-  return (Number(value) || 0) * (96 / 25.4);
-}
-function inventoryCountPdfCellValue(key,displayValue,rawValue){
-  if(INVENTORY_COUNT_SORT_COLUMNS[key]==='number' && rawValue!==null && rawValue!==undefined && rawValue!==''){
-    const numericValue=Number(rawValue);
-    if(Number.isFinite(numericValue) && numericValue===0) return '_';
-  }
-  return displayValue ?? '';
-}
-function inventoryCountPdfColumnBounds(key){
-  if(key==='material_name') return {minMm:34,maxMm:58};
-  if(key==='inventory_counter') return {minMm:25,maxMm:42};
-  if(key==='inventory_settlement') return {minMm:22,maxMm:36};
-  if(key==='material_code') return {minMm:18,maxMm:28};
-  if(key==='oldest_date') return {minMm:28,maxMm:36};
-  if(key==='uom') return {minMm:13,maxMm:20};
-  if(INVENTORY_COUNT_SORT_COLUMNS[key]==='number') return {minMm:12,maxMm:21};
-  return {minMm:15,maxMm:28};
-}
-function inventoryCountPdfMeasureText(context,text){
-  const normalized=String(text ?? '').trim();
-  if(!normalized || !context) return 0;
-  return context.measureText(normalized).width;
-}
-function inventoryCountPdfColumnLayout(visibleIndexes=[],rows=[],printableWidthMm=INVENTORY_COUNT_PDF_LAYOUT.pageWidthMm-(INVENTORY_COUNT_PDF_LAYOUT.marginMm*2)){
-  const context=document.createElement('canvas').getContext('2d');
-  if(context) context.font='800 10px Cairo, Arial, sans-serif';
-  const displayRows=(rows || []).slice(0,120).map(row=>inventoryCountExportDisplayRow(row));
-  const desired=visibleIndexes.map(index=>{
-    const key=INVENTORY_COUNT_COLUMNS[index]?.key || '';
-    const bounds=inventoryCountPdfColumnBounds(key);
-    const headerWidth=inventoryCountPdfMeasureText(context,inventoryCountExportHeaders()[index]);
-    const contentWidth=displayRows.reduce((maximum,values)=>Math.max(maximum,inventoryCountPdfMeasureText(context,values[index])),0);
-    const paddingPx=key==='material_name' || key==='inventory_counter' || key==='inventory_settlement' ? 18 : 12;
-    const measuredMm=(Math.max(headerWidth,contentWidth)+paddingPx) * (25.4/96);
-    return {key,index,desiredMm:Math.min(bounds.maxMm,Math.max(bounds.minMm,measuredMm))};
-  });
-  const desiredTotal=desired.reduce((sum,column)=>sum+column.desiredMm,0) || 1;
-  let consumed=0;
-  return desired.map((column,index)=>{
-    const widthMm=index===desired.length-1
-      ? Math.max(0,printableWidthMm-consumed)
-      : (column.desiredMm/desiredTotal)*printableWidthMm;
-    consumed+=widthMm;
-    return {...column,widthMm};
-  });
-}
-function inventoryCountPdfCreateHeader(rowCount){
-  const header=document.createElement('header');
-  header.className='inventory-count-export-header inventory-count-pdf-report-header';
-  const title=document.createElement('h1');
-  title.textContent='الجرد وتوثيق المخزون';
-  const meta=document.createElement('div');
-  meta.className='inventory-count-export-meta';
-  inventoryCountExportMetaRows().slice(1,-1).forEach(row=>{
-    const item=document.createElement('span');
-    item.textContent=row[0]+': '+(row[0]==='عدد الأصناف' ? rowCount : row[1]);
-    meta.appendChild(item);
-  });
-  header.append(title,meta);
-  return header;
-}
-function inventoryCountPdfCreateTable(options={}){
-  const rows=Array.isArray(options.rows) ? options.rows : [];
-  const totalSourceRows=Array.isArray(options.totalSourceRows) ? options.totalSourceRows : rows;
-  const visibleIndexes=options.visibleIndexes || [];
-  const columnLayout=options.columnLayout || [];
-  const table=document.createElement('table');
-  table.className='inventory-count-export-table inventory-count-pdf-table';
-  table.dataset.noUniversalTable='1';
-  const colgroup=document.createElement('colgroup');
-  columnLayout.forEach(column=>{
-    const col=document.createElement('col');
-    col.dataset.inventoryExportKey=column.key;
-    col.style.width=column.widthMm.toFixed(4)+'mm';
-    colgroup.appendChild(col);
-  });
-  table.appendChild(colgroup);
-  const thead=document.createElement('thead');
-  const headRow=document.createElement('tr');
-  visibleIndexes.forEach(index=>{
-    const key=INVENTORY_COUNT_COLUMNS[index]?.key || '';
-    const th=document.createElement('th');
-    th.scope='col';
-    th.textContent=inventoryCountExportHeaders()[index] || '';
-    if(key) th.classList.add('inventory-count-export-col-'+key);
-    headRow.appendChild(th);
-  });
-  thead.appendChild(headRow);
-  const tbody=document.createElement('tbody');
-  if(rows.length){
-    rows.forEach((row,rowIndex)=>{
-      const values=inventoryCountExportDisplayRow(row);
-      const tr=document.createElement('tr');
-      tr.dataset.inventoryPdfRow=String(rowIndex);
-      visibleIndexes.forEach(index=>{
-        const key=INVENTORY_COUNT_COLUMNS[index]?.key || '';
-        const td=document.createElement('td');
-        td.textContent=inventoryCountPdfCellValue(key,values[index],row?.[key]);
-        if(key) td.classList.add('inventory-count-export-col-'+key);
-        if(INVENTORY_COUNT_SORT_COLUMNS[key]==='number') td.classList.add('inventory-count-export-numeric');
-        tr.appendChild(td);
-      });
-      tbody.appendChild(tr);
-    });
-  }else if(options.showEmptyState){
-    const tr=document.createElement('tr');
-    tr.className='inventory-count-pdf-empty-row';
-    const td=document.createElement('td');
-    td.colSpan=Math.max(1,visibleIndexes.length);
-    td.textContent='لا توجد بيانات مطابقة للتصدير.';
-    tr.appendChild(td);
-    tbody.appendChild(tr);
-  }
-  table.append(thead,tbody);
-  if(options.includeTotals){
-    const tfoot=document.createElement('tfoot');
-    const totalRow=document.createElement('tr');
-    totalRow.className='inventory-count-export-total-row';
-    const totals=inventoryCountExportTotalRow(true,totalSourceRows);
-    const rawTotals=inventoryCountExportTotalRow(false,totalSourceRows);
-    visibleIndexes.forEach(index=>{
-      const key=INVENTORY_COUNT_COLUMNS[index]?.key || '';
-      const td=document.createElement('td');
-      td.textContent=inventoryCountPdfCellValue(key,totals[index],rawTotals[index]);
-      if(key) td.classList.add('inventory-count-export-col-'+key);
-      if(INVENTORY_COUNT_SORT_COLUMNS[key]==='number') td.classList.add('inventory-count-export-numeric');
-      totalRow.appendChild(td);
-    });
-    tfoot.appendChild(totalRow);
-    table.appendChild(tfoot);
-  }
-  return table;
-}
-function inventoryCountBuildPdfPage(options={}){
-  const sheet=document.createElement('section');
-  sheet.className='inventory-count-export-sheet inventory-count-export-sheet-pdf';
-  sheet.dir='rtl';
-  sheet.lang='ar';
-  sheet.dataset.exportTarget='pdf';
-  sheet.dataset.exportRows=String((options.rows || []).length);
-  sheet.dataset.exportColumns=String((options.visibleIndexes || []).length);
-  sheet.dataset.pdfPage=String(options.pageNumber || 1);
-  const columnCount=(options.visibleIndexes || []).length;
-  const fontSize=columnCount<=5 ? 11.4 : (columnCount<=10 ? 10.2 : 9.1);
-  sheet.style.setProperty('--inventory-export-font-size',fontSize+'px');
-  sheet.style.setProperty('--inventory-pdf-header-font-size',Math.max(9.4,fontSize+.3)+'px');
-  const content=document.createElement('div');
-  content.className='inventory-count-export-content inventory-count-pdf-content';
-  if(options.includeReportHeader) content.appendChild(inventoryCountPdfCreateHeader(options.totalRowCount || 0));
-  content.appendChild(inventoryCountPdfCreateTable({
-    rows:options.rows,
-    totalSourceRows:options.totalSourceRows,
-    visibleIndexes:options.visibleIndexes,
-    columnLayout:options.columnLayout,
-    includeTotals:Boolean(options.includeTotals),
-    showEmptyState:Boolean(options.showEmptyState)
-  }));
-  if(options.includeFooter){
-    const footer=document.createElement('footer');
-    footer.className='inventory-count-pdf-reviewer-footer';
-    footer.textContent='القائم بالمراجعة / '+inventoryCountReviewerName();
-    content.appendChild(footer);
-  }
-  const pageNumber=document.createElement('div');
-  pageNumber.className='inventory-count-pdf-page-number';
-  pageNumber.textContent=(options.pageNumber || 1)+' / '+(options.totalPages || 1);
-  sheet.append(content,pageNumber);
-  inventoryCountPdfAssertCleanExportDom(sheet);
-  return sheet;
-}
-function inventoryCountPdfAssertCleanExportDom(root){
-  const forbidden=root?.querySelector?.('input, select, button, textarea, .inventory-count-filter-row, .column-filter-row, .sort-btn, .inventory-count-sort-btn');
-  if(forbidden) throw new Error('تعذر إنشاء PDF نظيف من عناصر البحث والترتيب.');
-  const tables=[...(root?.querySelectorAll?.('table') || [])];
-  if(tables.some(table=>table.dataset.noUniversalTable!=='1')) throw new Error('جدول PDF غير مستثنى من أدوات الجدول التفاعلية.');
-}
-function inventoryCountPdfOuterHeight(element){
-  if(!element) return 0;
-  const styles=getComputedStyle(element);
-  return element.getBoundingClientRect().height+(parseFloat(styles.marginTop)||0)+(parseFloat(styles.marginBottom)||0);
-}
-async function inventoryCountPdfMeasureLayout(context){
-  const measurement=inventoryCountBuildPdfPage({
-    rows:context.rows,
-    totalSourceRows:context.rows,
-    visibleIndexes:context.visibleIndexes,
-    columnLayout:context.columnLayout,
-    includeReportHeader:true,
-    includeTotals:true,
-    includeFooter:true,
-    showEmptyState:!context.rows.length,
-    totalRowCount:context.rows.length,
-    pageNumber:1,
-    totalPages:1
-  });
-  measurement.classList.add('inventory-count-export-sheet-pdf-measure');
-  document.body.appendChild(measurement);
-  try{
-    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-    inventoryCountPdfAssertCleanExportDom(measurement);
-    const styles=getComputedStyle(measurement);
-    const verticalPadding=(parseFloat(styles.paddingTop)||0)+(parseFloat(styles.paddingBottom)||0);
-    const table=measurement.querySelector('.inventory-count-pdf-table');
-    const rowHeights=[...(table?.tBodies?.[0]?.rows || [])].map(row=>row.getBoundingClientRect().height);
-    return {
-      pageContentHeight:Math.max(1,measurement.clientHeight-verticalPadding-inventoryCountPdfMmToPx(INVENTORY_COUNT_PDF_LAYOUT.pageNumberReserveMm)),
-      reportHeaderHeight:inventoryCountPdfOuterHeight(measurement.querySelector('.inventory-count-pdf-report-header')),
-      tableHeaderHeight:table?.tHead?.getBoundingClientRect().height || 0,
-      rowHeights:context.rows.length ? rowHeights : [],
-      emptyRowHeight:context.rows.length ? 0 : (rowHeights[0] || inventoryCountPdfMmToPx(6)),
-      totalsHeight:table?.tFoot?.getBoundingClientRect().height || 0,
-      footerHeight:inventoryCountPdfOuterHeight(measurement.querySelector('.inventory-count-pdf-reviewer-footer'))
-    };
-  }finally{
-    measurement.remove();
-  }
-}
-function inventoryCountPdfPaginateRows(rows=[],metrics={}){
-  if(!rows.length) return [[]];
-  const pages=[];
-  const rowHeights=metrics.rowHeights || [];
-  const finalExtras=(metrics.totalsHeight || 0)+(metrics.footerHeight || 0);
-  let rowIndex=0;
-  while(rowIndex<rows.length){
-    const pageIndex=pages.length;
-    const capacity=Math.max(1,(metrics.pageContentHeight || 1)-(metrics.tableHeaderHeight || 0)-(pageIndex===0 ? (metrics.reportHeaderHeight || 0) : 0));
-    const remainingHeight=rowHeights.slice(rowIndex).reduce((sum,height)=>sum+height,0);
-    if(remainingHeight+finalExtras<=capacity){
-      pages.push(rows.slice(rowIndex));
-      rowIndex=rows.length;
-      break;
-    }
-    const pageRows=[];
-    let usedHeight=0;
-    while(rowIndex<rows.length){
-      const nextHeight=rowHeights[rowIndex] || inventoryCountPdfMmToPx(6);
-      if(pageRows.length && usedHeight+nextHeight>capacity) break;
-      pageRows.push(rows[rowIndex]);
-      usedHeight+=nextHeight;
-      rowIndex+=1;
-      if(usedHeight>=capacity) break;
-    }
-    if(rowIndex===rows.length && usedHeight+finalExtras>capacity && pageRows.length>1){
-      pageRows.pop();
-      rowIndex-=1;
-    }
-    pages.push(pageRows);
-  }
-  return pages;
-}
-async function inventoryCountPreparePdfPages(){
-  if(document.fonts?.ready) await document.fonts.ready;
-  const rows=inventoryCountDisplayRows(INVENTORY_COUNT_STATE.lines || []);
-  const visibleIndexes=inventoryCountVisibleColumnIndexes();
-  const printableWidthMm=INVENTORY_COUNT_PDF_LAYOUT.pageWidthMm-(INVENTORY_COUNT_PDF_LAYOUT.marginMm*2);
-  const columnLayout=inventoryCountPdfColumnLayout(visibleIndexes,rows,printableWidthMm);
-  const metrics=await inventoryCountPdfMeasureLayout({rows,visibleIndexes,columnLayout});
-  const groups=inventoryCountPdfPaginateRows(rows,metrics);
-  const pages=groups.map((pageRows,index)=>inventoryCountBuildPdfPage({
-    rows:pageRows,
-    totalSourceRows:rows,
-    visibleIndexes,
-    columnLayout,
-    includeReportHeader:index===0,
-    includeTotals:index===groups.length-1,
-    includeFooter:index===groups.length-1,
-    showEmptyState:!rows.length,
-    totalRowCount:rows.length,
-    pageNumber:index+1,
-    totalPages:groups.length
-  }));
-  return {pages,rows,visibleIndexes,columnLayout,metrics};
-}
-function inventoryCountPdfCaptureScale(width,height){
-  const maximumDimension=8192;
-  const maximumPixels=32000000;
-  const dimensionScale=Math.min(maximumDimension/Math.max(width,1),maximumDimension/Math.max(height,1));
-  const pixelScale=Math.sqrt(maximumPixels/Math.max(width*height,1));
-  return Math.max(1,Math.min(INVENTORY_COUNT_PDF_LAYOUT.preferredCaptureScale,dimensionScale,pixelScale));
-}
-async function inventoryCountCapturePdfPages(){
-  const Html2Canvas=window.html2canvas;
-  if(!Html2Canvas) throw new Error('مكتبة تصدير الصور غير محملة.');
-  const prepared=await inventoryCountPreparePdfPages();
-  const canvases=[];
-  try{
-    for(const page of prepared.pages){
-      document.body.appendChild(page);
-      try{
-        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-        inventoryCountPdfAssertCleanExportDom(page);
-        const width=Math.max(1,Math.ceil(page.clientWidth));
-        const height=Math.max(1,Math.ceil(page.clientHeight));
-        const scale=inventoryCountPdfCaptureScale(width,height);
-        const canvas=await Html2Canvas(page,{scale,useCORS:true,allowTaint:true,backgroundColor:'#00291f',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
-        canvases.push(canvas);
-      }finally{
-        page.remove();
-      }
-    }
-    return {...prepared,canvases};
-  }catch(error){
-    prepared.pages.forEach(page=>page.remove());
-    canvases.forEach(canvas=>{canvas.width=1;canvas.height=1;});
-    throw error;
-  }
-}
-async function inventoryCountCreatePdfDocument(){
-  const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-  if(!JsPDF) throw new Error('مكتبة PDF غير محملة.');
-  const captured=await inventoryCountCapturePdfPages();
-  const pdf=new JsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
-  const pageWidth=pdf.internal.pageSize.getWidth();
-  const pageHeight=pdf.internal.pageSize.getHeight();
-  try{
-    captured.canvases.forEach((canvas,index)=>{
-      if(index>0) pdf.addPage('a4','portrait');
-      pdf.setFillColor(0,41,31);
-      pdf.rect(0,0,pageWidth,pageHeight,'F');
-      pdf.addImage(canvas.toDataURL('image/png',1),'PNG',0,0,pageWidth,pageHeight,'inventory-count-pdf-page-'+(index+1),'FAST');
-      canvas.width=1;
-      canvas.height=1;
-    });
-    return {pdf,pageCount:captured.canvases.length,rowCount:captured.rows.length,visibleColumnKeys:captured.visibleIndexes.map(index=>INVENTORY_COUNT_COLUMNS[index]?.key || '')};
-  }catch(error){
-    captured.canvases.forEach(canvas=>{canvas.width=1;canvas.height=1;});
-    throw error;
-  }
-}
-function inventoryCountBuildExportSheet(options={}){
-  const target=options.target==='png' ? 'png' : 'document';
-  const rows=target==='png' ? inventoryCountDisplayRows(INVENTORY_COUNT_STATE.lines || []) : (INVENTORY_COUNT_STATE.lines || []);
+function inventoryCountBuildExportSheet(){
+  const rows=INVENTORY_COUNT_STATE.lines || [];
   const visibleIndexes=inventoryCountVisibleColumnIndexes();
   const visibleKeys=visibleIndexes.map(index=>INVENTORY_COUNT_COLUMNS[index]?.key || '');
   const sheet=document.createElement('section');
   sheet.className='inventory-count-export-sheet';
-  if(target==='png') sheet.classList.add('inventory-count-export-sheet-png');
   sheet.dir='rtl';
   sheet.lang='ar';
-  sheet.dataset.exportTarget=target;
   sheet.dataset.exportRows=String(rows.length);
   sheet.dataset.exportColumns=String(visibleKeys.length);
   const exportRowHeight=Math.max(22,Math.min(28,Math.floor(1320/Math.max(rows.length,1))));
@@ -11837,13 +11284,12 @@ function inventoryCountBuildExportSheet(options={}){
   meta.className='inventory-count-export-meta';
   inventoryCountExportMetaRows().slice(1,-1).forEach(row=>{
     const item=document.createElement('span');
-    item.textContent=`${row[0]}: ${target==='png' && row[0]==='عدد الأصناف' ? rows.length : row[1]}`;
+    item.textContent=`${row[0]}: ${row[1]}`;
     meta.appendChild(item);
   });
   header.append(title,meta);
   const table=document.createElement('table');
   table.className='inventory-count-export-table';
-  table.dataset.noUniversalTable='1';
   const colgroup=document.createElement('colgroup');
   inventoryCountExportColumnLayout(visibleKeys).forEach(column=>{
     const col=document.createElement('col');
@@ -11869,7 +11315,7 @@ function inventoryCountBuildExportSheet(options={}){
     visibleIndexes.forEach(index=>{
       const key=INVENTORY_COUNT_COLUMNS[index]?.key || '';
       const td=document.createElement('td');
-      td.textContent=target==='png' ? inventoryCountPngCellValue(key,values[index],row?.[key]) : (values[index] ?? '');
+      td.textContent=values[index] ?? '';
       if(key) td.classList.add(`inventory-count-export-col-${key}`);
       tr.appendChild(td);
     });
@@ -11878,12 +11324,11 @@ function inventoryCountBuildExportSheet(options={}){
   const tfoot=document.createElement('tfoot');
   const totalRow=document.createElement('tr');
   totalRow.className='inventory-count-export-total-row';
-  const totals=inventoryCountExportTotalRow(true,rows);
-  const rawTotals=inventoryCountExportTotalRow(false,rows);
+  const totals=inventoryCountExportTotalRow(true);
   visibleIndexes.forEach(index=>{
     const key=INVENTORY_COUNT_COLUMNS[index]?.key || '';
     const td=document.createElement('td');
-    td.textContent=target==='png' ? inventoryCountPngCellValue(key,totals[index],rawTotals[index]) : (totals[index] ?? '');
+    td.textContent=totals[index] ?? '';
     if(key) td.classList.add(`inventory-count-export-col-${key}`);
     totalRow.appendChild(td);
   });
@@ -11894,59 +11339,6 @@ function inventoryCountBuildExportSheet(options={}){
   content.append(header,table,footer);
   sheet.appendChild(content);
   return sheet;
-}
-function inventoryCountPngColumnBounds(key){
-  if(key==='material_name') return {min:260,max:440};
-  if(key==='inventory_counter') return {min:220,max:360};
-  if(key==='inventory_settlement') return {min:170,max:240};
-  if(key==='material_code') return {min:130,max:210};
-  if(key==='uom') return {min:100,max:150};
-  if(key==='oldest_date') return {min:135,max:190};
-  if(INVENTORY_COUNT_SORT_COLUMNS[key]==='number') return {min:126,max:190};
-  return {min:120,max:220};
-}
-function inventoryCountMeasureExportText(context,element){
-  const text=String(element?.textContent || '').trim();
-  if(!text) return 0;
-  const style=getComputedStyle(element);
-  context.font=`${style.fontStyle || 'normal'} ${style.fontWeight || '700'} ${style.fontSize || '11px'} ${style.fontFamily || 'Cairo, sans-serif'}`;
-  return context.measureText(text).width;
-}
-function inventoryCountApplyPngExportLayout(sheet){
-  const table=sheet.querySelector('.inventory-count-export-table');
-  const columns=[...(table?.querySelectorAll('col[data-inventory-export-key]') || [])];
-  if(!table || !columns.length) return {width:Math.max(1,sheet.scrollWidth),columnWidths:[]};
-  const context=document.createElement('canvas').getContext('2d');
-  const columnWidths=columns.map((column,index)=>{
-    const key=column.dataset.inventoryExportKey || '';
-    const bounds=inventoryCountPngColumnBounds(key);
-    const cells=[...table.rows].map(row=>row.cells[index]).filter(Boolean);
-    const measured=context ? cells.reduce((maximum,cell)=>Math.max(maximum,inventoryCountMeasureExportText(context,cell)),0) : bounds.min;
-    const padding=key==='material_name' || key==='inventory_counter' ? 34 : 26;
-    return Math.ceil(Math.min(bounds.max,Math.max(bounds.min,measured+padding)));
-  });
-  const tableWidth=columnWidths.reduce((sum,width)=>sum+width,0);
-  const sheetWidth=Math.max(1,tableWidth+28);
-  columns.forEach((column,index)=>{column.style.width=`${columnWidths[index]}px`;});
-  table.style.width=`${tableWidth}px`;
-  const content=sheet.querySelector('.inventory-count-export-content');
-  if(content) content.style.width=`${tableWidth}px`;
-  sheet.style.width=`${sheetWidth}px`;
-  sheet.style.minWidth=`${sheetWidth}px`;
-  sheet.style.height='auto';
-  sheet.style.minHeight='0';
-  sheet.dataset.measuredTableWidth=String(tableWidth);
-  sheet.dataset.measuredSheetWidth=String(sheetWidth);
-  sheet.dataset.measuredColumnWidths=columnWidths.join(',');
-  return {width:sheetWidth,columnWidths};
-}
-function inventoryCountPngCaptureScale(width,height){
-  const preferredScale=2;
-  const maximumDimension=16000;
-  const maximumPixels=64000000;
-  const dimensionScale=Math.min(maximumDimension/Math.max(width,1),maximumDimension/Math.max(height,1));
-  const pixelScale=Math.sqrt(maximumPixels/Math.max(width*height,1));
-  return Math.max(Number.EPSILON,Math.min(preferredScale,dimensionScale,pixelScale));
 }
 function inventorySettlementStatusMessage(status,reasonCode=''){
   const messages={
@@ -11990,24 +11382,14 @@ function inventorySettlementStatusMessage(status,reasonCode=''){
   }
   return messages[String(status || '')] || 'تعذر حفظ تسوية فرق الجرد.';
 }
-async function inventoryCountCaptureExportSheet(options={}){
+async function inventoryCountCaptureExportSheet(){
   const Html2Canvas=window.html2canvas;
   if(!Html2Canvas) throw new Error('مكتبة تصدير الصور غير محملة.');
-  const target=options.target==='png' ? 'png' : 'document';
-  const sheet=inventoryCountBuildExportSheet({target});
+  const sheet=inventoryCountBuildExportSheet();
   document.body.appendChild(sheet);
   try{
     if(document.fonts && document.fonts.ready) await document.fonts.ready;
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-    if(target==='png'){
-      inventoryCountApplyPngExportLayout(sheet);
-      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-      const width=Math.max(1,Math.ceil(sheet.scrollWidth));
-      const height=Math.max(1,Math.ceil(sheet.scrollHeight));
-      const captureScale=inventoryCountPngCaptureScale(width,height);
-      const canvas=await Html2Canvas(sheet,{scale:captureScale,useCORS:true,allowTaint:true,backgroundColor:'#00291f',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
-      return {canvas,width,height};
-    }
     const content=sheet.querySelector('.inventory-count-export-content');
     const sheetStyles=getComputedStyle(sheet);
     const horizontalPadding=(parseFloat(sheetStyles.paddingLeft)||0)+(parseFloat(sheetStyles.paddingRight)||0);
@@ -12036,7 +11418,7 @@ async function inventoryCountCaptureExportSheet(options={}){
 async function exportInventoryCountPng(){
   if(!(INVENTORY_COUNT_STATE.lines || []).length){ showInventoryCountToast('لا توجد بيانات للتصدير.','warning'); return; }
   try{
-    const {canvas}=await inventoryCountCaptureExportSheet({target:'png'});
+    const {canvas}=await inventoryCountCaptureExportSheet();
     await new Promise(resolve=>canvas.toBlob(async blob=>{
       if(!blob){ showInventoryCountToast('تعذر إنشاء صورة PNG.','error'); resolve(); return; }
       await saveBlobWithPicker(blob,`${inventoryCountExportFileBase()}.png`,'image/png');
@@ -12049,9 +11431,26 @@ async function exportInventoryCountPng(){
   }
 }
 async function exportInventoryCountPdf(){
+  if(!(INVENTORY_COUNT_STATE.lines || []).length){ showInventoryCountToast('لا توجد بيانات للتصدير.','warning'); return; }
+  const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+  if(!JsPDF){ showInventoryCountToast('مكتبة PDF غير محملة.','error'); return; }
   try{
-    const {pdf}=await inventoryCountCreatePdfDocument();
-    await saveBlobWithPicker(pdf.output('blob'),inventoryCountExportFileBase()+'.pdf','application/pdf');
+    const {canvas}=await inventoryCountCaptureExportSheet();
+    const pdf=new JsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
+    const finalWidth=pdf.internal.pageSize.getWidth();
+    const finalHeight=pdf.internal.pageSize.getHeight();
+    const margin=4;
+    const availableWidth=finalWidth-(margin*2);
+    const availableHeight=finalHeight-(margin*2);
+    const fit=Math.min(availableWidth/canvas.width,availableHeight/canvas.height);
+    const imageWidth=canvas.width*fit;
+    const imageHeight=canvas.height*fit;
+    const imageX=(finalWidth-imageWidth)/2;
+    const imageY=(finalHeight-imageHeight)/2;
+    pdf.setFillColor(0,41,31);
+    pdf.rect(0,0,finalWidth,finalHeight,'F');
+    pdf.addImage(canvas.toDataURL('image/png',1),'PNG',imageX,imageY,imageWidth,imageHeight,undefined,'FAST');
+    await saveBlobWithPicker(pdf.output('blob'),`${inventoryCountExportFileBase()}.pdf`,'application/pdf');
     showInventoryCountToast('تم التصدير بنجاح.','success');
   }catch(err){
     console.error('Inventory count PDF export failed',err);
@@ -12692,7 +12091,7 @@ function inventoryCountSettlementModalValidation(modal){
   else if(!inventorySettlementSnapshotMatchesLine(row,contextLine)) status='snapshot_stale';
   else if(contextLine.physical_balance===null || contextLine.physical_balance===undefined) status='physical_balance_required';
   else if(Math.abs(normalizeInventorySettlementNumber(row.inventory_variance))<0.0005) status='zero_variance';
-  else if(!hasCanonicalPermission('inventory.count.line.review')) status='permission_denied';
+  else if(!hasPermission('inventory_count','edit')) status='permission_denied';
   else if(inventoryCountLineHasActiveSave(lineId) && !INVENTORY_COUNT_STATE.settlementSaving.has(lineId)) status='row_version_conflict';
   else if(!getInventorySettlementReason(reasonCode)) status='invalid_reason';
   else if(requiresQ && (rawQ===null || rawQ===undefined || String(rawQ).trim()==='')) status='correction_quantity_required';
@@ -12757,7 +12156,7 @@ function openInventoryCountSettlementModalFromButton(button){
     return;
   }
   if(Math.abs(normalizeInventorySettlementNumber(row.inventory_variance))<0.0005) return;
-  if(!hasCanonicalPermission('inventory.count.line.review')){
+  if(!hasPermission('inventory_count','edit')){
     showInventoryCountToast('لا تملك صلاحية تعديل مستند الجرد.','error');
     return;
   }
@@ -12810,7 +12209,6 @@ function inventorySettlementStatusFromError(err){
   return statuses.find(status=>message.includes(status)) || '';
 }
 async function submitInventoryCountSettlement(){
-  if(!hasCanonicalPermission('inventory.count.line.review')) return;
   const modal=$('#inventorySettlementModal');
   if(!modal) return;
   const validation=syncInventoryCountSettlementModal(modal);
@@ -13008,7 +12406,7 @@ function openInventoryCountSettlementReversalModalFromButton(button){
   const contextLine=inventorySettlementContextLine(lineId);
   if(!row || !contextLine || String(contextLine.active_settlement_id || contextLine.settlement_id || '')!==settlementId) return;
   if(inventoryCountLineHasActiveSave(lineId)){showInventoryCountToast('انتظر اكتمال حفظ بيانات الصنف.','warning');return;}
-  if(!hasCanonicalPermission('inventory.count.line.review')){showInventoryCountToast('لا تملك صلاحية تعديل مستند الجرد.','error');return;}
+  if(!hasPermission('inventory_count','edit')){showInventoryCountToast('لا تملك صلاحية تعديل مستند الجرد.','error');return;}
   const modal=ensureInventoryCountSettlementReversalModal();
   modal._inventorySettlementReversalReturnFocus=button;
   modal.dataset.serverError='';
@@ -13103,7 +12501,6 @@ function inventorySettlementReversalStatusFromError(err){
   return statuses.find(status=>message.includes(status)) || '';
 }
 async function submitInventoryCountSettlementReversal(){
-  if(!hasCanonicalPermission('inventory.count.line.review')) return;
   const modal=$('#inventorySettlementReversalModal');
   const validation=syncInventoryCountSettlementReversalModal(modal);
   if(!modal || !validation?.valid) return;
@@ -13160,7 +12557,7 @@ function renderInventorySettlementCell(row){
     const rawLineId=String(row?.id || '');
     const lineId=escapeHtml(rawLineId);
     const settlementId=escapeHtml(String(contextLine.active_settlement_id || contextLine.settlement_id || ''));
-    if(!hasCanonicalPermission('inventory.count.line.review') || contextLine.can_reverse===false){
+    if(!hasPermission('inventory_count','edit') || contextLine.can_reverse===false){
       return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-reverse-btn" type="button" disabled title="لا تملك صلاحية تعديل مستند الجرد.">تراجع</button></td>';
     }
     if(INVENTORY_COUNT_STATE.reversalSaving instanceof Set && INVENTORY_COUNT_STATE.reversalSaving.has(rawLineId)){
@@ -13204,7 +12601,7 @@ function renderInventorySettlementCell(row){
   if(Math.abs(variance)<0.0005){
     return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn" type="button" disabled title="لا يوجد فرق جرد يحتاج إلى تسوية.">تسوية الجرد</button></td>';
   }
-  if(!hasCanonicalPermission('inventory.count.line.review') || contextLine.can_settle===false){
+  if(!hasPermission('inventory_count','edit') || contextLine.can_settle===false){
     return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn" type="button" disabled title="لا تملك صلاحية تعديل مستند الجرد أو أن السطر غير صالح للتسوية.">تسوية الجرد</button></td>';
   }
   if(inventoryCountLineHasActiveSave(row?.id)){
@@ -13404,13 +12801,6 @@ function setInventoryCountInputsFromResult(data){
   persistInventoryCountViewState();
 }
 async function openDefaultInventoryCountFromUi(options={}){
-  if(!window.PermissionRuntime?.any('inventory.count.view')) return;
-  if(!window.PermissionRuntime.can('inventory.count.view')){
-    const select=$('#inventoryCountPlantSelect');
-    const plants=window.PermissionRuntime.allowedPlants('inventory.count.view');
-    if(select && !plants.includes(select.value)) {select.value=plants[0];syncInventoryCountWarehouse();}
-    return openExistingInventoryCountFromUi(options);
-  }
   closeInventoryReviewRecommendationsModal({restoreFocus:false});
   clearInventoryCountSettlementContext();
   const {showLoading=false}=options;
@@ -13435,7 +12825,8 @@ async function openDefaultInventoryCountFromUi(options={}){
   inventoryCountSetStatus('جاري تحميل آخر جرد...');
   inventoryCountUpdateCreateButton();
   try{
-    const {data,error}=await WarehouseDB.client.rpc('get_default_inventory_count');
+    const {plantCode}=inventoryCountReadInputs();
+    const {data,error}=await WarehouseDB.client.rpc('get_default_inventory_count_for_plant',{p_plant_code:plantCode});
     if(error) throw error;
     if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
     const status=data?.status || '';
@@ -13470,7 +12861,6 @@ async function openDefaultInventoryCountFromUi(options={}){
   }
 }
 async function openExistingInventoryCountFromUi(options={}){
-  if(!hasCanonicalPermission('inventory.count.view')){resetInventoryCountView('لا تملك صلاحية عرض المصنع المحدد.');return;}
   closeInventoryReviewRecommendationsModal({restoreFocus:false});
   clearInventoryCountSettlementContext();
   const {showLoading=false}=options;
@@ -13562,7 +12952,7 @@ async function createInventoryCountFromUi(){
   if(INVENTORY_COUNT_STATE.creating || INVENTORY_COUNT_STATE.loading) return;
   if(INVENTORY_COUNT_STATE.versionId || INVENTORY_COUNT_STATE.status==='found') return;
   if(INVENTORY_COUNT_STATE.status==='no_current_version') return;
-  if(!hasCanonicalPermission('inventory.count.create')){
+  if(!hasPermission('inventory_count','add')){
     showInventoryCountToast('غير متاح للصلاحية الحالية','error');
     return;
   }
@@ -13621,7 +13011,6 @@ async function createInventoryCountFromUi(){
   }
 }
 async function saveInventoryOpeningBalanceInput(input){
-  if(!hasCanonicalPermission('inventory.count.line.edit_actual_balance')) return;
   if(inventoryCountBlockManualEditIfSettlementPhaseStarted()) return;
   if(!input || INVENTORY_COUNT_STATE.openingBalanceMode!=='manual_first_day') return;
   const lineId=input.dataset.lineId || '';
@@ -13683,7 +13072,6 @@ async function saveInventoryOpeningBalanceInput(input){
   }
 }
 async function saveInventoryProductionQuantityInput(input){
-  if(!hasCanonicalPermission('inventory.count.line.edit_actual_balance')) return;
   if(inventoryCountBlockManualEditIfSettlementPhaseStarted()) return;
   if(!input) return;
   const lineId=input.dataset.lineId || '';
@@ -13746,7 +13134,6 @@ async function saveInventoryProductionQuantityInput(input){
   }
 }
 async function saveInventoryPhysicalBalanceInput(input){
-  if(!hasCanonicalPermission('inventory.count.line.edit_actual_balance')) return;
   if(inventoryCountBlockManualEditIfSettlementPhaseStarted()) return;
   if(!input) return;
   const lineId=input.dataset.lineId || '';
@@ -13809,7 +13196,6 @@ async function saveInventoryPhysicalBalanceInput(input){
   }
 }
 async function saveInventoryOldestQuantityInput(input){
-  if(!hasCanonicalPermission('inventory.count.line.edit_actual_balance')) return;
   if(inventoryCountBlockManualEditIfSettlementPhaseStarted()) return;
   if(!input) return;
   const lineId=input.dataset.lineId || '';
@@ -13870,7 +13256,6 @@ async function saveInventoryOldestQuantityInput(input){
   }
 }
 async function saveInventoryOldestDateInput(input){
-  if(!hasCanonicalPermission('inventory.count.line.edit_actual_balance')) return;
   if(inventoryCountBlockManualEditIfSettlementPhaseStarted()) return;
   if(!input) return;
   const lineId=input.dataset.lineId || '';
@@ -13915,7 +13300,6 @@ async function saveInventoryOldestDateInput(input){
   }
 }
 async function saveInventoryCounterSelect(select){
-  if(!hasCanonicalPermission('inventory.count.line.edit_actual_balance')) return;
   if(inventoryCountBlockManualEditIfSettlementPhaseStarted()) return;
   if(!select) return;
   const lineId=select.dataset.lineId || '';
@@ -14181,169 +13565,6 @@ function initInventoryCountMobilePanels(){
 }
 
 
-const INVENTORY_EXPIRY_TAB_KEYS = Object.freeze(["WF01", "EL01", "EL02"]);
-
-function setInventoryExpiryTab(tabKey, options = {}) {
-  const root = document.getElementById("inventory_expiry_tracking");
-  if (!root) return;
-
-  const requestedKey = String(tabKey || "").trim().toUpperCase();
-  const activeKey = INVENTORY_EXPIRY_TAB_KEYS.includes(requestedKey) ? requestedKey : "WF01";
-  const shouldFocus = options.focus === true;
-  const tabs = Array.from(root.querySelectorAll("[data-inventory-expiry-tab]"));
-  const panels = Array.from(root.querySelectorAll("[data-inventory-expiry-panel]"));
-  let selectedTab = null;
-  let focusWasInsideHiddenPanel = false;
-
-  tabs.forEach((tab) => {
-    const isActive = tab.dataset.inventoryExpiryTab === activeKey;
-    tab.classList.toggle("active", isActive);
-    tab.setAttribute("aria-selected", isActive ? "true" : "false");
-    tab.tabIndex = isActive ? 0 : -1;
-    if (isActive) selectedTab = tab;
-  });
-
-  panels.forEach((panel) => {
-    const isActive = panel.dataset.inventoryExpiryPanel === activeKey;
-    if (!isActive && panel.contains(document.activeElement)) focusWasInsideHiddenPanel = true;
-    panel.classList.toggle("active", isActive);
-    panel.hidden = !isActive;
-  });
-
-  if (selectedTab && (shouldFocus || focusWasInsideHiddenPanel)) {
-    selectedTab.focus({ preventScroll: true });
-    selectedTab.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }
-  window.InventoryProductionTracking?.onPlantChanged(activeKey);
-}
-
-function initInventoryExpiryTabs() {
-  const root = document.getElementById("inventory_expiry_tracking");
-  const tablist = document.getElementById("inventoryExpiryTabs");
-  if (!root || !tablist || tablist.dataset.inventoryExpiryTabsBound === "1") return;
-
-  tablist.dataset.inventoryExpiryTabsBound = "1";
-
-  tablist.addEventListener("click", (event) => {
-    const tab = event.target.closest("[data-inventory-expiry-tab]");
-    if (!tab || !tablist.contains(tab)) return;
-    setInventoryExpiryTab(tab.dataset.inventoryExpiryTab);
-  });
-
-  tablist.addEventListener("keydown", (event) => {
-    const tab = event.target.closest("[data-inventory-expiry-tab]");
-    if (!tab || !tablist.contains(tab)) return;
-
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      setInventoryExpiryTab(tab.dataset.inventoryExpiryTab, { focus: true });
-      return;
-    }
-
-    const tabs = Array.from(tablist.querySelectorAll("[data-inventory-expiry-tab]"));
-    const currentIndex = tabs.indexOf(tab);
-    if (currentIndex < 0) return;
-
-    let nextIndex = null;
-    if (event.key === "ArrowLeft") nextIndex = (currentIndex + 1) % tabs.length;
-    if (event.key === "ArrowRight") nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-    if (event.key === "Home") nextIndex = 0;
-    if (event.key === "End") nextIndex = tabs.length - 1;
-    if (nextIndex === null) return;
-
-    event.preventDefault();
-    tabs[nextIndex].focus({ preventScroll: true });
-    tabs[nextIndex].scrollIntoView({ block: "nearest", inline: "nearest" });
-  });
-
-  const selectedTab = tablist.querySelector('[role="tab"][aria-selected="true"]');
-  setInventoryExpiryTab(selectedTab?.dataset.inventoryExpiryTab || "WF01");
-}
-const DEPARTMENT_HR_REPORT_TAB_KEYS = Object.freeze([
-  "cumulative_department_evaluation",
-  "personnel_performance",
-  "attendance_compliance",
-  "absence_violations",
-  "evaluation_analysis",
-  "performance_trend"
-]);
-
-function setDepartmentHrReportTab(tabKey, options = {}) {
-  const root = document.getElementById("department_hr_reports");
-  if (!root) return;
-
-  const requestedKey = String(tabKey || "").trim();
-  const activeKey = DEPARTMENT_HR_REPORT_TAB_KEYS.includes(requestedKey)
-    ? requestedKey
-    : DEPARTMENT_HR_REPORT_TAB_KEYS[0];
-  const shouldFocus = options.focus === true;
-  const tabs = Array.from(root.querySelectorAll("[data-department-hr-tab]"));
-  const panels = Array.from(root.querySelectorAll("[data-department-hr-panel]"));
-  let selectedTab = null;
-  let focusWasInsideHiddenPanel = false;
-
-  tabs.forEach((tab) => {
-    const isActive = tab.dataset.departmentHrTab === activeKey;
-    tab.classList.toggle("active", isActive);
-    tab.setAttribute("aria-selected", isActive ? "true" : "false");
-    tab.tabIndex = isActive ? 0 : -1;
-    if (isActive) selectedTab = tab;
-  });
-
-  panels.forEach((panel) => {
-    const isActive = panel.dataset.departmentHrPanel === activeKey;
-    if (!isActive && panel.contains(document.activeElement)) focusWasInsideHiddenPanel = true;
-    panel.classList.toggle("active", isActive);
-    panel.hidden = !isActive;
-  });
-
-  window.DepartmentHrReports?.setActiveTab(activeKey);
-  if (selectedTab && (shouldFocus || focusWasInsideHiddenPanel)) {
-    selectedTab.focus({ preventScroll: true });
-    selectedTab.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }
-}
-
-function initDepartmentHrReportTabs() {
-  const tablist = document.getElementById("departmentHrReportTabs");
-  if (!tablist || tablist.dataset.departmentHrTabsBound === "1") return;
-
-  tablist.dataset.departmentHrTabsBound = "1";
-  tablist.addEventListener("click", (event) => {
-    const tab = event.target.closest("[data-department-hr-tab]");
-    if (!tab || !tablist.contains(tab)) return;
-    setDepartmentHrReportTab(tab.dataset.departmentHrTab);
-  });
-
-  tablist.addEventListener("keydown", (event) => {
-    const tab = event.target.closest("[data-department-hr-tab]");
-    if (!tab || !tablist.contains(tab)) return;
-
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      setDepartmentHrReportTab(tab.dataset.departmentHrTab, { focus: true });
-      return;
-    }
-
-    const tabs = Array.from(tablist.querySelectorAll("[data-department-hr-tab]"));
-    const currentIndex = tabs.indexOf(tab);
-    if (currentIndex < 0) return;
-
-    let nextIndex = null;
-    if (event.key === "ArrowLeft") nextIndex = (currentIndex + 1) % tabs.length;
-    if (event.key === "ArrowRight") nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
-    if (event.key === "Home") nextIndex = 0;
-    if (event.key === "End") nextIndex = tabs.length - 1;
-    if (nextIndex === null) return;
-
-    event.preventDefault();
-    tabs[nextIndex].focus({ preventScroll: true });
-    tabs[nextIndex].scrollIntoView({ block: "nearest", inline: "nearest" });
-  });
-
-  const selectedTab = tablist.querySelector('[role="tab"][aria-selected="true"]');
-  setDepartmentHrReportTab(selectedTab?.dataset.departmentHrTab || DEPARTMENT_HR_REPORT_TAB_KEYS[0]);
-}
 const INVENTORY_DIFFERENCE_PLANTS = [
   {code:'EL01', name:'مصنع الإيمان للأعلاف - السواقي'},
   {code:'EL02', name:'مصنع الإيمان للأعلاف - العامرية'},
@@ -14502,7 +13723,7 @@ function renderInventoryDifferenceLines(lines=[]){
       '<td>'+formatInventoryManualThreeDecimal(total('oldest_quantity'))+'</td><td></td><td></td></tr>';
   }
 }
-async function loadInventoryDifferenceSnapshot(snapshotId=null,permissionKey='inventory.differences.document.view_current'){
+async function loadInventoryDifferenceSnapshot(snapshotId=null){
   const requestedSnapshotId=String(snapshotId||'').trim();
   if(!requestedSnapshotId){
     ++INVENTORY_DIFFERENCE_STATE.requestSeq;
@@ -14529,7 +13750,6 @@ async function loadInventoryDifferenceSnapshot(snapshotId=null,permissionKey='in
       return;
     }
     const header=data.header || {};
-    if(!window.PermissionRuntime?.can(permissionKey,header.plant_code || [])){inventoryDifferenceShowEmpty('لا تملك صلاحية عرض المصنع المحدد.');return;}
     const returnedSnapshotId=String(header.snapshot_id||'').trim();
     if(!returnedSnapshotId || returnedSnapshotId.toLowerCase()!==requestedSnapshotId.toLowerCase()){
       INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=null;
@@ -14588,7 +13808,6 @@ function renderInventoryDifferenceHistory(rows=[]){
   }).join('');
 }
 async function loadInventoryDifferenceHistory(sourceVersionId){
-  if(!hasCanonicalPermission('inventory.differences.document.view_replaced')) return;
   const requestedSourceVersionId=String(sourceVersionId||'').trim();
   if(!requestedSourceVersionId) return;
   if(!WarehouseDB?.ready){ showInventoryCountToast('قاعدة البيانات غير متصلة.','error'); return; }
@@ -14620,7 +13839,6 @@ async function loadInventoryDifferenceHistory(sourceVersionId){
   }
 }
 async function loadInventoryDifferenceScreen(options={}){
-  if(!window.PermissionRuntime?.any('inventory.differences.view')) return;
   const listRequestSeq=++INVENTORY_DIFFERENCE_STATE.listRequestSeq;
   ++INVENTORY_DIFFERENCE_STATE.requestSeq;
   INVENTORY_DIFFERENCE_STATE.selectedSnapshotId=null;
@@ -14635,7 +13853,7 @@ async function loadInventoryDifferenceScreen(options={}){
     const {data,error}=await WarehouseDB.client.rpc('list_inventory_difference_snapshots');
     if(error) throw error;
     if(listRequestSeq!==INVENTORY_DIFFERENCE_STATE.listRequestSeq) return [];
-    const rows=(Array.isArray(data) ? data : []).filter(row=>window.PermissionRuntime?.can('inventory.differences.view',row.plant_code || []));
+    const rows=Array.isArray(data) ? data : [];
     INVENTORY_DIFFERENCE_STATE.snapshots=rows;
     const preferredSnapshotId=String(options.preferredSnapshotId||'').trim();
     const preferredPlantCode=String(options.preferredPlantCode||'').trim().toUpperCase();
@@ -14730,7 +13948,6 @@ function syncInventoryDifferenceReplaceReason(){
   if(submit) submit.disabled=value.trim().length<5 || value.length>500 || INVENTORY_DIFFERENCE_STATE.replacing;
 }
 async function submitInventoryDifferenceReplacement(){
-  if(!hasCanonicalPermission('inventory.differences.document.replace')) return;
   const modal=ensureInventoryDifferenceReplaceModal();
   const reason=String(modal.querySelector('#inventoryDifferenceReplaceReason')?.value || '').trim();
   if(reason.length<5){ showInventoryCountToast('سبب الاستبدال مطلوب.','warning',6000); return; }
@@ -14763,7 +13980,7 @@ async function submitInventoryDifferenceReplacement(){
 async function createInventoryDifferenceSnapshotFromUi(){
   if(!WarehouseDB?.ready){ showInventoryCountToast('قاعدة البيانات غير متصلة.','error'); return; }
   if(inventoryCountSettlementPhaseStarted()){ showInventoryCountToast(inventoryCountSettlementPhaseLockMessage(),'warning',6000); return; }
-  if(!hasCanonicalPermission('inventory.count.differences.create')){ showInventoryCountToast('غير متاح للصلاحية الحالية','error'); return; }
+  if(!hasPermission('inventory_count','add')){ showInventoryCountToast('غير متاح للصلاحية الحالية','error'); return; }
   if(!INVENTORY_COUNT_STATE.versionId || !(INVENTORY_COUNT_STATE.lines || []).length){ showInventoryCountToast('افتح مستند جرد يحتوي على أصناف أولًا','warning'); return; }
   if(INVENTORY_COUNT_STATE.snapshotCreating) return;
   INVENTORY_COUNT_STATE.snapshotCreating=true;
@@ -14906,7 +14123,7 @@ async function finishInventoryCountFromUi(){
     showInventoryCountToast('افتح مستند جرد أولاً.','warning');
     return;
   }
-  if(!hasCanonicalPermission('inventory.count.finish')){
+  if(!hasPermission('inventory_count','edit')){
     showInventoryCountToast('لا تملك صلاحية إنهاء مستند الجرد.','error');
     return;
   }
@@ -15248,7 +14465,7 @@ function openInventoryCountPostCloseInvoiceModal(){
     showInventoryCountToast('يجب إنهاء مستند الجرد أولاً.','warning');
     return;
   }
-  if(!hasCanonicalPermission('inventory.count.post_close_adjust')){
+  if(!hasPermission('inventory_count','edit')){
     showInventoryCountToast('لا تملك صلاحية تنفيذ تعديلات ما بعد إنهاء الجرد.','error');
     return;
   }
@@ -15327,7 +14544,6 @@ function openInventoryCountPostCloseInvoiceModal(){
   requestAnimationFrame(()=>modal.querySelector('[data-post-close-panel="sales"] [data-post-close-code]')?.focus({preventScroll:true}));
 }
 async function submitInventoryCountPostCloseAdjustments(modal){
-  if(!hasCanonicalPermission('inventory.count.post_close_adjust')) return;
   if(!modal || INVENTORY_COUNT_STATE.postCloseInvoiceSaving) return;
   syncInventoryCountPostCloseInvoiceModal(modal);
   const collection=modal._postCloseCollection || inventoryCountPostCloseCollectItems(modal);
@@ -15427,7 +14643,7 @@ function initInventoryCountScreen(){
       clearInventoryCountSettlementContext();
       syncInventoryCountWarehouse();
       persistInventoryCountViewState();
-      scheduleInventoryCountOpen();
+      openDefaultInventoryCountFromUi({showLoading:true});
     });
   }
   if(warehouseSelect && warehouseSelect.dataset.inventoryCountOpenBound!=='1'){
@@ -15458,8 +14674,6 @@ function initInventoryCountScreen(){
 document.addEventListener('DOMContentLoaded', initInventoryClosing);
 document.addEventListener('DOMContentLoaded', initInventoryCountScreen);
 document.addEventListener('DOMContentLoaded', initInventoryDifferenceScreen);
-document.addEventListener('DOMContentLoaded', initInventoryExpiryTabs);
-document.addEventListener('DOMContentLoaded', initDepartmentHrReportTabs);
 // === Phase IC-02: Inventory Closing Upload Engine ===
 
 const INVENTORY_CLOSING_CONFIG = {
@@ -16188,7 +15402,6 @@ async function ensureStorekeepersLoaded() {
 }
 
 async function loadStorekeepersTable() {
-  if(!window.PermissionRuntime?.can('settings.storekeepers.view')) return;
   const tbody = document.querySelector('#storekeepersSettingsTable tbody');
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري التحميل...</td></tr>';
@@ -16389,792 +15602,4 @@ if (
   } catch (error) {
     console.error('Failed to reload inventory count storekeepers:', error);
   }
-}
-
-
-// === Department personnel and shift/leave status coding settings ===
-const DEPARTMENT_PERSONNEL_TABLE = 'department_personnel';
-const DEPARTMENT_STATUS_CODES_TABLE = 'department_shift_status_codes';
-const DEPARTMENT_PERSONNEL_JOB_TITLES = new Set([
-  'مدير إدارة المخازن',
-  'مدير مخازن قطع الغيار',
-  'رئيس قسم',
-  'مسئول جرد وتوثيق المخزون',
-  'مشرف مخازن',
-  'أمين مخزن',
-  'مساعد أمين مخزن',
-  'عامل مخازن'
-]);
-const DEPARTMENT_PERSONNEL_DEPARTMENTS = new Set(['منتج تام','قطع غيار']);
-const DEPARTMENT_PERSONNEL_PLANTS = {
-  WF01:'مصنع الواحة',
-  EL01:'مصنع الإيمان للأعلاف - السواقي',
-  EL02:'مصنع الإيمان للأعلاف - العامرية'
-};
-function formatDepartmentPersonnelDate(value){
-  if(!value) return '—';
-  return window.CustomDatePicker?.formatDisplayDate?.(value,'—') || String(value);
-}
-function isValidDepartmentPhone(value){
-  const phone=String(value||'').trim();
-  return !phone || /^\+?[0-9][0-9\s()\-]*$/.test(phone);
-}
-let DEPARTMENT_PERSONNEL_ROWS = [];
-let DEPARTMENT_PERSONNEL_LOADED = false;
-let DEPARTMENT_PERSONNEL_LOADING = false;
-let DEPARTMENT_PERSONNEL_SAVING = false;
-const DEPARTMENT_PERSONNEL_STATUS_PENDING = new Set();
-let DEPARTMENT_STATUS_CODE_ROWS = [];
-let DEPARTMENT_STATUS_CODES_LOADED = false;
-let DEPARTMENT_STATUS_CODES_LOADING = false;
-let DEPARTMENT_STATUS_CODE_SAVING = false;
-const DEPARTMENT_STATUS_CODE_PENDING = new Set();
-const DEPARTMENT_STATUS_BLOCKING_FIXED_CODES = new Set(['0','4','5','8','9']);
-const DEPARTMENT_STATUS_COMMON_COLORS = [
-  {value:'#0F766E',label:'تركواز'},{value:'#2563EB',label:'أزرق'},
-  {value:'#059669',label:'أخضر زمردي'},{value:'#7C3AED',label:'بنفسجي'},
-  {value:'#D97706',label:'كهرماني'},{value:'#DB2777',label:'وردي داكن'},
-  {value:'#0891B2',label:'سماوي داكن'},{value:'#EA580C',label:'برتقالي'},
-  {value:'#DC2626',label:'أحمر'},{value:'#64748B',label:'رمادي مزرق'}
-];
-const DEPARTMENT_STATUS_COLOR_PICKER_STATE={
-  open:false,previous:'#0F766E',draft:'#0F766E',hue:174,saturation:87,brightness:46,
-  valid:true,pointerId:null,returnFocus:null
-};
-function normalizeDepartmentStatusHex(value){
-  const text=String(value||'').trim();
-  return /^#[0-9A-Fa-f]{6}$/.test(text)?text.toUpperCase():'';
-}
-function departmentStatusHexToRgb(value){
-  const hex=normalizeDepartmentStatusHex(value);
-  return hex?{r:parseInt(hex.slice(1,3),16),g:parseInt(hex.slice(3,5),16),b:parseInt(hex.slice(5,7),16)}:null;
-}
-function departmentStatusRgbToHex(r,g,b){
-  return '#'+[r,g,b].map(value=>Number(value).toString(16).padStart(2,'0')).join('').toUpperCase();
-}
-function departmentStatusRgbToHsv(r,g,b){
-  const red=r/255,green=g/255,blue=b/255;
-  const maximum=Math.max(red,green,blue),minimum=Math.min(red,green,blue),delta=maximum-minimum;
-  let hue=0;
-  if(delta){
-    if(maximum===red) hue=60*(((green-blue)/delta)%6);
-    else if(maximum===green) hue=60*(((blue-red)/delta)+2);
-    else hue=60*(((red-green)/delta)+4);
-  }
-  if(hue<0) hue+=360;
-  return {h:hue,s:maximum===0?0:(delta/maximum)*100,v:maximum*100};
-}
-function departmentStatusHsvToRgb(h,s,v){
-  const hue=((Number(h)%360)+360)%360,saturation=Number(s)/100,brightness=Number(v)/100;
-  const chroma=brightness*saturation,x=chroma*(1-Math.abs((hue/60)%2-1)),match=brightness-chroma;
-  let red=0,green=0,blue=0;
-  if(hue<60){red=chroma;green=x;}
-  else if(hue<120){red=x;green=chroma;}
-  else if(hue<180){green=chroma;blue=x;}
-  else if(hue<240){green=x;blue=chroma;}
-  else if(hue<300){red=x;blue=chroma;}
-  else{red=chroma;blue=x;}
-  return {r:Math.round((red+match)*255),g:Math.round((green+match)*255),b:Math.round((blue+match)*255)};
-}
-function departmentStatusHsvToHex(h,s,v){
-  const rgb=departmentStatusHsvToRgb(h,s,v);
-  return departmentStatusRgbToHex(rgb.r,rgb.g,rgb.b);
-}
-function departmentStatusTextColor(color){
-  const hex=String(color||'').replace('#','');
-  if(!/^[0-9A-Fa-f]{6}$/.test(hex)) return '#FFFFFF';
-  const values=[0,2,4].map(index=>parseInt(hex.slice(index,index+2),16)/255).map(value=>value<=.03928?value/12.92:Math.pow((value+.055)/1.055,2.4));
-  const luminance=.2126*values[0]+.7152*values[1]+.0722*values[2];
-  return luminance>.48?'#041A13':'#FFFFFF';
-}
-function firstAvailableDepartmentStatusColor(editingId=''){
-  const used=new Set(DEPARTMENT_STATUS_CODE_ROWS.filter(row=>row.is_active&&String(row.id)!==String(editingId)).map(row=>normalizeDepartmentStatusHex(row.display_color)).filter(Boolean));
-  const preferred=DEPARTMENT_STATUS_COMMON_COLORS.find(item=>!used.has(item.value));
-  if(preferred) return preferred.value;
-  for(let index=0;index<360;index+=1){
-    const candidate=departmentStatusHsvToHex((174+index*137.508)%360,72,78);
-    if(!used.has(candidate)) return candidate;
-  }
-  return '#0F766E';
-}
-function departmentStatusColorPickerElements(){
-  const root=$('#departmentStatusColorPicker');
-  return {
-    root,input:$('#departmentStatusDisplayColorInput'),trigger:$('#departmentStatusColorTrigger'),
-    popover:$('#departmentStatusColorPopover'),spectrum:root?.querySelector('[data-status-color-spectrum]'),
-    thumb:root?.querySelector('[data-status-color-spectrum-thumb]'),hue:$('#departmentStatusColorHueInput'),
-    hex:$('#departmentStatusColorHexInput'),rgb:Array.from(root?.querySelectorAll('[data-status-color-rgb]')||[]),
-    validation:root?.querySelector('[data-status-color-validation]'),common:root?.querySelector('[data-status-color-common]'),
-    currentPreview:root?.querySelector('[data-status-color-current-preview]'),currentValue:root?.querySelector('[data-status-color-current-value]'),
-    newPreview:root?.querySelector('[data-status-color-new-preview]'),newValue:root?.querySelector('[data-status-color-new-value]')
-  };
-}
-function setDepartmentStatusColorValidation(message=''){
-  const {validation}=departmentStatusColorPickerElements();
-  if(validation) validation.textContent=message;
-  DEPARTMENT_STATUS_COLOR_PICKER_STATE.valid=!message;
-}
-function renderDepartmentStatusColorPickerDraft(){
-  const state=DEPARTMENT_STATUS_COLOR_PICKER_STATE,elements=departmentStatusColorPickerElements();
-  const rgb=departmentStatusHsvToRgb(state.hue,state.saturation,state.brightness);
-  state.draft=departmentStatusRgbToHex(rgb.r,rgb.g,rgb.b);
-  elements.root?.style.setProperty('--department-picker-hue',departmentStatusHsvToHex(state.hue,100,100));
-  if(elements.thumb){elements.thumb.style.left=state.saturation+'%';elements.thumb.style.top=(100-state.brightness)+'%';}
-  if(elements.spectrum){
-    elements.spectrum.setAttribute('aria-valuenow',String(Math.round(state.brightness)));
-    elements.spectrum.setAttribute('aria-valuetext','تشبع '+Math.round(state.saturation)+'%، سطوع '+Math.round(state.brightness)+'%، '+state.draft);
-  }
-  if(elements.hue) elements.hue.value=String(Math.round(state.hue));
-  elements.rgb.forEach(input=>{input.value=String(rgb[input.dataset.statusColorRgb]);});
-  if(elements.hex) elements.hex.value=state.draft;
-  if(elements.newPreview) elements.newPreview.style.background=state.draft;
-  if(elements.newValue) elements.newValue.textContent=state.draft;
-  setDepartmentStatusColorValidation('');
-}
-function setDepartmentStatusColorPickerFromHex(color){
-  const normalized=normalizeDepartmentStatusHex(color);
-  if(!normalized) return false;
-  const rgb=departmentStatusHexToRgb(normalized),hsv=departmentStatusRgbToHsv(rgb.r,rgb.g,rgb.b);
-  Object.assign(DEPARTMENT_STATUS_COLOR_PICKER_STATE,{draft:normalized,hue:hsv.h,saturation:hsv.s,brightness:hsv.v});
-  renderDepartmentStatusColorPickerDraft();
-  return true;
-}
-function setDepartmentStatusColorPickerFromHsv(hue,saturation,brightness){
-  Object.assign(DEPARTMENT_STATUS_COLOR_PICKER_STATE,{hue:Number(hue),saturation:Number(saturation),brightness:Number(brightness)});
-  renderDepartmentStatusColorPickerDraft();
-}
-function setDepartmentStatusColorValue(color){
-  const normalized=normalizeDepartmentStatusHex(color)||'#0F766E';
-  const {input,trigger,root}=departmentStatusColorPickerElements();
-  if(input) input.value=normalized;
-  root?.style.setProperty('--department-status-selected-color',normalized);
-  const swatch=trigger?.querySelector('[data-status-color-trigger-swatch]');
-  if(swatch) swatch.style.background=normalized;
-  const value=trigger?.querySelector('[data-status-color-trigger-value]');
-  if(value) value.textContent=normalized;
-}
-function positionDepartmentStatusColorPicker(){
-  const {trigger,popover}=departmentStatusColorPickerElements();
-  if(!trigger||!popover||popover.hidden) return;
-  if(window.matchMedia('(max-width: 650px)').matches){
-    popover.style.removeProperty('top');popover.style.removeProperty('left');popover.style.removeProperty('width');return;
-  }
-  const rect=trigger.getBoundingClientRect(),width=Math.min(380,window.innerWidth-24);
-  popover.style.width=width+'px';
-  const height=Math.min(popover.offsetHeight||560,window.innerHeight-24);
-  const preferredTop=window.innerHeight-rect.bottom>=height+8?rect.bottom+8:rect.top-height-8;
-  const top=Math.max(12,Math.min(window.innerHeight-height-12,preferredTop));
-  popover.style.top=top+'px';
-  popover.style.left=Math.max(12,Math.min(window.innerWidth-width-12,rect.right-width))+'px';
-}
-function openDepartmentStatusColorPicker(){
-  const elements=departmentStatusColorPickerElements();
-  if(!elements.root||!elements.input||!elements.trigger||elements.trigger.disabled) return;
-  const committed=normalizeDepartmentStatusHex(elements.input.value)||firstAvailableDepartmentStatusColor($('#departmentStatusCodeIdInput')?.value);
-  Object.assign(DEPARTMENT_STATUS_COLOR_PICKER_STATE,{open:true,previous:committed,draft:committed,pointerId:null,returnFocus:elements.trigger});
-  if(elements.currentPreview) elements.currentPreview.style.background=committed;
-  if(elements.currentValue) elements.currentValue.textContent=committed;
-  setDepartmentStatusColorPickerFromHex(committed);
-  elements.popover.hidden=false;
-  elements.trigger.setAttribute('aria-expanded','true');
-  positionDepartmentStatusColorPicker();
-  requestAnimationFrame(()=>{positionDepartmentStatusColorPicker();elements.spectrum?.focus({preventScroll:true});});
-}
-function closeDepartmentStatusColorPicker(apply=false,restoreFocus=true){
-  const state=DEPARTMENT_STATUS_COLOR_PICKER_STATE,elements=departmentStatusColorPickerElements();
-  if(!state.open||!elements.popover) return false;
-  if(apply&&!state.valid) return false;
-  setDepartmentStatusColorValue(apply?state.draft:state.previous);
-  elements.popover.hidden=true;
-  elements.trigger?.setAttribute('aria-expanded','false');
-  state.open=false;state.pointerId=null;
-  if(restoreFocus) state.returnFocus?.focus({preventScroll:true});
-  state.returnFocus=null;
-  return true;
-}
-function updateDepartmentStatusSpectrumFromPointer(event){
-  const state=DEPARTMENT_STATUS_COLOR_PICKER_STATE,{spectrum}=departmentStatusColorPickerElements();
-  if(!spectrum) return;
-  const rect=spectrum.getBoundingClientRect();
-  const saturation=Math.max(0,Math.min(100,((event.clientX-rect.left)/rect.width)*100));
-  const brightness=Math.max(0,Math.min(100,(1-(event.clientY-rect.top)/rect.height)*100));
-  setDepartmentStatusColorPickerFromHsv(state.hue,saturation,brightness);
-}
-function validateDepartmentStatusRgbInputs(){
-  const {rgb}=departmentStatusColorPickerElements(),values={};
-  for(const input of rgb){
-    const text=String(input.value||'').trim();
-    if(!/^\d{1,3}$/.test(text)||Number(text)<0||Number(text)>255){
-      setDepartmentStatusColorValidation('يجب أن تكون قيم RGB أعدادًا صحيحة من 0 إلى 255.');return false;
-    }
-    values[input.dataset.statusColorRgb]=Number(text);
-  }
-  setDepartmentStatusColorPickerFromHex(departmentStatusRgbToHex(values.r,values.g,values.b));
-  return true;
-}
-function initDepartmentStatusColorPicker(){
-  const elements=departmentStatusColorPickerElements();
-  if(!elements.root||elements.root.dataset.bound==='1') return;
-  elements.root.dataset.bound='1';
-  elements.common.innerHTML=DEPARTMENT_STATUS_COMMON_COLORS.map(item=>
-    '<button type="button" class="department-status-color-shortcut" data-status-common-color="'+item.value+'" aria-label="'+escapeHtml(item.label)+' '+item.value+'" title="'+escapeHtml(item.label)+'" style="--shortcut-color:'+item.value+'"></button>'
-  ).join('');
-  elements.trigger.addEventListener('click',()=>DEPARTMENT_STATUS_COLOR_PICKER_STATE.open?closeDepartmentStatusColorPicker(false):openDepartmentStatusColorPicker());
-  elements.popover.addEventListener('click',event=>{
-    const action=event.target.closest('[data-status-color-action]')?.dataset.statusColorAction;
-    if(action==='cancel'){closeDepartmentStatusColorPicker(false);return;}
-    if(action==='apply'){closeDepartmentStatusColorPicker(true);return;}
-    const shortcut=event.target.closest('[data-status-common-color]');
-    if(shortcut) setDepartmentStatusColorPickerFromHex(shortcut.dataset.statusCommonColor);
-  });
-  elements.hue.addEventListener('input',()=>setDepartmentStatusColorPickerFromHsv(elements.hue.value,DEPARTMENT_STATUS_COLOR_PICKER_STATE.saturation,DEPARTMENT_STATUS_COLOR_PICKER_STATE.brightness));
-  elements.rgb.forEach(input=>input.addEventListener('input',validateDepartmentStatusRgbInputs));
-  elements.hex.addEventListener('input',()=>{
-    const raw=String(elements.hex.value||'').trim();
-    if(!normalizeDepartmentStatusHex(raw)){setDepartmentStatusColorValidation('أدخل اللون بصيغة صحيحة مثل #0F766E.');return;}
-    setDepartmentStatusColorPickerFromHex(raw);
-  });
-  elements.spectrum.addEventListener('pointerdown',event=>{
-    if(event.pointerType==='mouse'&&event.button!==0) return;
-    event.preventDefault();DEPARTMENT_STATUS_COLOR_PICKER_STATE.pointerId=event.pointerId;
-    elements.spectrum.setPointerCapture?.(event.pointerId);updateDepartmentStatusSpectrumFromPointer(event);
-  });
-  elements.spectrum.addEventListener('pointermove',event=>{
-    if(DEPARTMENT_STATUS_COLOR_PICKER_STATE.pointerId!==event.pointerId) return;
-    event.preventDefault();updateDepartmentStatusSpectrumFromPointer(event);
-  });
-  const finishPointer=event=>{
-    if(DEPARTMENT_STATUS_COLOR_PICKER_STATE.pointerId!==event.pointerId) return;
-    elements.spectrum.releasePointerCapture?.(event.pointerId);DEPARTMENT_STATUS_COLOR_PICKER_STATE.pointerId=null;
-  };
-  elements.spectrum.addEventListener('pointerup',finishPointer);
-  elements.spectrum.addEventListener('pointercancel',finishPointer);
-  elements.spectrum.addEventListener('keydown',event=>{
-    const state=DEPARTMENT_STATUS_COLOR_PICKER_STATE;
-    let saturation=state.saturation,brightness=state.brightness;
-    if(event.key==='ArrowRight') saturation=Math.min(100,saturation+1);
-    else if(event.key==='ArrowLeft') saturation=Math.max(0,saturation-1);
-    else if(event.key==='ArrowUp') brightness=Math.min(100,brightness+1);
-    else if(event.key==='ArrowDown') brightness=Math.max(0,brightness-1);
-    else return;
-    event.preventDefault();setDepartmentStatusColorPickerFromHsv(state.hue,saturation,brightness);
-  });
-  elements.popover.addEventListener('keydown',event=>{
-    if(event.key!=='Tab') return;
-    const focusable=Array.from(elements.popover.querySelectorAll('button:not([disabled]),input:not([disabled]),[tabindex="0"]'));
-    if(!focusable.length) return;
-    const first=focusable[0],last=focusable[focusable.length-1];
-    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
-    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
-  });
-  document.addEventListener('pointerdown',event=>{
-    if(DEPARTMENT_STATUS_COLOR_PICKER_STATE.open&&!elements.root.contains(event.target)) closeDepartmentStatusColorPicker(false);
-  },true);
-  document.addEventListener('keydown',event=>{
-    if(event.key==='Escape'&&DEPARTMENT_STATUS_COLOR_PICKER_STATE.open){event.preventDefault();closeDepartmentStatusColorPicker(false);}
-  });
-  window.addEventListener('resize',positionDepartmentStatusColorPicker);
-  window.addEventListener('scroll',positionDepartmentStatusColorPicker,true);
-  setDepartmentStatusColorValue(firstAvailableDepartmentStatusColor());
-}
-function syncDepartmentStatusBlockingField(){
-  const code=String($('#departmentStatusCodeInput')?.value||'').trim();
-  const input=$('#departmentStatusBlocksEvaluationInput');
-  if(!input) return;
-  const fixed=DEPARTMENT_STATUS_BLOCKING_FIXED_CODES.has(code);
-  if(fixed) input.checked=true;
-  input.disabled=fixed || !(Boolean($('#departmentStatusCodeIdInput')?.value)?canEditDepartmentCodingSettings():canAddDepartmentCodingSettings());
-  input.title=fixed?'هذا الكود يمنع التقييم حسب القواعد المعتمدة.':'حدد ما إذا كانت الحالة تمنع التقييم.';
-}
-
-function canAddDepartmentCodingSettings(){
-  return hasCanonicalPermission(($('#settingsDepartmentStatusCodesPanel')?.classList.contains('active') ? 'settings.department_status_codes' : 'settings.department_personnel')+'.create');
-}
-function canEditDepartmentCodingSettings(){
-  return hasCanonicalPermission(($('#settingsDepartmentStatusCodesPanel')?.classList.contains('active') ? 'settings.department_status_codes' : 'settings.department_personnel')+'.edit');
-}
-function setDepartmentPersonnelStatus(message,type=''){
-  const status=$('#departmentPersonnelStatus');
-  if(!status) return;
-  status.className='upload-status '+(type||'');
-  status.textContent=message||'';
-}
-function setDepartmentStatusCodesStatus(message,type=''){
-  const status=$('#departmentStatusCodesStatus');
-  if(!status) return;
-  status.className='upload-status '+(type||'');
-  status.textContent=message||'';
-}
-function departmentCodingErrorMessage(error,codeLabel){
-  const message=String(error?.message||error||'').trim();
-  if(error?.code==='23505' && /active_display_color|display_color/i.test(message)){
-    return 'لون العرض مستخدم بالفعل لحالة نشطة أخرى. اختر لونًا مختلفًا.';
-  }
-  if(error?.code==='23505' || /duplicate key|unique constraint/i.test(message)){
-    return codeLabel+' مستخدم بالفعل. أدخل كودًا مختلفًا.';
-  }
-  if(error?.code==='42501' || /row-level security|permission denied/i.test(message)){
-    return 'غير مسموح بتنفيذ العملية حسب صلاحية الإعدادات الحالية.';
-  }
-  if(error?.code==='42P01' || /does not exist|schema cache/i.test(message)){
-    return 'حقول تكويد الحالات غير متاحة. تحقّق من تطبيق أحدث Migration إضافية خاصة بإدارة أفراد القسم.';
-  }
-  return message ? 'تعذر تنفيذ العملية: '+message : 'تعذر تنفيذ العملية في Supabase.';
-}
-function applyDepartmentPersonnelPermissions(){
-  const canAdd=canAddDepartmentCodingSettings();
-  const canEdit=canEditDepartmentCodingSettings();
-  const editing=Boolean($('#departmentPersonnelIdInput')?.value);
-  const canUseForm=editing ? canEdit : canAdd;
-  const form=$('#departmentPersonnelForm');
-  if(form) form.classList.toggle('permission-hidden',!canUseForm);
-  setElementsDisabled('#departmentPersonnelForm input:not([type="hidden"]),#departmentPersonnelForm input[data-custom-date-picker],#departmentPersonnelForm select,#saveDepartmentPersonnelBtn',!canUseForm,true);
-  const hireDateInput=$('#departmentPersonnelHireDateInput');
-  if(window.CustomDatePicker && hireDateInput){
-    window.CustomDatePicker.configure?.(hireDateInput,{commitOnDoubleClick:true});
-    window.CustomDatePicker.init(hireDateInput.parentElement || form || document);
-    window.CustomDatePicker.refresh(hireDateInput);
-  }
-  setElementsDisabled('#cancelDepartmentPersonnelBtn',editing ? !canEdit : false,true);
-  setElementsDisabled('#departmentPersonnelTable [data-action="edit-department-personnel"],#departmentPersonnelTable [data-action="toggle-department-personnel"]',!canEdit,true);
-}
-function applyDepartmentStatusCodesPermissions(){
-  const canAdd=canAddDepartmentCodingSettings();
-  const canEdit=canEditDepartmentCodingSettings();
-  const editing=Boolean($('#departmentStatusCodeIdInput')?.value);
-  const canUseForm=editing ? canEdit : canAdd;
-  const form=$('#departmentStatusCodeForm');
-  if(form) form.classList.toggle('permission-hidden',!canUseForm);
-  setElementsDisabled('#departmentStatusCodeForm input:not([type="hidden"]),#departmentStatusCodeForm button:not(#cancelDepartmentStatusCodeBtn),#saveDepartmentStatusCodeBtn',!canUseForm,true);
-  syncDepartmentStatusBlockingField();
-  setElementsDisabled('#cancelDepartmentStatusCodeBtn',editing ? !canEdit : false,true);
-  setElementsDisabled('#departmentStatusCodesTable [data-action="edit-department-status"],#departmentStatusCodesTable [data-action="toggle-department-status"]',!canEdit,true);
-}
-function renderDepartmentPersonnelTable(rows=[]){
-  const tbody=$('#departmentPersonnelTable tbody');
-  if(!tbody) return;
-  if(!rows.length){
-    tbody.innerHTML='<tr><td colspan="9" class="empty-row">لا توجد بيانات لأفراد القسم.</td></tr>';
-  }else{
-    tbody.innerHTML=rows.map(row=>{
-      const id=escapeHtml(row.id||'');
-      const plantCode=String(row.plant_code||'');
-      const plantLabel=plantCode+(DEPARTMENT_PERSONNEL_PLANTS[plantCode] ? ' — '+DEPARTMENT_PERSONNEL_PLANTS[plantCode] : '');
-      return '<tr data-record-id="'+id+'">'
-        +'<td dir="ltr">'+escapeHtml(row.employee_code||'')+'</td>'
-        +'<td>'+escapeHtml(row.full_name||'')+'</td>'
-        +'<td>'+escapeHtml(row.job_title||'')+'</td>'
-        +'<td>'+escapeHtml(plantLabel)+'</td>'
-        +'<td>'+escapeHtml(row.department||'')+'</td>'
-        +'<td dir="ltr">'+escapeHtml(row.phone_number||'—')+'</td>'
-        +'<td>'+escapeHtml(formatDepartmentPersonnelDate(row.hire_date))+'</td>'
-        +'<td><span class="status-badge '+(row.is_active?'status-active':'status-inactive')+'">'+(row.is_active?'نشط':'غير نشط')+'</span></td>'
-        +'<td><div class="actions-cell">'
-        +'<button class="small-action edit" type="button" data-action="edit-department-personnel" data-record-id="'+id+'">تعديل</button>'
-        +'<button class="small-action '+(row.is_active?'delete':'view')+'" type="button" data-action="toggle-department-personnel" data-record-id="'+id+'" data-next-active="'+(!row.is_active)+'">'+(row.is_active?'إيقاف':'تفعيل')+'</button>'
-        +'</div></td></tr>';
-    }).join('');
-  }
-  refreshSettingsTableControls('departmentPersonnelTable');
-  applyDepartmentPersonnelPermissions();
-}
-async function loadDepartmentPersonnelTable(options={}){
-  if(!window.PermissionRuntime?.can('settings.department_personnel.view')) return;
-  const tbody=$('#departmentPersonnelTable tbody');
-  if(!tbody) return false;
-  if(!WarehouseDB?.ready){
-    tbody.innerHTML='<tr><td colspan="9" class="empty-row">Supabase غير متصل.</td></tr>';
-    setDepartmentPersonnelStatus('Supabase غير متصل. تعذر تحميل أفراد القسم.','err');
-    return false;
-  }
-  if(!options.silent){
-    tbody.innerHTML='<tr><td colspan="9" class="empty-row">جاري التحميل...</td></tr>';
-    setDepartmentPersonnelStatus('');
-  }
-  try{
-    const {data,error}=await WarehouseDB.client
-      .from(DEPARTMENT_PERSONNEL_TABLE)
-      .select('id,employee_code,full_name,job_title,plant_code,department,phone_number,hire_date,is_active,created_at,updated_at')
-      .order('created_at',{ascending:false});
-    if(error) throw error;
-    DEPARTMENT_PERSONNEL_ROWS=data||[];
-    renderDepartmentPersonnelTable(DEPARTMENT_PERSONNEL_ROWS);
-    return true;
-  }catch(error){
-    tbody.innerHTML='<tr><td colspan="9" class="empty-row">تعذر تحميل بيانات أفراد القسم.</td></tr>';
-    setDepartmentPersonnelStatus(departmentCodingErrorMessage(error,'الكود الوظيفي'),'err');
-    return false;
-  }
-}
-async function ensureDepartmentPersonnelLoaded(){
-  if(DEPARTMENT_PERSONNEL_LOADED || DEPARTMENT_PERSONNEL_LOADING) return;
-  DEPARTMENT_PERSONNEL_LOADING=true;
-  try{
-    DEPARTMENT_PERSONNEL_LOADED=await loadDepartmentPersonnelTable();
-  }finally{
-    DEPARTMENT_PERSONNEL_LOADING=false;
-  }
-}
-function resetDepartmentPersonnelForm(){
-  const form=$('#departmentPersonnelForm');
-  if(!form) return;
-  form.reset();
-  $('#departmentPersonnelIdInput').value='';
-  $('#departmentPersonnelActiveInput').checked=true;
-  const hireDateInput=$('#departmentPersonnelHireDateInput');
-  if(hireDateInput) hireDateInput.value='';
-  if(window.CustomDatePicker) window.CustomDatePicker.refresh(hireDateInput);
-  $('#saveDepartmentPersonnelBtn').textContent='حفظ الموظف';
-  $('#cancelDepartmentPersonnelBtn').hidden=true;
-  applyDepartmentPersonnelPermissions();
-}
-function editDepartmentPersonnel(recordId){
-  if(!canEditDepartmentCodingSettings()){
-    setDepartmentPersonnelStatus('غير متاح للصلاحية الحالية.','err');
-    return;
-  }
-  const row=DEPARTMENT_PERSONNEL_ROWS.find(item=>String(item.id)===String(recordId));
-  if(!row){
-    setDepartmentPersonnelStatus('تعذر العثور على سجل الموظف. أعد تحميل الجدول.','err');
-    return;
-  }
-  $('#departmentPersonnelIdInput').value=row.id||'';
-  $('#departmentPersonnelCodeInput').value=row.employee_code||'';
-  $('#departmentPersonnelNameInput').value=row.full_name||'';
-  $('#departmentPersonnelJobTitleInput').value=row.job_title||'';
-  $('#departmentPersonnelPlantInput').value=row.plant_code||'';
-  $('#departmentPersonnelDepartmentInput').value=row.department||'';
-  $('#departmentPersonnelPhoneInput').value=row.phone_number||'';
-  $('#departmentPersonnelHireDateInput').value=row.hire_date||'';
-  if(window.CustomDatePicker) window.CustomDatePicker.refresh($('#departmentPersonnelHireDateInput'));
-  $('#departmentPersonnelActiveInput').checked=row.is_active===true;
-  $('#saveDepartmentPersonnelBtn').textContent='تحديث الموظف';
-  $('#cancelDepartmentPersonnelBtn').hidden=false;
-  setDepartmentPersonnelStatus('');
-  applyDepartmentPersonnelPermissions();
-  $('#departmentPersonnelCodeInput')?.focus();
-}
-async function saveDepartmentPersonnel(event){
-  event.preventDefault();
-  const form=event.currentTarget;
-  if(DEPARTMENT_PERSONNEL_SAVING) return;
-  if(!form.checkValidity()){
-    setDepartmentPersonnelStatus('يرجى استكمال جميع الحقول الإجبارية.','err');
-    form.reportValidity();
-    return;
-  }
-  const id=String($('#departmentPersonnelIdInput')?.value||'').trim();
-  const canSave=id ? canEditDepartmentCodingSettings() : canAddDepartmentCodingSettings();
-  if(!canSave){
-    setDepartmentPersonnelStatus('غير متاح للصلاحية الحالية.','err');
-    applyDepartmentPersonnelPermissions();
-    return;
-  }
-  const payload={
-    employee_code:String($('#departmentPersonnelCodeInput')?.value||'').trim(),
-    full_name:String($('#departmentPersonnelNameInput')?.value||'').trim(),
-    job_title:String($('#departmentPersonnelJobTitleInput')?.value||'').trim(),
-    plant_code:String($('#departmentPersonnelPlantInput')?.value||'').trim(),
-    department:String($('#departmentPersonnelDepartmentInput')?.value||'').trim(),
-    phone_number:String($('#departmentPersonnelPhoneInput')?.value||'').trim() || null,
-    hire_date:String($('#departmentPersonnelHireDateInput')?.value||'').trim() || null,
-    is_active:Boolean($('#departmentPersonnelActiveInput')?.checked)
-  };
-  if(!isValidDepartmentPhone(payload.phone_number)){
-    setDepartmentPersonnelStatus('رقم التليفون يحتوي على حروف أو رموز غير مسموحة.','err');
-    return;
-  }
-  if(!payload.employee_code || !payload.full_name || !DEPARTMENT_PERSONNEL_JOB_TITLES.has(payload.job_title) || !DEPARTMENT_PERSONNEL_PLANTS[payload.plant_code] || !DEPARTMENT_PERSONNEL_DEPARTMENTS.has(payload.department)){
-    setDepartmentPersonnelStatus('يرجى إدخال قيم صحيحة في جميع الحقول الإجبارية.','err');
-    return;
-  }
-  if(!WarehouseDB?.ready){
-    setDepartmentPersonnelStatus('Supabase غير متصل. لم يتم حفظ البيانات.','err');
-    return;
-  }
-  const button=$('#saveDepartmentPersonnelBtn');
-  const originalText=button.textContent;
-  let succeeded=false;
-  DEPARTMENT_PERSONNEL_SAVING=true;
-  button.disabled=true;
-  button.textContent='جاري الحفظ...';
-  setDepartmentPersonnelStatus('');
-  try{
-    const query=id
-      ? WarehouseDB.client.from(DEPARTMENT_PERSONNEL_TABLE).update(payload).eq('id',id).select('id').maybeSingle()
-      : WarehouseDB.client.from(DEPARTMENT_PERSONNEL_TABLE).insert([payload]).select('id').single();
-    const {data,error}=await query;
-    if(error) throw error;
-    if(id && !data) throw new Error('لم يتم العثور على السجل المطلوب تعديله.');
-    resetDepartmentPersonnelForm();
-    const refreshed=await loadDepartmentPersonnelTable({silent:true});
-    setDepartmentPersonnelStatus(refreshed ? (id?'تم تعديل بيانات الموظف بنجاح.':'تمت إضافة الموظف بنجاح.') : 'تم الحفظ، لكن تعذر تحديث الجدول. أعد فتح التبويب.','ok');
-    succeeded=true;
-  }catch(error){
-    setDepartmentPersonnelStatus(departmentCodingErrorMessage(error,'الكود الوظيفي'),'err');
-  }finally{
-    DEPARTMENT_PERSONNEL_SAVING=false;
-    if(!succeeded) button.textContent=originalText;
-    button.disabled=false;
-    applyDepartmentPersonnelPermissions();
-  }
-}
-async function toggleDepartmentPersonnelStatus(recordId,nextActive){
-  if(DEPARTMENT_PERSONNEL_STATUS_PENDING.has(recordId)) return;
-  if(!canEditDepartmentCodingSettings()){
-    setDepartmentPersonnelStatus('غير متاح للصلاحية الحالية.','err');
-    return;
-  }
-  if(!WarehouseDB?.ready){
-    setDepartmentPersonnelStatus('Supabase غير متصل. لم يتم تحديث الحالة.','err');
-    return;
-  }
-  DEPARTMENT_PERSONNEL_STATUS_PENDING.add(recordId);
-  applyDepartmentPersonnelPermissions();
-  try{
-    const {data,error}=await WarehouseDB.client
-      .from(DEPARTMENT_PERSONNEL_TABLE)
-      .update({is_active:nextActive})
-      .eq('id',recordId)
-      .select('id')
-      .maybeSingle();
-    if(error) throw error;
-    if(!data) throw new Error('لم يتم العثور على سجل الموظف.');
-    const refreshed=await loadDepartmentPersonnelTable({silent:true});
-    setDepartmentPersonnelStatus(refreshed ? (nextActive?'تم تفعيل الموظف بنجاح.':'تم إيقاف الموظف بنجاح.') : 'تم تحديث الحالة، لكن تعذر تحديث الجدول.','ok');
-  }catch(error){
-    setDepartmentPersonnelStatus(departmentCodingErrorMessage(error,'الكود الوظيفي'),'err');
-  }finally{
-    DEPARTMENT_PERSONNEL_STATUS_PENDING.delete(recordId);
-    applyDepartmentPersonnelPermissions();
-  }
-}
-function renderDepartmentStatusCodesTable(rows=[]){
-  const tbody=$('#departmentStatusCodesTable tbody');
-  if(!tbody) return;
-  if(!rows.length){
-    tbody.innerHTML='<tr><td colspan="6" class="empty-row">لا توجد أكواد ورديات أو إجازات.</td></tr>';
-  }else{
-    tbody.innerHTML=rows.map(row=>{
-      const id=escapeHtml(row.id||'');
-      const color=String(row.display_color||'#0F766E').toUpperCase();
-      return '<tr data-record-id="'+id+'">'
-        +'<td dir="ltr">'+escapeHtml(row.shift_code||'')+'</td>'
-        +'<td>'+escapeHtml(row.description||'')+'</td>'
-        +'<td><span class="department-status-color-badge" style="--status-color:'+escapeHtml(color)+';--status-text:'+departmentStatusTextColor(color)+'"><i aria-hidden="true"></i>'+escapeHtml(color)+'</span></td>'
-        +'<td><span class="status-badge '+(row.blocks_evaluation?'status-inactive':'status-active')+'">'+(row.blocks_evaluation?'نعم':'لا')+'</span></td>'
-        +'<td><span class="status-badge '+(row.is_active?'status-active':'status-inactive')+'">'+(row.is_active?'نشط':'غير نشط')+'</span></td>'
-        +'<td><div class="actions-cell">'
-        +'<button class="small-action edit" type="button" data-action="edit-department-status" data-record-id="'+id+'">تعديل</button>'
-        +'<button class="small-action '+(row.is_active?'delete':'view')+'" type="button" data-action="toggle-department-status" data-record-id="'+id+'" data-next-active="'+(!row.is_active)+'">'+(row.is_active?'إيقاف':'تفعيل')+'</button>'
-        +'</div></td></tr>';
-    }).join('');
-  }
-  refreshSettingsTableControls('departmentStatusCodesTable');
-
-  applyDepartmentStatusCodesPermissions();
-}
-async function loadDepartmentStatusCodesTable(options={}){
-  if(!window.PermissionRuntime?.can('settings.department_status_codes.view')) return;
-  const tbody=$('#departmentStatusCodesTable tbody');
-  if(!tbody) return false;
-  if(!WarehouseDB?.ready){
-    tbody.innerHTML='<tr><td colspan="6" class="empty-row">Supabase غير متصل.</td></tr>';
-    setDepartmentStatusCodesStatus('Supabase غير متصل. تعذر تحميل أكواد الورديات والإجازات.','err');
-    return false;
-  }
-  if(!options.silent){
-    tbody.innerHTML='<tr><td colspan="6" class="empty-row">جاري التحميل...</td></tr>';
-    setDepartmentStatusCodesStatus('');
-  }
-  try{
-    const {data,error}=await WarehouseDB.client
-      .from(DEPARTMENT_STATUS_CODES_TABLE)
-      .select('id,shift_code,description,blocks_evaluation,display_color,is_active,created_at,updated_at')
-      .order('created_at',{ascending:false});
-    if(error) throw error;
-    DEPARTMENT_STATUS_CODE_ROWS=data||[];
-    window.dispatchEvent(new CustomEvent('department-status-codes-updated',{detail:{codes:DEPARTMENT_STATUS_CODE_ROWS.map(row=>({...row}))}}));
-    renderDepartmentStatusCodesTable(DEPARTMENT_STATUS_CODE_ROWS);
-    return true;
-  }catch(error){
-    tbody.innerHTML='<tr><td colspan="6" class="empty-row">تعذر تحميل أكواد الورديات والإجازات.</td></tr>';
-    setDepartmentStatusCodesStatus(departmentCodingErrorMessage(error,'كود الوردية'),'err');
-    return false;
-  }
-}
-async function ensureDepartmentStatusCodesLoaded(){
-  if(DEPARTMENT_STATUS_CODES_LOADED || DEPARTMENT_STATUS_CODES_LOADING) return;
-  DEPARTMENT_STATUS_CODES_LOADING=true;
-  try{
-    DEPARTMENT_STATUS_CODES_LOADED=await loadDepartmentStatusCodesTable();
-  }finally{
-    DEPARTMENT_STATUS_CODES_LOADING=false;
-  }
-}
-function resetDepartmentStatusCodeForm(){
-  const form=$('#departmentStatusCodeForm');
-  if(!form) return;
-  form.reset();
-  $('#departmentStatusCodeIdInput').value='';
-  $('#departmentStatusActiveInput').checked=true;
-  $('#departmentStatusBlocksEvaluationInput').checked=false;
-  closeDepartmentStatusColorPicker(false,false);
-  setDepartmentStatusColorValue(firstAvailableDepartmentStatusColor());
-  syncDepartmentStatusBlockingField();
-  $('#saveDepartmentStatusCodeBtn').textContent='حفظ الكود';
-  $('#cancelDepartmentStatusCodeBtn').hidden=true;
-  applyDepartmentStatusCodesPermissions();
-}
-function editDepartmentStatusCode(recordId){
-  if(!canEditDepartmentCodingSettings()){
-    setDepartmentStatusCodesStatus('غير متاح للصلاحية الحالية.','err');
-    return;
-  }
-  const row=DEPARTMENT_STATUS_CODE_ROWS.find(item=>String(item.id)===String(recordId));
-  if(!row){
-    setDepartmentStatusCodesStatus('تعذر العثور على سجل الكود. أعد تحميل الجدول.','err');
-    return;
-  }
-  $('#departmentStatusCodeIdInput').value=row.id||'';
-  $('#departmentStatusCodeInput').value=row.shift_code||'';
-  $('#departmentStatusDescriptionInput').value=row.description||'';
-  $('#departmentStatusBlocksEvaluationInput').checked=row.blocks_evaluation===true;
-  $('#departmentStatusActiveInput').checked=row.is_active===true;
-  closeDepartmentStatusColorPicker(false,false);
-  setDepartmentStatusColorValue(row.display_color);
-  syncDepartmentStatusBlockingField();
-  $('#saveDepartmentStatusCodeBtn').textContent='تحديث الكود';
-  $('#cancelDepartmentStatusCodeBtn').hidden=false;
-  setDepartmentStatusCodesStatus('');
-  applyDepartmentStatusCodesPermissions();
-  $('#departmentStatusCodeInput')?.focus();
-}
-async function saveDepartmentStatusCode(event){
-  event.preventDefault();
-  const form=event.currentTarget;
-  if(DEPARTMENT_STATUS_CODE_SAVING) return;
-  if(!form.checkValidity()){
-    setDepartmentStatusCodesStatus('يرجى استكمال جميع الحقول الإجبارية.','err');
-    form.reportValidity();
-    return;
-  }
-  const id=String($('#departmentStatusCodeIdInput')?.value||'').trim();
-  const canSave=id ? canEditDepartmentCodingSettings() : canAddDepartmentCodingSettings();
-  if(!canSave){
-    setDepartmentStatusCodesStatus('غير متاح للصلاحية الحالية.','err');
-    applyDepartmentStatusCodesPermissions();
-    return;
-  }
-  const payload={
-    shift_code:String($('#departmentStatusCodeInput')?.value||'').trim(),
-    description:String($('#departmentStatusDescriptionInput')?.value||'').trim(),
-    blocks_evaluation:Boolean($('#departmentStatusBlocksEvaluationInput')?.checked),
-    display_color:String($('#departmentStatusDisplayColorInput')?.value||'').trim().toUpperCase(),
-    is_active:Boolean($('#departmentStatusActiveInput')?.checked)
-  };
-  if(DEPARTMENT_STATUS_BLOCKING_FIXED_CODES.has(payload.shift_code)) payload.blocks_evaluation=true;
-  if(!payload.shift_code || !payload.description || !normalizeDepartmentStatusHex(payload.display_color)){
-    setDepartmentStatusCodesStatus('يرجى استكمال جميع الحقول الإجبارية.','err');
-    return;
-  }
-  if(!WarehouseDB?.ready){
-    setDepartmentStatusCodesStatus('Supabase غير متصل. لم يتم حفظ البيانات.','err');
-    return;
-  }
-  const button=$('#saveDepartmentStatusCodeBtn');
-  const originalText=button.textContent;
-  let succeeded=false;
-  DEPARTMENT_STATUS_CODE_SAVING=true;
-  button.disabled=true;
-  button.textContent='جاري الحفظ...';
-  setDepartmentStatusCodesStatus('');
-  try{
-    const query=id
-      ? WarehouseDB.client.from(DEPARTMENT_STATUS_CODES_TABLE).update(payload).eq('id',id).select('id').maybeSingle()
-      : WarehouseDB.client.from(DEPARTMENT_STATUS_CODES_TABLE).insert([payload]).select('id').single();
-    const {data,error}=await query;
-    if(error) throw error;
-    if(id && !data) throw new Error('لم يتم العثور على السجل المطلوب تعديله.');
-    resetDepartmentStatusCodeForm();
-    const refreshed=await loadDepartmentStatusCodesTable({silent:true});
-    setDepartmentStatusCodesStatus(refreshed ? (id?'تم تعديل الكود والوصف بنجاح.':'تمت إضافة الكود بنجاح.') : 'تم الحفظ، لكن تعذر تحديث الجدول. أعد فتح التبويب.','ok');
-    succeeded=true;
-  }catch(error){
-    setDepartmentStatusCodesStatus(departmentCodingErrorMessage(error,'كود الوردية'),'err');
-  }finally{
-    DEPARTMENT_STATUS_CODE_SAVING=false;
-    if(!succeeded) button.textContent=originalText;
-    button.disabled=false;
-    applyDepartmentStatusCodesPermissions();
-  }
-}
-async function toggleDepartmentStatusCode(recordId,nextActive){
-  if(DEPARTMENT_STATUS_CODE_PENDING.has(recordId)) return;
-  if(!canEditDepartmentCodingSettings()){
-    setDepartmentStatusCodesStatus('غير متاح للصلاحية الحالية.','err');
-    return;
-  }
-  if(!WarehouseDB?.ready){
-    setDepartmentStatusCodesStatus('Supabase غير متصل. لم يتم تحديث الحالة.','err');
-    return;
-  }
-  DEPARTMENT_STATUS_CODE_PENDING.add(recordId);
-  applyDepartmentStatusCodesPermissions();
-  try{
-    const {data,error}=await WarehouseDB.client
-      .from(DEPARTMENT_STATUS_CODES_TABLE)
-      .update({is_active:nextActive})
-      .eq('id',recordId)
-      .select('id')
-      .maybeSingle();
-    if(error) throw error;
-    if(!data) throw new Error('لم يتم العثور على سجل الكود.');
-    const refreshed=await loadDepartmentStatusCodesTable({silent:true});
-    setDepartmentStatusCodesStatus(refreshed ? (nextActive?'تم تفعيل الكود بنجاح.':'تم إيقاف الكود بنجاح.') : 'تم تحديث الحالة، لكن تعذر تحديث الجدول.','ok');
-  }catch(error){
-    setDepartmentStatusCodesStatus(departmentCodingErrorMessage(error,'كود الوردية'),'err');
-  }finally{
-    DEPARTMENT_STATUS_CODE_PENDING.delete(recordId);
-    applyDepartmentStatusCodesPermissions();
-  }
-}
-function initDepartmentCodingSettings(){
-  const personnelForm=$('#departmentPersonnelForm');
-  if(personnelForm && personnelForm.dataset.bound!=='1'){
-    personnelForm.dataset.bound='1';
-    personnelForm.addEventListener('submit',saveDepartmentPersonnel);
-    personnelForm.addEventListener('invalid',()=>setDepartmentPersonnelStatus('يرجى استكمال جميع الحقول الإجبارية.','err'),true);
-    $('#cancelDepartmentPersonnelBtn')?.addEventListener('click',resetDepartmentPersonnelForm);
-    $('#departmentPersonnelTable')?.addEventListener('click',event=>{
-      const button=event.target.closest('button[data-action][data-record-id]');
-      if(!button) return;
-      const id=button.dataset.recordId;
-      if(button.dataset.action==='edit-department-personnel') editDepartmentPersonnel(id);
-      if(button.dataset.action==='toggle-department-personnel') toggleDepartmentPersonnelStatus(id,button.dataset.nextActive==='true');
-    });
-  }
-  const statusForm=$('#departmentStatusCodeForm');
-  if(statusForm && statusForm.dataset.bound!=='1'){
-    statusForm.dataset.bound='1';
-    statusForm.addEventListener('submit',saveDepartmentStatusCode);
-    statusForm.addEventListener('invalid',()=>setDepartmentStatusCodesStatus('يرجى استكمال جميع الحقول الإجبارية.','err'),true);
-    $('#cancelDepartmentStatusCodeBtn')?.addEventListener('click',resetDepartmentStatusCodeForm);
-    $('#departmentStatusCodeInput')?.addEventListener('input',syncDepartmentStatusBlockingField);
-    initDepartmentStatusColorPicker();
-    setDepartmentStatusColorValue(firstAvailableDepartmentStatusColor());
-    syncDepartmentStatusBlockingField();
-    $('#departmentStatusCodesTable')?.addEventListener('click',event=>{
-      const button=event.target.closest('button[data-action][data-record-id]');
-      if(!button) return;
-      const id=button.dataset.recordId;
-      if(button.dataset.action==='edit-department-status') editDepartmentStatusCode(id);
-      if(button.dataset.action==='toggle-department-status') toggleDepartmentStatusCode(id,button.dataset.nextActive==='true');
-    });
-  }
-}
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded',initDepartmentCodingSettings);
-}else{
-  initDepartmentCodingSettings();
 }
