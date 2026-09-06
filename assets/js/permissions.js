@@ -98,7 +98,7 @@
   }
   function keyAllowed(key, code) {
     if (state.status !== 'READY' || !nodes.has(key) || !grants.has(code)) return false;
-    if (key.startsWith('settings.permission_settings.') && !state.payload.is_super_admin) return false;
+    if (key.startsWith('settings.permission_settings') && !state.payload.is_super_admin && state.payload.role_key !== 'admin') return false;
     const selected = grants.get(code);
     let node = nodes.get(key);
     const visited = new Set();
@@ -130,6 +130,8 @@
   Object.defineProperty(globalScope, 'PermissionRuntime', { configurable: false, writable: false, value: Object.freeze({
     phase: PHASE, enforcementEnabled: true, refresh, reset, can, any, scope, allowedPlants, plantCodes, getSnapshot,
     isReady: () => state.status === 'READY', isSuperAdmin: () => state.status === 'READY' && state.payload.is_super_admin === true,
+    isAdmin: () => state.status === 'READY' && state.payload?.role_key === 'admin' && state.payload?.is_super_admin !== true,
+    roleKey: () => state.status === 'READY' ? String(state.payload?.role_key || '') : '',
     userId: () => state.userId
   }) });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

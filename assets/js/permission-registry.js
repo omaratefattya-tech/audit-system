@@ -356,7 +356,7 @@
   button('settings.activity_log.export_excel', 'تصدير Excel', settingsParents.activity_log, APP, '#activityLogExportExcelBtn');
   button('settings.activity_log.export_pdf', 'تصدير PDF', settingsParents.activity_log, APP, '#activityLogExportPdfBtn');
 
-  const permissionSettings = tab('settings.permission_settings', 'إعدادات الصلاحيات', settings, 'assets/js/permission-settings.js', '#settingsPermissionsTab', 'Permission administration is restricted to authenticated Super Admins.');
+  const permissionSettings = tab('settings.permission_settings', 'إعدادات الصلاحيات', settings, 'assets/js/permission-settings.js', '#settingsPermissionsTab', 'Permission administration is restricted to authenticated Admins and Super Admins.');
   const permissionRoles = tab('settings.permission_settings.roles', 'إنشاء دور', permissionSettings, 'assets/js/permission-settings.js', '#permissionSettingsRolesTab');
   action('settings.permission_settings.roles.create', 'إنشاء دور', permissionRoles, 'assets/js/permission-settings.js', '#permissionRoleForm');
   action('settings.permission_settings.roles.edit', 'تعديل دور', permissionRoles, 'assets/js/permission-settings.js', '[data-permission-role-action="edit"]');

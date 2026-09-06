@@ -1,10 +1,10 @@
 (function permissionSettingsModule(globalScope){
   'use strict';
 
-  const ROLE_SAVE_RPC='app_permission_p3_save_role';
-  const ROLE_DELETE_RPC='app_permission_p3_delete_role';
-  const BUNDLE_SAVE_RPC='app_permission_p3_save_bundle';
-  const BUNDLE_DELETE_RPC='app_permission_p3_delete_bundle';
+  const ROLE_SAVE_RPC='app_permission_p8_save_role';
+  const ROLE_DELETE_RPC='app_permission_p8_delete_role';
+  const BUNDLE_SAVE_RPC='app_permission_p8_save_bundle';
+  const BUNDLE_DELETE_RPC='app_permission_p8_delete_bundle';
   const SCREEN_PICKER_MODAL_ID='permissionScreenPickerOverlay';
   const SCREEN_EDITOR_MODAL_ID='permissionScreenEditorOverlay';
   const MANAGEMENT_ACTION_SELECTOR='#permissionSettingsShell [data-permission-settings-management-action], #permissionScreenEditorOverlay [data-permission-settings-management-action]';
@@ -37,7 +37,8 @@
   const nodes=()=>Array.isArray(registry()?.nodes) ? registry().nodes : [];
   const nodeMap=()=>new Map(nodes().map(node=>[node.key,node]));
   const roots=()=>nodes().filter(node=>node.type==='SCREEN' && !node.parent);
-  const isAuthorized=()=>typeof globalScope.isSuperAdmin==='function' && globalScope.isSuperAdmin();
+  const isAuthorized=()=>typeof globalScope.isSuperAdmin==='function' && (globalScope.isSuperAdmin() || globalScope.PermissionRuntime?.isAdmin?.());
+  const isLegacyBaselineBundle=bundle=>/^P5_LEGACY_BASELINE:[^:]+:/.test(String(bundle?.description||''));
   const isReady=()=>Boolean(globalScope.WarehouseDB?.ready && globalScope.WarehouseDB?.client);
   const hasCompleteData=()=>state.loaded && !state.loadingPromise;
 
@@ -61,7 +62,7 @@
   function errorMessage(error){
     const message=String(error?.message || error || '');
     if(/PERMISSION_DATA_INCOMPLETE|PERMISSION_DATA_CHANGED|PERMISSION_DATA_LOADER_UNAVAILABLE/.test(message)) return 'لم يكتمل تحميل بيانات الصلاحيات أو تغيّرت أثناء التحميل. تم منع الحفظ؛ اضغط تحديث لإعادة تحميل البيانات كاملة.';
-    if(/42501|permission denied|row-level security|P3_PERMISSION_DENIED/i.test(message)) return 'غير مسموح بإدارة نموذج الصلاحيات الجديد. يلزم تسجيل الدخول بحساب Super Admin نشط.';
+    if(/42501|permission denied|row-level security|P3_PERMISSION_DENIED|P8_PERMISSION_ADMIN_DENIED/i.test(message)) return 'غير مسموح بإدارة نموذج الصلاحيات الجديد. يلزم حساب Admin أو Super Admin نشط.';
     if(/PGRST202|Could not find the function|does not exist|schema cache/i.test(message)) return 'ملفات قاعدة بيانات P3 غير مطبقة أو لم يتم تحديث Schema Cache بعد.';
     if(/23505|duplicate key|unique constraint/i.test(message)) return 'المفتاح أو الاسم مستخدم بالفعل. استخدم قيمة مختلفة.';
     if(/ROLE_SYSTEM_PROTECTED/i.test(message)) return 'الدور النظامي محمي خلال الهجرة المرحلية ولا يمكن تعديله أو حذفه.';
@@ -197,7 +198,10 @@
     tbody.innerHTML=state.bundles.map(bundle=>{
       const permissionCount=(state.bundleItems.get(bundle.id)||[]).length;
       const roleCount=state.bundleRoleCounts.get(bundle.id)||0;
-      return `<tr><td><b>${safeHtml(bundle.bundle_name)}</b>${bundle.description?`<small class="permission-settings-row-note">${safeHtml(bundle.description)}</small>`:''}</td><td><div class="permission-settings-scope-list">${bundlePlantLabel(bundle)}</div></td><td><span class="permission-settings-count-badge">${permissionCount}</span></td><td><span class="permission-settings-count-badge${roleCount?' has-links':''}">${roleCount}</span></td><td><span class="status-badge ${bundle.is_active?'status-active':'status-inactive'}">${bundle.is_active?'نشطة':'غير نشطة'}</span></td><td><div class="actions-cell"><button class="small-action edit" type="button" data-permission-bundle-action="edit" data-bundle-id="${safeHtml(bundle.id)}">تعديل</button><button class="small-action delete" type="button" data-permission-bundle-action="delete" data-bundle-id="${safeHtml(bundle.id)}">حذف</button></div></td></tr>`;
+      const actions=isLegacyBaselineBundle(bundle)
+        ? '<span class="permission-settings-protected">محمي — خط أساس P5</span>'
+        : `<div class="actions-cell"><button class="small-action edit" type="button" data-permission-bundle-action="edit" data-bundle-id="${safeHtml(bundle.id)}">تعديل</button><button class="small-action delete" type="button" data-permission-bundle-action="delete" data-bundle-id="${safeHtml(bundle.id)}">حذف</button></div>`;
+      return `<tr><td><b>${safeHtml(bundle.bundle_name)}</b>${bundle.description?`<small class="permission-settings-row-note">${safeHtml(bundle.description)}</small>`:''}</td><td><div class="permission-settings-scope-list">${bundlePlantLabel(bundle)}</div></td><td><span class="permission-settings-count-badge">${permissionCount}</span></td><td><span class="permission-settings-count-badge${roleCount?' has-links':''}">${roleCount}</span></td><td><span class="status-badge ${bundle.is_active?'status-active':'status-inactive'}">${bundle.is_active?'نشطة':'غير نشطة'}</span></td><td>${actions}</td></tr>`;
     }).join('');
   }
 
@@ -253,8 +257,8 @@
     if(!q('#permissionSettingsShell')) return false;
     syncManagementActionAccess();
     if(!isAuthorized()){
-      setStatus('#permissionRoleStatus','هذا التبويب متاح لـSuper Admin فقط.','err');
-      setStatus('#permissionBundleStatus','هذا التبويب متاح لـSuper Admin فقط.','err');
+      setStatus('#permissionRoleStatus','هذا التبويب متاح لـAdmin وSuper Admin فقط.','err');
+      setStatus('#permissionBundleStatus','هذا التبويب متاح لـAdmin وSuper Admin فقط.','err');
       return false;
     }
     if(state.loadingPromise) return state.loadingPromise;
@@ -456,6 +460,7 @@
     if(!hasCompleteData()){ setStatus('#permissionBundleStatus','أعد تحميل الصلاحيات كاملة قبل التعديل.','err'); return; }
     const bundle=state.bundles.find(item=>String(item.id)===String(bundleId));
     if(!bundle){ setStatus('#permissionBundleStatus','تعذر العثور على الحزمة. اضغط تحديث.','err'); return; }
+    if(isLegacyBaselineBundle(bundle)){ setStatus('#permissionBundleStatus','حزمة خط أساس P5 محمية ولا يمكن تعديلها.','err'); return; }
     editBundle(bundle);
   }
 
@@ -495,6 +500,7 @@
     if(!hasCompleteData()){ setStatus('#permissionBundleStatus','أعد تحميل الصلاحيات كاملة قبل الحذف.','err'); return; }
     const bundle=state.bundles.find(item=>String(item.id)===String(bundleId));
     if(!bundle){ setStatus('#permissionBundleStatus','تعذر العثور على الحزمة. اضغط تحديث.','err'); return; }
+    if(isLegacyBaselineBundle(bundle)){ setStatus('#permissionBundleStatus','حزمة خط أساس P5 محمية ولا يمكن حذفها.','err'); return; }
     const roleCount=state.bundleRoleCounts.get(bundle.id)||0;
     const message=roleCount
       ? `الحزمة «${bundle.bundle_name}» مرتبطة بعدد ${roleCount} من الأدوار. سيؤدي الحذف إلى إزالة هذه الروابط داخل عملية واحدة. ستتغير صلاحيات واجهة الأدوار المرتبطة بهذه الحزمة عند تحديث صلاحيات الحساب.`

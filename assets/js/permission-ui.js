@@ -7,7 +7,9 @@
   const nodes = registry.nodes;
   const q = selector => doc.querySelector(selector);
   const all = selector => [...doc.querySelectorAll(selector)];
-  const globalKey = key => /^(users|permissions|settings)(\.|$)/.test(key);
+  // Only account-wide navigation and user/permission administration are global.
+  // Plant-scoped settings must be evaluated against the plant selected in the UI.
+  const globalKey = key => /^(users|permissions)(\.|$)/.test(key) || /^settings\.(profile|account|system|plants|warehouses|permission_settings|activity_log)(\.|$)/.test(key);
   const reportKey = () => 'reports.' + ((q('[data-report-tab].active')?.dataset.reportTab || 'executive').replace('salesTotals', 'sales_totals')) + '.view';
   const values = id => typeof globalScope.enterpriseSelectValues === 'function' ? globalScope.enterpriseSelectValues(id) : q('#' + id)?.value || 'all';
   function fixedPlant(key, element) {
@@ -40,6 +42,9 @@
     }
     if (key.startsWith('department_personnel.hr_reports.')) return runtime.scope('department_personnel.hr_reports.'+(q('[data-department-hr-tab].active')?.dataset.departmentHrTab || 'cumulative_department_evaluation')+'.view', q('#departmentHrPlantFilter')?.value || 'all');
     if (key.startsWith('department_personnel.storekeepers.')) return runtime.scope('department_personnel.storekeepers.view', q('#departmentStorekeepersPlantFilter')?.value || 'all');
+    if (key.startsWith('settings.sales_products.warehouses.')) return runtime.allowedPlants('settings.sales_products.warehouses.assign');
+    if (key.startsWith('settings.storekeepers.')) return runtime.scope('settings.storekeepers.view', q('#storekeepersPlantFilter')?.value || 'all');
+    if (key.startsWith('settings.department_personnel.')) return runtime.allowedPlants('settings.department_personnel.view');
     return runtime.plantCodes();
   }
   function allowed(node, element) {

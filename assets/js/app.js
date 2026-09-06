@@ -4841,9 +4841,10 @@ function canViewGeneralSettingsTab(key){
 }
 function canViewSettingsTab(key){
   if(key==='general') return Object.keys(GENERAL_SETTINGS_TAB_PERMISSION_MAP).some(canViewGeneralSettingsTab);
-  if(key==='permission-settings') return isSuperAdmin() && window.PermissionRuntime.any('settings.permission_settings.view');
-  if(key==='department-personnel') return window.PermissionRuntime?.can('settings.department_personnel.view') === true;
+  if(key==='permission-settings') return (isSuperAdmin() || window.PermissionRuntime?.isAdmin?.()) && window.PermissionRuntime.any('settings.permission_settings.view');
+  if(key==='department-personnel') return window.PermissionRuntime?.any('settings.department_personnel.view') === true;
   if(key==='department-status-codes') return window.PermissionRuntime?.can('settings.department_status_codes.view') === true;
+  if(['sales-products-settings','storekeepers'].includes(key)) return window.PermissionRuntime?.any(SETTINGS_TAB_PERMISSION_MAP[key] ? PERMISSION_SECTION_KEYS[SETTINGS_TAB_PERMISSION_MAP[key]]+'.view' : 'settings.'+key+'.view') === true;
   return hasPermission(SETTINGS_TAB_PERMISSION_MAP[key]||'settings','view');
 }
 function syncGeneralSettingsTabs(){
@@ -5673,7 +5674,7 @@ async function fetchSalesProductSettingsRowDirect(materialCode){
     .eq('material_code',materialCode);
 }
 async function loadSalesProductsSettings(){
-  if(!window.PermissionRuntime?.can('settings.sales_products.view')) return;
+  if(!window.PermissionRuntime?.any('settings.sales_products.view')) return;
   if(!WarehouseDB?.ready || !CURRENT_AUTH_USER?.id) return;
   setSalesProductsSettingsStatus('\u062C\u0627\u0631\u064A \u062A\u062D\u0645\u064A\u0644 \u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0635\u0646\u0627\u0641 \u0627\u0644\u0628\u064A\u0639...');
   try{
@@ -6329,7 +6330,8 @@ function hasPermission(section, action='view'){
   const base=permissionKeyForSection(section);
   if(!base) return false;
   if(action==='view'){
-    if(base==='settings.sales_products.warehouses') return window.PermissionRuntime?.can('settings.sales_products.view') === true;
+    if(base==='settings.sales_products.warehouses') return window.PermissionRuntime?.any('settings.sales_products.view') === true;
+    if(['settings.profile','settings.account','settings.system','settings.sales_products','settings.storekeepers','settings.department_personnel'].includes(base)) return window.PermissionRuntime?.any(base+'.view') === true;
     return (/^(users|permissions|settings)(\.|$)/.test(base) ? window.PermissionRuntime?.can(base+'.view') : window.PermissionRuntime?.any(base+'.view')) === true;
   }
   const special={
@@ -6342,7 +6344,7 @@ function hasPermission(section, action='view'){
 }
 function canViewSection(section){
   const key=permissionKeyForSection(section);
-  return Boolean(key && (['users','permissions','settings'].includes(section) ? window.PermissionRuntime?.can(key+'.view') : window.PermissionRuntime?.any(key+'.view')));
+  return Boolean(key && (section==='settings' ? window.PermissionRuntime?.any(key+'.view') : (['users','permissions'].includes(section) ? window.PermissionRuntime?.can(key+'.view') : window.PermissionRuntime?.any(key+'.view'))));
 }
 function showPermissionDenied(section){
   const label=PERMISSION_SCREENS.find(x=>x.key===section)?.label || section;
@@ -13409,6 +13411,7 @@ async function openDefaultInventoryCountFromUi(options={}){
     const select=$('#inventoryCountPlantSelect');
     const plants=window.PermissionRuntime.allowedPlants('inventory.count.view');
     if(select && !plants.includes(select.value)) {select.value=plants[0];syncInventoryCountWarehouse();}
+    return openExistingInventoryCountFromUi(options);
   }
   closeInventoryReviewRecommendationsModal({restoreFocus:false});
   clearInventoryCountSettlementContext();
@@ -13434,8 +13437,7 @@ async function openDefaultInventoryCountFromUi(options={}){
   inventoryCountSetStatus('جاري تحميل آخر جرد...');
   inventoryCountUpdateCreateButton();
   try{
-    const {plantCode}=inventoryCountReadInputs();
-    const {data,error}=await WarehouseDB.client.rpc('get_default_inventory_count_for_plant',{p_plant_code:plantCode});
+    const {data,error}=await WarehouseDB.client.rpc('get_default_inventory_count');
     if(error) throw error;
     if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
     const status=data?.status || '';
@@ -15427,7 +15429,7 @@ function initInventoryCountScreen(){
       clearInventoryCountSettlementContext();
       syncInventoryCountWarehouse();
       persistInventoryCountViewState();
-      openDefaultInventoryCountFromUi({showLoading:true});
+      scheduleInventoryCountOpen();
     });
   }
   if(warehouseSelect && warehouseSelect.dataset.inventoryCountOpenBound!=='1'){
@@ -16188,7 +16190,7 @@ async function ensureStorekeepersLoaded() {
 }
 
 async function loadStorekeepersTable() {
-  if(!window.PermissionRuntime?.can('settings.storekeepers.view')) return;
+  if(!window.PermissionRuntime?.any('settings.storekeepers.view')) return;
   const tbody = document.querySelector('#storekeepersSettingsTable tbody');
   if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">جاري التحميل...</td></tr>';
@@ -16779,7 +16781,7 @@ function renderDepartmentPersonnelTable(rows=[]){
   applyDepartmentPersonnelPermissions();
 }
 async function loadDepartmentPersonnelTable(options={}){
-  if(!window.PermissionRuntime?.can('settings.department_personnel.view')) return;
+  if(!window.PermissionRuntime?.any('settings.department_personnel.view')) return;
   const tbody=$('#departmentPersonnelTable tbody');
   if(!tbody) return false;
   if(!WarehouseDB?.ready){
