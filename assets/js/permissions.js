@@ -1,9 +1,9 @@
 (function permissionRuntimeFactory(globalScope) {
   'use strict';
 
-  // P7 is the only frontend grant owner. No local storage, legacy defaults,
+  // This remains the only frontend grant owner; P8 enforces the same grants on the server. No local storage, legacy defaults,
   // per-control RPCs, or fallback to an earlier user's grants.
-  const PHASE = 'P7_FRONTEND_ENFORCEMENT';
+  const PHASE = 'P8_BACKEND_ENFORCEMENT';
   const RPC = 'app_permission_p7_resolve_current_user';
   const registry = globalScope.AuditPermissionRegistry;
   const nodes = new Map((registry?.nodes || []).map(node => [node.key, node]));
@@ -33,33 +33,33 @@
   function normalize(raw, userId) {
     const payload = Array.isArray(raw) && raw.length === 1 ? raw[0] : raw;
     const fail = code => { throw new Error(code); };
-    if (!payload || payload.phase !== PHASE || payload.contract_version !== 1) fail('P7_INVALID_CONTRACT');
-    if (payload.resolved_user_id !== userId) fail('P7_USER_MISMATCH');
-    if (payload.status !== 'READY' || payload.resolver_ready !== true) fail('P7_' + (payload.status || 'NOT_READY'));
-    if (payload.role_source !== 'NEW_USER_ROLE') fail('P7_USER_ROLE_REQUIRED');
-    if (payload.read_only_resolution !== true || payload.backend_enforcement !== 'LEGACY_UNCHANGED') fail('P7_INVALID_CONTRACT');
-    if (typeof payload.is_super_admin !== 'boolean' || !payload.role_key || !Number.isInteger(payload.assigned_bundle_count) || payload.assigned_bundle_count < 1) fail('P7_INVALID_ROLE');
-    if (payload.is_super_admin && (payload.role_key !== 'super_admin' || payload.legacy_role_key !== 'super_admin')) fail('P7_INVALID_SUPER_ADMIN');
-    if (!nodes.size || nodes.size !== 378 || !Array.isArray(payload.registry) || payload.registry.length !== nodes.size) fail('P7_REGISTRY_MISMATCH');
+    if (!payload || payload.phase !== PHASE || payload.contract_version !== 2) fail('P8_INVALID_CONTRACT');
+    if (payload.resolved_user_id !== userId) fail('P8_USER_MISMATCH');
+    if (payload.status !== 'READY' || payload.resolver_ready !== true) fail('P8_' + (payload.status || 'NOT_READY'));
+    if (payload.role_source !== 'NEW_USER_ROLE') fail('P8_USER_ROLE_REQUIRED');
+    if (payload.read_only_resolution !== true || payload.backend_enforcement !== 'BUNDLES_PLANT_SCOPED') fail('P8_INVALID_CONTRACT');
+    if (typeof payload.is_super_admin !== 'boolean' || !payload.role_key || !Number.isInteger(payload.assigned_bundle_count) || payload.assigned_bundle_count < 1) fail('P8_INVALID_ROLE');
+    if (payload.is_super_admin && (payload.role_key !== 'super_admin' || payload.legacy_role_key !== 'super_admin')) fail('P8_INVALID_SUPER_ADMIN');
+    if (!nodes.size || nodes.size !== 378 || !Array.isArray(payload.registry) || payload.registry.length !== nodes.size) fail('P8_REGISTRY_MISMATCH');
     const seenKeys = new Set();
     for (const entry of payload.registry) {
       const node = nodes.get(entry.permission_key);
-      if (!node || seenKeys.has(node.key) || (entry.parent_key || null) !== node.parent) fail('P7_REGISTRY_MISMATCH');
+      if (!node || seenKeys.has(node.key) || (entry.parent_key || null) !== node.parent) fail('P8_REGISTRY_MISMATCH');
       seenKeys.add(node.key);
     }
-    if (!Array.isArray(payload.plants) || !payload.plants.length || payload.active_plant_count !== payload.plants.length) fail('P7_INCOMPLETE_PLANTS');
+    if (!Array.isArray(payload.plants) || !payload.plants.length || payload.active_plant_count !== payload.plants.length) fail('P8_INCOMPLETE_PLANTS');
     const resolved = new Map();
     for (const plant of payload.plants) {
       const code = plant.plant_code;
-      if (typeof code !== 'string' || !/^[A-Z0-9_-]+$/.test(code) || resolved.has(code)) fail('P7_INVALID_PLANT');
-      if (!Array.isArray(plant.permissions) || plant.permission_count !== plant.permissions.length) fail('P7_INCOMPLETE_PERMISSIONS');
+      if (typeof code !== 'string' || !/^[A-Z0-9_-]+$/.test(code) || resolved.has(code)) fail('P8_INVALID_PLANT');
+      if (!Array.isArray(plant.permissions) || plant.permission_count !== plant.permissions.length) fail('P8_INCOMPLETE_PERMISSIONS');
       const keys = new Set(plant.permissions);
-      if (keys.size !== plant.permission_count) fail('P7_DUPLICATE_PERMISSIONS');
+      if (keys.size !== plant.permission_count) fail('P8_DUPLICATE_PERMISSIONS');
       for (const key of keys) {
         const node = nodes.get(key);
-        if (!node || (node.parent && !keys.has(node.parent))) fail('P7_INVALID_PERMISSION_TREE');
+        if (!node || (node.parent && !keys.has(node.parent))) fail('P8_INVALID_PERMISSION_TREE');
       }
-      if (payload.is_super_admin && keys.size !== nodes.size) fail('P7_INCOMPLETE_SUPER_ADMIN');
+      if (payload.is_super_admin && keys.size !== nodes.size) fail('P8_INCOMPLETE_SUPER_ADMIN');
       resolved.set(code, keys);
     }
     return { payload: clone(payload), resolved };
@@ -71,7 +71,7 @@
     clear('LOADING', userId, reason);
     const promise = Promise.resolve().then(async () => {
       try {
-        if (!globalScope.WarehouseDB?.ready) throw new Error('P7_DATABASE_UNAVAILABLE');
+        if (!globalScope.WarehouseDB?.ready) throw new Error('P8_DATABASE_UNAVAILABLE');
         const { data, error } = await globalScope.WarehouseDB.client.rpc(RPC);
         if (request !== generation) return false;
         if (error) throw error;
@@ -81,7 +81,7 @@
         publish();
         return true;
       } catch (error) {
-        if (request === generation) clear('ERROR', userId, reason, String(error?.message || 'P7_LOAD_FAILED'));
+        if (request === generation) clear('ERROR', userId, reason, String(error?.message || 'P8_LOAD_FAILED'));
         return false;
       } finally {
         if (request === generation) pending = null;
@@ -125,7 +125,7 @@
   }
   function getSnapshot() {
     return clone({ ...state, frontend_enforcement: 'BUNDLES', new_enforcement_enabled: true,
-      permission_cutover_started: true, backend_enforcement: 'LEGACY_UNCHANGED', persisted_grants: false });
+      permission_cutover_started: true, backend_enforcement: state.payload?.backend_enforcement || 'UNVERIFIED', persisted_grants: false });
   }
   Object.defineProperty(globalScope, 'PermissionRuntime', { configurable: false, writable: false, value: Object.freeze({
     phase: PHASE, enforcementEnabled: true, refresh, reset, can, any, scope, allowedPlants, plantCodes, getSnapshot,
