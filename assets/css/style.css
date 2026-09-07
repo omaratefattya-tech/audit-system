@@ -7834,6 +7834,37 @@ body.focus-mode-active .inventory-count-post-close-modal{
 .department-evaluation-details div{min-width:0;padding:10px;border:1px solid rgba(141,220,89,.15);border-radius:11px;background:rgba(0,28,22,.52)}
 .department-evaluation-details dt{margin-bottom:4px;color:#aeea9a;font-size:11px;font-weight:800}
 .department-evaluation-details dd{margin:0;overflow-wrap:anywhere;font-weight:900}
+.department-evaluation-score-edit{
+  width:100%;
+  min-height:42px;
+  box-sizing:border-box;
+  padding:7px 9px;
+  border:1px solid rgba(141,220,89,.42);
+  border-radius:9px;
+  background:rgba(0,24,20,.86);
+  color:#fff;
+  font:900 15px/1.2 inherit;
+  text-align:center;
+  direction:ltr;
+  outline:none;
+}
+.department-evaluation-score-edit:focus-visible{border-color:#9be650;box-shadow:0 0 0 3px rgba(155,230,80,.17)}
+.department-evaluation-delete-reason{margin-top:14px}
+.department-evaluation-delete-warning{
+  margin-top:12px;
+  padding:10px 12px;
+  border:1px solid rgba(255,94,94,.42);
+  border-radius:12px;
+  background:rgba(120,25,25,.22);
+  color:#ffd8d8;
+  font-weight:800;
+  line-height:1.7;
+}
+.department-weekly-conflict-list{display:grid;gap:10px;max-height:52vh;overflow:auto;padding-inline-end:2px}
+.department-weekly-conflict-card{padding:12px;border:1px solid rgba(255,195,91,.34);border-radius:14px;background:rgba(65,46,8,.18)}
+.department-weekly-conflict-card .department-evaluation-details{margin-bottom:9px}
+.department-weekly-conflict-card p{margin:0;color:#ffe5af;font-weight:800;line-height:1.75}
+.department-weekly-conflict-question{margin:14px 0 0;padding:10px 12px;border-radius:12px;background:rgba(141,220,89,.09);color:#eaffdf;font-weight:900;line-height:1.8}
 .department-evaluation-reason-label{display:grid;gap:7px;color:#eaffdf;font-weight:900}
 .department-evaluation-reason-label textarea{
   width:100%;

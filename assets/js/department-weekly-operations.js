@@ -122,7 +122,8 @@
       weekStart:isBetween(today,range.from,range.to)?fridayStart(today):fridayStart(range.from),
       activeTab:WEEKLY_TABS[0].key,requestToken:0,initialized:false,loading:false,saving:false,
       personnel:[],records:[],statusCodes:[],blockingStatuses:new Map(),evaluatorNames:new Map(),
-      baseline:new Map(),dirty:new Map(),invalid:new Set(),sortKey:'full_name',sortDirection:'asc',modalDraft:null
+      baseline:new Map(),dirty:new Map(),invalid:new Set(),sortKey:'full_name',sortDirection:'asc',
+      modalDraft:null,conflictResolver:null
     };
   }
   function weeklyPermissionBase(state){ return state.kind==='evaluations'?'department_personnel.evaluations':'department_personnel.weekly_leave'; }
@@ -236,6 +237,7 @@
   }
   function weeklyErrorMessage(error,kind){
     const message=String(error?.message||error||'').trim();
+    if(error?.code==='40001' && /التقييم/.test(message)) return message;
     if(error?.code==='40001' || /مستخدم آخر|أعد تحميل/i.test(message)) return 'تغيرت إحدى الخلايا بواسطة مستخدم آخر. احتفظنا بتعديلاتك؛ أعد تحميل الأسبوع ثم راجعها.';
     if(error?.code==='42501' || /row-level security|permission denied|غير مسموح/i.test(message)) return 'غير مسموح بالقراءة أو الحفظ حسب صلاحية التقارير الحالية.';
     if(error?.code==='22023') return message;
@@ -243,16 +245,92 @@
     return message ? 'تعذر '+(kind==='save'?'الحفظ: ':'تحميل البيانات: ')+message : 'تعذر الاتصال بـSupabase.';
   }
 
+  function statusCodeDatalistId(state){return 'departmentWeeklyStatusCodes-'+String(state.rootId||'statuses').replace(/[^A-Za-z0-9_-]/g,'-');}
+  function renderStatusCodeDatalist(state){
+    if(state.kind!=='statuses') return;
+    const list=weeklyRoot(state)?.querySelector('[data-weekly-status-code-list]');
+    if(!list) return;
+    list.innerHTML=state.statusCodes.filter(row=>row.is_active).map(row=>{
+      const code=String(row.shift_code||'').trim();
+      const description=String(row.description||'').trim();
+      return '<option value="'+escapeHtml(code)+'" label="'+escapeHtml(description)+'">'+escapeHtml(description)+'</option>';
+    }).join('');
+  }
+  function savedEvaluationPermission(state,record,action){
+    if(state.kind!=='evaluations' || !record) return false;
+    const person=personForState(state,record.personnel_id);
+    const plant=String(person?.plant_code||currentTab(state)?.plantCode||'');
+    if(!plant || !canViewWeeklyTab(state,currentTab(state))) return false;
+    return window.PermissionRuntime?.can('department_personnel.evaluations.saved.'+action,plant)===true;
+  }
+  function weeklyConflictKey(conflict){return cellKey(conflict?.personnel_id,conflict?.work_date);}
+  function closeWeeklyConflictModal(state,decision=false){
+    const modal=weeklyRoot(state)?.querySelector('[data-weekly-conflict-modal]');
+    if(modal) modal.hidden=true;
+    document.body.classList.remove('modal-open');
+    const resolver=state.conflictResolver;
+    state.conflictResolver=null;
+    if(typeof resolver==='function') resolver(Boolean(decision));
+  }
+  function confirmWeeklyEvaluationConflicts(state,conflicts){
+    const modal=weeklyRoot(state)?.querySelector('[data-weekly-conflict-modal]');
+    const list=modal?.querySelector('[data-weekly-conflict-list]');
+    const question=modal?.querySelector('[data-weekly-conflict-question]');
+    if(!modal || !list || !Array.isArray(conflicts) || !conflicts.length) return Promise.resolve(true);
+    list.innerHTML=conflicts.map(conflict=>{
+      const code=String(conflict.employee_code||'—');
+      const workDate=String(conflict.work_date||'');
+      const shiftCode=String(conflict.shift_code||'—');
+      const shiftDescription=String(conflict.shift_description||'—');
+      return '<div class="department-weekly-conflict-card">'
+        +'<dl class="department-evaluation-details">'
+        +'<div><dt>كود الموظف</dt><dd dir="ltr">'+escapeHtml(code)+'</dd></div>'
+        +'<div><dt>اليوم والتاريخ</dt><dd>'+escapeHtml(dayAndDateLabel(workDate))+'</dd></div>'
+        +'<div><dt>الكود المطلوب</dt><dd dir="ltr">'+escapeHtml(shiftCode)+'</dd></div>'
+        +'<div><dt>وصف الحالة</dt><dd>'+escapeHtml(shiftDescription)+'</dd></div>'
+        +'</dl><p><strong>سبب عدم الحفظ:</strong> يوجد تقييم محفوظ لهذا الموظف في هذا اليوم، ولا يمكن تسجيل هذه الحالة مع وجود التقييم.</p>'
+        +'</div>';
+    }).join('');
+    if(question) question.textContent=conflicts.length===1
+      ?'هل تريد مواصلة الحفظ مع حذف وردية هذا التاريخ من عملية الحفظ؟'
+      :'هل تريد مواصلة الحفظ مع حذف ورديات هذه التواريخ من عملية الحفظ؟';
+    modal.hidden=false;
+    document.body.classList.add('modal-open');
+    return new Promise(resolve=>{state.conflictResolver=resolve;});
+  }
+
   function renderWeeklyShell(state){
     const root=weeklyRoot(state);
     if(!root || state.initialized) return;
     const saveAction=state.kind==='statuses'?'<button class="primary" type="button" data-weekly-action="save">حفظ الأسبوع</button>':'';
+    const statusCodeList=state.kind==='statuses'
+      ?'<datalist id="'+statusCodeDatalistId(state)+'" data-weekly-status-code-list></datalist>'
+      :'';
+    const statusConflictModal=state.kind==='statuses'
+      ?'<div class="department-evaluation-modal" data-weekly-conflict-modal hidden><div class="department-evaluation-dialog" role="dialog" aria-modal="true" aria-labelledby="departmentWeeklyConflictTitle">'
+        +'<div class="department-evaluation-modal-head"><h3 id="departmentWeeklyConflictTitle">تعارض مع تقييم محفوظ</h3><button type="button" class="department-evaluation-close" data-weekly-conflict-action="cancel" aria-label="إغلاق">×</button></div>'
+        +'<div class="department-weekly-conflict-list" data-weekly-conflict-list></div>'
+        +'<p class="department-weekly-conflict-question" data-weekly-conflict-question></p>'
+        +'<div class="department-evaluation-modal-actions"><button type="button" class="secondary" data-weekly-conflict-action="cancel">إلغاء</button><button type="button" class="primary" data-weekly-conflict-action="continue">مواصلة الحفظ</button></div>'
+        +'</div></div>'
+      :'';
     const evaluationModal=state.kind==='evaluations'
       ?'<div class="department-evaluation-modal" data-evaluation-modal hidden><div class="department-evaluation-dialog" role="dialog" aria-modal="true" aria-labelledby="departmentEvaluationModalTitle">'
         +'<div class="department-evaluation-modal-head"><h3 id="departmentEvaluationModalTitle" data-evaluation-modal-title>حفظ التقييم</h3><button type="button" class="department-evaluation-close" data-evaluation-modal-action="close" aria-label="إغلاق">×</button></div>'
-        +'<dl class="department-evaluation-details"><div><dt>الموظف</dt><dd data-evaluation-detail="name">—</dd></div><div><dt>الكود الوظيفي</dt><dd dir="ltr" data-evaluation-detail="code">—</dd></div><div><dt>الوظيفة</dt><dd data-evaluation-detail="job">—</dd></div><div><dt>اليوم والتاريخ</dt><dd data-evaluation-detail="date">—</dd></div><div><dt>التقييم</dt><dd data-evaluation-detail="score">—</dd></div><div data-evaluation-saved-meta hidden><dt>الحفظ</dt><dd data-evaluation-detail="saved">—</dd></div></dl>'
+        +'<dl class="department-evaluation-details"><div><dt>الموظف</dt><dd data-evaluation-detail="name">—</dd></div><div><dt>الكود الوظيفي</dt><dd dir="ltr" data-evaluation-detail="code">—</dd></div><div><dt>الوظيفة</dt><dd data-evaluation-detail="job">—</dd></div><div><dt>اليوم والتاريخ</dt><dd data-evaluation-detail="date">—</dd></div><div><dt>التقييم</dt><dd><span data-evaluation-detail="score">—</span><input type="text" inputmode="decimal" autocomplete="off" class="department-evaluation-score-edit" data-evaluation-score-edit hidden aria-label="التقييم من 0 إلى 10"></dd></div><div data-evaluation-saved-meta hidden><dt>الحفظ</dt><dd data-evaluation-detail="saved">—</dd></div></dl>'
         +'<label class="department-evaluation-reason-label">سبب التقييم<textarea rows="4" maxlength="1000" data-evaluation-reason placeholder="اكتب سبب التقييم"></textarea></label>'
-        +'<div class="upload-status" data-evaluation-modal-status aria-live="polite"></div><div class="department-evaluation-modal-actions"><button type="button" class="secondary" data-evaluation-modal-action="cancel">إلغاء</button><button type="button" class="primary" data-evaluation-modal-action="save">حفظ التقييم</button><button type="button" class="primary" data-evaluation-modal-action="close" hidden>إغلاق</button></div>'
+        +'<label class="department-evaluation-reason-label department-evaluation-delete-reason" data-evaluation-delete-reason-wrap hidden>سبب حذف التقييم<textarea rows="4" maxlength="1000" data-evaluation-delete-reason placeholder="اكتب سبب حذف التقييم"></textarea></label>'
+        +'<div class="department-evaluation-delete-warning" data-evaluation-delete-warning hidden>سيتم حذف التقييم نهائيًا. بعد الحذف يمكن تسجيل راحة أو إجازة أو حالة أخرى لهذا اليوم.</div>'
+        +'<div class="upload-status" data-evaluation-modal-status aria-live="polite"></div><div class="department-evaluation-modal-actions">'
+        +'<button type="button" class="secondary" data-evaluation-modal-action="cancel">إلغاء</button>'
+        +'<button type="button" class="primary" data-evaluation-modal-action="save">حفظ التقييم</button>'
+        +'<button type="button" class="secondary" data-evaluation-modal-action="edit" hidden>تعديل</button>'
+        +'<button type="button" class="danger-btn" data-evaluation-modal-action="delete" hidden>حذف التقييم</button>'
+        +'<button type="button" class="secondary" data-evaluation-modal-action="edit-cancel" hidden>إلغاء التعديل</button>'
+        +'<button type="button" class="primary" data-evaluation-modal-action="edit-save" hidden>حفظ التعديل</button>'
+        +'<button type="button" class="secondary" data-evaluation-modal-action="delete-cancel" hidden>إلغاء الحذف</button>'
+        +'<button type="button" class="danger-btn" data-evaluation-modal-action="delete-confirm" hidden>تأكيد الحذف النهائي</button>'
+        +'<button type="button" class="primary" data-evaluation-modal-action="close" hidden>إغلاق</button></div>'
         +'</div></div>'
       :'';
     root.innerHTML=''
@@ -270,10 +348,10 @@
       +'<div class="department-weekly-actions"><button class="secondary" type="button" data-weekly-action="retry" hidden>إعادة المحاولة</button>'+saveAction+'</div>'
       +'</div>'
       +'<div class="department-admin-alert" data-weekly-codes-alert hidden></div>'
-      +'<div class="department-weekly-help hint" data-weekly-help>'+(state.kind==='statuses'?'اكتب كود الوردية أو الإجازة داخل الخلية.':'كل تقييم صحيح يُحفظ منفردًا بعد إدخال سبب إجباري، ثم يُقفل نهائيًا.')+'</div>'
+      +'<div class="department-weekly-help hint" data-weekly-help>'+(state.kind==='statuses'?'اكتب كود الوردية أو الإجازة داخل الخلية أو اختره من القائمة.':'كل تقييم صحيح يُحفظ منفردًا بعد إدخال سبب إجباري.')+'</div>'
       +'<div class="upload-status" data-weekly-status aria-live="polite"></div>'
       +'<div class="table-wrap department-weekly-table-wrap"><table class="department-weekly-table" data-no-universal-table="1"><thead></thead><tbody><tr><td class="empty-row">يتم تحميل البيانات عند فتح الشاشة.</td></tr></tbody></table></div>'
-      +evaluationModal;
+      +statusCodeList+statusConflictModal+evaluationModal;
     state.initialized=true;
     root.addEventListener('click',event=>handleWeeklyClick(state,event));
     root.addEventListener('change',event=>handleWeeklyRangeChange(state,event));
@@ -333,9 +411,20 @@
   }
 
   async function handleWeeklyClick(state,event){
+    const conflictAction=event.target.closest('[data-weekly-conflict-action]')?.dataset.weeklyConflictAction;
+    if(conflictAction){
+      closeWeeklyConflictModal(state,conflictAction==='continue');
+      return;
+    }
     const modalAction=event.target.closest('[data-evaluation-modal-action]')?.dataset.evaluationModalAction;
     if(modalAction){
       if(modalAction==='save') await saveSingleEvaluation(state);
+      else if(modalAction==='edit') openSavedEvaluationEditMode(state);
+      else if(modalAction==='edit-cancel') restoreSavedEvaluationView(state);
+      else if(modalAction==='edit-save') await saveEditedEvaluation(state);
+      else if(modalAction==='delete') openSavedEvaluationDeleteMode(state);
+      else if(modalAction==='delete-cancel') restoreSavedEvaluationView(state);
+      else if(modalAction==='delete-confirm') await deleteSavedEvaluation(state);
       else closeEvaluationModal(state,modalAction==='cancel' || state.modalDraft?.mode==='new');
       return;
     }
@@ -467,7 +556,7 @@
     const display=invalid?'<span class="department-status-invalid-value">'+escapeHtml(value||'—')+'</span>':statusVisual(description,value,color);
     return '<td class="'+classes.join(' ')+'" data-cell-date="'+date+'" data-weekly-cell-container>'
       +'<button type="button" class="department-status-cell-display" data-status-cell-display '+(disabled?'disabled':'')+'>'+display+'</button>'
-      +'<input type="text" autocomplete="off" class="department-weekly-input department-status-code-input" data-weekly-cell data-personnel-id="'+escapeHtml(person.id||'')+'" data-date="'+date+'" value="'+escapeHtml(value)+'" title="'+escapeHtml(description||'أدخل كودًا فعالًا')+'" '+(disabled?'disabled':'')+'>'
+      +'<input type="text" autocomplete="off" list="'+statusCodeDatalistId(state)+'" class="department-weekly-input department-status-code-input" data-weekly-cell data-personnel-id="'+escapeHtml(person.id||'')+'" data-date="'+date+'" value="'+escapeHtml(value)+'" title="'+escapeHtml(description||'اكتب الكود أو اختره من القائمة')+'" '+(disabled?'disabled':'')+'>'
       +'</td>';
   }
   function renderEvaluationCell(state,person,date,inRange,editable){
@@ -478,7 +567,7 @@
     if(!inRange) classes.push('outside-range');
     if(baseline){
       classes.push('locked');
-      return '<td class="'+classes.join(' ')+'" data-cell-date="'+date+'"><button type="button" class="department-locked-evaluation" data-evaluation-record-id="'+escapeHtml(baseline.recordId)+'" title="عرض التقييم النهائي وسببه"><strong>'+escapeHtml(baseline.value)+'</strong><span>/ 10</span><small>محفوظ نهائيًا 🔒</small></button></td>';
+      return '<td class="'+classes.join(' ')+'" data-cell-date="'+date+'"><button type="button" class="department-locked-evaluation" data-evaluation-record-id="'+escapeHtml(baseline.recordId)+'" title="عرض تفاصيل التقييم المحفوظ"><strong>'+escapeHtml(baseline.value)+'</strong><span>/ 10</span><small>محفوظ</small></button></td>';
     }
     if(blocked){
       classes.push('blocked');
@@ -602,6 +691,7 @@
       state.personnel=personnel;
       state.records=records;
       state.statusCodes=statusCodes;
+      renderStatusCodeDatalist(state);
       state.evaluatorNames=evaluatorNames;
       state.blockingStatuses=new Map(blockingStatuses.filter(row=>!row.is_voided).map(row=>[
         cellKey(row.personnel_id,row.work_date),
@@ -702,7 +792,7 @@
     const key=cellKey(input.dataset.personnelId,input.dataset.date);
     const result=validateWeeklyValue(state,key,String(input.value||'').trim());
     if(help) help.textContent=state.kind==='statuses'
-      ?(result.description?'وصف الكود: '+result.description:'أدخل كود وردية أو إجازة فعالًا، ثم احفظ الأسبوع.')
+      ?(result.description?'وصف الكود: '+result.description:'اكتب كود الوردية أو الإجازة أو اختره من القائمة، ثم احفظ الأسبوع.')
       :'التقييم يقبل القيم من 0 إلى 10 وبحد أقصى منزلتين عشريتين؛ سيُطلب سبب التقييم قبل الحفظ.';
   }
   function resetDraftCell(state,input){
@@ -777,15 +867,128 @@
     state.saving=Boolean(saving);
     const modal=weeklyRoot(state)?.querySelector('[data-evaluation-modal]');
     if(!modal) return;
-    const saveButton=modal.querySelector('[data-evaluation-modal-action="save"]');
-    if(saveButton){saveButton.disabled=state.saving;saveButton.textContent=state.saving?'جاري الحفظ...':'حفظ التقييم';}
-    modal.querySelectorAll('[data-evaluation-modal-action="cancel"],[data-evaluation-modal-action="close"]').forEach(button=>{button.disabled=state.saving;});
+    modal.querySelectorAll('[data-evaluation-modal-action]').forEach(button=>{button.disabled=state.saving;});
+    const labels={
+      save:['جاري الحفظ...','حفظ التقييم'],
+      'edit-save':['جاري الحفظ...','حفظ التعديل'],
+      'delete-confirm':['جاري الحذف...','تأكيد الحذف النهائي']
+    };
+    Object.entries(labels).forEach(([action,texts])=>{
+      const button=modal.querySelector('[data-evaluation-modal-action="'+action+'"]');
+      if(button) button.textContent=state.saving?texts[0]:texts[1];
+    });
   }
+  function setEvaluationActionVisible(modal,action,visible){
+    modal?.querySelectorAll('[data-evaluation-modal-action="'+action+'"]').forEach(button=>{button.hidden=!visible;});
+  }
+  function evaluationBaselineByRecordId(state,recordId){
+    return [...state.baseline.values()].find(item=>String(item.recordId)===String(recordId))||null;
+  }
+  function evaluationRecordForDraft(state){
+    const recordId=state.modalDraft?.recordId;
+    return recordId?evaluationBaselineByRecordId(state,recordId)?.record||null:null;
+  }
+  function setEvaluationScoreEditor(modal,editable,value){
+    const display=modal?.querySelector('[data-evaluation-detail="score"]');
+    const input=modal?.querySelector('[data-evaluation-score-edit]');
+    if(display){display.hidden=Boolean(editable);display.textContent=String(value)+' / 10';}
+    if(input){input.hidden=!editable;input.value=String(value??'');input.disabled=false;}
+  }
+  function configureSavedEvaluationView(state,record){
+    const modal=weeklyRoot(state)?.querySelector('[data-evaluation-modal]');
+    if(!modal || !record) return;
+    state.modalDraft={mode:'view',recordId:String(record.id)};
+    modal.querySelector('[data-evaluation-modal-title]').textContent='تفاصيل التقييم المحفوظ';
+    const person=personForState(state,record.personnel_id);
+    populateEvaluationModalDetails(state,person,record.evaluation_date,record.score);
+    setEvaluationScoreEditor(modal,false,record.score);
+    const reason=modal.querySelector('[data-evaluation-reason]');
+    if(reason){reason.readOnly=true;reason.value=String(record.reason||'');}
+    modal.querySelector('.department-evaluation-reason-label').hidden=false;
+    const deleteWrap=modal.querySelector('[data-evaluation-delete-reason-wrap]');
+    if(deleteWrap) deleteWrap.hidden=true;
+    const deleteReason=modal.querySelector('[data-evaluation-delete-reason]');
+    if(deleteReason) deleteReason.value='';
+    const warning=modal.querySelector('[data-evaluation-delete-warning]');
+    if(warning) warning.hidden=true;
+    const savedMeta=modal.querySelector('[data-evaluation-saved-meta]');
+    if(savedMeta) savedMeta.hidden=false;
+    const actorId=record.locked_by||record.created_by||'';
+    const actor=state.evaluatorNames.get(String(actorId)) || (actorId?'المستخدم '+actorId:'غير متاح');
+    const saved=modal.querySelector('[data-evaluation-detail="saved"]');
+    if(saved) saved.textContent=actor+' — '+formatSavedAt(record.locked_at||record.created_at);
+    setEvaluationActionVisible(modal,'save',false);
+    setEvaluationActionVisible(modal,'cancel',false);
+    setEvaluationActionVisible(modal,'edit',savedEvaluationPermission(state,record,'edit'));
+    setEvaluationActionVisible(modal,'delete',savedEvaluationPermission(state,record,'delete'));
+    setEvaluationActionVisible(modal,'edit-cancel',false);
+    setEvaluationActionVisible(modal,'edit-save',false);
+    setEvaluationActionVisible(modal,'delete-cancel',false);
+    setEvaluationActionVisible(modal,'delete-confirm',false);
+    setEvaluationActionVisible(modal,'close',true);
+    setEvaluationModalStatus(state,'');
+  }
+  function restoreSavedEvaluationView(state){
+    const record=evaluationRecordForDraft(state);
+    if(record) configureSavedEvaluationView(state,record);
+  }
+  function openSavedEvaluationEditMode(state){
+    const record=evaluationRecordForDraft(state);
+    const modal=weeklyRoot(state)?.querySelector('[data-evaluation-modal]');
+    if(!record || !modal || !savedEvaluationPermission(state,record,'edit')) return;
+    state.modalDraft={mode:'edit',recordId:String(record.id),expectedUpdatedAt:record.updated_at||null};
+    modal.querySelector('[data-evaluation-modal-title]').textContent='تعديل التقييم المحفوظ';
+    setEvaluationScoreEditor(modal,true,record.score);
+    const reason=modal.querySelector('[data-evaluation-reason]');
+    if(reason){reason.readOnly=false;reason.value=String(record.reason||'');}
+    setEvaluationActionVisible(modal,'edit',false);
+    setEvaluationActionVisible(modal,'delete',false);
+    setEvaluationActionVisible(modal,'close',false);
+    setEvaluationActionVisible(modal,'edit-cancel',true);
+    setEvaluationActionVisible(modal,'edit-save',true);
+    setEvaluationModalStatus(state,'');
+    setTimeout(()=>modal.querySelector('[data-evaluation-score-edit]')?.focus(),0);
+  }
+  function openSavedEvaluationDeleteMode(state){
+    const record=evaluationRecordForDraft(state);
+    const modal=weeklyRoot(state)?.querySelector('[data-evaluation-modal]');
+    if(!record || !modal || !savedEvaluationPermission(state,record,'delete')) return;
+    state.modalDraft={mode:'delete',recordId:String(record.id),expectedUpdatedAt:record.updated_at||null};
+    modal.querySelector('[data-evaluation-modal-title]').textContent='حذف التقييم نهائيًا';
+    setEvaluationScoreEditor(modal,false,record.score);
+    const reason=modal.querySelector('[data-evaluation-reason]');
+    if(reason){reason.readOnly=true;reason.value=String(record.reason||'');}
+    const deleteWrap=modal.querySelector('[data-evaluation-delete-reason-wrap]');
+    if(deleteWrap) deleteWrap.hidden=false;
+    const deleteReason=modal.querySelector('[data-evaluation-delete-reason]');
+    if(deleteReason) deleteReason.value='';
+    const warning=modal.querySelector('[data-evaluation-delete-warning]');
+    if(warning) warning.hidden=false;
+    setEvaluationActionVisible(modal,'edit',false);
+    setEvaluationActionVisible(modal,'delete',false);
+    setEvaluationActionVisible(modal,'close',false);
+    setEvaluationActionVisible(modal,'delete-cancel',true);
+    setEvaluationActionVisible(modal,'delete-confirm',true);
+    setEvaluationModalStatus(state,'اكتب سبب الحذف قبل التأكيد.');
+    setTimeout(()=>deleteReason?.focus(),0);
+  }
+
   function resetEvaluationModalControls(state,clearReason=false){
     setEvaluationModalSaving(state,false);
     const modal=weeklyRoot(state)?.querySelector('[data-evaluation-modal]');
-    const reason=modal?.querySelector('[data-evaluation-reason]');
-    if(clearReason && reason){reason.value='';reason.readOnly=false;}
+    if(!modal) return;
+    const reason=modal.querySelector('[data-evaluation-reason]');
+    const deleteReason=modal.querySelector('[data-evaluation-delete-reason]');
+    const deleteWrap=modal.querySelector('[data-evaluation-delete-reason-wrap]');
+    const warning=modal.querySelector('[data-evaluation-delete-warning]');
+    const scoreInput=modal.querySelector('[data-evaluation-score-edit]');
+    if(clearReason && reason) reason.value='';
+    if(reason) reason.readOnly=false;
+    if(deleteReason) deleteReason.value='';
+    if(deleteWrap) deleteWrap.hidden=true;
+    if(warning) warning.hidden=true;
+    if(scoreInput){scoreInput.value='';scoreInput.hidden=true;scoreInput.disabled=false;}
+    modal.querySelectorAll('[data-evaluation-modal-action]').forEach(button=>{button.disabled=false;});
   }
   function openNewEvaluationModal(state,personnelId,date){
     if(state.kind!=='evaluations' || state.modalDraft) return;
@@ -798,15 +1001,24 @@
     resetEvaluationModalControls(state,true);
     state.modalDraft={mode:'new',key,personnelId,date,score:draft.value};
     modal.hidden=false;
-    modal.querySelector('[data-evaluation-modal-title]').textContent='حفظ تقييم نهائي';
+    modal.querySelector('[data-evaluation-modal-title]').textContent='حفظ تقييم';
     populateEvaluationModalDetails(state,person,date,draft.value);
+    setEvaluationScoreEditor(modal,false,draft.value);
     const reason=modal.querySelector('[data-evaluation-reason]');
     reason.readOnly=false;reason.value='';
     modal.querySelector('.department-evaluation-reason-label').hidden=false;
     modal.querySelector('[data-evaluation-saved-meta]').hidden=true;
-    modal.querySelector('[data-evaluation-modal-action="save"]').hidden=false;
-    modal.querySelector('[data-evaluation-modal-action="cancel"]').hidden=false;
-    modal.querySelectorAll('[data-evaluation-modal-action="close"]').forEach((button,index)=>button.hidden=index>0?true:false);
+    setEvaluationActionVisible(modal,'save',true);
+    setEvaluationActionVisible(modal,'cancel',true);
+    setEvaluationActionVisible(modal,'edit',false);
+    setEvaluationActionVisible(modal,'delete',false);
+    setEvaluationActionVisible(modal,'edit-cancel',false);
+    setEvaluationActionVisible(modal,'edit-save',false);
+    setEvaluationActionVisible(modal,'delete-cancel',false);
+    setEvaluationActionVisible(modal,'delete-confirm',false);
+    setEvaluationActionVisible(modal,'close',false);
+    const headClose=modal.querySelector('.department-evaluation-close[data-evaluation-modal-action="close"]');
+    if(headClose) headClose.hidden=false;
     setEvaluationModalStatus(state,'');
     document.body.classList.add('modal-open');
     setTimeout(()=>reason.focus(),0);
@@ -817,29 +1029,14 @@
     catch(_){return String(value);}
   }
   function openSavedEvaluationModal(state,recordId){
-    const baseline=[...state.baseline.values()].find(item=>String(item.recordId)===String(recordId));
+    const baseline=evaluationBaselineByRecordId(state,recordId);
     const record=baseline?.record;
     if(!record) return;
-    const person=personForState(state,record.personnel_id);
     const modal=weeklyRoot(state)?.querySelector('[data-evaluation-modal]');
     if(!modal) return;
     resetEvaluationModalControls(state,true);
-    state.modalDraft={mode:'view',recordId:String(recordId)};
     modal.hidden=false;
-    modal.querySelector('[data-evaluation-modal-title]').textContent='تفاصيل التقييم النهائي';
-    populateEvaluationModalDetails(state,person,record.evaluation_date,record.score);
-    const reason=modal.querySelector('[data-evaluation-reason]');
-    reason.readOnly=true;reason.value=String(record.reason||'');
-    modal.querySelector('.department-evaluation-reason-label').hidden=false;
-    const savedMeta=modal.querySelector('[data-evaluation-saved-meta]');
-    savedMeta.hidden=false;
-    const actorId=record.locked_by||record.created_by||'';
-    const actor=state.evaluatorNames.get(String(actorId)) || (actorId?'المستخدم '+actorId:'غير متاح');
-    modal.querySelector('[data-evaluation-detail="saved"]').textContent=actor+' — '+formatSavedAt(record.locked_at||record.created_at);
-    modal.querySelector('[data-evaluation-modal-action="save"]').hidden=true;
-    modal.querySelector('[data-evaluation-modal-action="cancel"]').hidden=true;
-    modal.querySelectorAll('[data-evaluation-modal-action="close"]').forEach(button=>button.hidden=false);
-    setEvaluationModalStatus(state,'');
+    configureSavedEvaluationView(state,record);
     document.body.classList.add('modal-open');
   }
   function closeEvaluationModal(state,cancelDraft=false){
@@ -868,7 +1065,7 @@
     if(!canManageWeeklyData(state)){setEvaluationModalStatus(state,'الصلاحية الحالية للعرض فقط.','err');return;}
     if(!WarehouseDB?.ready){setEvaluationModalStatus(state,'Supabase غير متصل. احتفظنا بالتقييم والسبب.','err');return;}
     setEvaluationModalSaving(state,true);
-    setEvaluationModalStatus(state,'جاري حفظ التقييم النهائي...');
+    setEvaluationModalStatus(state,'جاري حفظ التقييم...');
     try{
       const {data,error}=await WarehouseDB.client.rpc('save_department_personnel_daily_evaluations',{p_changes:[{
         personnel_id:draft.personnelId,evaluation_date:draft.date,score:validation.value,reason
@@ -878,13 +1075,77 @@
       setEvaluationModalSaving(state,false);
       closeEvaluationModal(state,false);
       await loadDepartmentWeeklyWorkspace('evaluations');
-      setWeeklyStatus(state,'تم حفظ التقييم وقَفله نهائيًا بنجاح.','ok');
+      setWeeklyStatus(state,'تم حفظ التقييم بنجاح.','ok');
     }catch(error){
       setEvaluationModalStatus(state,weeklyErrorMessage(error,'save')+' احتفظنا بالتقييم والسبب.','err');
     }finally{
       setEvaluationModalSaving(state,false);
     }
   }
+  async function saveEditedEvaluation(state){
+    const draft=state.modalDraft;
+    const record=evaluationRecordForDraft(state);
+    const modal=weeklyRoot(state)?.querySelector('[data-evaluation-modal]');
+    if(state.kind!=='evaluations' || draft?.mode!=='edit' || !record || state.saving || !modal) return;
+    if(!savedEvaluationPermission(state,record,'edit')){setEvaluationModalStatus(state,'لا توجد صلاحية لتعديل التقييم المحفوظ.','err');return;}
+    const score=String(modal.querySelector('[data-evaluation-score-edit]')?.value||'').trim();
+    const reason=String(modal.querySelector('[data-evaluation-reason]')?.value||'').trim();
+    if(!/^(?:10(?:\.0{1,2})?|[0-9](?:\.[0-9]{1,2})?)$/.test(score)){
+      setEvaluationModalStatus(state,'التقييم يجب أن يكون من 0 إلى 10 وبحد أقصى منزلتين عشريتين.','err');
+      modal.querySelector('[data-evaluation-score-edit]')?.focus();
+      return;
+    }
+    if(!reason){setEvaluationModalStatus(state,'سبب التقييم إجباري.','err');modal.querySelector('[data-evaluation-reason]')?.focus();return;}
+    if(!WarehouseDB?.ready){setEvaluationModalStatus(state,'Supabase غير متصل. لم يتم تعديل التقييم.','err');return;}
+    setEvaluationModalSaving(state,true);
+    setEvaluationModalStatus(state,'جاري حفظ تعديل التقييم...');
+    try{
+      const {error}=await WarehouseDB.client.rpc('update_department_personnel_daily_evaluation',{
+        p_evaluation_id:record.id,
+        p_score:score,
+        p_reason:reason,
+        p_expected_updated_at:draft.expectedUpdatedAt
+      });
+      if(error) throw error;
+      setEvaluationModalSaving(state,false);
+      closeEvaluationModal(state,false);
+      await loadDepartmentWeeklyWorkspace('evaluations');
+      setWeeklyStatus(state,'تم تعديل التقييم وسبب التقييم بنجاح.','ok');
+    }catch(error){
+      setEvaluationModalStatus(state,weeklyErrorMessage(error,'save'),'err');
+    }finally{
+      setEvaluationModalSaving(state,false);
+    }
+  }
+  async function deleteSavedEvaluation(state){
+    const draft=state.modalDraft;
+    const record=evaluationRecordForDraft(state);
+    const modal=weeklyRoot(state)?.querySelector('[data-evaluation-modal]');
+    if(state.kind!=='evaluations' || draft?.mode!=='delete' || !record || state.saving || !modal) return;
+    if(!savedEvaluationPermission(state,record,'delete')){setEvaluationModalStatus(state,'لا توجد صلاحية لحذف التقييم المحفوظ.','err');return;}
+    const deleteReason=String(modal.querySelector('[data-evaluation-delete-reason]')?.value||'').trim();
+    if(!deleteReason){setEvaluationModalStatus(state,'سبب حذف التقييم إجباري.','err');modal.querySelector('[data-evaluation-delete-reason]')?.focus();return;}
+    if(!WarehouseDB?.ready){setEvaluationModalStatus(state,'Supabase غير متصل. لم يتم حذف التقييم.','err');return;}
+    setEvaluationModalSaving(state,true);
+    setEvaluationModalStatus(state,'جاري حذف التقييم نهائيًا...');
+    try{
+      const {error}=await WarehouseDB.client.rpc('delete_department_personnel_daily_evaluation',{
+        p_evaluation_id:record.id,
+        p_delete_reason:deleteReason,
+        p_expected_updated_at:draft.expectedUpdatedAt
+      });
+      if(error) throw error;
+      setEvaluationModalSaving(state,false);
+      closeEvaluationModal(state,false);
+      await loadDepartmentWeeklyWorkspace('evaluations');
+      setWeeklyStatus(state,'تم حذف التقييم نهائيًا وتسجيل سبب الحذف في سجل المراجعة.','ok');
+    }catch(error){
+      setEvaluationModalStatus(state,weeklyErrorMessage(error,'save'),'err');
+    }finally{
+      setEvaluationModalSaving(state,false);
+    }
+  }
+
   async function saveWeeklyChanges(state){
     if(state.kind!=='statuses' || state.saving || !state.dirty.size) return;
     if(!canManageWeeklyData(state)){setWeeklyStatus(state,'الصلاحية الحالية للعرض فقط.','err');return;}
@@ -893,14 +1154,39 @@
     const changes=Array.from(state.dirty.values()).map(change=>({
       personnel_id:change.personnelId,work_date:change.date,shift_code:change.value,expected_updated_at:change.expectedUpdatedAt
     }));
-    state.saving=true;updateWeeklySaveButton(state);setWeeklyStatus(state,'جاري حفظ الخلايا المعدلة فقط...');
+    state.saving=true;updateWeeklySaveButton(state);setWeeklyStatus(state,'جاري التحقق من تعارضات التقييمات...');
     try{
-      const {data,error}=await WarehouseDB.client.rpc('save_department_personnel_daily_statuses',{p_changes:changes});
+      const preflight=await WarehouseDB.client.rpc('check_department_personnel_daily_status_conflicts',{p_changes:changes});
+      if(preflight.error) throw preflight.error;
+      const conflicts=Array.isArray(preflight.data)?preflight.data:[];
+      let saveChanges=changes;
+      if(conflicts.length){
+        state.saving=false;updateWeeklySaveButton(state);
+        const continueSave=await confirmWeeklyEvaluationConflicts(state,conflicts);
+        if(!continueSave){
+          setWeeklyStatus(state,'تم إلغاء الحفظ. احتفظنا بكل التعديلات المحلية كما هي.','');
+          return;
+        }
+        const conflictKeys=new Set(conflicts.map(weeklyConflictKey));
+        saveChanges=changes.filter(change=>!conflictKeys.has(cellKey(change.personnel_id,change.work_date)));
+        if(!saveChanges.length){
+          conflictKeys.forEach(key=>{state.dirty.delete(key);state.invalid.delete(key);});
+          renderWeeklyTable(state);updateWeeklySaveButton(state);
+          setWeeklyStatus(state,'تم استبعاد '+conflicts.length+' من الورديات المتعارضة، ولا توجد تغييرات أخرى للحفظ.','ok');
+          return;
+        }
+        state.saving=true;updateWeeklySaveButton(state);
+        setWeeklyStatus(state,'تم استبعاد '+conflicts.length+' من الورديات المتعارضة. جاري حفظ باقي الأيام...');
+      }else{
+        setWeeklyStatus(state,'جاري حفظ الخلايا المعدلة فقط...');
+      }
+      const {data,error}=await WarehouseDB.client.rpc('save_department_personnel_daily_statuses',{p_changes:saveChanges});
       if(error) throw error;
-      const saved=Number(data||changes.length);
+      const saved=Number(data||saveChanges.length);
       state.dirty.clear();state.invalid.clear();state.saving=false;
       await loadDepartmentWeeklyWorkspace('statuses');
-      setWeeklyStatus(state,'تم حفظ '+saved+' من الخلايا المعدلة بنجاح.','ok');
+      const excluded=changes.length-saveChanges.length;
+      setWeeklyStatus(state,'تم حفظ '+saved+' من الخلايا المعدلة بنجاح.'+(excluded?' تم استبعاد '+excluded+' من الورديات المتعارضة مع تقييم محفوظ.':''),'ok');
     }catch(error){
       state.saving=false;updateWeeklySaveButton(state);
       setWeeklyStatus(state,weeklyErrorMessage(error,'save')+' لم نفقد أي تعديل محلي.','err');

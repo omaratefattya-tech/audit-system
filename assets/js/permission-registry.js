@@ -265,6 +265,8 @@
   button('department_personnel.evaluations.table.sort', 'ترتيب الجدول', evaluations, WEEKLY, '#department_evaluations [data-weekly-sort]');
   action('department_personnel.evaluations.create', 'حفظ تقييم جديد', evaluations, WEEKLY, '[data-evaluation-modal-action="save"]');
   action('department_personnel.evaluations.saved.view', 'عرض تقييم محفوظ', evaluations, WEEKLY, '[data-evaluation-record-id]');
+  action('department_personnel.evaluations.saved.edit', 'تعديل تقييم محفوظ', evaluations, WEEKLY, '[data-evaluation-modal-action="edit"]');
+  action('department_personnel.evaluations.saved.delete', 'حذف تقييم محفوظ', evaluations, WEEKLY, '[data-evaluation-modal-action="delete"]');
   ['excel', 'pdf', 'png'].forEach(format => button(`department_personnel.evaluations.export_${format}`, `تصدير ${format.toUpperCase()}`, evaluations, WORKSPACE_TOOLS, `#department_evaluations [data-report-export="${format}"]`));
   button('department_personnel.evaluations.focus_mode', 'وضع التركيز', evaluations, WORKSPACE_TOOLS, '#department_evaluations [data-focus-target]');
 
