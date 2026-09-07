@@ -6014,18 +6014,16 @@ async function saveCurrentProfile(){
       avatarUrl=await fileToDataUrl(file);
     }
     const payload={
-      id: CURRENT_AUTH_USER.id,
       full_name: ($('#profileFullName')?.value || CURRENT_AUTH_USER.email || '').trim(),
       job_title: ($('#profileJobTitle')?.value || '').trim(),
       phone: ($('#profilePhone')?.value || '').trim(),
-      avatar_url: avatarUrl,
-      role: isSystemOwnerEmail(CURRENT_AUTH_USER.email) ? 'super_admin' : (CURRENT_APP_PROFILE?.role && CURRENT_APP_PROFILE.role !== 'authenticated' ? CURRENT_APP_PROFILE.role : 'viewer'),
-      is_active: true
+      avatar_url: avatarUrl
     };
     if(!payload.full_name) throw new Error('الإسم مطلوب.');
     const {data,error}=await WarehouseDB.client
       .from('app_users')
-      .upsert(payload,{onConflict:'id'})
+      .update(payload)
+      .eq('id',CURRENT_AUTH_USER.id)
       .select('full_name, role, is_active, job_title, phone, avatar_url')
       .single();
     if(error) throw error;
