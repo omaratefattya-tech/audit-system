@@ -22,6 +22,10 @@
     EL01:'مصنع الإيمان للأعلاف - السواقي',
     EL02:'مصنع الإيمان للأعلاف - العامرية'
   };
+  const STOREKEEPERS_DEPARTMENT_SCOPES=[
+    {value:'منتج تام',permission:'department_personnel.storekeepers.department.finished.view'},
+    {value:'قطع غيار',permission:'department_personnel.storekeepers.department.spare_parts.view'}
+  ];
   const WEEKLY_STATES={
     statuses:createWeeklyState('statuses','departmentWeeklyScheduleApp','department_weekly_leave_schedule'),
     evaluations:createWeeklyState('evaluations','departmentEvaluationsApp','department_evaluations')
@@ -999,12 +1003,34 @@
     if(key==='currentShift') return {value:row.currentShiftDescription||row.currentShift,type:'text'};
     return {value:row[key],type:'text'};
   }
+  function storekeepersDepartmentPermission(department){
+    return STOREKEEPERS_DEPARTMENT_SCOPES.find(item=>item.value===String(department||'').trim())?.permission||'';
+  }
+  function canViewStorekeepersDepartment(department,plantCode){
+    const key=storekeepersDepartmentPermission(department);
+    return Boolean(key && plantCode && window.PermissionRuntime?.can(key,plantCode));
+  }
+  function allowedStorekeepersDepartments(requestedPlant=''){
+    const plants=window.PermissionRuntime?.scope('department_personnel.storekeepers.view',requestedPlant||'all')||[];
+    return STOREKEEPERS_DEPARTMENT_SCOPES.filter(item=>plants.some(plant=>window.PermissionRuntime?.can(item.permission,plant)));
+  }
+  function syncStorekeepersDepartmentFilter(){
+    const select=document.getElementById('departmentStorekeepersDepartmentFilter');
+    if(!select) return;
+    const selectedPlant=String(document.getElementById('departmentStorekeepersPlantFilter')?.value||'').trim().toUpperCase();
+    const current=String(select.value||'');
+    const allowed=allowedStorekeepersDepartments(selectedPlant);
+    select.innerHTML='<option value="">كل الأقسام</option>'+allowed.map(item=>'<option value="'+escapeHtml(item.value)+'">'+escapeHtml(item.value)+'</option>').join('');
+    select.value=allowed.some(item=>item.value===current)?current:'';
+  }
+
   function filteredStorekeepersRows(){
     const search=String(document.getElementById('departmentStorekeepersSearch')?.value||'').trim().toLocaleLowerCase();
     const plant=document.getElementById('departmentStorekeepersPlantFilter')?.value||'';
     const department=document.getElementById('departmentStorekeepersDepartmentFilter')?.value||'';
     const job=document.getElementById('departmentStorekeepersJobFilter')?.value||'';
     const rows=STOREKEEPERS_STATE.rows.filter(row=>{
+      if(!canViewStorekeepersDepartment(row.department,row.plant_code)) return false;
       if(plant && row.plant_code!==plant) return false;
       if(department && row.department!==department) return false;
       if(job && row.job_title!==job) return false;
@@ -1062,12 +1088,22 @@
     setStorekeepersStatus('جاري التحميل...');if(retry) retry.hidden=true;
     if(!WarehouseDB?.ready){setStorekeepersStatus('Supabase غير متصل. تعذر تحميل الجدول.','err');if(retry) retry.hidden=false;return false;}
     const year=new Date().getFullYear();const range=yearRange(year);
+    const allowedPlants=window.PermissionRuntime?.allowedPlants('department_personnel.storekeepers.view')||[];
+    if(!allowedPlants.length){
+      STOREKEEPERS_STATE.rows=[];STOREKEEPERS_STATE.loading=false;
+      syncStorekeepersDepartmentFilter();renderDepartmentStorekeepers();
+      setStorekeepersStatus('لا تملك صلاحية عرض أي مصنع في جدول أمناء المخازن.','err');
+      return false;
+    }
     try{
       const personnelResult=await WarehouseDB.client.from(DEPARTMENT_PERSONNEL_TABLE)
         .select('id,employee_code,full_name,job_title,plant_code,department,phone_number,hire_date')
-        .eq('is_active',true).order('full_name',{ascending:true});
+        .eq('is_active',true).in('plant_code',allowedPlants).order('full_name',{ascending:true});
       if(personnelResult.error) throw personnelResult.error;
-      personnelResult.data=(personnelResult.data||[]).filter(row=>window.PermissionRuntime?.can('department_personnel.storekeepers.view',row.plant_code || []));
+      personnelResult.data=(personnelResult.data||[]).filter(row=>
+        window.PermissionRuntime?.can('department_personnel.storekeepers.view',row.plant_code || [])
+        && canViewStorekeepersDepartment(row.department,row.plant_code)
+      );
       const ids=personnelResult.data.map(row=>row.id);
       let statuses=[];
       if(ids.length){
@@ -1083,6 +1119,7 @@
       if(token!==STOREKEEPERS_STATE.requestToken) return false;
       const validCodes=showRequiredCodesAlert(document.getElementById('departmentStorekeepersCodesAlert'),codesResult.data||[]);
       STOREKEEPERS_STATE.rows=buildStorekeepersRows((personnelResult.data||[]).slice().sort((a,b)=>String(a.full_name||'').localeCompare(String(b.full_name||''),'ar',{sensitivity:'base'})),statuses,validCodes);
+      syncStorekeepersDepartmentFilter();
       renderDepartmentStorekeepers();
       setStorekeepersStatus('تم تحميل '+STOREKEEPERS_STATE.rows.length+' من أفراد القسم النشطين وملخص سنة '+year+'.');
       STOREKEEPERS_STATE.loading=false;return true;
@@ -1104,7 +1141,10 @@
   }  function initDepartmentWeeklyOperations(){
     Object.values(WEEKLY_STATES).forEach(renderWeeklyShell);
     window.addEventListener('department-status-codes-updated',handleDepartmentStatusCodeUpdates);
-    ['departmentStorekeepersSearch','departmentStorekeepersPlantFilter','departmentStorekeepersDepartmentFilter','departmentStorekeepersJobFilter'].forEach(id=>document.getElementById(id)?.addEventListener(id.endsWith('Search')?'input':'change',renderDepartmentStorekeepers));
+    document.getElementById('departmentStorekeepersSearch')?.addEventListener('input',renderDepartmentStorekeepers);
+    document.getElementById('departmentStorekeepersPlantFilter')?.addEventListener('change',()=>{syncStorekeepersDepartmentFilter();renderDepartmentStorekeepers();});
+    ['departmentStorekeepersDepartmentFilter','departmentStorekeepersJobFilter'].forEach(id=>document.getElementById(id)?.addEventListener('change',renderDepartmentStorekeepers));
+    syncStorekeepersDepartmentFilter();
     document.getElementById('departmentStorekeepersRetryBtn')?.addEventListener('click',loadDepartmentStorekeepers);
     document.getElementById('departmentStorekeepersTable')?.addEventListener('click',event=>{
       const button=event.target.closest('[data-storekeeper-sort]');

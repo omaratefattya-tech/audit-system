@@ -195,6 +195,9 @@
   const department = screen('department_personnel', 'إدارة أفراد القسم', APP, '[data-department-personnel-nav-group]', 'All child screens currently collapse to legacy reports permission.');
   const storekeepers = subscreen('department_personnel.storekeepers', 'جدول أمناء المخازن', department, WEEKLY, '#department_storekeepers');
   [
+    ['finished', 'القسم — منتج تام'], ['spare_parts', 'القسم — قطع غيار']
+  ].forEach(([key, label]) => tab(`department_personnel.storekeepers.department.${key}`, label, storekeepers, WEEKLY, '', 'Data-scope permission; no direct DOM owner.'));
+  [
     ['search', 'بحث', '#departmentStorekeepersSearch'], ['plant', 'الموقع', '#departmentStorekeepersPlantFilter'],
     ['department', 'القسم', '#departmentStorekeepersDepartmentFilter'], ['job', 'الوظيفة', '#departmentStorekeepersJobFilter']
   ].forEach(([key, label, selector]) => filter(`department_personnel.storekeepers.filter.${key}`, label, storekeepers, WEEKLY, selector));
@@ -222,6 +225,9 @@
   button('department_personnel.weekly_leave.focus_mode', 'وضع التركيز', weekly, WORKSPACE_TOOLS, '#department_weekly_leave_schedule [data-focus-target]');
 
   const hr = subscreen('department_personnel.hr_reports', 'تقارير HR', department, HR, '#department_hr_reports');
+  [
+    ['finished', 'القسم — منتج تام'], ['spare_parts', 'القسم — قطع غيار']
+  ].forEach(([key, label]) => tab(`department_personnel.hr_reports.department.${key}`, label, hr, HR, '', 'Data-scope permission; enforced by the HR RPC and RLS.'));
   [
     ['from_date', 'من تاريخ', '#departmentHrFromDate'], ['to_date', 'إلى تاريخ', '#departmentHrToDate'],
     ['plant', 'الموقع الوظيفي', '#departmentHrPlantFilter'], ['department', 'القسم', '#departmentHrDepartmentFilter'],

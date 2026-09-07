@@ -3,6 +3,10 @@
   const TABS = ['cumulative_department_evaluation','personnel_performance','attendance_compliance','absence_violations','evaluation_analysis','performance_trend'];
   const EVALUATION_MAX_SCORE = 10;
   const PERSONNEL_PERFORMANCE_EXCLUDED_JOBS = new Set(['مدير إدارة المخازن','مدير مخازن قطع الغيار','رئيس قسم']);
+  const HR_DEPARTMENT_SCOPES=[
+    {value:'منتج تام',permission:'department_personnel.hr_reports.department.finished.view'},
+    {value:'قطع غيار',permission:'department_personnel.hr_reports.department.spare_parts.view'}
+  ];
   const S = { initialized:false, loading:false, loaded:false, error:'', activeTab:TABS[0], seq:0, controller:null, data:null, search:'', personPreviewId:'', absenceMode:'records', trendGrouping:'month', sort:{} };
   const $ = id => document.getElementById(id);
   const root = () => $('department_hr_reports');
@@ -68,6 +72,15 @@
   const card=(label,value,note='',numeric=false)=>`<article class="department-hr-summary-card"><span>${esc(label)}</span><b${numeric?' class="department-hr-numeric-value" dir="ltr"':''}>${esc(value)}</b>${note?`<small>${esc(note)}</small>`:''}</article>`;
   const cards=(items,enhanced=false)=>`<div class="department-hr-summary${enhanced?' department-hr-summary-enhanced':''}">${items.join('')}</div>`;
 
+  function hrDepartmentPermission(department){
+    return HR_DEPARTMENT_SCOPES.find(item=>item.value===String(department||'').trim())?.permission||'';
+  }
+  function canViewHrDepartment(department,plantCode){
+    const key=hrDepartmentPermission(department);
+    return Boolean(key && plantCode && window.PermissionRuntime?.can(key,plantCode));
+  }
+  function activeHrPermissionKey(){ return 'department_personnel.hr_reports.'+S.activeTab+'.view'; }
+
   function searchMatch(row){
     const q=norm(S.search);
     if(!q) return true;
@@ -75,15 +88,17 @@
   }
   function current(){
     const data=S.data||{};
-    const key='department_personnel.hr_reports.'+S.activeTab+'.view';
-    if(window.PermissionRuntime?.can(key)) return {personnel:arr(data.personnel),codes:arr(data.status_codes),statuses:arr(data.statuses).filter(searchMatch),evaluations:arr(data.evaluations).filter(searchMatch)};
-    const personnel=arr(data.personnel).filter(person=>window.PermissionRuntime?.can(key,person.plant_code || []));
+    const key=activeHrPermissionKey();
+    const personnel=arr(data.personnel).filter(person=>
+      window.PermissionRuntime?.can(key,person.plant_code || [])
+      && canViewHrDepartment(person.department,person.plant_code)
+    );
     const ids=new Set(personnel.map(person=>String(person.id)));
     return {
       personnel,
       codes:arr(data.status_codes),
-      statuses:arr(data.statuses).filter(row=>row.plant_code ? window.PermissionRuntime?.can(key,row.plant_code) : ids.has(String(row.personnel_id))).filter(searchMatch),
-      evaluations:arr(data.evaluations).filter(row=>row.plant_code ? window.PermissionRuntime?.can(key,row.plant_code) : ids.has(String(row.personnel_id))).filter(searchMatch)
+      statuses:arr(data.statuses).filter(row=>ids.has(String(row.personnel_id)) && (!row.plant_code || (window.PermissionRuntime?.can(key,row.plant_code) && canViewHrDepartment(row.department,row.plant_code)))).filter(searchMatch),
+      evaluations:arr(data.evaluations).filter(row=>ids.has(String(row.personnel_id)) && (!row.plant_code || (window.PermissionRuntime?.can(key,row.plant_code) && canViewHrDepartment(row.department,row.plant_code)))).filter(searchMatch)
     };
   }
   function matchingPersonnel(data=current(),f=filters()){
@@ -101,8 +116,13 @@
     select.innerHTML=optionHtml('',placeholder,selected)+values.map(item=>optionHtml(value(item),label(item),selected)).join('');
   }
   function syncOptions(){
-    const people=arr(S.data?.personnel);
-    if(!people.length) return;
+    const people=current().personnel;
+    if(!people.length){
+      setOptions($('departmentHrDepartmentFilter'),[],'كل الأقسام','');
+      setOptions($('departmentHrJobFilter'),[],'كل الوظائف','');
+      setOptions($('departmentHrPersonnelFilter'),[],'كل الموظفين','');
+      return;
+    }
     const before=filters();
     const departments=[...new Set(people.filter(p=>!before.plant||String(p.plant_code).toUpperCase()===before.plant.toUpperCase()).map(p=>p.department).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
     setOptions($('departmentHrDepartmentFilter'),departments,'كل الأقسام',before.department);
@@ -156,8 +176,12 @@
   async function load(){
     init();
     const f=filters();
-    const plants=window.PermissionRuntime?.scope('department_personnel.hr_reports.'+S.activeTab+'.view',f.plant || 'all') || [];
-    if(!plants.length){S.data=null;S.loaded=false;S.error='لا تملك صلاحية عرض المصنع المحدد.';renderAll();return;}
+    const plants=(window.PermissionRuntime?.scope(activeHrPermissionKey(),f.plant || 'all') || [])
+      .filter(plant=>HR_DEPARTMENT_SCOPES.some(item=>window.PermissionRuntime?.can(item.permission,plant)));
+    if(!plants.length){S.data=null;S.loaded=false;S.error='لا تملك صلاحية عرض المصنع/القسم المحدد.';renderAll();return;}
+    if(f.department && !plants.some(plant=>canViewHrDepartment(f.department,plant))){
+      S.data=null;S.loaded=false;S.error='لا تملك صلاحية عرض القسم المحدد.';status(S.error,'error');renderAll();return;
+    }
     // This existing RPC accepts one plant or null. A scoped role starts at its
     // first permitted plant and can select another permitted plant explicitly.
     if(!f.plant && plants.length < window.PermissionRuntime.plantCodes().length){f.plant=plants[0];if($('departmentHrPlantFilter')) $('departmentHrPlantFilter').value=f.plant;}
