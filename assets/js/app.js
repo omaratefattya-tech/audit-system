@@ -2450,6 +2450,7 @@ async function fetchUnifiedSalesRows(filters={},options={}){
   }
 }
 async function loadDashboardRealData(options={}){
+  if(!applicationBusinessDataReady()) return;
   if(!window.PermissionRuntime?.any('dashboard.view')) return;
   if(!WarehouseDB?.ready) return;
   await ensureDashboardDefaultDate(options);
@@ -2758,6 +2759,7 @@ function switchSection(section,options={}){
   if(section==='department_hr_reports') setTimeout(()=>window.DepartmentHrReports?.load(),50);
   if(section==='department_evaluations') setTimeout(()=>loadDepartmentWeeklyWorkspace('evaluations'),50);
   if(section==='department_loading_errors') setTimeout(()=>window.DepartmentLoadingErrors?.load(),50);
+  if(APPLICATION_PRIMARY_LAZY_SECTIONS.has(section)) queuePrimarySectionDataLoad(section,{delay:50});
   setTimeout(()=>applyPermissionActionGuards(section),80);
   return true;
 }
@@ -3748,6 +3750,7 @@ async function handleSalesFile(file){
   }
 }
 async function refreshSalesReportDates(preferredDate=''){
+  if(!applicationBusinessDataReady()) return;
   const select=$('#salesReportDateSelect');
   if(!select || !WarehouseDB?.ready) return;
   const {data,error}=await WarehouseDB.client
@@ -3774,6 +3777,7 @@ function formatFileSize(bytes){
   return `${(n/1024/1024).toFixed(2)} MB`;
 }
 async function loadSalesBatches(){
+  if(!applicationBusinessDataReady()) return;
   if(!window.PermissionRuntime?.can('upload_reports.sales.view')) return;
   const tbl=$('#salesBatchesTable');
   if(!tbl || !WarehouseDB?.ready){ return; }
@@ -3896,6 +3900,7 @@ async function handleIncomingFile(file){
   }
 }
 async function loadIncomingBatches(){
+  if(!applicationBusinessDataReady()) return;
   if(!window.PermissionRuntime?.can('upload_reports.incoming.view')) return;
   const tbl=$('#incomingBatchesTable');
   if(!tbl || !WarehouseDB?.ready){ return; }
@@ -4010,6 +4015,7 @@ async function handleScaleFile(file){
   }
 }
 async function loadScaleBatches(){
+  if(!applicationBusinessDataReady()) return;
   if(!window.PermissionRuntime?.can('upload_reports.scale.view')) return;
   const tbl=$('#scaleBatchesTable');
   if(!tbl || !WarehouseDB?.ready){ return; }
@@ -4105,7 +4111,6 @@ function initScaleUploader(){
     dz.ondragleave=()=>dz.classList.remove('drag');
     dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files?.[0];if(f)handleScaleFile(f)};
   }
-  loadScaleBatches();
 }
 document.addEventListener('click',e=>{
   const btn=e.target.closest('#scaleBatchesTable [data-action]');
@@ -4117,6 +4122,7 @@ async function refreshInboundReportDates(){
   return [];
 }
 async function loadInboundAuditReport(date='',options={}){
+  if(!applicationBusinessDataReady()) return;
   if(!window.PermissionRuntime?.any('inbound_review.view')) return;
   const tbl=$('#inboundTable');
   if(!tbl || !WarehouseDB?.ready) return;
@@ -4249,6 +4255,7 @@ async function handleFreightFile(file){
   }
 }
 async function loadFreightBatches(){
+  if(!applicationBusinessDataReady()) return;
   if(!window.PermissionRuntime?.can('upload_reports.freight.view')) return;
   const tbl=$('#freightBatchesTable');
   if(!tbl || !WarehouseDB?.ready) return;
@@ -4272,6 +4279,7 @@ async function loadFreightBatches(){
   table('#freightBatchesTable',['تاريخ المرجع','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الحالة','الإجراءات'],rows);
 }
 async function loadFreightRates(){
+  if(!applicationBusinessDataReady()) return;
   const tbl=$('#freightRatesTable');
   if(!tbl || !WarehouseDB?.ready) return;
   const {data,error}=await WarehouseDB.client
@@ -4320,8 +4328,6 @@ function initFreightUploader(){
     dz.ondragleave=()=>dz.classList.remove('drag');
     dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files?.[0];if(f)handleFreightFile(f)};
   }
-  loadFreightBatches();
-  loadFreightRates();
 }
 document.addEventListener('click',e=>{
   const btn=e.target.closest('#freightBatchesTable [data-action]');
@@ -4341,7 +4347,6 @@ function initIncomingUploader(){
     dz.ondragleave=()=>dz.classList.remove('drag');
     dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files?.[0];if(f)handleIncomingFile(f)};
   }
-  loadIncomingBatches();
 }
 document.addEventListener('click',e=>{
   const btn=e.target.closest('#incomingBatchesTable [data-action]');
@@ -4360,10 +4365,9 @@ function initSalesUploader(){
     dz.ondragleave=()=>dz.classList.remove('drag');
     dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files?.[0];if(f)handleSalesFile(f)};
   }
-  loadSalesBatches();
-  refreshSalesReportDates();
 }
 async function loadSalesReport(warehouseCode){
+  if(!applicationBusinessDataReady()) return;
   const plant=warehouseMetaByCode(warehouseCode)?.plant_code;
   if(!window.PermissionRuntime?.can('sales_review.view',plant || [])) return;
   activeSalesWarehouse=warehouseCode;
@@ -4396,7 +4400,7 @@ renderTables = function(){
   table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحميل'],[]);
   table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample);
 };
-document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initMobileUploadReportUI();initSalesUploader();initIncomingUploader();initScaleUploader();initFreightUploader();refreshInboundReportDates();setTimeout(()=>{loadSalesReport(activeSalesWarehouse);loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});loadDashboardRealData();},300);});
+document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initMobileUploadReportUI();initSalesUploader();initIncomingUploader();initScaleUploader();initFreightUploader();});
 
 // === Main Program Login Gate ===
 let CURRENT_AUTH_USER=null;
@@ -5894,6 +5898,81 @@ let APPLICATION_AUTH_PENDING=null;
 let APPLICATION_READY_USER_ID='';
 let APPLICATION_PERMISSION_SIGNATURE='';
 let APPLICATION_RELOAD_REQUIRED=false;
+const APPLICATION_BUSINESS_LOAD_STATE=new Map();
+const APPLICATION_PRIMARY_LAZY_SECTIONS=new Set(['dashboard','upload','sales','inbound']);
+function applicationBusinessDataReady(){
+  const userId=String(CURRENT_AUTH_USER?.id || '').trim();
+  return Boolean(userId && APPLICATION_READY_USER_ID===userId && window.PermissionRuntime?.isReady() && !APPLICATION_RELOAD_REQUIRED);
+}
+function resetApplicationBusinessLoadState(){
+  APPLICATION_BUSINESS_LOAD_STATE.clear();
+}
+function applicationBusinessLoadKey(kind,key){
+  return `${kind}:${String(key||'').trim()}`;
+}
+function uploadTabCanLoad(tabKey){
+  const key=String(tabKey||'').trim();
+  return Boolean(key && window.PermissionRuntime?.any(`upload_reports.${key}.view`));
+}
+function currentAllowedUploadTab(){
+  const tabs=[...document.querySelectorAll('.upload-report-tab[data-upload-tab]')];
+  const active=tabs.find(tab=>tab.classList.contains('active') && uploadTabCanLoad(tab.dataset.uploadTab));
+  if(active) return active.dataset.uploadTab;
+  return tabs.find(tab=>uploadTabCanLoad(tab.dataset.uploadTab))?.dataset.uploadTab || '';
+}
+async function loadUploadTabData(tabKey,options={}){
+  const key=String(tabKey||'').trim();
+  if(!applicationBusinessDataReady() || !uploadTabCanLoad(key)) return false;
+  const stateKey=applicationBusinessLoadKey('upload',key);
+  const state=APPLICATION_BUSINESS_LOAD_STATE.get(stateKey);
+  if(state?.status==='loading') return false;
+  if(!options.force && state?.status==='loaded' && Date.now()-Number(state.at||0)<1500) return true;
+  APPLICATION_BUSINESS_LOAD_STATE.set(stateKey,{status:'loading',at:Date.now()});
+  try{
+    if(key==='sales') await loadSalesBatches();
+    else if(key==='incoming') await loadIncomingBatches();
+    else if(key==='scale') await loadScaleBatches();
+    else if(key==='freight'){ await loadFreightBatches(); await loadFreightRates(); }
+    else if(key==='current_plant_stock' || key==='consumption_rate') await loadRawMaterialsUploadBatch(key);
+    else if(['inventory_closing_wf01','inventory_closing_el01','inventory_closing_el02'].includes(key)) await icLoadLastUploadBatch(key);
+    else return false;
+    APPLICATION_BUSINESS_LOAD_STATE.set(stateKey,{status:'loaded',at:Date.now()});
+    return true;
+  }catch(error){
+    APPLICATION_BUSINESS_LOAD_STATE.delete(stateKey);
+    console.warn('[startup-gate] upload tab lazy load failed',key,error);
+    return false;
+  }
+}
+function queueUploadTabDataLoad(tabKey,options={}){
+  const delay=Number.isFinite(Number(options.delay))?Math.max(0,Number(options.delay)):40;
+  setTimeout(()=>loadUploadTabData(tabKey,options),delay);
+}
+async function loadPrimarySectionData(section,options={}){
+  const key=String(section||'').trim();
+  if(!APPLICATION_PRIMARY_LAZY_SECTIONS.has(key) || !applicationBusinessDataReady() || !canViewSection(key)) return false;
+  if(key==='upload') return loadUploadTabData(currentAllowedUploadTab(),options);
+  const stateKey=applicationBusinessLoadKey('section',key);
+  const state=APPLICATION_BUSINESS_LOAD_STATE.get(stateKey);
+  if(state?.status==='loading') return false;
+  if(!options.force && state?.status==='loaded' && Date.now()-Number(state.at||0)<1500) return true;
+  APPLICATION_BUSINESS_LOAD_STATE.set(stateKey,{status:'loading',at:Date.now()});
+  try{
+    if(key==='dashboard') await loadDashboardRealData();
+    else if(key==='sales'){ await refreshSalesReportDates(); await loadSalesReport(activeSalesWarehouse); }
+    else if(key==='inbound'){ await refreshInboundReportDates(); await loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true}); }
+    APPLICATION_BUSINESS_LOAD_STATE.set(stateKey,{status:'loaded',at:Date.now()});
+    return true;
+  }catch(error){
+    APPLICATION_BUSINESS_LOAD_STATE.delete(stateKey);
+    console.warn('[startup-gate] section lazy load failed',key,error);
+    return false;
+  }
+}
+function queuePrimarySectionDataLoad(section,options={}){
+  const delay=Number.isFinite(Number(options.delay))?Math.max(0,Number(options.delay)):60;
+  setTimeout(()=>loadPrimarySectionData(section,options),delay);
+}
 window.addEventListener('audit-permission-runtime-updated',event=>{
   if(event.detail.status!=='READY') return;
   const snapshot=window.PermissionRuntime.getSnapshot();
@@ -5912,6 +5991,7 @@ function showLoginScreen(){
   APPLICATION_AUTH_PENDING=null;
   APPLICATION_READY_USER_ID='';
   APPLICATION_VIEW_RESTORED_USER_ID='';
+  resetApplicationBusinessLoadState();
   CURRENT_AUTH_USER=null;
   CURRENT_APP_PROFILE=null;
   closeActiveApplicationModals({restoreFocus:false});
@@ -5960,13 +6040,7 @@ async function showApplication(user){
       restoreApplicationViewState();
       applySettingsSubPermissions();
       window.PermissionUI?.apply();
-      setTimeout(()=>{
-        if(!current() || !window.PermissionRuntime?.isReady()) return;
-        if(canViewSection('upload')) {loadSalesBatches();loadIncomingBatches();loadScaleBatches();}
-        if(canViewSection('sales')) {refreshSalesReportDates();loadSalesReport(activeSalesWarehouse);}
-        if(canViewSection('inbound')) {refreshInboundReportDates();loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});}
-        if(canViewSection('dashboard')) loadDashboardRealData();
-      },250);
+      if(current() && window.PermissionRuntime?.isReady()) queuePrimarySectionDataLoad(currentActiveSection(),{delay:220});
       return true;
     }catch(error){
       if(current()){
@@ -7311,6 +7385,7 @@ async function handleRawMaterialsReportFile(key,file){
   }
 }
 async function loadRawMaterialsUploadBatch(key){
+  if(!applicationBusinessDataReady()) return;
   const config=RAW_MATERIALS_UPLOAD_CONFIG[key];
   const tbl=$('#'+config.tableId);
   if(!tbl || !WarehouseDB?.ready) return;
@@ -7345,7 +7420,6 @@ function bindRawMaterialsUploader(key){
     dz.ondragleave=()=>dz.classList.remove('drag');
     dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files?.[0];if(f)handleRawMaterialsReportFile(key,f)};
   }
-  loadRawMaterialsUploadBatch(key);
 }
 function initRawMaterialsReportUploaders(){
   bindRawMaterialsUploader('current_plant_stock');
@@ -7913,6 +7987,7 @@ function initUploadReportTabs(){
       const key=tab.dataset.uploadTab;
       tabs.forEach(t=>t.classList.toggle('active',t===tab));
       panels.forEach(p=>p.classList.toggle('active',p.dataset.uploadPanel===key));
+      queueUploadTabDataLoad(key,{delay:20});
     });
   });
 }
@@ -15701,6 +15776,7 @@ function normalizeInventoryClosingUploadRows(rows) {
   }, []);
 }
 async function icLoadLastUploadBatch(tabKey) {
+  if(!applicationBusinessDataReady()) return;
   const config = INVENTORY_CLOSING_CONFIG[tabKey];
   const prefix = tabKey.replace(/_(.)/g, (_, c) => c.toUpperCase());
   const tableSelector = '#' + prefix + 'BatchesTable';
@@ -16281,7 +16357,6 @@ function bindInventoryClosingUploader(tabKey) {
     };
   }
   
-  icLoadLastUploadBatch(tabKey);
 }
 
 function initInventoryClosingUploaders() {
