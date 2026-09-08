@@ -261,7 +261,8 @@ function normalizePlantCatalogRow(row,index=0){
 function getPlantsCatalog(){return Array.isArray(PLANTS_CATALOG_CACHE)?PLANTS_CATALOG_CACHE:fallbackPlantsCatalog();}
 async function loadPlantsCatalog(options={}){
   if(!options.force&&PLANTS_CATALOG_CACHE) return PLANTS_CATALOG_CACHE;
-  if(!options.force&&PLANTS_CATALOG_PENDING) return PLANTS_CATALOG_PENDING;
+  if(PLANTS_CATALOG_PENDING) return PLANTS_CATALOG_PENDING;
+  if(!applicationBusinessDataReady()) return getPlantsCatalog();
   if(!WarehouseDB?.ready){PLANTS_CATALOG_CACHE=fallbackPlantsCatalog();return PLANTS_CATALOG_CACHE;}
   PLANTS_CATALOG_PENDING=(async()=>{
     try{
@@ -310,7 +311,8 @@ function getPlantsScreenWarehouses(){
 }
 async function loadPlantsScreenWarehouses(options={}){
   if(!options.force && PLANTS_SCREEN_WAREHOUSES_CACHE) return PLANTS_SCREEN_WAREHOUSES_CACHE;
-  if(!options.force && PLANTS_SCREEN_WAREHOUSES_PENDING) return PLANTS_SCREEN_WAREHOUSES_PENDING;
+  if(PLANTS_SCREEN_WAREHOUSES_PENDING) return PLANTS_SCREEN_WAREHOUSES_PENDING;
+  if(!applicationBusinessDataReady()) return getPlantsScreenWarehouses();
   if(!WarehouseDB?.ready){PLANTS_SCREEN_WAREHOUSES_CACHE=fallbackPlantsScreenWarehouses();return PLANTS_SCREEN_WAREHOUSES_CACHE;}
   PLANTS_SCREEN_WAREHOUSES_PENDING=(async()=>{
     try{
@@ -437,7 +439,7 @@ function renderPlants(){
     const rows=warehouses.map(w=>'<li><b>'+escapeHtml(w.warehouse_code||'')+'</b> - '+escapeHtml(w.warehouse_name||'')+'</li>').join('');
     return '<div class="plant-card"><div class="plant-icon"><img src="assets/img/logo.png" alt=""></div><h3>'+escapeHtml(p.name)+'</h3><span class="plant-code">'+escapeHtml(code)+'</span><ul class="warehouse-list">'+rows+'</ul></div>';
   }).join('');
-  if(WarehouseDB?.ready && !PLANTS_SCREEN_WAREHOUSES_CACHE && !PLANTS_SCREEN_WAREHOUSES_PENDING){
+  if(applicationBusinessDataReady() && hasPermission('plants','view') && (currentActiveSection()==='plants' || (currentActiveSection()==='settings' && $('#settingsGeneralPanel')?.classList.contains('active') && $('#settingsGeneralPlantsPanel')?.classList.contains('active'))) && WarehouseDB?.ready && !PLANTS_SCREEN_WAREHOUSES_CACHE && !PLANTS_SCREEN_WAREHOUSES_PENDING){
     loadPlantsScreenWarehouses().then(()=>{ if($('#plantsFull')) renderPlants(); });
   }
 }
@@ -2744,6 +2746,7 @@ function switchSection(section,options={}){
   closeMobileDashboardPanels();
   updateFiltersVisibility(section);
   if(options.persistView!==false) rememberApplicationViewState(section);
+  if(section==='plants') renderPlants();
   if(section==='reports') setTimeout(()=>loadActiveReport(),50);
   if(section==='raw_materials') setTimeout(()=>loadRawMaterialsScreen(),50);
   if(section==='users') setTimeout(()=>loadUsersManagement(),50);
@@ -4406,34 +4409,33 @@ document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initMobileUplo
 let CURRENT_AUTH_USER=null;
 let CURRENT_APP_PROFILE=null;
 
-async function fetchCurrentAppProfile(user){
-  const fallback={
-    full_name:user?.email || 'مستخدم',
-    role:isSystemOwnerEmail(user?.email) ? 'super_admin' : 'authenticated',
-    job_title:'',
-    phone:'',
-    avatar_url:'',
-    email:user?.email || ''
-  };
-  if(!window.WarehouseDB?.ready || !user?.id) return fallback;
+async function fetchCurrentAppProfile(user,signal){
+  if(!window.WarehouseDB?.ready || !user?.id) throw new Error('P8_PROFILE_UNAVAILABLE');
+  const controller=new AbortController();
+  const cancel=()=>controller.abort();
+  signal?.addEventListener('abort',cancel,{once:true});
+  if(signal?.aborted) controller.abort();
+  let timer;
   try{
-    const {data,error}=await WarehouseDB.client
-      .from('app_users')
+    const query=WarehouseDB.client.from('app_users')
       .select('full_name, role, is_active, job_title, phone, avatar_url')
-      .eq('id',user.id)
-      .maybeSingle();
-    if(error || !data) return fallback;
-    if(data.is_active === false) return {...fallback, inactive:true};
-    return {
-      full_name:data.full_name || fallback.full_name,
-      role:data.role || fallback.role,
-      job_title:data.job_title || '',
-      phone:data.phone || '',
-      avatar_url:data.avatar_url || '',
-      email:user?.email || ''
-    };
-  }catch(_){ return fallback; }
+      .eq('id',user.id).maybeSingle().abortSignal(controller.signal);
+    const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{
+      const error=new Error('انتهت مهلة تحميل الحساب. أعد المحاولة بعد قليل.');
+      error.code='P8_PROFILE_TIMEOUT';reject(error);controller.abort();
+    },15000);});
+    const {data,error}=await Promise.race([query,timeout]);
+    if(error) throw error;
+    if(!data) throw new Error('حسابك غير موجود في سجل مستخدمي البرنامج.');
+    if(data.is_active!==true) throw new Error('هذا المستخدم غير مفعل. راجع مدير النظام.');
+    return {full_name:data.full_name || user.email || 'مستخدم',role:data.role,
+      job_title:data.job_title || '',phone:data.phone || '',avatar_url:data.avatar_url || '',email:user.email || ''};
+  }finally{
+    clearTimeout(timer);
+    signal?.removeEventListener('abort',cancel);
+  }
 }
+
 function paintAvatar(el, profile){
   if(!el) return;
   el.textContent='';
@@ -5898,6 +5900,20 @@ let APPLICATION_AUTH_PENDING=null;
 let APPLICATION_READY_USER_ID='';
 let APPLICATION_PERMISSION_SIGNATURE='';
 let APPLICATION_RELOAD_REQUIRED=false;
+let APPLICATION_SIGN_IN_PENDING=false;
+let APPLICATION_AUTH_FAILED_USER_ID='';
+function setApplicationLoginBusy(busy){
+  const button=$('#mainLoginBtn');
+  if(button){button.disabled=busy;button.setAttribute('aria-busy',String(busy));}
+}
+function applicationLoginFailureMessage(error){
+  const code=String(error?.code || '');
+  const message=String(error?.message || '');
+  if(['PGRST003','57014','P8_PROFILE_TIMEOUT','P8_PERMISSION_TIMEOUT'].includes(code) || /timeout|timed out|gateway|fetch|abort/i.test(message)){
+    return 'تعذر تحميل الحساب أو صلاحياته بسبب تأخر خدمة البيانات. أعد المحاولة بعد قليل.';
+  }
+  return message || 'تعذر تحميل صلاحيات الحساب. أعد المحاولة.';
+}
 const APPLICATION_BUSINESS_LOAD_STATE=new Map();
 const APPLICATION_PRIMARY_LAZY_SECTIONS=new Set(['dashboard','upload','sales','inbound']);
 function applicationBusinessDataReady(){
@@ -5988,7 +6004,10 @@ window.addEventListener('audit-permission-runtime-updated',event=>{
 function showLoginScreen(){
   const hadUser=Boolean(CURRENT_AUTH_USER?.id);
   APPLICATION_AUTH_GENERATION++;
+  APPLICATION_AUTH_PENDING?.controller?.abort();
   APPLICATION_AUTH_PENDING=null;
+  APPLICATION_AUTH_FAILED_USER_ID='';
+  setApplicationLoginBusy(false);
   APPLICATION_READY_USER_ID='';
   APPLICATION_VIEW_RESTORED_USER_ID='';
   resetApplicationBusinessLoadState();
@@ -6003,24 +6022,32 @@ function showLoginScreen(){
   document.body.classList.remove('mobile-app-shell-active','mobile-dashboard-active','mobile-inbound-active','mobile-upload-reports-active','mobile-reports-active','mobile-dashboard-filter-open','mobile-dashboard-drawer-open','mobile-inbound-filter-open','mobile-reports-filter-open');
   if(hadUser){APPLICATION_RELOAD_REQUIRED=true;window.location.reload();}
 }
-async function showApplication(user){
+async function showApplication(user,options={}){
   if(!user?.id) return false;
+  if(APPLICATION_AUTH_FAILED_USER_ID===user.id && !options.retry) return false;
   if(APPLICATION_RELOAD_REQUIRED){window.location.reload();return false;}
   if(CURRENT_AUTH_USER?.id && CURRENT_AUTH_USER.id!==user.id){APPLICATION_RELOAD_REQUIRED=true;window.PermissionRuntime?.reset('account-changed');$('#appShell')?.classList.add('app-hidden');window.location.reload();return false;}
   if(APPLICATION_AUTH_PENDING?.userId===user.id) return APPLICATION_AUTH_PENDING.promise;
   if(APPLICATION_READY_USER_ID===user.id && window.PermissionRuntime?.isReady()) return true;
   const generation=++APPLICATION_AUTH_GENERATION;
+  const controller=new AbortController();
   const current=()=>generation===APPLICATION_AUTH_GENERATION;
+  APPLICATION_AUTH_FAILED_USER_ID='';
+  setApplicationLoginBusy(true);
   $('#appShell')?.classList.add('app-hidden');
   CURRENT_AUTH_USER=user;
   setMainAuthMessage('جاري التحقق من صلاحيات الحساب...');
   const promise=(async()=>{
     try{
-      const profile=await fetchCurrentAppProfile(user);
+      const profile=await fetchCurrentAppProfile(user,controller.signal);
       if(!current()) return false;
       if(profile.inactive) throw new Error('هذا المستخدم غير مفعل. راجع مدير النظام.');
       CURRENT_APP_PROFILE=profile;
-      if(!await loadCurrentUserPermissions()) throw new Error('تعذر تحميل صلاحيات الحساب. أعد المحاولة، أو راجع مدير النظام للتأكد من تعيين دور وحزمة صالحة.');
+      if(!await loadCurrentUserPermissions('sign-in',controller.signal)){
+        const snapshot=window.PermissionRuntime?.getSnapshot();
+        const error=new Error(snapshot?.error || 'تعذر تحميل صلاحيات الحساب. راجع تعيين الدور والحزمة.');
+        error.code=snapshot?.errorCode || '';throw error;
+      }
       if(!current()) return false;
       if(![...$$('.nav-item[data-section]')].some(btn=>canViewSection(btn.dataset.section))) throw new Error('لا توجد شاشات متاحة لهذا الحساب. راجع مدير النظام.');
       // P8.1.10.1: plant catalog is not part of the authentication gate.
@@ -6052,14 +6079,17 @@ async function showApplication(user){
     }catch(error){
       if(current()){
         APPLICATION_READY_USER_ID='';
+        APPLICATION_AUTH_FAILED_USER_ID=user.id;
+        window.PermissionRuntime?.reset('login-failed');
+        console.warn('[login-gate]',{code:error.code || '',message:error.message || 'LOGIN_FAILED'});
         $('#appShell')?.classList.add('app-hidden');
         $('#loginScreen')?.classList.remove('login-hidden');
-        setMainAuthMessage(error.message || 'تعذر تحميل صلاحيات الحساب. أعد المحاولة.','err');
+        setMainAuthMessage(applicationLoginFailureMessage(error),'err');
       }
       return false;
-    }finally{ if(current()) APPLICATION_AUTH_PENDING=null; }
+    }finally{ if(current()){APPLICATION_AUTH_PENDING=null;setApplicationLoginBusy(APPLICATION_SIGN_IN_PENDING);} }
   })();
-  APPLICATION_AUTH_PENDING={userId:user.id,promise};
+  APPLICATION_AUTH_PENDING={userId:user.id,promise,controller};
   return promise;
 }
 async function checkMainSession(){
@@ -6068,8 +6098,15 @@ async function checkMainSession(){
     setMainAuthMessage('Supabase غير متصل. راجع إعدادات supabase-config.js','err');
     return;
   }
-  const {data}=await WarehouseDB.getUser();
-  if(data?.user) await showApplication(data.user); else showLoginScreen();
+  const generation=APPLICATION_AUTH_GENERATION;
+  try{
+    const {data,error}=await WarehouseDB.getUser();
+    if(generation!==APPLICATION_AUTH_GENERATION || APPLICATION_SIGN_IN_PENDING) return;
+    if(data?.user) await showApplication(data.user);
+    else {showLoginScreen();if(error && error.name!=='AuthSessionMissingError') setMainAuthMessage(applicationLoginFailureMessage(error),'err');}
+  }catch(error){
+    if(generation===APPLICATION_AUTH_GENERATION && !APPLICATION_SIGN_IN_PENDING) setMainAuthMessage(applicationLoginFailureMessage(error),'err');
+  }
 }
 function fileToDataUrl(file){
   return new Promise((resolve,reject)=>{
@@ -6401,7 +6438,7 @@ function initSettingsTabs(){
     tabs.forEach(t=>{const active=t===tab;t.classList.toggle('active',active);t.setAttribute('aria-selected',active?'true':'false');});
     panels.forEach(panel=>panel.classList.toggle('active',panel.dataset.settingsPanel===key));
     if(key==='system') ensureSystemSettingsLoaded();
-    if(key==='general') syncGeneralSettingsTabs();
+    if(key==='general'){syncGeneralSettingsTabs();renderPlants();}
     if(key==='permission-settings') window.PermissionSettings?.load();
     if(key==='plants-settings') ensurePlantsSettingsLoaded();
     if(key==='warehouses-settings') ensureWarehousesSettingsLoaded();
@@ -6488,8 +6525,8 @@ function showPermissionDenied(section){
   const label=PERMISSION_SCREENS.find(x=>x.key===section)?.label || section;
   alert(`غير مسموح بالوصول إلى: ${label}\nراجع مدير النظام لتعديل الصلاحيات.`);
 }
-async function loadCurrentUserPermissions(reason='sign-in'){
-  const ready=await window.PermissionRuntime?.refresh({userId:CURRENT_AUTH_USER?.id,reason});
+async function loadCurrentUserPermissions(reason='sign-in',signal){
+  const ready=await window.PermissionRuntime?.refresh({userId:CURRENT_AUTH_USER?.id,reason,signal});
   if(!ready || !window.PermissionRuntime?.isReady() || APPLICATION_RELOAD_REQUIRED) return false;
   applySettingsSubPermissions();
   syncDashboardPngButtonState();
@@ -7086,15 +7123,21 @@ function initMainLoginGate(){
   const logoutBtn=$('#topLogoutBtn');
   if(loginBtn){
     loginBtn.onclick=async()=>{
+      if(APPLICATION_SIGN_IN_PENDING || APPLICATION_AUTH_PENDING) return;
       const email=(emailInput?.value||'').trim();
       const password=passInput?.value||'';
       if(!email || !password){ setMainAuthMessage('اكتب البريد الإلكتروني وكلمة المرور.','err'); return; }
+      APPLICATION_SIGN_IN_PENDING=true;
+      setApplicationLoginBusy(true);
       setMainAuthMessage('جاري تسجيل الدخول...');
-      const {data,error}=await WarehouseDB.signIn(email,password);
-      if(error){ setMainAuthMessage('خطأ في تسجيل الدخول: '+error.message,'err'); return; }
-      if(!await showApplication(data.user)) return;
-      setMainAuthMessage('تم تسجيل الدخول بنجاح.','ok');
-      await logSystemActivity('المستخدمين','تسجيل دخول',`تسجيل دخول: ${CURRENT_APP_PROFILE?.full_name || data.user?.email || email}`);
+      try{
+        const {data,error}=await WarehouseDB.signIn(email,password);
+        if(error) throw error;
+        if(!await showApplication(data?.user,{retry:true})) return;
+        setMainAuthMessage('تم تسجيل الدخول بنجاح.','ok');
+        logSystemActivity('المستخدمين','تسجيل دخول',`تسجيل دخول: ${CURRENT_APP_PROFILE?.full_name || data.user?.email || email}`).catch(()=>{});
+      }catch(error){setMainAuthMessage(applicationLoginFailureMessage(error),'err');}
+      finally{APPLICATION_SIGN_IN_PENDING=false;setApplicationLoginBusy(Boolean(APPLICATION_AUTH_PENDING));}
     };
     [emailInput,passInput].forEach(inp=>{ if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter') loginBtn.click(); }); });
   }
@@ -7108,7 +7151,11 @@ function initMainLoginGate(){
   }
   if(WarehouseDB?.client?.auth){
     WarehouseDB.client.auth.onAuthStateChange((event,session)=>{
-      if(!session?.user){ showLoginScreen(); return; }
+      if(!session?.user){
+        if(event==='SIGNED_OUT' || (event==='INITIAL_SESSION' && !APPLICATION_SIGN_IN_PENDING && !CURRENT_AUTH_USER?.id)) showLoginScreen();
+        return;
+      }
+      if(APPLICATION_SIGN_IN_PENDING) return;
       // Defer SDK work outside its auth callback; sign-in and getUser coalesce.
       const generation=APPLICATION_AUTH_GENERATION;
       setTimeout(async()=>{
@@ -7117,7 +7164,7 @@ function initMainLoginGate(){
           $('#appShell')?.classList.add('app-hidden');
           const ready=await loadCurrentUserPermissions('token-refreshed');
           if(generation!==APPLICATION_AUTH_GENERATION) return;
-          if(!ready){ APPLICATION_READY_USER_ID=''; $('#loginScreen')?.classList.remove('login-hidden');setMainAuthMessage('تعذر تحديث صلاحيات الحساب. أعد تسجيل الدخول.','err');return; }
+          if(!ready){ APPLICATION_READY_USER_ID=''; APPLICATION_AUTH_FAILED_USER_ID=session.user.id; $('#loginScreen')?.classList.remove('login-hidden');setMainAuthMessage('تعذر تحديث صلاحيات الحساب. أعد تسجيل الدخول.','err');return; }
           applyPermissionActionGuards($('.section.active-section')?.id);
           $('#appShell')?.classList.remove('app-hidden');
         }else await showApplication(session.user);

@@ -20,13 +20,14 @@
       }));
     }
   }
-  function clear(status, userId = '', reason = '', error = '') {
+  function clear(status, userId = '', reason = '', error = '', errorCode = '') {
     grants = new Map();
-    state = { phase: PHASE, status, userId, reason, error, loadedAt: '', payload: null };
+    state = { phase: PHASE, status, userId, reason, error, errorCode, loadedAt: '', payload: null };
     publish();
   }
   function reset(reason = 'signed-out') {
     generation += 1;
+    pending?.controller?.abort();
     pending = null;
     clear('IDLE', '', reason);
   }
@@ -64,30 +65,44 @@
     }
     return { payload: clone(payload), resolved };
   }
-  async function refresh({ userId = state.userId, reason = 'manual' } = {}) {
+  async function refresh({ userId = state.userId, reason = 'manual', signal } = {}) {
     if (!userId) { reset('missing-user'); return false; }
     if (pending?.userId === userId) return pending.promise;
     const request = ++generation;
+    pending?.controller?.abort();
+    const controller=new AbortController();
+    const cancel=()=>controller.abort();
+    signal?.addEventListener('abort',cancel,{once:true});
+    if(signal?.aborted) controller.abort();
+    let timer;
     clear('LOADING', userId, reason);
     const promise = Promise.resolve().then(async () => {
       try {
         if (!globalScope.WarehouseDB?.ready) throw new Error('P8_DATABASE_UNAVAILABLE');
-        const { data, error } = await globalScope.WarehouseDB.client.rpc(RPC);
+        const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{
+          const error=new Error('انتهت مهلة تحميل الصلاحيات.');
+          error.code='P8_PERMISSION_TIMEOUT';reject(error);controller.abort();
+        },15000);});
+        const { data, error } = await Promise.race([
+          globalScope.WarehouseDB.client.rpc(RPC).abortSignal(controller.signal),timeout
+        ]);
         if (request !== generation) return false;
         if (error) throw error;
         const result = normalize(data, userId);
         grants = result.resolved;
-        state = { ...state, status: 'READY', payload: result.payload, loadedAt: new Date().toISOString(), error: '' };
+        state = { ...state, status: 'READY', payload: result.payload, loadedAt: new Date().toISOString(), error: '', errorCode: '' };
         publish();
         return true;
       } catch (error) {
-        if (request === generation) clear('ERROR', userId, reason, String(error?.message || 'P8_LOAD_FAILED'));
+        if (request === generation) clear('ERROR', userId, reason, String(error?.message || 'P8_LOAD_FAILED'), String(error?.code || ''));
         return false;
       } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort',cancel);
         if (request === generation) pending = null;
       }
     });
-    pending = { userId, promise };
+    pending = { userId, promise, controller };
     return promise;
   }
   function plantCodes() { return state.status === 'READY' ? [...grants.keys()] : []; }
