@@ -23,6 +23,7 @@
     if (fixed) return [fixed];
     if (globalKey(key)) return runtime.plantCodes();
     if (key.startsWith('upload_reports.')) return runtime.plantCodes();
+    if (key.startsWith('dashboard.export.') && typeof globalScope.dashboardPngExportScope==='function') return globalScope.dashboardPngExportScope();
     if (key.startsWith('dashboard.')) return runtime.scope('dashboard.view', values('dashboardPlantFilter'));
     if (key.startsWith('reports.')) return runtime.scope(reportKey(), values('reportPlantFilter'));
     if (key.startsWith('raw_materials.')) return runtime.scope('raw_materials.'+(q('[data-raw-materials-tab].active')?.dataset.rawMaterialsTab || 'main')+'.view', values('rawMaterialsPlantFilter'));
@@ -43,6 +44,18 @@
     if (key.startsWith('department_personnel.hr_reports.')) return runtime.scope('department_personnel.hr_reports.'+(q('[data-department-hr-tab].active')?.dataset.departmentHrTab || 'cumulative_department_evaluation')+'.view', q('#departmentHrPlantFilter')?.value || 'all');
     if (key.startsWith('department_personnel.storekeepers.')) return runtime.scope('department_personnel.storekeepers.view', q('#departmentStorekeepersPlantFilter')?.value || 'all');
     if (key.startsWith('settings.sales_products.warehouses.')) return runtime.allowedPlants('settings.sales_products.warehouses.assign');
+    const settingsAction=key.match(/^settings\.(storekeepers|department_personnel)\.(create|edit|status\.toggle)$/);
+    if(settingsAction){
+      const row=element?.closest?.('tr[data-plant-code]');
+      if(row) return [row.dataset.plantCode || ''];
+      const prefix=settingsAction[1]==='storekeepers'?'storekeeper':'departmentPersonnel';
+      const plant=q('#'+prefix+'PlantInput')?.value || '';
+      const id=q('#'+prefix+'IdInput');
+      const original=id?.value ? id.dataset.originalPlantCode || '' : '';
+      if(original) return [...new Set([original,plant].filter(Boolean))];
+      // Keep an empty required form usable, while save validates its selected plant.
+      return plant ? [plant] : runtime.allowedPlants(key);
+    }
     if (key.startsWith('settings.storekeepers.')) return runtime.scope('settings.storekeepers.view', q('#storekeepersPlantFilter')?.value || 'all');
     if (key.startsWith('settings.department_personnel.')) return runtime.allowedPlants('settings.department_personnel.view');
     return runtime.plantCodes();

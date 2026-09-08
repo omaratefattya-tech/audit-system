@@ -2453,6 +2453,7 @@ async function fetchUnifiedSalesRows(filters={},options={}){
   }
 }
 async function loadDashboardRealData(options={}){
+  const renderUserId=window.PermissionRuntime?.userId();
   if(!applicationBusinessDataReady()) return;
   if(!window.PermissionRuntime?.any('dashboard.view')) return;
   if(!WarehouseDB?.ready) return;
@@ -2469,6 +2470,7 @@ async function loadDashboardRealData(options={}){
   }
   const catalog=await loadSalesReviewCatalog();
   const model=buildUnifiedSalesTotals(dashboardRows,{filters,catalog,source:'sales_audit_report'});
+  if(renderUserId!==window.PermissionRuntime?.userId() || !applicationBusinessDataReady()) return;
   const renderPerfLabel='renderDashboard '+unifiedSalesRowsCacheKey(filters);
   const renderPerfStart=salesPerfNow();
   console.time(renderPerfLabel);
@@ -2504,6 +2506,7 @@ async function loadDashboardRealData(options={}){
     fmt(w.loading)
   ]);
   renderRankTable('#topWarehousesTable',['#','كود المخزن','اسم المخزن','المصنع','البيع','التحميل'],topWarehouses);
+  DASHBOARD_PNG_RENDER_SCOPE={userId:renderUserId,plants:window.PermissionRuntime.scope('dashboard.view',filters.plant)};
   ensureDashboardPngButtons();
   console.timeEnd(renderPerfLabel);
   salesPerfLog('renderDashboard',renderPerfStart,{rows:sales.length,topProducts:topProducts.length,topWarehouses:topWarehouses.length});
@@ -2520,7 +2523,8 @@ function updateFiltersVisibility(section){
 }
 let MOBILE_DASHBOARD_SHELL_BOUND=false;
 let DASHBOARD_PNG_EXPORT_BUSY=false;
-const DASHBOARD_PNG_BUTTON_SELECTOR='#mobileDashboardPeriodPngBtn,#mobileKpiGroupPngBtn,#dashboardFullPngBtn,.widget-png-btn';
+let DASHBOARD_PNG_RENDER_SCOPE=null;
+const DASHBOARD_PNG_BUTTON_SELECTOR='#mobileDashboardPeriodPngBtn,#mobileKpiGroupPngBtn,#dashboardFullPngBtn,#dashboard .widget-png-btn';
 const DASHBOARD_PNG_CAPTURE_EXCLUDE_SELECTOR='.widget-png-btn,.mobile-kpi-group-png-btn,.mobile-period-png-btn,.dashboard-full-png-btn,.mobile-dashboard-shell,.mobile-dashboard-bottom-nav,.mobile-drawer-overlay,.mobile-side-drawer,.mobile-dashboard-filter-overlay';
 function dashboardPngButtons(){
   return [...document.querySelectorAll(DASHBOARD_PNG_BUTTON_SELECTOR)];
@@ -2558,9 +2562,23 @@ function showDashboardPngToast(message,type='success',duration=3000){
   }
   toast.querySelector('.dashboard-png-toast-close')?.addEventListener('click',close);
 }
+function dashboardPngPermissionKey(element){
+  return element?.id==='mobileKpiGroupPngBtn' || element?.id==='kpiCards' || element?.closest?.('#dashboard .kpi')
+    ? 'dashboard.export.kpis_png' : 'dashboard.export.period_png';
+}
+function dashboardPngExportScope(){
+  // The filter can change before Search: authorize the data already rendered.
+  return DASHBOARD_PNG_RENDER_SCOPE && DASHBOARD_PNG_RENDER_SCOPE.userId===window.PermissionRuntime?.userId()
+    ? [...DASHBOARD_PNG_RENDER_SCOPE.plants] : [];
+}
+function canExportDashboardPng(element){
+  const scope=dashboardPngExportScope();
+  return scope.length>0 && window.PermissionRuntime?.can('dashboard.view',scope)===true
+    && window.PermissionRuntime.can(dashboardPngPermissionKey(element),scope);
+}
 function syncDashboardPngButtonState(){
-  const allowed=hasPermission('dashboard','export_png');
   dashboardPngButtons().forEach(btn=>{
+    const allowed=canExportDashboardPng(btn);
     if(!Object.prototype.hasOwnProperty.call(btn.dataset,'dashboardPngIdleHtml')) btn.dataset.dashboardPngIdleHtml=btn.innerHTML;
     if(!Object.prototype.hasOwnProperty.call(btn.dataset,'dashboardPngIdleTitle')) btn.dataset.dashboardPngIdleTitle=btn.title||'';
     btn.setAttribute('data-html2canvas-ignore','true');
@@ -2577,9 +2595,9 @@ function syncDashboardPngButtonState(){
     }
   });
 }
-function beginDashboardPngExport(){
+function beginDashboardPngExport(element){
   if(DASHBOARD_PNG_EXPORT_BUSY) return false;
-  if(!hasPermission('dashboard','export_png')){
+  if(!canExportDashboardPng(element)){
     syncDashboardPngButtonState();
     return false;
   }
@@ -2853,7 +2871,7 @@ function exportMobileDashboardPng(){
 }
 async function exportMobileKpiGroupPng(){
   const source=$('#kpiCards');
-  if(!source || !beginDashboardPngExport()) return;
+  if(!source || !beginDashboardPngExport(source)) return;
   let exportBox=null;
   try{
     const Html2Canvas=window.html2canvas;
@@ -5004,6 +5022,16 @@ function syncStorekeepersSettingsPlantScope(){
   scopeSettingsPlantSelect($('#storekeeperPlantInput'),permissionAllowedPlantSet(actionKey));
   return viewAllowed;
 }
+function applyPlantSettingsRowPermissions(table,base,pending=new Set()){
+  document.querySelectorAll(table+' [data-action]').forEach(button=>{
+    const action=button.dataset.action.startsWith('toggle-')?'status.toggle':'edit';
+    const plant=button.closest('[data-plant-code]')?.dataset.plantCode || '';
+    const allowed=window.PermissionRuntime?.can(base+'.'+action,plant)===true;
+    button.disabled=!allowed || pending.has(button.dataset.recordId);
+    button.classList.toggle('permission-disabled',!allowed);
+    button.classList.toggle('permission-hidden',!allowed);
+  });
+}
 function canAddStorekeepersSettings(){ return hasPermission('settings_storekeepers','add'); }
 function canEditStorekeepersSettings(){ return hasPermission('settings_storekeepers','edit'); }
 function notifyStorekeepersPermissionDenied(){ alert('\u063A\u064A\u0631 \u0645\u062A\u0627\u062D \u0644\u0644\u0635\u0644\u0627\u062D\u064A\u0629 \u0627\u0644\u062D\u0627\u0644\u064A\u0629'); }
@@ -5017,8 +5045,9 @@ function applyStorekeepersSettingsPermissions(){
   const form=$('#storekeeperSettingsForm');
   if(form) form.classList.toggle('permission-hidden',!canUseForm);
   setElementsDisabled('#storekeeperSettingsForm input:not([type="hidden"]),#storekeeperSettingsForm select,#saveStorekeeperBtn',!canUseForm,true);
-  setElementsDisabled('#cancelStorekeeperBtn',isEditing ? !canEdit : false,true);
-  setElementsDisabled('#storekeepersSettingsTable [data-action="edit-storekeeper"],#storekeepersSettingsTable [data-action="toggle-storekeeper"]',!canEdit,true);
+  setElementsDisabled('#cancelStorekeeperBtn',false,true);
+  applyPlantSettingsRowPermissions('#storekeepersSettingsTable','settings.storekeepers');
+  if(isEditing) setElementsDisabled('#storekeeperActiveInput',!hasCanonicalPermission('settings.storekeepers.status.toggle'),false);
 }
 let PLANTS_SETTINGS_LOADED=false;
 let PLANTS_SETTINGS_ROWS=[];
@@ -10221,7 +10250,7 @@ function ensureDashboardPngButtons(){
 }
 
 async function exportDashboardElementAsPng(element,title){
-  if(!element || !beginDashboardPngExport()) return;
+  if(!element || !beginDashboardPngExport(element)) return;
   const Html2Canvas=window.html2canvas;
   const previousActive=document.activeElement;
   const restoreExclusions=markDashboardPngCaptureExclusions(element);
@@ -16226,9 +16255,7 @@ async function handleInventoryClosingReportFile(tabKey, file) {
 
   try {
     if(!window.WarehouseDB?.ready) throw new Error('قاعدة البيانات غير متصلة.');
-    const {data: permData, error: permErr} = await WarehouseDB.client.rpc('can_upload_inventory_closing_reports');
-    if (permErr) throw permErr;
-    if (!permData) {
+    if (!config || window.PermissionRuntime?.can('upload_reports.'+tabKey+'.upload',config.plantCode)!==true) {
       alert('ليس لديك صلاحية لرفع تقارير الجرد.');
       fileInput.value = '';
       return;
@@ -16473,7 +16500,7 @@ async function loadStorekeepersTable() {
     }
     
     tbody.innerHTML = scopedData.map(st => `
-      <tr>
+      <tr data-plant-code="${escapeHtml(st.plant_code || '')}">
         <td>${escapeHtml(st.full_name || '')}</td>
         <td>${escapeHtml(st.job_title || '')}</td>
         <td>${escapeHtml(st.plant_code || '')}</td>
@@ -16565,7 +16592,7 @@ document.getElementById('storekeeperSettingsForm')?.addEventListener('submit', a
 });
 
 function editStorekeeper(id, full_name, job_title, plant_code, is_active) {
-  if(!canEditStorekeepersSettings()){
+  if(window.PermissionRuntime?.can('settings.storekeepers.edit',plant_code)!==true){
     notifyStorekeepersPermissionDenied();
     applyStorekeepersSettingsPermissions();
     return;
@@ -16574,6 +16601,7 @@ function editStorekeeper(id, full_name, job_title, plant_code, is_active) {
   document.getElementById('storekeeperIdInput').dataset.originalPlantCode = String(plant_code||'').trim().toUpperCase();
   document.getElementById('storekeeperNameInput').value = full_name;
   document.getElementById('storekeeperTitleInput').value = job_title;
+  syncStorekeepersSettingsPlantScope();
   document.getElementById('storekeeperPlantInput').value = plant_code;
   document.getElementById('storekeeperActiveInput').checked = is_active;
   
@@ -16583,11 +16611,6 @@ function editStorekeeper(id, full_name, job_title, plant_code, is_active) {
 }
 
 function resetStorekeeperForm() {
-  if(isStorekeepersSettingsEditing() && !canEditStorekeepersSettings()){
-    notifyStorekeepersPermissionDenied();
-    applyStorekeepersSettingsPermissions();
-    return;
-  }
   document.getElementById('storekeeperIdInput').value = '';
   delete document.getElementById('storekeeperIdInput').dataset.originalPlantCode;
   document.getElementById('storekeeperSettingsForm').reset();
@@ -16599,7 +16622,7 @@ function resetStorekeeperForm() {
 document.getElementById('cancelStorekeeperBtn')?.addEventListener('click', resetStorekeeperForm);
 
 async function toggleStorekeeperStatus(id, newStatus, plantCode='') {
-  if(!canEditStorekeepersSettings() || window.PermissionRuntime?.can('settings.storekeepers.status.toggle',plantCode)!==true){
+  if(window.PermissionRuntime?.can('settings.storekeepers.status.toggle',plantCode)!==true){
     notifyStorekeepersPermissionDenied();
     applyStorekeepersSettingsPermissions();
     return;
@@ -17006,8 +17029,9 @@ function applyDepartmentPersonnelPermissions(){
     window.CustomDatePicker.init(hireDateInput.parentElement || form || document);
     window.CustomDatePicker.refresh(hireDateInput);
   }
-  setElementsDisabled('#cancelDepartmentPersonnelBtn',editing ? !canEdit : false,true);
-  setElementsDisabled('#departmentPersonnelTable [data-action="edit-department-personnel"],#departmentPersonnelTable [data-action="toggle-department-personnel"]',!canEdit,true);
+  setElementsDisabled('#cancelDepartmentPersonnelBtn',false,true);
+  applyPlantSettingsRowPermissions('#departmentPersonnelTable','settings.department_personnel',DEPARTMENT_PERSONNEL_STATUS_PENDING);
+  if(editing) setElementsDisabled('#departmentPersonnelActiveInput',!hasCanonicalPermission('settings.department_personnel.status.toggle'),false);
 }
 function applyDepartmentStatusCodesPermissions(){
   const canAdd=canAddDepartmentCodingSettings();
@@ -17031,7 +17055,7 @@ function renderDepartmentPersonnelTable(rows=[]){
       const id=escapeHtml(row.id||'');
       const plantCode=String(row.plant_code||'');
       const plantLabel=plantCode+(DEPARTMENT_PERSONNEL_PLANTS[plantCode] ? ' — '+DEPARTMENT_PERSONNEL_PLANTS[plantCode] : '');
-      return '<tr data-record-id="'+id+'">'
+      return '<tr data-record-id="'+id+'" data-plant-code="'+escapeHtml(plantCode)+'">'
         +'<td dir="ltr">'+escapeHtml(row.employee_code||'')+'</td>'
         +'<td>'+escapeHtml(row.full_name||'')+'</td>'
         +'<td>'+escapeHtml(row.job_title||'')+'</td>'
@@ -17109,13 +17133,13 @@ function resetDepartmentPersonnelForm(){
   applyDepartmentPersonnelPermissions();
 }
 function editDepartmentPersonnel(recordId){
-  if(!canEditDepartmentCodingSettings()){
-    setDepartmentPersonnelStatus('غير متاح للصلاحية الحالية.','err');
-    return;
-  }
   const row=DEPARTMENT_PERSONNEL_ROWS.find(item=>String(item.id)===String(recordId));
   if(!row){
     setDepartmentPersonnelStatus('تعذر العثور على سجل الموظف. أعد تحميل الجدول.','err');
+    return;
+  }
+  if(window.PermissionRuntime?.can('settings.department_personnel.edit',row.plant_code)!==true){
+    setDepartmentPersonnelStatus('غير متاح للصلاحية الحالية.','err');
     return;
   }
   $('#departmentPersonnelIdInput').value=row.id||'';
@@ -17123,6 +17147,7 @@ function editDepartmentPersonnel(recordId){
   $('#departmentPersonnelCodeInput').value=row.employee_code||'';
   $('#departmentPersonnelNameInput').value=row.full_name||'';
   $('#departmentPersonnelJobTitleInput').value=row.job_title||'';
+  syncDepartmentPersonnelPlantScope();
   $('#departmentPersonnelPlantInput').value=row.plant_code||'';
   $('#departmentPersonnelDepartmentInput').value=row.department||'';
   $('#departmentPersonnelPhoneInput').value=row.phone_number||'';
@@ -17210,7 +17235,7 @@ async function saveDepartmentPersonnel(event){
 async function toggleDepartmentPersonnelStatus(recordId,nextActive){
   if(DEPARTMENT_PERSONNEL_STATUS_PENDING.has(recordId)) return;
   const row=DEPARTMENT_PERSONNEL_ROWS.find(item=>String(item.id)===String(recordId));
-  if(!canEditDepartmentCodingSettings() || !row || window.PermissionRuntime?.can('settings.department_personnel.status.toggle',row.plant_code)!==true){
+  if(!row || window.PermissionRuntime?.can('settings.department_personnel.status.toggle',row.plant_code)!==true){
     setDepartmentPersonnelStatus('غير متاح للصلاحية الحالية.','err');
     return;
   }

@@ -47,8 +47,8 @@
   ].forEach(([key, label, selector]) => filter(`dashboard.filter.${key}`, label, dashboard, APP, selector));
   button('dashboard.search', 'بحث', dashboard, APP, '#dashboardSearchBtn');
   button('dashboard.filters.reset', 'إعادة تعيين الفلاتر', dashboard, APP, '#dashboardResetBtn');
-  button('dashboard.export.period_png', 'تصدير ملخص الفترة PNG', dashboard, APP, '#mobileDashboardPeriodPngBtn');
-  button('dashboard.export.kpis_png', 'تصدير مؤشرات الأداء PNG', dashboard, APP, '#mobileKpiGroupPngBtn');
+  button('dashboard.export.period_png', 'تصدير ملخص الفترة PNG', dashboard, APP, '#mobileDashboardPeriodPngBtn,#dashboardFullPngBtn,#dashboard .panel.glass > .widget-png-btn');
+  button('dashboard.export.kpis_png', 'تصدير مؤشرات الأداء PNG', dashboard, APP, '#mobileKpiGroupPngBtn,#dashboard .kpi.glass > .widget-png-btn');
 
   const uploads = screen('upload_reports', 'رفع التقارير', APP, '#upload', 'Canonical replacement candidate for legacy upload/upload_reports.');
   const uploadTabs = [
