@@ -122,7 +122,7 @@
       weekStart:isBetween(today,range.from,range.to)?fridayStart(today):fridayStart(range.from),
       activeTab:WEEKLY_TABS[0].key,requestToken:0,initialized:false,loading:false,saving:false,
       personnel:[],records:[],statusCodes:[],blockingStatuses:new Map(),evaluatorNames:new Map(),
-      baseline:new Map(),dirty:new Map(),invalid:new Set(),sortKey:'full_name',sortDirection:'asc',
+      baseline:new Map(),statusVersions:new Map(),dirty:new Map(),invalid:new Set(),sortKey:'full_name',sortDirection:'asc',
       modalDraft:null,conflictResolver:null
     };
   }
@@ -490,6 +490,12 @@
 
   function prepareWeeklyBaseline(state,records){
     state.baseline.clear();
+    state.statusVersions.clear();
+    // Voided status rows are visually empty but still have a server row version.
+    // Keep that exact timestamp for a later edit without exposing old cell values.
+    if(state.kind==='statuses') records.forEach(row=>{
+      state.statusVersions.set(cellKey(row.personnel_id,row.work_date),row.updated_at||null);
+    });
     records.filter(row=>!row.is_voided).forEach(row=>{
       const date=state.kind==='statuses'?row.work_date:row.evaluation_date;
       const value=state.kind==='statuses'?String(row.shift_code_snapshot||'').trim():String(Number(row.score));
@@ -740,7 +746,8 @@
     }else{
       state.dirty.set(key,{
         personnelId:input.dataset.personnelId,date:input.dataset.date,value:result.value,
-        expectedUpdatedAt:baseline.expectedUpdatedAt,description:result.description,color:result.color
+        expectedUpdatedAt:state.kind==='statuses'?(state.statusVersions.get(key)??baseline.expectedUpdatedAt):baseline.expectedUpdatedAt,
+        description:result.description,color:result.color
       });
       input.classList.add('dirty');input.closest('td')?.classList.add('dirty');
       if(result.valid) state.invalid.delete(key); else state.invalid.add(key);
