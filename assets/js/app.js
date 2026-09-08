@@ -7551,7 +7551,7 @@ async function rawMaterialsLoadBranConsumptionRows(){
   const periodEnd=rawMaterialsDateKey(data?.[0]?.transaction_date);
   if(!periodEnd) return {rows:[],periodStart:'',periodEnd:''};
   const periodStart=rawMaterialsAddDays(periodEnd,-89);
-  const rows=await fetchAllRows('consumption_rate_rows','material_code,material_group,plant_code,movement_type,quantity,uom,transaction_date',q=>base(q).gte('transaction_date',periodStart).lte('transaction_date',periodEnd).order('transaction_date',{ascending:true}));
+  const rows=await fetchAllRows('consumption_rate_rows','material_code,material_group,plant_code,movement_type,quantity,uom,transaction_date',q=>base(q).gte('transaction_date',periodStart).lte('transaction_date',periodEnd).order('transaction_date',{ascending:true}).order('id',{ascending:true}));
   return {rows:rows||[],periodStart,periodEnd};
 }
 function rawMaterialsNormalizeQuantity(value,uom){
