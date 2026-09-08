@@ -6023,8 +6023,9 @@ async function showApplication(user){
       if(!await loadCurrentUserPermissions()) throw new Error('تعذر تحميل صلاحيات الحساب. أعد المحاولة، أو راجع مدير النظام للتأكد من تعيين دور وحزمة صالحة.');
       if(!current()) return false;
       if(![...$$('.nav-item[data-section]')].some(btn=>canViewSection(btn.dataset.section))) throw new Error('لا توجد شاشات متاحة لهذا الحساب. راجع مدير النظام.');
-      await loadPlantsCatalog({force:true});
-      if(!current()) return false;
+      // P8.1.10.1: plant catalog is not part of the authentication gate.
+      // Use the existing fallback/cache immediately and refresh Supabase catalog in the background
+      // so a slow/exhausted PostgREST pool can never keep the application hidden after auth succeeds.
       refreshPlantsCatalogConsumers();
       applyProfileToHeader(profile);
       fillProfileForm(profile,user);
@@ -6040,7 +6041,13 @@ async function showApplication(user){
       restoreApplicationViewState();
       applySettingsSubPermissions();
       window.PermissionUI?.apply();
-      if(current() && window.PermissionRuntime?.isReady()) queuePrimarySectionDataLoad(currentActiveSection(),{delay:220});
+      if(current() && window.PermissionRuntime?.isReady()){
+        queuePrimarySectionDataLoad(currentActiveSection(),{delay:220});
+        // Non-blocking catalog refresh. Any failure already falls back inside loadPlantsCatalog().
+        loadPlantsCatalog({force:true}).then(()=>{
+          if(current() && APPLICATION_READY_USER_ID===user.id) refreshPlantsCatalogConsumers();
+        }).catch(()=>{});
+      }
       return true;
     }catch(error){
       if(current()){
@@ -7085,8 +7092,8 @@ function initMainLoginGate(){
       setMainAuthMessage('جاري تسجيل الدخول...');
       const {data,error}=await WarehouseDB.signIn(email,password);
       if(error){ setMainAuthMessage('خطأ في تسجيل الدخول: '+error.message,'err'); return; }
-      setMainAuthMessage('تم تسجيل الدخول بنجاح.','ok');
       if(!await showApplication(data.user)) return;
+      setMainAuthMessage('تم تسجيل الدخول بنجاح.','ok');
       await logSystemActivity('المستخدمين','تسجيل دخول',`تسجيل دخول: ${CURRENT_APP_PROFILE?.full_name || data.user?.email || email}`);
     };
     [emailInput,passInput].forEach(inp=>{ if(inp) inp.addEventListener('keydown',e=>{ if(e.key==='Enter') loginBtn.click(); }); });
