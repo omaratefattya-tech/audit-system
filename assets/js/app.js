@@ -1430,8 +1430,9 @@ function initDashboardFilters(){
 async function getLatestSalesReportDate(){
   if(!WarehouseDB?.ready) return '';
   try{
-    const res=await WarehouseDB.client.from('sales_audit_report').select('report_date').order('report_date',{ascending:false}).limit(1);
-    return normalizeDateISO(res.data?.[0]?.report_date || '');
+    const {data,error}=await WarehouseDB.client.rpc('app_sales_p8_latest_report_date');
+    if(error) throw error;
+    return normalizeDateISO(data || '');
   }catch(_){return '';}
 }
 async function ensureDashboardDefaultDate(options={}){
@@ -8074,8 +8075,8 @@ async function ensureReportDefaultDates(options={}){
   if(!fromEl || !toEl || options.keepDates) return;
   if(fromEl.value || toEl.value) return;
   try{
-    const {data,error}=await WarehouseDB.client.from('sales_audit_report').select('report_date').order('report_date',{ascending:false}).limit(1);
-    if(!error && data?.[0]?.report_date){ fromEl.value=normalizeDateISO(data[0].report_date); toEl.value=normalizeDateISO(data[0].report_date); }
+    const latest=await getLatestSalesReportDate();
+    if(latest){ fromEl.value=latest; toEl.value=latest; }
   }catch(_){ }
 }
 function getReportFilters(permissionKey=window.PermissionUI?.reportKey() || 'reports.executive.view'){
