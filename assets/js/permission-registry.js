@@ -384,47 +384,6 @@
   button('settings.permission_settings.bundles.screen_permissions.clear_all', 'إلغاء كل عناصر الشاشة', permissionBundles, 'assets/js/permission-settings.js', '#permissionEditorClearAllBtn');
   action('settings.permission_settings.bundles.screen_permissions.save', 'حفظ اختيارات الشاشة', permissionBundles, 'assets/js/permission-settings.js', '#permissionEditorSaveBtn');
 
-  const legacyScreenMappings = Object.freeze([
-    ['dashboard', 'dashboard.view', 'MATCHED'],
-    ['upload', 'upload_reports.view', 'MERGED_LEGACY'],
-    ['upload_reports', 'upload_reports.view', 'MERGED_LEGACY'],
-    ['sales', 'sales_review.view', 'MERGED_LEGACY'],
-    ['sales_audit', 'sales_review.view', 'MERGED_LEGACY'],
-    ['inbound', 'inbound_review.view', 'MERGED_LEGACY'],
-    ['incoming_audit', 'inbound_review.view', 'MERGED_LEGACY'],
-    ['raw_materials', 'raw_materials.view', 'MATCHED'],
-    ['inventory_count', 'inventory.view', 'NEEDS_DECISION'],
-    ['reports', 'reports.view', 'NEEDS_DECISION'],
-    ['users', 'users.view', 'MATCHED'],
-    ['permissions', 'permissions.view', 'MATCHED'],
-    ['settings', 'settings.view', 'MATCHED'],
-    ['plants', 'settings.general.plants_and_warehouses.view', 'MERGED_LEGACY'],
-    ['movements', 'settings.general.movements.view', 'MERGED_LEGACY'],
-    ['settings_profile', 'settings.profile.view', 'MATCHED'],
-    ['settings_account', 'settings.account.view', 'MATCHED'],
-    ['settings_system', 'settings.system.view', 'MATCHED'],
-    ['settings_plants', 'settings.plants.view', 'MATCHED'],
-    ['settings_warehouses', 'settings.warehouses.view', 'MATCHED'],
-    ['settings_sales_products', 'settings.sales_products.view', 'MATCHED'],
-    ['settings_sales_product_warehouses', 'settings.sales_products.warehouses.assign', 'MERGED_LEGACY'],
-    ['settings_storekeepers', 'settings.storekeepers.view', 'MISSING_FRONTEND'],
-    ['settings_activity_log', 'settings.activity_log.view', 'MATCHED']
-  ].map(([legacyKey, canonicalKey, status]) => Object.freeze({ legacyKey, canonicalKey, status })));
-
-  const legacyActionMappings = Object.freeze([
-    ['can_view', 'view', 'MATCHED'],
-    ['can_add', 'create/add (screen-specific)', 'MATCHED'],
-    ['can_create', 'create (screen-specific)', 'NEEDS_DECISION'],
-    ['can_edit', 'edit/update (screen-specific)', 'MATCHED'],
-    ['can_delete', 'delete (screen-specific)', 'MATCHED'],
-    ['can_upload', 'upload (screen-specific)', 'MATCHED'],
-    ['can_export_excel', 'export_excel', 'MATCHED'],
-    ['can_export_pdf', 'export_pdf', 'MATCHED'],
-    ['can_export_png', 'export_png', 'MATCHED'],
-    ['can_approve', 'approve/complete (screen-specific)', 'MATCHED'],
-    ['can_manage', 'manage (screen-specific)', 'MATCHED']
-  ].map(([legacyColumn, canonicalCapability, status]) => Object.freeze({ legacyColumn, canonicalCapability, status })));
-
   const registry = Object.freeze({
     version: 'P7-2026-09-05',
     phase: 'P3_PERMISSION_SETTINGS',
@@ -432,17 +391,7 @@
     runtimeLoaded: true,
     namingConvention: '<domain>[.<subscreen>][.<tab>].<capability>',
     nodeTypes: Object.freeze(['SCREEN', 'SUBSCREEN', 'TAB', 'FILTER', 'BUTTON', 'ACTION']),
-    nodes: Object.freeze(nodes.slice()),
-    legacyScreenMappings,
-    legacyActionMappings,
-    unresolvedDecisions: Object.freeze([
-      'Legacy reports currently authorizes the reports screen and every Department Personnel subscreen.',
-      'Legacy inventory_count currently authorizes three distinct inventory subscreens.',
-      'Production can_create has no frontend PERMISSION_ACTIONS equivalent; all stored values are false.',
-      'app_users.plant_code is populated for zero users and is not read by frontend authorization.',
-      'Plant-scoped bundle migration must preserve current all-access behavior until P5 evidence supports a narrower scope.',
-      'The authenticated app_users role discrepancy must remain a guarded migration decision even though P0 found zero current users with that value.'
-    ])
+    nodes: Object.freeze(nodes.slice())
   });
 
   if (typeof module !== 'undefined' && module.exports) module.exports = registry;
