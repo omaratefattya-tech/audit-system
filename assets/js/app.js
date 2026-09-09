@@ -1944,6 +1944,7 @@ async function runSalesReviewEngineVerification(filters={},options={}){
 
 const UNIFIED_SALES_ROWS_CACHE=new Map();
 const UNIFIED_SALES_ROWS_PENDING=new Map();
+let UNIFIED_SALES_CACHE_GENERATION=0;
 function unifiedSalesRowsCacheKey(filters={}){
   return [
     normalizeDateISO(filters.from||''),
@@ -1953,8 +1954,8 @@ function unifiedSalesRowsCacheKey(filters={}){
   ].join('|');
 }
 function clearUnifiedSalesRowsCache(){
+  UNIFIED_SALES_CACHE_GENERATION++;
   UNIFIED_SALES_ROWS_CACHE.clear();
-  UNIFIED_SALES_ROWS_PENDING.clear();
 }
 function clearSalesReviewEngineCache(){
   clearSalesReviewCatalogCache();
@@ -1982,36 +1983,50 @@ function salesPerfLog(stage,start,details={}){
 }
 
 const SALES_AUDIT_DASHBOARD_SELECT='report_date,warehouse_code,warehouse_name,plant_code,plant_name,material_code,material_name,sales_quantity,actual_return_quantity,production_quantity,outgoing_transfer_quantity,incoming_transfer_quantity,total_loading_quantity';
+function salesAuditDateSlices(filters){
+  const from=normalizeDateISO(filters.from||''),to=normalizeDateISO(filters.to||'');
+  if(!from || !to) throw new Error('حدد تاريخ بداية ونهاية الفترة قبل التحميل.');
+  const begin=Date.parse(from+'T00:00:00Z'),end=Date.parse(to+'T00:00:00Z');
+  if(!Number.isFinite(begin)||!Number.isFinite(end)||begin>end||new Date(begin).toISOString().slice(0,10)!==from||new Date(end).toISOString().slice(0,10)!==to) throw new Error('فترة التقرير غير صحيحة.');
+  const dates=[];
+  for(let ms=begin;ms<=end;ms+=86400000) dates.push(new Date(ms).toISOString().slice(0,10));
+  return dates;
+}
 async function fetchAllSalesAuditRows(filters={}, options={}){
   if(!WarehouseDB?.ready) return [];
-  const pageSize=1000;
-  const maxPages=200;
-  const orderBy=options.orderBy || 'report_date';
-  const ascending=options.ascending===true;
-  const selectCols=options.select || SALES_AUDIT_DASHBOARD_SELECT;
-  const all=[];
-  for(let page=0; page<maxPages; page++){
-    const from=page*pageSize;
-    const to=from+pageSize-1;
-    let query=WarehouseDB.client
-      .from('sales_audit_report')
-      .select(selectCols)
-      .order(orderBy,{ascending})
-      .range(from,to);
-    if(filters.from) query=query.gte('report_date',filters.from);
-    if(filters.to) query=query.lte('report_date',filters.to);
-    query=enterpriseFilterApplyQuery(query,'plant_code',filters.plant);
-    query=enterpriseFilterApplyQuery(query,'warehouse_code',filters.warehouse,v=>String(v||'').toUpperCase());
-    const {data,error}=await query;
-    if(error) throw error;
-    const chunk=data||[];
-    all.push(...chunk);
-    if(chunk.length<pageSize) break;
-  }
-  const catalog=await loadSalesReviewCatalog();
-  const filtered=filterSalesReviewRows(all,catalog);
-  salesReviewEngineDebug(all,catalog,'sales_audit_report',filters);
-  return filtered;
+  const load=async progress=>{
+    const userId=window.PermissionRuntime?.userId(),dates=salesAuditDateSlices(filters);
+    const pageSize=1000,orderBy=options.orderBy||'report_date',ascending=options.ascending===true;
+    const selectCols=options.select||SALES_AUDIT_DASHBOARD_SELECT,all=[];
+    if(orderBy==='report_date'&&!ascending) dates.reverse();
+    for(let day=0;day<dates.length;day++){
+      for(let page=0;;page++){
+        if(progress.signal.aborted || userId!==window.PermissionRuntime?.userId()) throw new DOMException('تم إلغاء تحميل البيانات.','AbortError');
+        progress.report(day,dates.length,`تحميل يوم ${dates[day]} — اكتمل ${day} من ${dates.length} يومًا`);
+        let query=WarehouseDB.client.from('sales_audit_report').select(selectCols).eq('report_date',dates[day]);
+        // Stable pagination uses the view's complete group identity, including batch_id.
+        for(const key of [...new Set([orderBy,'report_date','batch_id','plant_code','warehouse_code','material_code'])]) query=query.order(key,{ascending:key===orderBy?ascending:true});
+        query=enterpriseFilterApplyQuery(query,'plant_code',filters.plant);
+        query=enterpriseFilterApplyQuery(query,'warehouse_code',filters.warehouse,v=>String(v||'').toUpperCase());
+        const {data,error}=await query.range(page*pageSize,(page+1)*pageSize-1).abortSignal(progress.signal);
+        if(error) throw error;
+        if(progress.signal.aborted || userId!==window.PermissionRuntime?.userId()) throw new DOMException('تم إلغاء تحميل البيانات.','AbortError');
+        const chunk=data||[];all.push(...chunk);
+        if(chunk.length<pageSize) break;
+      }
+      progress.report(day+1,dates.length,`اكتمل ${day+1} من ${dates.length} يومًا`);
+    }
+    // Preserve the caller's global ordering when days are concatenated.
+    all.sort((a,b)=>{const x=a[orderBy],y=b[orderBy];return (x<y?-1:x>y?1:0)*(ascending?1:-1);});
+    const catalog=await loadSalesReviewCatalog();
+    if(progress.signal.aborted || userId!==window.PermissionRuntime?.userId()) throw new DOMException('تم إلغاء تحميل البيانات.','AbortError');
+    const filtered=filterSalesReviewRows(all,catalog);
+    salesReviewEngineDebug(all,catalog,'sales_audit_report',filters);
+    return filtered;
+  };
+  if(options.progress) return load(options.progress);
+  const key='sales-data:'+window.PermissionRuntime?.userId()+'|'+unifiedSalesRowsCacheKey(filters)+'|'+(options.select||'default')+'|'+(options.orderBy||'report_date')+'|'+!!options.ascending;
+  return window.AppOperationProgress.run(key,'تحميل بيانات الفترة',load);
 }
 
 const SALES_RAW_AUDIT_SELECT='id,material_code,material_name,quantity,uom,quantity_to,movement_type,movement_text,worker_group,warehouse_code,plant_code,plant_name,sales_upload_batches!inner(report_date,status)';
@@ -2420,7 +2435,9 @@ async function fetchAllSalesRawRows(filters={},options={}){
 async function fetchUnifiedSalesRows(filters={},options={}){
   const catalog=await loadSalesReviewCatalog();
   const source=options.rawDebug===true || options.source==='raw-debug' ? 'raw-debug' : 'sales_audit_report';
-  const key=unifiedSalesRowsCacheKey(filters)+'|'+(catalog.signature||'legacy')+'|'+source;
+  const requestUserId=window.PermissionRuntime?.userId();
+  const cacheGeneration=UNIFIED_SALES_CACHE_GENERATION;
+  const key=requestUserId+'|'+unifiedSalesRowsCacheKey(filters)+'|'+(catalog.signature||'legacy')+'|'+source+'|'+(options.select||'default')+'|'+(options.orderBy||'report_date')+'|'+!!options.ascending;
   const perfLabel=`fetchUnifiedSalesRows ${key}`;
   const perfStart=salesPerfNow();
   console.time(perfLabel);
@@ -2444,15 +2461,17 @@ async function fetchUnifiedSalesRows(filters={},options={}){
   UNIFIED_SALES_ROWS_PENDING.set(key,request);
   try{
     const rows=await request;
-    UNIFIED_SALES_ROWS_CACHE.set(key,rows);
+    if(requestUserId===window.PermissionRuntime?.userId() && cacheGeneration===UNIFIED_SALES_CACHE_GENERATION) UNIFIED_SALES_ROWS_CACHE.set(key,rows);
     console.timeEnd(perfLabel);
     salesPerfLog('fetchUnifiedSalesRows fetch',perfStart,{cacheKey:key,source,rows:rows.length});
     return rows;
   }finally{
-    UNIFIED_SALES_ROWS_PENDING.delete(key);
+    if(UNIFIED_SALES_ROWS_PENDING.get(key)===request) UNIFIED_SALES_ROWS_PENDING.delete(key);
   }
 }
 async function loadDashboardRealData(options={}){
+  if(!applicationBusinessDataReady()) return;
+  return window.AppOperationProgress.run('screen:dashboard','الرئيسية',async operation=>{
   const renderUserId=window.PermissionRuntime?.userId();
   if(!applicationBusinessDataReady()) return;
   if(!window.PermissionRuntime?.any('dashboard.view')) return;
@@ -2463,8 +2482,8 @@ async function loadDashboardRealData(options={}){
   const filters=getDashboardFilters();
   let dashboardRows=[];
   try{
-    dashboardRows=await fetchUnifiedSalesRows(filters,{ascending:false});
-  }catch(error){
+    dashboardRows=await fetchUnifiedSalesRows(filters,{progress:operation,ascending:false});
+  }catch(error){ operation.fail(error);
     console.warn('dashboard sales load error',error);
     return;
   }
@@ -2510,6 +2529,7 @@ async function loadDashboardRealData(options={}){
   ensureDashboardPngButtons();
   console.timeEnd(renderPerfLabel);
   salesPerfLog('renderDashboard',renderPerfStart,{rows:sales.length,topProducts:topProducts.length,topWarehouses:topWarehouses.length});
+  },{scope:'#dashboard',controls:'#dashboard button,#dashboard input,#dashboard select'});
 }
 
 
@@ -4145,6 +4165,9 @@ async function refreshInboundReportDates(){
 }
 async function loadInboundAuditReport(date='',options={}){
   if(!applicationBusinessDataReady()) return;
+  return window.AppOperationProgress.run('screen:inbound','مراجعة الوارد',async operation=>{
+  const readInbound=async(date,options)=>{
+  if(!applicationBusinessDataReady()) return;
   if(!window.PermissionRuntime?.any('inbound_review.view')) return;
   const tbl=$('#inboundTable');
   if(!tbl || !WarehouseDB?.ready) return;
@@ -4176,15 +4199,16 @@ async function loadInboundAuditReport(date='',options={}){
   }
   const {data,error}=await query
     .order('report_date',{ascending:false})
-    .order('material_code',{ascending:true});
-  if(error){ tbl.innerHTML='<tbody><tr><td>خطأ تحميل مراجعة الوارد: '+error.message+'</td></tr></tbody>'; return; }
+    .order('material_code',{ascending:true}).abortSignal(operation.signal);
+  if(operation.signal.aborted)return;
+  if(error){ operation.fail(error);tbl.innerHTML='<tbody><tr><td>خطأ تحميل مراجعة الوارد: '+error.message+'</td></tr></tbody>'; return; }
   const filtered=(data||[]).filter(r=>inboundRowMatchesTopFilters(r,topFilters));
   updateInboundResultsCount(filtered.length);
   if((!useTopFilters || selected) && filtered.some(r=>!r.incoming_movement_type || !r.raw_result?.freight_diagnosis || r.raw_result?.movement_color_logic!=='repost_101_gold_v2') && !window.__incomingMovementRebuildOnce){
     window.__incomingMovementRebuildOnce=true;
     try{
       await tryBuildIncomingAudit(selected);
-      return loadInboundAuditReport('',{useTopFilters:true,ignoreSelectedDate:true});
+      return readInbound('',{useTopFilters:true,ignoreSelectedDate:true});
     }catch(e){ console.warn('incoming audit rebuild skipped',e); }
   }
   const rows=filtered.map(r=>{
@@ -4228,6 +4252,9 @@ async function loadInboundAuditReport(date='',options={}){
     return values.map((v,i)=>statuses[i]==='neutral' ? v : auditStatusCell(v,statuses[i]));
   });
   table('#inboundTable',heads,rows);
+  };
+  return readInbound(date,options);
+  },{scope:'#inbound',controls:'#inbound button,#inbound input,#inbound select'});
 }
 async function handleFreightFile(file){
   const status=$('#freightUploadStatus');
@@ -4390,14 +4417,17 @@ function initSalesUploader(){
 }
 async function loadSalesReport(warehouseCode){
   if(!applicationBusinessDataReady()) return;
+  return window.AppOperationProgress.run('screen:sales','مراجعة البيع',async operation=>{
+  if(!applicationBusinessDataReady()) return;
   const plant=warehouseMetaByCode(warehouseCode)?.plant_code;
   if(!window.PermissionRuntime?.can('sales_review.view',plant || [])) return;
   activeSalesWarehouse=warehouseCode;
   if(!WarehouseDB?.ready){ return; }
   let query=WarehouseDB.client.from('sales_audit_report').select('*').eq('warehouse_code',warehouseCode);
   if(activeSalesReportDate) query=query.eq('report_date',activeSalesReportDate);
-  const {data,error}=await query.order('material_code');
-  if(error){ console.error(error); return; }
+  const {data,error}=await query.order('material_code').abortSignal(operation.signal);
+  if(operation.signal.aborted)return;
+  if(error){ operation.fail(error);console.error(error); return; }
   const catalog=await loadSalesReviewCatalog();
   const rows=filterSalesReviewRows(data||[],catalog).map(r=>[
     r.material_code,
@@ -4411,6 +4441,7 @@ async function loadSalesReport(warehouseCode){
     fmt(r.total_loading_quantity)
   ]);
   table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحميل'],rows);
+  },{scope:'#sales',controls:'#sales button,#sales input,#sales select'});
 }
 renderTabs = function(){
   $('#salesTabs').innerHTML=SALES_WAREHOUSES.map((w,i)=>`<button class="${i===0?'active':''}" data-warehouse="${w}">${w}</button>`).join('');
@@ -5931,6 +5962,7 @@ let APPLICATION_READY_USER_ID='';
 let APPLICATION_PERMISSION_SIGNATURE='';
 let APPLICATION_RELOAD_REQUIRED=false;
 let APPLICATION_SIGN_IN_PENDING=false;
+let APPLICATION_SIGN_OUT_PENDING=false;
 let APPLICATION_AUTH_FAILED_USER_ID='';
 function setApplicationLoginBusy(busy){
   const button=$('#mainLoginBtn');
@@ -6041,6 +6073,8 @@ function showLoginScreen(){
   APPLICATION_READY_USER_ID='';
   APPLICATION_VIEW_RESTORED_USER_ID='';
   resetApplicationBusinessLoadState();
+  window.AppOperationProgress?.cancelAll();
+  clearUnifiedSalesRowsCache();
   CURRENT_AUTH_USER=null;
   CURRENT_APP_PROFILE=null;
   closeActiveApplicationModals({restoreFocus:false});
@@ -6252,9 +6286,11 @@ async function logSystemActivity(section,operationType,details,options={}){
       created_date:parts.created_date,
       created_time:parts.created_time
     };
-    const {error}=await WarehouseDB.client.from('system_activity_log').insert(payload);
+    let query=WarehouseDB.client.from('system_activity_log').insert(payload);
+    if(options.signal) query=query.abortSignal(options.signal);
+    const {error}=await query;
     if(error) throw error;
-    if(ACTIVITY_LOG_STATE.loaded) loadActivityLog({silent:true});
+    if(ACTIVITY_LOG_STATE.loaded && !options.skipRefresh) loadActivityLog({silent:true});
   }catch(err){
     console.warn('[activity-log] failed to write system activity',err);
   }
@@ -7173,10 +7209,23 @@ function initMainLoginGate(){
   }
   if(logoutBtn){
     logoutBtn.onclick=async()=>{
-      await WarehouseDB.signOut();
-      await logSystemActivity('المستخدمين','تسجيل خروج',`تسجيل خروج: ${CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'المستخدم الحالي'}`);
-      showLoginScreen();
-      setMainAuthMessage('تم تسجيل الخروج.','ok');
+      if(APPLICATION_SIGN_OUT_PENDING) return;
+      APPLICATION_SIGN_OUT_PENDING=true;logoutBtn.disabled=true;
+      const actor=currentActivityUserInfo();
+      const controller=new AbortController();
+      const timer=setTimeout(()=>controller.abort(),2500);
+      try{
+        // The JWT and captured actor must still exist when the audit insert starts.
+        await logSystemActivity('المستخدمين','تسجيل خروج',`تسجيل خروج: ${actor.user_name}`,{user:actor,signal:controller.signal,skipRefresh:true});
+        const {error}=await WarehouseDB.signOut();
+        if(error) throw error;
+        showLoginScreen();
+        setMainAuthMessage('تم تسجيل الخروج.','ok');
+      }catch(error){
+        showDashboardPngToast('تعذر تسجيل الخروج. أعد المحاولة.','error');
+      }finally{
+        clearTimeout(timer);APPLICATION_SIGN_OUT_PENDING=false;logoutBtn.disabled=false;
+      }
     };
   }
   if(WarehouseDB?.client?.auth){
@@ -7985,6 +8034,8 @@ function syncRawMaterialsFilterOptions(){
   if(typeField) typeField.hidden=typeMap.size===0;
 }
 async function loadRawMaterialsScreen(force=false){
+  if(!applicationBusinessDataReady()) return;
+  return window.AppOperationProgress.run('screen:raw_materials','متابعة الخامات',async operation=>{
   if(!window.PermissionRuntime?.any('raw_materials.view')) return;
   if(RAW_MATERIALS_SCREEN_STATE.loading) return;
   if(RAW_MATERIALS_SCREEN_STATE.loaded && !force){ renderRawMaterialsActiveTab(); return; }
@@ -7992,11 +8043,15 @@ async function loadRawMaterialsScreen(force=false){
   RAW_MATERIALS_SCREEN_STATE.loading=true;
   rawMaterialsSetStatus('جاري تحميل بيانات متابعة الخامات...');
   try{
+    let completed=0;
+    const tracked=request=>Promise.resolve(request).then(value=>{operation.report(++completed,3,`اكتمل تحميل ${completed} من 3 مصادر للتقرير`);return value;});
+    operation.report(0,3,'جاري تحميل بيانات متابعة الخامات…');
     const [stockRows,metricRows,branConsumption]=await Promise.all([
-      fetchAllRows('current_plant_stock_rows','material_code,material_name,uom,unrestricted_stock,quality_inspection_stock,material_group,material_group_description,plant_code,plant_name,warehouse_code,warehouse_name'),
-      fetchAllRows('raw_material_consumption_metrics','material_code,material_description,plant_code,plant_name,material_group,material_group_description,unit_of_measure,average_daily_consumption,period_start,period_end'),
-      rawMaterialsLoadBranConsumptionRows()
+      tracked(fetchAllRows('current_plant_stock_rows','material_code,material_name,uom,unrestricted_stock,quality_inspection_stock,material_group,material_group_description,plant_code,plant_name,warehouse_code,warehouse_name')),
+      tracked(fetchAllRows('raw_material_consumption_metrics','material_code,material_description,plant_code,plant_name,material_group,material_group_description,unit_of_measure,average_daily_consumption,period_start,period_end')),
+      tracked(rawMaterialsLoadBranConsumptionRows())
     ]);
+    if(operation.signal.aborted)return;
     RAW_MATERIALS_SCREEN_STATE.stockRows=(stockRows||[]).filter(row=>window.PermissionRuntime?.can('raw_materials.view',row.plant_code || []));
     RAW_MATERIALS_SCREEN_STATE.metricRows=(metricRows||[]).filter(row=>window.PermissionRuntime?.can('raw_materials.view',row.plant_code || []));
     RAW_MATERIALS_SCREEN_STATE.branConsumptionRows=branConsumption.rows||[];
@@ -8006,11 +8061,12 @@ async function loadRawMaterialsScreen(force=false){
     syncRawMaterialsFilterOptions();
     renderRawMaterialsActiveTab();
     rawMaterialsSetStatus(`تم تحميل ${RAW_MATERIALS_SCREEN_STATE.mergedRows.length.toLocaleString('en-US')} مادة من رصيد المصنع ومعدل الاستهلاك.`,'ok');
-  }catch(err){
+  }catch(err){ operation.fail(err);
     rawMaterialsSetStatus('تعذر تحميل بيانات متابعة الخامات: '+(err.message||err),'err');
   }finally{
     RAW_MATERIALS_SCREEN_STATE.loading=false;
   }
+  },{scope:'#raw_materials',controls:'#raw_materials button,#raw_materials input,#raw_materials select'});
 }
 function initRawMaterialsFilters(){
   const root=$('#raw_materials');
@@ -8232,14 +8288,17 @@ function renderItemsExportTable(items,summary){
   tbl.innerHTML=`<thead><tr><th>#</th><th>كود الصنف</th><th>اسم الصنف</th><th>البيع</th><th>الإنتاج</th><th>الصادرة</th><th>الواردة</th><th>التحميل</th><th>فرق الإنتاج/البيع</th><th>نسبة البيع للإنتاج</th><th>الحالة</th></tr></thead><tbody>${rows}</tbody>`;
 }
 async function loadItemsReport(options={}){
+  if(!applicationBusinessDataReady()) return;
+  return window.AppOperationProgress.run('screen:reports','تقرير الأصناف',async operation=>{
   if(!window.PermissionRuntime?.any('reports.items.view')) return;
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.items.view');
-  let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:true,orderBy:'material_code'}); }catch(error){console.warn('items report load error',error);return;} const map={};
+  let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{progress:operation,ascending:true,orderBy:'material_code'}); }catch(error){ operation.fail(error);console.warn('items report load error',error);return;} const map={};
   (data||[]).forEach(r=>{const key=String(r.material_code||r.material_name||'غير محدد'); if(!map[key]) map[key]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0}; const it=map[key]; it.sales+=toNumber(r.sales_quantity); it.production+=toNumber(r.production_quantity); it.outgoing+=toNumber(r.outgoing_transfer_quantity); it.incoming+=toNumber(r.incoming_transfer_quantity); it.loading+=toNumber(r.total_loading_quantity);});
   const items=Object.values(map).sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales));
   const summary={count:items.length,ok:0,review:0,noSales:0,gapItems:0,outgoingHigh:0,totalGap:0,totalLoading:0,avgSalesToProduction:0}; let ratioSum=0, ratioCount=0;
   items.forEach(it=>{const st=getReportStatus(it); if(st.key==='ok') summary.ok++; else summary.review++; if(st.key==='no_sales') summary.noSales++; if(st.key==='production_high'||st.key==='sales_high') summary.gapItems++; if(st.key==='outgoing_high') summary.outgoingHigh++; summary.totalGap+=(it.production||0)-(it.sales||0); summary.totalLoading+=it.loading||0; const prod=Math.abs(it.production||0); if(prod){ratioSum+=(Math.abs(it.sales||0)/prod)*100; ratioCount++;}}); summary.avgSalesToProduction=ratioCount?ratioSum/ratioCount:0;
   ITEMS_REPORT_STATE={items,filters,summary}; if($('#itemsReportMeta')) $('#itemsReportMeta').textContent=reportFilterLabel(filters); renderItemsReportKPIs(summary); renderItemsStatusBoard(summary); renderItemsReportTables(items); renderItemsExportTable(items,summary);
+  },{scope:'#reports',controls:'#reports button,#reports input,#reports select'});
 }
 
 
@@ -8438,17 +8497,20 @@ function renderItemAnalyticsReport(model){
   renderItemAnalyticsHealth(model);renderItemAnalyticsKpis(model.stats);renderItemAnalyticsHeatmap('#itemAnalyticsSalesHeatmap',model.daily,'sales');renderItemAnalyticsHeatmap('#itemAnalyticsProductionHeatmap',model.daily,'production');renderItemAnalyticsPerformance(model);renderItemAnalyticsComparison(model);renderItemAnalyticsContribution(model);renderItemAnalyticsSeasonality(model);renderItemAnalyticsInventorySignals(model);renderItemAnalyticsForecast(model);renderItemAnalyticsAlertsRecommendations(model);renderItemAnalyticsAuditTrail(model);renderItemAnalyticsComparisonTable(model);renderItemAnalyticsExportTable(model);
 }
 async function loadItemAnalyticsReport(options={}){
+  if(!applicationBusinessDataReady()) return;
+  return window.AppOperationProgress.run('screen:reports','تحليل الأصناف',async operation=>{
   if(!window.PermissionRuntime?.any('reports.item_analytics.view')) return;
   if(!WarehouseDB?.ready) return;fillReportFilters();itemAnalyticsSyncFilterVisibility(ITEM_ANALYTICS_TAB);await ensureReportDefaultDates(options);await fillItemAnalyticsItemFilter({keepSelection:true});
   const filters=getItemAnalyticsFilters();const error=itemAnalyticsValidateFilters(filters);if(error){itemAnalyticsSetEmpty(error);return;}
   itemAnalyticsShowResults();const meta=$('#itemAnalyticsMeta');if(meta)meta.textContent='جاري تحميل تحليلات الأصناف...';
   try{
     const previousFilters=itemAnalyticsPreviousFilters(filters);let queryCount=0;
-    const scopeRows=await fetchUnifiedSalesRows(filters,{ascending:true});queryCount++;
-    const previousScopeRows=previousFilters?await fetchUnifiedSalesRows(previousFilters,{ascending:true}):[];if(previousFilters)queryCount++;
+    const scopeRows=await fetchUnifiedSalesRows(filters,{progress:operation,ascending:true});queryCount++;
+    const previousScopeRows=previousFilters?await fetchUnifiedSalesRows(previousFilters,{progress:operation,ascending:true}):[];if(previousFilters)queryCount++;
     const model=itemAnalyticsBuildModel(filters,scopeRows,previousScopeRows);ITEM_ANALYTICS_STATE={...ITEM_ANALYTICS_STATE,filters,scopeRows,previousScopeRows,selectedRows:model.selectedRows,model,queryCount};
     renderItemAnalyticsReport(model);
-  }catch(error){console.warn('item analytics load error',error);itemAnalyticsSetEmpty('تعذر تحميل تحليلات الأصناف. راجع الاتصال أو الفلاتر.');}
+  }catch(error){ operation.fail(error);console.warn('item analytics load error',error);itemAnalyticsSetEmpty('تعذر تحميل تحليلات الأصناف. راجع الاتصال أو الفلاتر.');}
+  },{scope:'#reports',controls:'#reports button,#reports input,#reports select'});
 }
 function itemAnalyticsWorkbookRows(model){
   const summary=[['العنوان','تحليلات الأصناف'],['الفترة',formatDisplayDateRange(model.filters.from,model.filters.to)],['الأصناف',enterpriseFilterText(model.filters.items,$('#itemAnalyticsItemFilter'),'')],['إجمالي البيع',model.stats.sales],['إجمالي الإنتاج',model.stats.production],['الوارد',model.stats.incoming],['الصادر',model.stats.outgoing],['التحميل',model.stats.loading],['عدد Queries',ITEM_ANALYTICS_STATE.queryCount||0]];
@@ -8555,13 +8617,16 @@ function renderWarehousesReportTables(warehouses,summary){
   const exp=$('#warehousesReportExportTable'); if(exp) exp.innerHTML=headers+`<tbody>${warehouses.map((w,i)=>{const pct=summary.sales?Math.abs(w.sales||0)/Math.abs(summary.sales)*100:0;return `<tr><td>${i+1}</td><td>${escapeHtml(w.code)}</td><td>${escapeHtml(w.name)}</td><td>${escapeHtml(w.plant)}</td><td>${fmt(w.sales)}</td><td>${fmt(w.production)}</td><td>${fmt(w.outgoing)}</td><td>${fmt(w.incoming)}</td><td>${fmt(w.loading)}</td><td>${fmt(pct)}%</td></tr>`;}).join('')}</tbody>`;
 }
 async function loadWarehousesReport(options={}){
+  if(!applicationBusinessDataReady()) return;
+  return window.AppOperationProgress.run('screen:reports','تقرير المخازن',async operation=>{
   if(!window.PermissionRuntime?.any('reports.warehouses.view')) return;
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.warehouses.view');
-  let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:true,orderBy:'warehouse_code'}); }catch(error){console.warn('warehouses report load error',error);return;} const map={}, summary={sales:0,production:0,outgoing:0,incoming:0,loading:0};
+  let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{progress:operation,ascending:true,orderBy:'warehouse_code'}); }catch(error){ operation.fail(error);console.warn('warehouses report load error',error);return;} const map={}, summary={sales:0,production:0,outgoing:0,incoming:0,loading:0};
   (data||[]).forEach(r=>{const code=String(r.warehouse_code||'').toUpperCase()||'-'; const meta=dashboardWhMeta(code); const plant=r.plant_code||meta.plant||'-'; if(!map[code]) map[code]={code,name:meta.name||r.warehouse_name||'-',plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0}; const w=map[code]; const sales=toNumber(r.sales_quantity),prod=toNumber(r.production_quantity),out=toNumber(r.outgoing_transfer_quantity),inc=toNumber(r.incoming_transfer_quantity),load=toNumber(r.total_loading_quantity); w.sales+=sales;w.production+=prod;w.outgoing+=out;w.incoming+=inc;w.loading+=load;w.totalActivity+=Math.abs(sales)+Math.abs(prod)+Math.abs(out)+Math.abs(inc)+Math.abs(load); summary.sales+=sales;summary.production+=prod;summary.outgoing+=out;summary.incoming+=inc;summary.loading+=load;});
   const warehouses=Object.values(map).sort((a,b)=>(b.totalActivity||0)-(a.totalActivity||0));
   WAREHOUSES_REPORT_STATE={warehouses,filters,summary}; if($('#warehousesReportMeta')) $('#warehousesReportMeta').textContent=reportFilterLabel(filters); renderWarehousesReportKPIs(summary); drawWarehousesReportChart(warehouses); renderWarehousesRanking(warehouses,summary); renderWarehouseMiniTables(warehouses,summary); renderWarehousesReportTables(warehouses,summary);
   ensureWarehousePerformancePngButtons();
+  },{scope:'#reports',controls:'#reports button,#reports input,#reports select'});
 }
 
 
@@ -8705,9 +8770,11 @@ function renderExceptionsTables(exceptions){
   const count=$('#exceptionsReportCount'); if(count) count.textContent=`عدد الاستثناءات: ${exceptions.length}`;
 }
 async function loadExceptionsReport(options={}){
+  if(!applicationBusinessDataReady()) return;
+  return window.AppOperationProgress.run('screen:reports','تقرير الاستثناءات',async operation=>{
   if(!window.PermissionRuntime?.any('reports.exceptions.view')) return;
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.exceptions.view');
-  let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:false}); }catch(error){console.warn('exceptions report load error',error);return;}
+  let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{progress:operation,ascending:false}); }catch(error){ operation.fail(error);console.warn('exceptions report load error',error);return;}
   const items=buildSalesAuditItemMap(data||[]), exceptions=flattenExceptions(items);
   const summary={total:exceptions.length,high:exceptions.filter(e=>e.severity==='high').length,medium:exceptions.filter(e=>e.severity==='medium').length,items:new Set(exceptions.map(e=>e.code)).size,maxGap:0,byType:{}};
   items.forEach(i=>summary.maxGap=Math.max(summary.maxGap,Math.abs((i.production||0)-(i.sales||0))));
@@ -8715,6 +8782,7 @@ async function loadExceptionsReport(options={}){
   EXCEPTIONS_REPORT_STATE={exceptions,filters,summary};
   if($('#exceptionsReportMeta')) $('#exceptionsReportMeta').textContent=reportFilterLabel(filters);
   renderExceptionsKPIs(summary); drawExceptionsChart(summary); renderExceptionsPriority(exceptions); renderExceptionsTables(exceptions); ensureExceptionsReportPngButtons();
+  },{scope:'#reports',controls:'#reports button,#reports input,#reports select'});
 }
 
 
@@ -9375,13 +9443,16 @@ function renderSmartExportTable(model){
   tbl.innerHTML=`<thead><tr><th>النوع</th><th>#</th><th>الكود</th><th>البيان</th><th>المؤشر</th><th>القيمة</th></tr></thead><tbody><tr><td>ملخص</td><td>-</td><td>الصحة العامة للمراجعة</td><td>-</td><td>${escapeHtml(model.auditScores?.status?.label||'')}</td><td>${Math.round(model.auditScores?.overall||0)}%</td></tr><tr><td>ملخص</td><td>-</td><td>إجمالي البيع</td><td>-</td><td>طن</td><td>${fmt(model.stats.salesQty)}</td></tr><tr><td>ملخص</td><td>-</td><td>إجمالي الإنتاج</td><td>-</td><td>طن</td><td>${fmt(model.stats.productionQty)}</td></tr>${scoreRows}${topRows}</tbody>`;
 }
 async function loadSmartAnalyticsReport(options={}){
+  if(!applicationBusinessDataReady()) return;
+  return window.AppOperationProgress.run('screen:reports','التحليل الذكي',async operation=>{
   if(!window.PermissionRuntime?.any('reports.smart.view')) return;
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.smart.view');
-  let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:true}); }catch(error){console.warn('smart analytics load error',error);return;}
+  let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{progress:operation,ascending:true}); }catch(error){ operation.fail(error);console.warn('smart analytics load error',error);return;}
   const model=buildSmartAnalyticsModel(data||[],filters);
   SMART_ANALYTICS_STATE=model;
   if($('#smartAnalyticsMeta')) $('#smartAnalyticsMeta').textContent=reportFilterLabel(filters);
   renderSmartKpiCards(model); drawSmartMixChart(model); drawSmartPlantScoreChart(model); renderSmartExecutiveSummary(model); renderSmartAlerts(model); renderSmartTopInsights(model); renderSmartRecommendations(model); renderSmartTrendAnalysis(model); renderSmartPlantScores(model); renderSmartExportTable(model);
+  },{scope:'#reports',controls:'#reports button,#reports input,#reports select'});
 }
 
 
@@ -9503,12 +9574,15 @@ function renderProductionExportTable(model){
   tbl.innerHTML=`<thead><tr><th>النوع</th><th>#</th><th>الكود</th><th>البيان</th><th>الإنتاج</th><th>النسبة</th></tr></thead><tbody><tr><td>إجمالي</td><td>-</td><td>-</td><td>إجمالي إنتاج المصانع</td><td>${fmt(model.summary?.total||0)}</td><td>100%</td></tr>${plantRows}${productRows}</tbody>`;
 }
 async function loadProductionAnalyticsReport(options={}){
+  if(!applicationBusinessDataReady()) return;
+  return window.AppOperationProgress.run('screen:reports','تحليل الإنتاج',async operation=>{
   if(!window.PermissionRuntime?.any('reports.production.view')) return;
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.production.view');
-  let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{ascending:true}); }catch(error){console.warn('production analytics load error',error);return;}
+  let data=[]; try{ data=await fetchAllSalesAuditRows(filters,{progress:operation,ascending:true}); }catch(error){ operation.fail(error);console.warn('production analytics load error',error);return;}
   const model=buildProductionAnalyticsModel(data||[],filters); PRODUCTION_ANALYTICS_STATE=model;
   if($('#productionAnalyticsMeta')) $('#productionAnalyticsMeta').textContent=reportFilterLabel(filters);
   renderProductionKpis(model); drawProductionPlantBar(model.plants); drawProductionContributionDonut(model.plants); renderProductionPlantHeatmap(model); renderProductionAllHeatmap(model); renderProductionTopProducts(model.products); renderProductionInsights(model); renderProductionExportTable(model);
+  },{scope:'#reports',controls:'#reports button,#reports input,#reports select'});
 }
 
 
@@ -9551,6 +9625,8 @@ function renderSalesTotalsReport(groups,filters){
   if($('#salesTotalsReportMeta')) $('#salesTotalsReportMeta').textContent=`الفترة: ${formatDisplayDate(filters.from,'--')} → ${formatDisplayDate(filters.to,'--')} `;
 }
 async function loadSalesTotalsReport(options={}){
+  if(!applicationBusinessDataReady()) return;
+  return window.AppOperationProgress.run('screen:reports','إجماليات المبيعات',async operation=>{
   if(!window.PermissionRuntime?.any('reports.sales_totals.view')) return;
   if(!WarehouseDB?.ready) return;
   const reportPerfStart=salesPerfNow();
@@ -9560,7 +9636,7 @@ async function loadSalesTotalsReport(options={}){
   await ensureReportDefaultDates(options);
   const filters=getReportFilters('reports.sales_totals.view');
   let rows=[];
-  try{ rows=await fetchUnifiedSalesRows(filters,{ascending:true}); }catch(error){ console.warn('sales totals report load error',error); return; }
+  try{ rows=await fetchUnifiedSalesRows(filters,{progress:operation,ascending:true}); }catch(error){ operation.fail(error); console.warn('sales totals report load error',error); return; }
   const catalog=await loadSalesReviewCatalog();
   const model=buildUnifiedSalesTotals(rows,{filters,groups:SALES_TOTALS_GROUPS,catalog,source:'sales_audit_report'});
   const renderPerfLabel='renderSalesTotalsReport '+unifiedSalesRowsCacheKey(filters);
@@ -9571,6 +9647,7 @@ async function loadSalesTotalsReport(options={}){
   salesPerfLog('renderSalesTotalsReport',renderPerfStart,{groups:model.groups.length,rows:model.rows.length});
   console.timeEnd(reportPerfLabel);
   salesPerfLog('loadSalesTotalsReport',reportPerfStart,{sourceRows:rows.length,filteredRows:model.rows.length,groups:model.groups.length});
+  },{scope:'#reports',controls:'#reports button,#reports input,#reports select'});
 }
 
 function syncMobileReportsDropdown(tab=ACTIVE_REPORT_TAB){
@@ -10197,13 +10274,16 @@ async function exportActiveReportVisualPdf(){
 }
 
 async function loadExecutiveReport(options={}){
+  if(!applicationBusinessDataReady()) return;
+  return window.AppOperationProgress.run('screen:reports','التقرير التنفيذي',async operation=>{
   if(!window.PermissionRuntime?.any('reports.executive.view')) return;
   if(!WarehouseDB?.ready) return; fillReportFilters(); await ensureReportDefaultDates(options); const filters=getReportFilters('reports.executive.view');
-  let rows=[]; try{ rows=await fetchAllSalesAuditRows(filters,{ascending:false}); }catch(error){console.warn('executive report load error',error);return;}
+  let rows=[]; try{ rows=await fetchAllSalesAuditRows(filters,{progress:operation,ascending:false}); }catch(error){ operation.fail(error);console.warn('executive report load error',error);return;}
   const stats={salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0}; const daily={}, productMap={}, whMap={}, whSalesMap={}, plantStats={}; getPlantsCatalog().forEach(p=>plantStats[p.code]={sales:0,production:0,outgoing:0,incoming:0,loading:0});
   rows.forEach(r=>{const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0}; const wh=String(r.warehouse_code||'').toUpperCase(); const meta=dashboardWhMeta(wh); const plant=r.plant_code||meta.plant||'غير محدد'; if(!plantStats[plant]) plantStats[plant]={sales:0,production:0,outgoing:0,incoming:0,loading:0}; const sales=toNumber(r.sales_quantity), prod=toNumber(r.production_quantity), out=toNumber(r.outgoing_transfer_quantity), inc=toNumber(r.incoming_transfer_quantity), load=toNumber(r.total_loading_quantity); stats.salesQty+=sales;stats.productionQty+=prod;stats.outgoingTransferQty+=out;stats.incomingTransferQty+=inc;stats.totalLoadingQty+=load; daily[d].sales+=Math.abs(sales);daily[d].production+=Math.abs(prod);daily[d].outgoing+=Math.abs(out);daily[d].incoming+=Math.abs(inc); plantStats[plant].sales+=sales;plantStats[plant].production+=prod;plantStats[plant].outgoing+=out;plantStats[plant].incoming+=inc;plantStats[plant].loading+=load; if(sales) whSalesMap[wh]=(whSalesMap[wh]||0)+Math.abs(sales); const pk=String(r.material_code||r.material_name||'غير محدد'); if(!productMap[pk]) productMap[pk]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0}; productMap[pk].sales+=sales;productMap[pk].production+=prod;productMap[pk].outgoing+=out;productMap[pk].incoming+=inc;productMap[pk].loading+=load; if(!whMap[wh]) whMap[wh]={code:wh,name:meta.name||r.warehouse_name||'-',plant:plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0}; whMap[wh].sales+=sales;whMap[wh].production+=prod;whMap[wh].outgoing+=out;whMap[wh].incoming+=inc;whMap[wh].loading+=load;whMap[wh].totalActivity+=Math.abs(sales)+Math.abs(prod)+Math.abs(out)+Math.abs(inc)+Math.abs(load);});
   const products=Object.values(productMap).sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales)); const warehouses=Object.values(whMap).sort((a,b)=>b.totalActivity-a.totalActivity);
   EXECUTIVE_REPORT_STATE={rows,stats,filters}; if($('#executiveReportMeta')) $('#executiveReportMeta').textContent=reportFilterLabel(filters); renderExecutiveKPIs(stats); drawReportLine(daily); drawReportPlantBar(plantStats); drawReportDonut(whSalesMap); renderRankTable('#executiveTopProductsTable',['#','كود الصنف','اسم الصنف','البيع','الإنتاج','التحميل'],products.slice(0,10).map((p,i)=>[i+1,escapeHtml(p.code),escapeHtml(p.name),fmt(p.sales),fmt(p.production),fmt(p.loading)])); renderRankTable('#executiveTopWarehousesTable',['#','كود المخزن','اسم المخزن','المصنع','البيع','التحميل'],warehouses.slice(0,10).map((w,i)=>[i+1,escapeHtml(w.code),escapeHtml(w.name),escapeHtml(w.plant),fmt(w.sales),fmt(w.loading)])); renderExecutiveInsights(products,warehouses,plantStats,stats); renderExecutiveExportTable(stats,products,warehouses,plantStats);
+  },{scope:'#reports',controls:'#reports button,#reports input,#reports select'});
 }
 
 function dashboardPngTitleFromElement(element){
@@ -17007,31 +17087,46 @@ function departmentCodingErrorMessage(error,codeLabel){
   }
   return message ? 'تعذر تنفيذ العملية: '+message : 'تعذر تنفيذ العملية في Supabase.';
 }
+function departmentPersonnelScopeKey(department){
+  const suffix=department==='منتج تام'?'finished':department==='قطع غيار'?'spare_parts':'';
+  return suffix?'settings.department_personnel.department.'+suffix+'.view':'';
+}
+function departmentPersonnelCan(action,plant,department){
+  const key=departmentPersonnelScopeKey(department);
+  return Boolean(key && window.PermissionRuntime?.can('settings.department_personnel.'+action,plant) && window.PermissionRuntime?.can(key,plant));
+}
+function departmentPersonnelActionPlants(action){
+  return new Set((window.PermissionRuntime?.allowedPlants('settings.department_personnel.'+action)||[]).filter(plant=>[...DEPARTMENT_PERSONNEL_DEPARTMENTS].some(department=>departmentPersonnelCan(action,plant,department))));
+}
 function syncDepartmentPersonnelPlantScope(){
-  const viewAllowed=permissionAllowedPlantSet('settings.department_personnel.view');
-  const editing=Boolean($('#departmentPersonnelIdInput')?.value);
-  const actionKey=editing?'settings.department_personnel.edit':'settings.department_personnel.create';
-  scopeSettingsPlantSelect($('#departmentPersonnelPlantInput'),permissionAllowedPlantSet(actionKey));
-  return viewAllowed;
+  const action=$('#departmentPersonnelIdInput')?.value?'edit':'create';
+  scopeSettingsPlantSelect($('#departmentPersonnelPlantInput'),departmentPersonnelActionPlants(action));
+  const plant=$('#departmentPersonnelPlantInput')?.value||'',select=$('#departmentPersonnelDepartmentInput');
+  if(select){
+    for(const option of select.options){if(!option.value)continue;option.disabled=plant?!departmentPersonnelCan(action,plant,option.value):![...departmentPersonnelActionPlants(action)].some(code=>departmentPersonnelCan(action,code,option.value));option.hidden=option.disabled;}
+    if(select.selectedOptions[0]?.disabled)select.value='';
+  }
+  return departmentPersonnelActionPlants('view');
 }
 function applyDepartmentPersonnelPermissions(){
   syncDepartmentPersonnelPlantScope();
-  const canAdd=canAddDepartmentCodingSettings();
-  const canEdit=canEditDepartmentCodingSettings();
-  const editing=Boolean($('#departmentPersonnelIdInput')?.value);
-  const canUseForm=editing ? canEdit : canAdd;
+  const id=$('#departmentPersonnelIdInput'),editing=Boolean(id?.value),action=editing?'edit':'create';
+  const canUseForm=departmentPersonnelActionPlants(action).size>0;
   const form=$('#departmentPersonnelForm');
-  if(form) form.classList.toggle('permission-hidden',!canUseForm);
-  setElementsDisabled('#departmentPersonnelForm input:not([type="hidden"]),#departmentPersonnelForm input[data-custom-date-picker],#departmentPersonnelForm select,#saveDepartmentPersonnelBtn',!canUseForm,true);
+  if(form)form.classList.toggle('permission-hidden',!canUseForm);
+  setElementsDisabled('#departmentPersonnelForm input:not([type="hidden"]),#departmentPersonnelForm select,#saveDepartmentPersonnelBtn',!canUseForm,true);
   const hireDateInput=$('#departmentPersonnelHireDateInput');
-  if(window.CustomDatePicker && hireDateInput){
-    window.CustomDatePicker.configure?.(hireDateInput,{commitOnDoubleClick:true});
-    window.CustomDatePicker.init(hireDateInput.parentElement || form || document);
-    window.CustomDatePicker.refresh(hireDateInput);
-  }
+  if(window.CustomDatePicker&&hireDateInput){window.CustomDatePicker.configure?.(hireDateInput,{commitOnDoubleClick:true});window.CustomDatePicker.init(hireDateInput.parentElement||form||document);window.CustomDatePicker.refresh(hireDateInput);}
   setElementsDisabled('#cancelDepartmentPersonnelBtn',false,true);
-  applyPlantSettingsRowPermissions('#departmentPersonnelTable','settings.department_personnel',DEPARTMENT_PERSONNEL_STATUS_PENDING);
-  if(editing) setElementsDisabled('#departmentPersonnelActiveInput',!hasCanonicalPermission('settings.department_personnel.status.toggle'),false);
+  document.querySelectorAll('#departmentPersonnelTable [data-action]').forEach(button=>{
+    const row=button.closest('tr'),action=button.dataset.action==='edit-department-personnel'?'edit':'status.toggle';
+    const allowed=departmentPersonnelCan(action,row.dataset.plantCode,row.dataset.department);
+    button.disabled=!allowed||DEPARTMENT_PERSONNEL_STATUS_PENDING.has(button.dataset.recordId);button.classList.toggle('permission-hidden',!allowed);
+  });
+  if(editing){
+    const plant=$('#departmentPersonnelPlantInput')?.value,department=$('#departmentPersonnelDepartmentInput')?.value;
+    $('#departmentPersonnelActiveInput').disabled=!(departmentPersonnelCan('status.toggle',plant,department)&&departmentPersonnelCan('status.toggle',id.dataset.originalPlantCode,id.dataset.originalDepartment));
+  }
 }
 function applyDepartmentStatusCodesPermissions(){
   const canAdd=canAddDepartmentCodingSettings();
@@ -17055,7 +17150,7 @@ function renderDepartmentPersonnelTable(rows=[]){
       const id=escapeHtml(row.id||'');
       const plantCode=String(row.plant_code||'');
       const plantLabel=plantCode+(DEPARTMENT_PERSONNEL_PLANTS[plantCode] ? ' — '+DEPARTMENT_PERSONNEL_PLANTS[plantCode] : '');
-      return '<tr data-record-id="'+id+'" data-plant-code="'+escapeHtml(plantCode)+'">'
+      return '<tr data-record-id="'+id+'" data-plant-code="'+escapeHtml(plantCode)+'" data-department="'+escapeHtml(row.department||'')+'">'
         +'<td dir="ltr">'+escapeHtml(row.employee_code||'')+'</td>'
         +'<td>'+escapeHtml(row.full_name||'')+'</td>'
         +'<td>'+escapeHtml(row.job_title||'')+'</td>'
@@ -17100,7 +17195,7 @@ async function loadDepartmentPersonnelTable(options={}){
       .in('plant_code',allowedPlants)
       .order('created_at',{ascending:false});
     if(error) throw error;
-    DEPARTMENT_PERSONNEL_ROWS=(data||[]).filter(row=>allowedPlantSet.has(String(row?.plant_code||'').trim().toUpperCase()));
+    DEPARTMENT_PERSONNEL_ROWS=(data||[]).filter(row=>departmentPersonnelCan('view',row.plant_code,row.department));
     renderDepartmentPersonnelTable(DEPARTMENT_PERSONNEL_ROWS);
     return true;
   }catch(error){
@@ -17124,6 +17219,7 @@ function resetDepartmentPersonnelForm(){
   form.reset();
   $('#departmentPersonnelIdInput').value='';
   delete $('#departmentPersonnelIdInput').dataset.originalPlantCode;
+  delete $('#departmentPersonnelIdInput').dataset.originalDepartment;
   $('#departmentPersonnelActiveInput').checked=true;
   const hireDateInput=$('#departmentPersonnelHireDateInput');
   if(hireDateInput) hireDateInput.value='';
@@ -17138,12 +17234,13 @@ function editDepartmentPersonnel(recordId){
     setDepartmentPersonnelStatus('تعذر العثور على سجل الموظف. أعد تحميل الجدول.','err');
     return;
   }
-  if(window.PermissionRuntime?.can('settings.department_personnel.edit',row.plant_code)!==true){
+  if(!departmentPersonnelCan('edit',row.plant_code,row.department)){
     setDepartmentPersonnelStatus('غير متاح للصلاحية الحالية.','err');
     return;
   }
   $('#departmentPersonnelIdInput').value=row.id||'';
   $('#departmentPersonnelIdInput').dataset.originalPlantCode=String(row.plant_code||'').trim().toUpperCase();
+  $('#departmentPersonnelIdInput').dataset.originalDepartment=row.department||'';
   $('#departmentPersonnelCodeInput').value=row.employee_code||'';
   $('#departmentPersonnelNameInput').value=row.full_name||'';
   $('#departmentPersonnelJobTitleInput').value=row.job_title||'';
@@ -17188,8 +17285,8 @@ async function saveDepartmentPersonnel(event){
   };
   const actionKey=id?'settings.department_personnel.edit':'settings.department_personnel.create';
   const originalPlant=String($('#departmentPersonnelIdInput')?.dataset.originalPlantCode||payload.plant_code).trim().toUpperCase();
-  if(window.PermissionRuntime?.can(actionKey,payload.plant_code)!==true || (id && window.PermissionRuntime?.can(actionKey,originalPlant)!==true)){
-    setDepartmentPersonnelStatus('غير مسموح بالحفظ خارج نطاق المصنع المحدد في الحزمة.','err');
+  if(!departmentPersonnelCan(id?'edit':'create',payload.plant_code,payload.department) || (id && !departmentPersonnelCan('edit',originalPlant,$('#departmentPersonnelIdInput').dataset.originalDepartment))){
+    setDepartmentPersonnelStatus('غير مسموح بالحفظ خارج نطاق المصنع والقسم المحددين في الحزمة.','err');
     applyDepartmentPersonnelPermissions();
     return;
   }
@@ -17235,7 +17332,7 @@ async function saveDepartmentPersonnel(event){
 async function toggleDepartmentPersonnelStatus(recordId,nextActive){
   if(DEPARTMENT_PERSONNEL_STATUS_PENDING.has(recordId)) return;
   const row=DEPARTMENT_PERSONNEL_ROWS.find(item=>String(item.id)===String(recordId));
-  if(!row || window.PermissionRuntime?.can('settings.department_personnel.status.toggle',row.plant_code)!==true){
+  if(!row || !departmentPersonnelCan('status.toggle',row.plant_code,row.department)){
     setDepartmentPersonnelStatus('غير متاح للصلاحية الحالية.','err');
     return;
   }
@@ -17458,6 +17555,8 @@ function initDepartmentCodingSettings(){
   if(personnelForm && personnelForm.dataset.bound!=='1'){
     personnelForm.dataset.bound='1';
     personnelForm.addEventListener('submit',saveDepartmentPersonnel);
+    $('#departmentPersonnelPlantInput')?.addEventListener('change',applyDepartmentPersonnelPermissions);
+    $('#departmentPersonnelDepartmentInput')?.addEventListener('change',applyDepartmentPersonnelPermissions);
     personnelForm.addEventListener('invalid',()=>setDepartmentPersonnelStatus('يرجى استكمال جميع الحقول الإجبارية.','err'),true);
     $('#cancelDepartmentPersonnelBtn')?.addEventListener('click',resetDepartmentPersonnelForm);
     $('#departmentPersonnelTable')?.addEventListener('click',event=>{

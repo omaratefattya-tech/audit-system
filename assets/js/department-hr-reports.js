@@ -174,6 +174,8 @@
     renderCumulative(); renderPerson(); renderAttendance(); renderAbsence(); renderAnalysis(); renderTrend();
   }
   async function load(){
+    if(!window.applicationBusinessDataReady?.())return;
+    return window.AppOperationProgress.run('screen:hr','تقارير HR',async operation=>{
     init();
     const f=filters();
     const plants=(window.PermissionRuntime?.scope(activeHrPermissionKey(),f.plant || 'all') || [])
@@ -192,6 +194,7 @@
     const seq=++S.seq;
     S.controller?.abort?.();
     S.controller=typeof AbortController==='function'?new AbortController():null;
+    operation.signal.addEventListener('abort',()=>S.controller?.abort(),{once:true});
     S.loading=true; S.error=''; status(`جاري تحميل بيانات HR من ${dateText(f.from)} إلى ${dateText(f.to)}...`); renderAll();
     try{
       let request=WarehouseDB.client.rpc('get_department_hr_reports_data',{p_from_date:f.from,p_to_date:f.to,p_plant_code:f.plant||null,p_department:f.department||null,p_job_title:f.job||null,p_personnel_id:f.person||null});
@@ -204,12 +207,14 @@
       status(`تم تحميل ${Number(data.counts?.statuses||0)} حالة مسجلة و${Number(data.counts?.evaluations||0)} تقييم محفوظ.`,'success');
       renderAll();
     }catch(error){
+      operation.fail(error);
       if(seq!==S.seq||error?.name==='AbortError') return;
       S.loading=false;
       const raw=String(error?.message||error||'خطأ غير معروف');
       S.error=/42501|permission|Reports view/i.test(raw)?'لا تملك صلاحية عرض reports أو انتهت جلسة الدخول.':raw;
       status(`تعذر تحميل تقارير HR: ${S.error}`,'error'); renderAll();
     }
+    },{scope:'#department_hr_reports',controls:'#department_hr_reports button,#department_hr_reports input,#department_hr_reports select'});
   }
 
   function renderCumulative(){

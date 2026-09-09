@@ -353,6 +353,7 @@
   filter('settings.storekeepers.filter.plant', 'مصنع أمين المخزن', settingsParents.storekeepers, APP, '#storekeepersPlantFilter');
   filter('settings.storekeepers.filter.status', 'حالة أمين المخزن', settingsParents.storekeepers, APP, '#storekeepersStatusFilter');
   action('settings.storekeepers.status.toggle', 'تفعيل أو إيقاف أمين المخزن', settingsParents.storekeepers, APP, '[data-action="toggle-storekeeper"]');
+  [['finished','القسم — منتج تام'],['spare_parts','القسم — قطع غيار']].forEach(([key,label])=>tab('settings.department_personnel.department.'+key,label,settingsParents.department_personnel,APP,'','Scope for personnel settings reads and writes within the same plant.'));
   action('settings.department_personnel.status.toggle', 'تفعيل أو إيقاف فرد القسم', settingsParents.department_personnel, APP, '[data-action="toggle-department-personnel"]');
   action('settings.department_status_codes.status.toggle', 'تفعيل أو إيقاف كود الحالة', settingsParents.department_status_codes, APP, '[data-action="toggle-department-status"]');
   action('settings.department_status_codes.color.select', 'اختيار لون الحالة', settingsParents.department_status_codes, APP, '#departmentStatusColorTrigger');

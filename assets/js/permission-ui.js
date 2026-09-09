@@ -64,6 +64,16 @@
     if (!runtime.isReady()) return false;
     if(node.key==='inventory.view') return ['inventory.count.view','inventory.differences.view','inventory.production_dates.view'].some(key=>runtime.any(key));
     if(node.key==='department_personnel.view') return ['storekeepers','weekly_leave','hr_reports','evaluations','loading_errors'].some(key=>runtime.any('department_personnel.'+key+'.view'));
+    const personnelAction=node.key.match(/^settings\.department_personnel\.(create|edit|status\.toggle)$/);
+    if(personnelAction && typeof globalScope.departmentPersonnelCan==='function'){
+      const action=personnelAction[1],row=element?.closest?.('tr[data-plant-code]');
+      if(row)return globalScope.departmentPersonnelCan(action,row.dataset.plantCode,row.dataset.department);
+      const plant=q('#departmentPersonnelPlantInput')?.value,department=q('#departmentPersonnelDepartmentInput')?.value,id=q('#departmentPersonnelIdInput');
+      if(plant&&department){
+        if(!globalScope.departmentPersonnelCan(action,plant,department))return false;
+        if(id?.value&&!globalScope.departmentPersonnelCan(action,id.dataset.originalPlantCode,id.dataset.originalDepartment))return false;
+      }else if(!globalScope.departmentPersonnelActionPlants(action).size)return false;
+    }
     if (globalKey(node.key)) return runtime.can(node.key);
     if (['SCREEN','SUBSCREEN'].includes(node.type)) return runtime.any(node.key);
     if (node.type === 'TAB') {

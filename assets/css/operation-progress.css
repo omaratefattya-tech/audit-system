@@ -1,0 +1,16 @@
+/* Canonical owner of the application task indicator; no existing component overrides. */
+.application-operation-progress{position:fixed;z-index:18000;top:max(12px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(560px,calc(100vw - 28px));box-sizing:border-box;padding:12px 16px;border:1px solid #568d34;border-radius:13px;background:#043a2bec;color:#edffea;box-shadow:0 8px 28px #0006;backdrop-filter:blur(12px);font-family:inherit;pointer-events:none}
+.application-operation-progress[hidden]{display:none}
+.operation-progress-heading{display:flex;align-items:center;gap:12px;justify-content:space-between;font-size:14px;font-weight:700}
+.operation-progress-heading b{color:#a4e42d;font-variant-numeric:tabular-nums}
+.operation-progress-heading button{pointer-events:auto;border:0;background:transparent;color:inherit;font-size:22px;cursor:pointer;padding:0 5px}
+.operation-progress-track{height:7px;border-radius:20px;background:#001c1599;overflow:hidden;margin:9px 0 6px}
+.operation-progress-track i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#4b9e30,#a4e42d);transition:width .18s ease}
+.application-operation-progress small{display:block;font-size:12px;color:#c3dac6;line-height:1.6}
+.application-operation-progress[data-state="error"]{border-color:#d68450}
+.application-operation-progress[data-state="error"] .operation-progress-track{display:none}
+.operation-progress-track.is-indeterminate i{animation:operation-progress-travel 1.4s ease-in-out infinite}
+@keyframes operation-progress-travel{0%{transform:translateX(100%)}100%{transform:translateX(-300%)}}
+@media(max-width:600px){.application-operation-progress{padding:10px 12px}.operation-progress-heading{font-size:12px}}
+@media(prefers-reduced-motion:reduce){.operation-progress-track i{transition:none}.operation-progress-track.is-indeterminate i{animation:none}}
+@media print{.application-operation-progress{display:none}}
