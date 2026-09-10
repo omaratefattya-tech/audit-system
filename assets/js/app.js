@@ -3830,7 +3830,7 @@ async function loadSalesBatches(){
     .eq('status','active')
     .order('report_date',{ascending:false});
   if(error){
-    tbl.innerHTML=`<tbody><tr><td>خطأ تحميل السجل: ${error.message}</td></tr></tbody>`;
+    tbl.innerHTML=`<tbody><tr><td>خطأ تحميل السجل: ${escapeHtml(String(error.message))}</td></tr></tbody>`;
     return;
   }
   const rows=(data||[]).map(b=>[
@@ -3953,7 +3953,7 @@ async function loadIncomingBatches(){
     .eq('status','active')
     .order('report_date',{ascending:false});
   if(error){
-    tbl.innerHTML=`<tbody><tr><td>خطأ تحميل سجل الوارد: ${error.message}</td></tr></tbody>`;
+    tbl.innerHTML=`<tbody><tr><td>خطأ تحميل سجل الوارد: ${escapeHtml(String(error.message))}</td></tr></tbody>`;
     return;
   }
   const rows=(data||[]).map(b=>[
@@ -4068,7 +4068,7 @@ async function loadScaleBatches(){
     .eq('status','active')
     .order('report_date',{ascending:false});
   if(error){
-    tbl.innerHTML=`<tbody><tr><td>خطأ تحميل سجل الميزان: ${error.message}</td></tr></tbody>`;
+    tbl.innerHTML=`<tbody><tr><td>خطأ تحميل سجل الميزان: ${escapeHtml(String(error.message))}</td></tr></tbody>`;
     return;
   }
   const rows=(data||[]).map(b=>[
@@ -4201,7 +4201,7 @@ async function loadInboundAuditReport(date='',options={}){
     .order('report_date',{ascending:false})
     .order('material_code',{ascending:true}).abortSignal(operation.signal);
   if(operation.signal.aborted)return;
-  if(error){ operation.fail(error);tbl.innerHTML='<tbody><tr><td>خطأ تحميل مراجعة الوارد: '+error.message+'</td></tr></tbody>'; return; }
+  if(error){ operation.fail(error);tbl.innerHTML='<tbody><tr><td>خطأ تحميل مراجعة الوارد: '+escapeHtml(String(error.message))+'</td></tr></tbody>'; return; }
   const filtered=(data||[]).filter(r=>inboundRowMatchesTopFilters(r,topFilters));
   updateInboundResultsCount(filtered.length);
   if((!useTopFilters || selected) && filtered.some(r=>!r.incoming_movement_type || !r.raw_result?.freight_diagnosis || r.raw_result?.movement_color_logic!=='repost_101_gold_v2') && !window.__incomingMovementRebuildOnce){
@@ -4313,7 +4313,7 @@ async function loadFreightBatches(){
     .select('id,file_name,reference_date,upload_date,uploaded_by,uploaded_by_name,row_count,file_size_bytes,status')
     .neq('status','deleted')
     .order('upload_date',{ascending:false});
-  if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل سجل نولون الوارد: ${error.message}</td></tr></tbody>`; return; }
+  if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل سجل نولون الوارد: ${escapeHtml(String(error.message))}</td></tr></tbody>`; return; }
   const rows=(data||[]).map(b=>[
     formatDisplayDate(b.reference_date,'-'),
     b.file_name || '-',
@@ -4337,7 +4337,7 @@ async function loadFreightRates(){
     .eq('is_active',true)
     .order('plant_code',{ascending:true})
     .order('freight_description',{ascending:true});
-  if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل مرجع النولون: ${error.message}</td></tr></tbody>`; return; }
+  if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل مرجع النولون: ${escapeHtml(String(error.message))}</td></tr></tbody>`; return; }
   const rows=(data||[]).map(r=>[
     r.freight_description || '-',
     r.goods_type || '-',
@@ -4430,9 +4430,9 @@ async function loadSalesReport(warehouseCode){
   if(error){ operation.fail(error);console.error(error); return; }
   const catalog=await loadSalesReviewCatalog();
   const rows=filterSalesReviewRows(data||[],catalog).map(r=>[
-    r.material_code,
-    r.material_name,
-    r.uom,
+    escapeHtml(r.material_code),
+    escapeHtml(r.material_name),
+    escapeHtml(r.uom),
     fmt(r.sales_quantity),
     fmt(r.actual_return_quantity),
     fmt(r.production_quantity),
@@ -7530,7 +7530,7 @@ async function loadRawMaterialsUploadBatch(key){
     .is('deleted_at',null)
     .order('upload_date',{ascending:false})
     .limit(1);
-  if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل آخر رفع: ${error.message}</td></tr></tbody>`; return; }
+  if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل آخر رفع: ${escapeHtml(String(error.message))}</td></tr></tbody>`; return; }
   const rows=(data||[]).map(b=>[
     b.file_name || '-',
     Number(b.row_count||0).toLocaleString('en-US'),
