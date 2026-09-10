@@ -2529,7 +2529,10 @@ async function loadDashboardRealData(options={}){
   ensureDashboardPngButtons();
   console.timeEnd(renderPerfLabel);
   salesPerfLog('renderDashboard',renderPerfStart,{rows:sales.length,topProducts:topProducts.length,topWarehouses:topWarehouses.length});
-  },{scope:'#dashboard',controls:'#dashboard button,#dashboard input,#dashboard select'});
+  },{scope:'#dashboard',controls:'#dashboard button,#dashboard input,#dashboard select'}).finally(()=>{
+    // Progress restores its pre-load disabled snapshot; reconcile PNG permissions after release.
+    if(!window.AppOperationProgress.isBusy('screen:dashboard')) syncDashboardPngButtonState();
+  });
 }
 
 
