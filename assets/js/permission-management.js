@@ -14,6 +14,7 @@
     bundlePermissions:new Map(),
     roleBundles:new Map(),
     roleUserCounts:new Map(),
+    roleAssignmentCounts:new Map(),
     selectedRoleId:'',
     originalBundleIds:new Set(),
     draftBundleIds:new Set(),
@@ -47,6 +48,8 @@
     if(/P6_ROLE_NOT_FOUND|P6_BUNDLE_NOT_FOUND/i.test(message)) return 'الدور أو إحدى الحزم لم يعد موجودًا. حدّث البيانات وحاول مرة أخرى.';
     if(/P6_ROLE_INACTIVE/i.test(message)) return 'لا يمكن تعديل دور غير نشط.';
     if(/P6_SUPER_ADMIN_ROLE_PROTECTED/i.test(message)) return 'دور Super Admin محمي ولا يمكن تغيير حزمته.';
+    if(/P6_ROLE_HAS_USER_ASSIGNMENTS/i.test(message)) return 'لا يمكن إزالة جميع الحزم: الدور مرتبط بمستخدم، وقد يكون حسابه غير نشط. حدّث البيانات وراجع إسنادات المستخدمين.';
+    if(/P6_CLEAR_REQUIRES_READ_COMMITTED/i.test(message)) return 'تعذر فك الحزم في الجلسة الحالية. حدّث الصفحة وأعد المحاولة من البرنامج.';
     if(/P6_BUNDLE_REQUIRED/i.test(message)) return 'يجب اختيار حزمة صلاحيات نشطة واحدة على الأقل.';
     if(/P6_INACTIVE_OR_UNKNOWN_BUNDLE/i.test(message)) return 'الاختيار يحتوي على حزمة غير موجودة أو غير نشطة.';
     if(/P6_INVALID_BUNDLE_CONFIGURATION/i.test(message)) return 'إحدى الحزم المختارة بلا صلاحيات أو بلا نطاق مصنع صالح.';
@@ -76,6 +79,17 @@
 
   function selectedRole(){
     return state.roles.find(role=>role.id===state.selectedRoleId) || null;
+  }
+
+  function canClearRoleBundles(role){
+    return hasCompleteData() && role?.is_active && !role.is_system && !role.is_super_admin
+      && (state.roleAssignmentCounts.get(role.id)||0)===0;
+  }
+
+  function emptySelectionMessage(role){
+    return role?.is_system
+      ? 'لا يمكن إزالة جميع الحزم من دور نظامي.'
+      : 'لا يمكن إزالة جميع الحزم من دور مرتبط بمستخدم، حتى لو كان حسابه غير نشط.';
   }
 
   function legacyBaselineRoleKey(bundle){
@@ -142,7 +156,7 @@
     const role=selectedRole();
     const authorized=isAuthorized();
     const save=q('#savePermissionsBtn');
-    const canSave=authorized && hasCompleteData() && role && !role.is_super_admin && role.is_active && state.draftBundleIds.size>0 && hasRequiredSystemBaseline(role) && isDirty() && !state.saving;
+    const canSave=authorized && hasCompleteData() && role && !role.is_super_admin && role.is_active && (state.draftBundleIds.size>0 || canClearRoleBundles(role)) && hasRequiredSystemBaseline(role) && isDirty() && !state.saving;
     if(save){
       save.disabled=!canSave;
       save.dataset.permissionSettingsSaving=state.saving?'1':'0';
@@ -155,8 +169,8 @@
           ? 'دور Super Admin محمي'
           : !isDirty()
             ? 'لا توجد تغييرات للحفظ'
-            : state.draftBundleIds.size===0
-              ? 'اختر حزمة واحدة على الأقل'
+            : state.draftBundleIds.size===0 && !canClearRoleBundles(role)
+              ? emptySelectionMessage(role)
               : !hasRequiredSystemBaseline(role)
                 ? 'حزمة الترحيل الأساسية للدور النظامي محمية ولا يمكن إزالتها'
               : '';
@@ -247,6 +261,10 @@
         ? 'دور Super Admin محمي؛ يعرض الربط الحالي فقط ولا يقبل التعديل.'
         : state.blockedBundleIds.size
           ? `تم استبعاد ${state.blockedBundleIds.size} حزمة ترحيل محمية مرتبطة بدور غير مطابق. اختر حزمة صالحة واحفظ لإزالة الربط غير الآمن من ربط الدور.`
+        : isDirty() && selectedCount===0
+          ? canClearRoleBundles(role)
+            ? 'الحفظ سيفك جميع الحزم عن هذا الدور غير المستخدم. الحزم نفسها ستبقى متاحة للأدوار الأخرى.'
+            : emptySelectionMessage(role)
         : isDirty()
           ? 'التغييرات المحفوظة تحدد الشاشات والإجراءات المتاحة للمستخدمين عند تحديث صلاحيات حساباتهم.'
           : 'الوصول إلى الواجهة يعتمد على حزم الدور ونطاق المصانع.';
@@ -293,7 +311,9 @@
     state.roleBundles=mapSetRelations(linksResult.data,'role_id','bundle_id');
     const activeUsers=new Set((usersResult.data||[]).filter(user=>user.is_active).map(user=>String(user.id)));
     state.roleUserCounts=new Map();
+    state.roleAssignmentCounts=new Map();
     (userRolesResult.data||[]).forEach(row=>{
+      state.roleAssignmentCounts.set(String(row.role_id),(state.roleAssignmentCounts.get(String(row.role_id))||0)+1);
       if(!activeUsers.has(String(row.user_id))) return;
       state.roleUserCounts.set(String(row.role_id),(state.roleUserCounts.get(String(row.role_id))||0)+1);
     });
@@ -333,6 +353,7 @@
         state.bundlePermissions=new Map();
         state.roleBundles=new Map();
         state.roleUserCounts=new Map();
+        state.roleAssignmentCounts=new Map();
         state.selectedRoleId='';
         state.originalBundleIds=new Set();
         state.draftBundleIds=new Set();
@@ -429,7 +450,7 @@
     if(!isReady()){ setStatus('Supabase غير متصل.','err'); return; }
     if(!role){ setStatus('اختر دورًا أولًا.','err'); return; }
     if(role.is_super_admin){ setStatus('دور Super Admin محمي ولا يمكن تغيير حزمته.','err'); return; }
-    if(!state.draftBundleIds.size){ setStatus('اختر حزمة صلاحيات نشطة واحدة على الأقل.','err'); return; }
+    if(!state.draftBundleIds.size && !canClearRoleBundles(role)){ setStatus(emptySelectionMessage(role),'err'); return; }
     if(!hasRequiredSystemBaseline(role)){ setStatus('حزمة الترحيل الأساسية للدور النظامي محمية ولا يمكن إزالتها.','err'); return; }
     if([...state.draftBundleIds].some(bundleId=>!isBundleAllowedForRole(state.bundles.find(bundle=>bundle.id===bundleId),role))){
       setStatus('الاختيار يحتوي على حزمة ترحيل محمية مخصصة لدور آخر.','err');
@@ -463,7 +484,11 @@
         await globalScope.logSystemActivity('الصلاحيات','ربط دور بحزم صلاحيات',`ربط الحزم: ${role.role_key} ← ${state.draftBundleIds.size} حزمة`);
       }
       const reloaded=await load({force:true,roleId:role.id});
-      setStatus(reloaded?`تم حفظ ${Number(data?.bundle_count||state.draftBundleIds.size)} حزمة للدور «${role.role_name}». تظهر صلاحيات الواجهة الجديدة للمستخدمين بعد تحديث صلاحيات حساباتهم.`:'تم حفظ الربط، لكن تعذر إعادة تحميل الصلاحيات كاملة. اضغط تحديث قبل أي تعديل آخر.',reloaded?'ok':'err');
+      const savedCount=Number(data?.bundle_count??state.draftBundleIds.size);
+      const successMessage=savedCount===0
+        ? `تم فك جميع الحزم عن الدور «${role.role_name}». يمكنك الآن حذفه من الإعدادات؛ الحزم نفسها لم تُحذف.`
+        : `تم حفظ ${savedCount} حزمة للدور «${role.role_name}». تظهر صلاحيات الواجهة الجديدة للمستخدمين بعد تحديث صلاحيات حساباتهم.`;
+      setStatus(reloaded?successMessage:'تم حفظ الربط، لكن تعذر إعادة تحميل الصلاحيات كاملة. اضغط تحديث قبل أي تعديل آخر.',reloaded?'ok':'err');
     }catch(error){
       setStatus(errorMessage(error),'err');
     }finally{
