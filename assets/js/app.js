@@ -13907,6 +13907,43 @@ async function openExistingInventoryCountFromUi(options={}){
       return;
     }
     if(status==='not_found'){
+      const {data:sequenceData,error:sequenceError}=await WarehouseDB.client.rpc('get_default_inventory_count_for_plant',{
+        p_plant_code:plantCode
+      });
+      if(sequenceError) throw sequenceError;
+      if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
+      const sequenceStatus=String(sequenceData?.status || '');
+      if(sequenceStatus==='open_inventory_count_found' && sequenceData?.version_id){
+        setInventoryCountInputsFromResult(sequenceData);
+        INVENTORY_COUNT_STATE.documentId=sequenceData.document_id || null;
+        INVENTORY_COUNT_STATE.versionId=sequenceData.version_id || null;
+        INVENTORY_COUNT_STATE.versionNo=Number(sequenceData.version_no || 1) || 1;
+        INVENTORY_COUNT_STATE.documentStatus=sequenceData.document_status || null;
+        INVENTORY_COUNT_STATE.versionStatus=sequenceData.version_status || null;
+        setInventoryCountReviewerFromResult(sequenceData);
+        INVENTORY_COUNT_STATE.status='found';
+        await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,requestSeq);
+        if(requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
+        const openDate=formatDisplayDate(sequenceData.inventory_date,'—');
+        inventoryCountSetStatus(`يوجد جرد مفتوح بتاريخ ${openDate}. يجب إنهاؤه قبل الانتقال لتاريخ جرد جديد.`,'err');
+        inventoryCountUpdateCreateButton();
+        return;
+      }
+      if(sequenceStatus==='completed_inventory_count_found'){
+        const completedDate=formatInventoryDateInputValue(sequenceData?.inventory_date);
+        const dueDate=inventoryCountShiftIsoDate(completedDate,1);
+        if(dueDate && inventoryDate!==dueDate){
+          setInventoryCountInputsFromResult({
+            plant_code:sequenceData?.plant_code || plantCode,
+            warehouse_code:sequenceData?.warehouse_code || warehouseCode,
+            inventory_date:dueDate
+          });
+          resetInventoryCountView(`لا يمكن تجاوز تسلسل الجرد. تاريخ الجرد المستحق هو ${formatDisplayDate(dueDate,'—')}.`);
+          INVENTORY_COUNT_STATE.status='not_found';
+          inventoryCountUpdateCreateButton();
+          return;
+        }
+      }
       resetInventoryCountView('لم يتم إنشاء جرد بعد.');
       INVENTORY_COUNT_STATE.status='not_found';
       inventoryCountUpdateCreateButton();
@@ -13995,6 +14032,24 @@ async function createInventoryCountFromUi(){
         inventoryCountSetStatus('الجرد موجود.','ok');
         return;
       }
+    }
+    if(message.includes('IC_SEQUENCE_OPEN_COUNT_BLOCKED')){
+      await openDefaultInventoryCountFromUi({showLoading:false});
+      const openDate=inventoryCountReadInputs().inventoryDate;
+      const displayDate=formatDisplayDate(openDate,'—');
+      const text=`لا يمكن إنشاء جرد جديد قبل إنهاء الجرد المفتوح بتاريخ ${displayDate}. أكمل الجرد الحالي أولاً، وبعد إنهائه سيظهر تاريخ الجرد التالي المستحق تلقائيًا.`;
+      inventoryCountSetStatus(text,'err');
+      showInventoryCountToast(text,'error',7000);
+      return;
+    }
+    if(message.includes('IC_SEQUENCE_DUE_DATE_MISMATCH')){
+      await openDefaultInventoryCountFromUi({showLoading:false});
+      const dueDate=inventoryCountReadInputs().inventoryDate;
+      const displayDate=formatDisplayDate(dueDate,'—');
+      const text=`لا يمكن إنشاء جرد بهذا التاريخ. يجب الحفاظ على تسلسل الجرد، وتاريخ الجرد المستحق هو ${displayDate}.`;
+      inventoryCountSetStatus(text,'err');
+      showInventoryCountToast(text,'error',7000);
+      return;
     }
     inventoryCountSetStatus(message, 'err');
   }finally{
