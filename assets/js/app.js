@@ -12572,16 +12572,10 @@ function inventoryCountLineHasActiveSettlement(rowOrLineId){
   return Boolean(contextLine?.active_settlement_id || contextLine?.is_reconciled);
 }
 function inventoryCountActiveSettlementAdjustmentMessage(balanceLabel='الرصيد الفعلي'){
-  return `هذا الصنف لديه تسوية جرد فعالة. لا يمكن تعديل ${balanceLabel} قبل التراجع عن التسوية. اضغط «تراجع» في عمود «تسوية الجرد» وأكمل التراجع بنجاح، ثم نفّذ التعديل من المسار المسموح. تظل مرحلة التسويات قائمة بعد التراجع.`;
-}
-function inventoryCountBookBalanceGuidanceMessage(){
-  return 'الرصيد الدفتري حقل محسوب Read Only ولا يتم تعديله مباشرة. هذا الصنف لديه تسوية جرد فعالة؛ إذا احتجت تصحيح قيمة تؤثر على الرصيد الدفتري، تراجع عن التسوية أولًا من زر «تراجع»، ثم صحح مصدر القيمة من مساره المعتمد. بدء مرحلة التسويات يظل قائمًا، ولا يفتح الرصيد الدفتري نفسه للتحرير المباشر.';
+  return `لا يمكن تعديل ${balanceLabel} لهذا الصنف لأن لديه تسوية جرد فعالة. تراجع عن التسوية أولًا من زر «تراجع» في عمود «تسوية الجرد»، ثم أعد تعديل ${balanceLabel}. بعد التراجع سيظل التعديل خاضعًا لتسجيل السبب وحفظه في «ملاحظات تعديل الجرد».`;
 }
 function renderInventoryBookBalanceCell(row){
   const value=formatInventoryCountThreeDecimalQuantity(row?.book_balance);
-  if(inventoryCountLineHasActiveSettlement(row)){
-    return `<td class="inventory-book-balance-cell"><button class="inventory-book-balance-guidance-btn" type="button" data-line-id="${escapeHtml(row?.id||'')}" title="${escapeHtml(inventoryCountBookBalanceGuidanceMessage())}">${escapeHtml(value)}</button></td>`;
-  }
   return `<td class="inventory-book-balance-cell"><span class="inventory-book-balance-readonly" title="الرصيد الدفتري حقل محسوب للقراءة فقط">${escapeHtml(value)}</span></td>`;
 }
 function renderInventoryPhysicalBalanceCell(row){
@@ -14929,12 +14923,6 @@ function bindInventoryOpeningBalanceEvents(){
     if(physicalAdjustmentBtn && table.contains(physicalAdjustmentBtn)){
       event.preventDefault();
       openInventoryPhysicalAdjustmentModalFromButton(physicalAdjustmentBtn);
-      return;
-    }
-    const bookBalanceGuidanceBtn=event.target.closest('.inventory-book-balance-guidance-btn');
-    if(bookBalanceGuidanceBtn && table.contains(bookBalanceGuidanceBtn)){
-      event.preventDefault();
-      showInventoryCountToast(inventoryCountBookBalanceGuidanceMessage(),'warning',11000);
       return;
     }
     const retryBtn=event.target.closest('.inventory-settlement-context-retry-btn');
