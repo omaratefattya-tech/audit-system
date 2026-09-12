@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=p8-1-7-20260907-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=ic-adj-01-20260912-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ir-hotfix-2-20260726" />
   <link rel="stylesheet" href="assets/css/operation-progress.css?v=p8-1-15-20260909-1" />
 </head>
@@ -649,7 +649,7 @@
       </section>
       
             <section id="inventory_closing" class="section">
-        <article class="panel glass" style="position: relative;">
+        <article class="panel glass" id="inventoryCountMainPanel" style="position: relative;">
           <div class="focus-mode-title-row" data-focus-section="inventory_closing">
             <h2>الجرد وتوثيق المخزون</h2>
             <div class="focus-mode-actions">
@@ -657,6 +657,7 @@
               <button class="secondary inventory-count-mobile-tool-btn" id="inventoryCountMobileExportBtn" type="button" aria-controls="inventoryCountMobileExportPanel" aria-expanded="false">تصدير</button>
               <button class="secondary inventory-count-mobile-tool-btn" id="inventoryCountMobileSearchBtn" type="button" aria-controls="inventoryCountMobileFilterPanel" aria-expanded="false">بحث وفلترة</button>
               <button class="secondary export-btn inventory-count-export-btn" id="createInventoryDifferenceSnapshotBtn" type="button">إنشاء مستند فروق الجرد</button>
+              <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountAdjustmentNotesBtn" type="button">ملاحظات تعديل الجرد</button>
               <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountColumnManagerBtn" type="button" aria-expanded="false" aria-controls="inventoryCountColumnManagerPanel">إدارة الأعمدة</button>
               <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountExportPngBtn" type="button">PNG</button>
               <button class="secondary export-btn inventory-count-export-btn" id="inventoryCountExportPdfBtn" type="button">PDF</button>
@@ -777,6 +778,47 @@
 
           <div id="inventoryCountLoadingOverlay" hidden aria-hidden="true" style="position: absolute; inset: 0; z-index: 8; display: none; place-items: center; background: rgba(0, 18, 14, .72); backdrop-filter: blur(3px); border-radius: 12px;">
             <div class="glass-soft" style="padding: 18px 24px; border-radius: 12px; font-weight: 900;">جارٍ إنشاء الجرد...</div>
+          </div>
+        </article>
+
+        <article class="panel glass inventory-adjustment-notes-view" id="inventoryCountAdjustmentNotesView" hidden aria-hidden="true">
+          <div class="focus-mode-title-row inventory-adjustment-notes-head">
+            <div>
+              <h2>ملاحظات تعديل الجرد</h2>
+              <p class="hint">سجل تاريخي للتعديلات الموثقة على الرصيد الفعلي بعد بدء أول تسوية في نسخة الجرد.</p>
+            </div>
+            <div class="focus-mode-actions inventory-adjustment-notes-actions">
+              <button class="secondary" id="inventoryCountAdjustmentNotesBackBtn" type="button">عودة للصفحة السابقة</button>
+              <button class="secondary" id="inventoryCountAdjustmentNotesExportPngBtn" type="button">PNG</button>
+              <button class="secondary" id="inventoryCountAdjustmentNotesExportPdfBtn" type="button">PDF</button>
+              <button class="secondary" id="inventoryCountAdjustmentNotesExportExcelBtn" type="button">EXCEL</button>
+            </div>
+          </div>
+          <div class="inventory-adjustment-notes-scope" id="inventoryCountAdjustmentNotesScope" aria-live="polite">المستند: — | الإصدار: — | المصنع: — | المخزن: —</div>
+          <div class="inventory-adjustment-notes-history-note">يبدأ هذا السجل من تطبيق IC-ADJ-01 فقط. لا يتم إنشاء أسباب أو أرصدة قبلية افتراضية لتعديلات تاريخية سابقة.</div>
+          <div class="inventory-adjustment-notes-status" id="inventoryCountAdjustmentNotesStatus" role="status" aria-live="polite"></div>
+          <div class="table-wrap inventory-adjustment-notes-table-wrap">
+            <table id="inventoryCountAdjustmentNotesTable" data-no-universal-table="1">
+              <thead>
+                <tr>
+                  <th><button class="inventory-adjustment-notes-sort-btn" type="button" data-adjustment-sort-key="material_code"><span>كود المادة</span><span class="inventory-adjustment-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-adjustment-notes-sort-btn" type="button" data-adjustment-sort-key="material_name"><span>وصف المادة</span><span class="inventory-adjustment-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-adjustment-notes-sort-btn" type="button" data-adjustment-sort-key="physical_balance_before"><span>الرصيد قبل التعديل</span><span class="inventory-adjustment-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-adjustment-notes-sort-btn" type="button" data-adjustment-sort-key="physical_balance_after"><span>الرصيد بعد التعديل</span><span class="inventory-adjustment-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-adjustment-notes-sort-btn" type="button" data-adjustment-sort-key="reason"><span>سبب التعديل</span><span class="inventory-adjustment-sort-indicator" aria-hidden="true"></span></button></th>
+                  <th><button class="inventory-adjustment-notes-sort-btn" type="button" data-adjustment-sort-key="adjusted_by_name"><span>القائم بالتعديل</span><span class="inventory-adjustment-sort-indicator" aria-hidden="true"></span></button></th>
+                </tr>
+                <tr class="inventory-adjustment-notes-filter-row">
+                  <th><input class="inventory-adjustment-notes-filter" type="search" data-adjustment-filter-key="material_code" placeholder="بحث" aria-label="بحث كود المادة" /></th>
+                  <th><input class="inventory-adjustment-notes-filter" type="search" data-adjustment-filter-key="material_name" placeholder="بحث" aria-label="بحث وصف المادة" /></th>
+                  <th><input class="inventory-adjustment-notes-filter" type="search" data-adjustment-filter-key="physical_balance_before" placeholder="بحث" aria-label="بحث الرصيد قبل التعديل" /></th>
+                  <th><input class="inventory-adjustment-notes-filter" type="search" data-adjustment-filter-key="physical_balance_after" placeholder="بحث" aria-label="بحث الرصيد بعد التعديل" /></th>
+                  <th><input class="inventory-adjustment-notes-filter" type="search" data-adjustment-filter-key="reason" placeholder="بحث" aria-label="بحث سبب التعديل" /></th>
+                  <th><input class="inventory-adjustment-notes-filter" type="search" data-adjustment-filter-key="adjusted_by_name" placeholder="بحث" aria-label="بحث القائم بالتعديل" /></th>
+                </tr>
+              </thead>
+              <tbody><tr><td colspan="6" class="empty-state">لا توجد تعديلات مسجلة في هذه النسخة.</td></tr></tbody>
+            </table>
           </div>
         </article>
       </section>
@@ -2145,9 +2187,9 @@
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/operation-progress.js?v=p8-1-15-20260909-1"></script>
-  <script src="assets/js/app.js?v=p10-2-1-20260910-1"></script>
-  <script src="assets/js/permission-registry.js?v=p9-2-20260909-1"></script>
-  <script src="assets/js/permissions.js?v=p8-1-15-20260909-1"></script>
+  <script src="assets/js/app.js?v=ic-adj-01-20260912-1"></script>
+  <script src="assets/js/permission-registry.js?v=ic-adj-01-20260912-1"></script>
+  <script src="assets/js/permissions.js?v=ic-adj-01-20260912-1"></script>
   <script src="assets/js/permission-ui.js?v=p8-1-15-20260909-1"></script>
   <script src="assets/js/permission-data-loader.js?v=p6-complete-permissions-20260905-1"></script>
   <script src="assets/js/permission-settings.js?v=p8-20260907-1"></script>

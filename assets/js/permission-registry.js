@@ -141,7 +141,14 @@
   action('inventory.count.finish', 'إنهاء الجرد', count, APP, '#finishInventoryCountBtn');
   action('inventory.count.post_close_adjust', 'تعديلات بعد إنهاء الجرد', count, APP, '#inventoryCountPostCloseInvoiceBtn');
   action('inventory.count.differences.create', 'إنشاء مستند فروق الجرد', count, APP, '#createInventoryDifferenceSnapshotBtn');
+  button('inventory.count.adjustment_notes.open', 'ملاحظات تعديل الجرد', count, APP, '#inventoryCountAdjustmentNotesBtn');
+  const adjustmentNotes = subscreen('inventory.count.adjustment_notes', 'تقرير ملاحظات تعديل الجرد', count, APP, '#inventoryCountAdjustmentNotesView');
+  button('inventory.count.adjustment_notes.back', 'عودة للصفحة السابقة', adjustmentNotes, APP, '#inventoryCountAdjustmentNotesBackBtn');
+  filter('inventory.count.adjustment_notes.search', 'بحث ملاحظات تعديل الجرد', adjustmentNotes, APP, '#inventoryCountAdjustmentNotesView .inventory-adjustment-notes-filter');
+  button('inventory.count.adjustment_notes.table.sort', 'ترتيب ملاحظات تعديل الجرد', adjustmentNotes, APP, '#inventoryCountAdjustmentNotesView .inventory-adjustment-notes-sort-btn');
+  ['excel', 'pdf', 'png'].forEach(format => button(`inventory.count.adjustment_notes.export_${format}`, `تصدير ملاحظات تعديل الجرد ${format.toUpperCase()}`, adjustmentNotes, APP, `#inventoryCountAdjustmentNotesExport${format === 'excel' ? 'Excel' : format === 'pdf' ? 'Pdf' : 'Png'}Btn`));
   action('inventory.count.line.edit_actual_balance', 'تعديل الرصيد الفعلي', count, APP, '#inventoryCountLinesTable .inventory-opening-balance-input, #inventoryCountLinesTable .inventory-production-quantity-input, #inventoryCountLinesTable .inventory-physical-balance-input, #inventoryCountLinesTable .inventory-oldest-quantity-input, #inventoryCountLinesTable .inventory-oldest-date-input, #inventoryCountLinesTable .inventory-counter-select');
+  action('inventory.count.line.adjust_after_settlement', 'تعديل الرصيد الفعلي بعد بدء التسويات', count, APP, '#inventoryCountLinesTable .inventory-physical-adjustment-btn');
   action('inventory.count.line.review', 'فتح توصيات مراجعة الصنف', count, APP, '[data-inventory-review-line-id], .inventory-settlement-btn, .inventory-settlement-reverse-btn');
   action('inventory.count.line.audit_history', 'عرض سجل تعديلات الصنف', count, APP, '[data-inventory-review-tab="history"]');
   button('inventory.count.table.sort', 'ترتيب الجدول', count, APP, '.inventory-count-sort-btn');
@@ -385,7 +392,7 @@
   action('settings.permission_settings.bundles.screen_permissions.save', 'حفظ اختيارات الشاشة', permissionBundles, 'assets/js/permission-settings.js', '#permissionEditorSaveBtn');
 
   const registry = Object.freeze({
-    version: 'P7-2026-09-05',
+    version: 'IC-ADJ-01-2026-09-12',
     phase: 'P3_PERMISSION_SETTINGS',
     enforcementEnabled: false,
     runtimeLoaded: true,

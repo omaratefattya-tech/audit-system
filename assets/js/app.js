@@ -10581,7 +10581,7 @@ function markInventoryCountSettlementPhaseStarted(){
   updateInventoryCountFinalizationControls();
 }
 function inventoryCountSettlementPhaseLockMessage(){
-  return 'بدأت مرحلة تسوية فروق الجرد لهذا المستند. تم إيقاف التعديلات اليدوية، وأي تعديل لاحق يجب أن يتم من خلال تسوية الجرد أو التراجع عنها.';
+  return 'بدأت مرحلة تسوية فروق الجرد لهذا المستند. تم إيقاف التحرير المباشر للحقول اليدوية؛ الرصيد الفعلي يمكن للمصرح له تعديله من خلال نافذة تعديل موثقة، وباقي الحقول تظل مقفلة.';
 }
 function inventoryCountFinalizedMessage(){
   return 'تم إنهاء مستند الجرد نهائيًا. جميع خانات الجرد مقفلة، وأي تعديل لاحق على البيع أو التحويلات أو الإنتاج يتم من زر تعديلات بعد إنهاء الجرد.';
@@ -12565,8 +12565,39 @@ function renderInventoryProductionQuantityCell(row){
   const lockAttrs=inventoryCountManualControlLockAttributes();
   return `<td class="inventory-production-quantity-cell"><input class="inventory-production-quantity-input" type="number" min="0" step="0.001" inputmode="decimal" aria-label="الإنتاج" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
 }
+function inventoryCountLineHasActiveSettlement(rowOrLineId){
+  const lineId=typeof rowOrLineId==='object' ? rowOrLineId?.id : rowOrLineId;
+  if(!lineId) return false;
+  const contextLine=inventorySettlementContextLine(lineId);
+  return Boolean(contextLine?.active_settlement_id || contextLine?.is_reconciled);
+}
+function inventoryCountActiveSettlementAdjustmentMessage(balanceLabel='الرصيد الفعلي'){
+  return `هذا الصنف لديه تسوية جرد فعالة. لا يمكن تعديل ${balanceLabel} قبل التراجع عن التسوية. اضغط «تراجع» في عمود «تسوية الجرد» وأكمل التراجع بنجاح، ثم نفّذ التعديل من المسار المسموح. تظل مرحلة التسويات قائمة بعد التراجع.`;
+}
+function inventoryCountBookBalanceGuidanceMessage(){
+  return 'الرصيد الدفتري حقل محسوب Read Only ولا يتم تعديله مباشرة. هذا الصنف لديه تسوية جرد فعالة؛ إذا احتجت تصحيح قيمة تؤثر على الرصيد الدفتري، تراجع عن التسوية أولًا من زر «تراجع»، ثم صحح مصدر القيمة من مساره المعتمد. بدء مرحلة التسويات يظل قائمًا، ولا يفتح الرصيد الدفتري نفسه للتحرير المباشر.';
+}
+function renderInventoryBookBalanceCell(row){
+  const value=formatInventoryCountThreeDecimalQuantity(row?.book_balance);
+  if(inventoryCountLineHasActiveSettlement(row)){
+    return `<td class="inventory-book-balance-cell"><button class="inventory-book-balance-guidance-btn" type="button" data-line-id="${escapeHtml(row?.id||'')}" title="${escapeHtml(inventoryCountBookBalanceGuidanceMessage())}">${escapeHtml(value)}</button></td>`;
+  }
+  return `<td class="inventory-book-balance-cell"><span class="inventory-book-balance-readonly" title="الرصيد الدفتري حقل محسوب للقراءة فقط">${escapeHtml(value)}</span></td>`;
+}
 function renderInventoryPhysicalBalanceCell(row){
   const value=formatInventoryManualThreeDecimal(row.physical_balance);
+  if(inventoryCountIsFinalized()){
+    return `<td class="inventory-physical-balance-cell"><span class="inventory-physical-balance-readonly" title="${escapeHtml(inventoryCountFinalizedMessage())}">${escapeHtml(value || '—')}</span></td>`;
+  }
+  if(inventoryCountSettlementPhaseStarted()){
+    if(hasCanonicalPermission('inventory.count.line.adjust_after_settlement')){
+      const activeSettlement=inventoryCountLineHasActiveSettlement(row);
+      const title=activeSettlement ? inventoryCountActiveSettlementAdjustmentMessage('الرصيد الفعلي') : 'تعديل الرصيد الفعلي مع تسجيل السبب';
+      const blockedAttr=activeSettlement ? ' data-active-settlement-blocked="1"' : '';
+      return `<td class="inventory-physical-balance-cell"><button class="inventory-physical-adjustment-btn${activeSettlement?' is-settled':''}" type="button" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}"${blockedAttr} title="${escapeHtml(title)}">${escapeHtml(value || '—')}</button></td>`;
+    }
+    return `<td class="inventory-physical-balance-cell"><span class="inventory-physical-balance-readonly" title="بدأت مرحلة التسويات ولا تملك صلاحية التعديل الموثق">${escapeHtml(value || '—')}</span></td>`;
+  }
   const lockAttrs=inventoryCountManualControlLockAttributes();
   return `<td class="inventory-physical-balance-cell"><input class="inventory-physical-balance-input" type="number" min="0" step="0.001" inputmode="decimal" aria-label="الرصيد الفعلي" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
 }
@@ -13575,7 +13606,7 @@ function renderInventoryCountLines(rows=[]){
     <td>${formatInventoryCountThreeDecimalQuantity(row.sales_quantity)}</td>
     <td>${formatInventoryCountThreeDecimalQuantity(row.outgoing_transfers)}</td>
     <td>${formatInventoryCountThreeDecimalQuantity(row.rework_311)}</td>
-    <td>${formatInventoryCountThreeDecimalQuantity(row.book_balance)}</td>
+    ${renderInventoryBookBalanceCell(row)}
     ${renderInventoryPhysicalBalanceCell(row)}
     ${renderInventoryVarianceCell(row.inventory_variance)}
     ${renderInventoryOldestQuantityCell(row)}
@@ -14367,6 +14398,484 @@ function focusInventoryCountManualControl(target){
     if(typeof control.select==='function' && !control.matches('select,input[type="date"]')) control.select();
   });
 }
+
+const INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE = {
+  rows: [],
+  meta: null,
+  filters: {},
+  sortKey: 'adjusted_at',
+  sortDirection: 'desc',
+  loading: false,
+  requestSeq: 0,
+  savingLineIds: new Set()
+};
+const INVENTORY_ADJUSTMENT_VISIBLE_COLUMNS = Object.freeze([
+  {key:'material_code',label:'كود المادة',type:'text'},
+  {key:'material_name',label:'وصف المادة',type:'text'},
+  {key:'physical_balance_before',label:'الرصيد قبل التعديل',type:'number'},
+  {key:'physical_balance_after',label:'الرصيد بعد التعديل',type:'number'},
+  {key:'reason',label:'سبب التعديل',type:'text'},
+  {key:'adjusted_by_name',label:'القائم بالتعديل',type:'text'}
+]);
+function inventoryAdjustmentNotesNormalizeText(value){
+  return String(value ?? '').trim().toLocaleLowerCase('ar');
+}
+function inventoryAdjustmentNotesDisplayBalance(value){
+  if(value===null || value===undefined || value==='') return '—';
+  const n=Number(value);
+  return Number.isFinite(n) ? n.toFixed(3) : '—';
+}
+function inventoryAdjustmentNotesCurrentRows(){
+  const filters=INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.filters || {};
+  const rows=(INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.rows || []).filter(row=>{
+    return INVENTORY_ADJUSTMENT_VISIBLE_COLUMNS.every(column=>{
+      const filter=inventoryAdjustmentNotesNormalizeText(filters[column.key]);
+      if(!filter) return true;
+      const raw=column.type==='number' ? inventoryAdjustmentNotesDisplayBalance(row?.[column.key]) : row?.[column.key];
+      return inventoryAdjustmentNotesNormalizeText(raw).includes(filter);
+    });
+  });
+  const key=INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.sortKey;
+  const direction=INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.sortDirection==='asc' ? 1 : -1;
+  if(!key) return rows;
+  const column=INVENTORY_ADJUSTMENT_VISIBLE_COLUMNS.find(item=>item.key===key);
+  return [...rows].sort((a,b)=>{
+    if(column?.type==='number'){
+      const av=a?.[key]===null || a?.[key]===undefined ? null : Number(a[key]);
+      const bv=b?.[key]===null || b?.[key]===undefined ? null : Number(b[key]);
+      if(av===null && bv===null) return 0;
+      if(av===null) return 1;
+      if(bv===null) return -1;
+      return (av-bv)*direction;
+    }
+    if(key==='adjusted_at') return (String(a?.adjusted_at||'').localeCompare(String(b?.adjusted_at||'')))*direction;
+    return String(a?.[key] ?? '').localeCompare(String(b?.[key] ?? ''),'ar',{numeric:true,sensitivity:'base'})*direction;
+  });
+}
+function renderInventoryAdjustmentNotesReport(){
+  const table=$('#inventoryCountAdjustmentNotesTable');
+  const body=table?.tBodies?.[0];
+  if(!body) return;
+  const rows=inventoryAdjustmentNotesCurrentRows();
+  if(INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.loading){
+    body.innerHTML='<tr><td colspan="6" class="empty-state">جارٍ تحميل سجل التعديلات...</td></tr>';
+  }else if(!rows.length){
+    body.innerHTML='<tr><td colspan="6" class="empty-state">لا توجد تعديلات مطابقة في هذه النسخة.</td></tr>';
+  }else{
+    body.innerHTML=rows.map(row=>`<tr data-adjustment-id="${escapeHtml(row.adjustment_id||'')}">
+      <td class="inventory-adjustment-code">${escapeHtml(row.material_code||'—')}</td>
+      <td>${escapeHtml(row.material_name||'—')}</td>
+      <td class="inventory-adjustment-number">${escapeHtml(inventoryAdjustmentNotesDisplayBalance(row.physical_balance_before))}</td>
+      <td class="inventory-adjustment-number">${escapeHtml(inventoryAdjustmentNotesDisplayBalance(row.physical_balance_after))}</td>
+      <td class="inventory-adjustment-reason">${escapeHtml(row.reason||'—')}</td>
+      <td>${escapeHtml(row.adjusted_by_name||'—')}</td>
+    </tr>`).join('');
+  }
+  table.querySelectorAll('.inventory-adjustment-notes-sort-btn').forEach(btn=>{
+    const active=btn.dataset.adjustmentSortKey===INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.sortKey;
+    btn.classList.toggle('is-active',active);
+    const indicator=btn.querySelector('.inventory-adjustment-sort-indicator');
+    if(indicator) indicator.textContent=active ? (INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.sortDirection==='asc' ? '▲' : '▼') : '';
+  });
+  const status=$('#inventoryCountAdjustmentNotesStatus');
+  if(status && !INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.loading){
+    status.textContent=`المعروض ${rows.length} من ${INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.rows.length} تعديل`;
+  }
+}
+function inventoryAdjustmentNotesSetScope(meta){
+  const scope=$('#inventoryCountAdjustmentNotesScope');
+  if(!scope) return;
+  scope.textContent=`المستند: ${meta?.document_number || '—'} | الإصدار: ${meta?.version_no ?? '—'} | المصنع: ${meta?.plant_code || '—'} | المخزن: ${meta?.warehouse_code || '—'}`;
+}
+function inventoryAdjustmentNotesErrorMessage(status,error){
+  const value=String(status || error?.message || error || '');
+  if(value.includes('permission_denied')) return 'لا تملك صلاحية عرض ملاحظات تعديل الجرد لهذا المصنع.';
+  if(value.includes('not_authenticated')) return 'انتهت جلسة الدخول. سجّل الدخول مرة أخرى.';
+  if(value.includes('version_not_found')) return 'تعذر العثور على نسخة الجرد الحالية.';
+  if(/get_inventory_count_physical_balance_adjustments|PGRST202|does not exist/i.test(value)) return 'تحديث قاعدة البيانات IC-ADJ-01 غير مطبق.';
+  return value || 'تعذر تحميل ملاحظات تعديل الجرد.';
+}
+async function loadInventoryAdjustmentNotesReport(){
+  const versionId=String(INVENTORY_COUNT_STATE.versionId || '');
+  const status=$('#inventoryCountAdjustmentNotesStatus');
+  if(!versionId){
+    INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.rows=[];
+    INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.meta=null;
+    if(status) status.textContent='لا توجد نسخة جرد معروضة.';
+    inventoryAdjustmentNotesSetScope(null);
+    renderInventoryAdjustmentNotesReport();
+    return false;
+  }
+  if(!hasCanonicalPermission('inventory.count.adjustment_notes.view')){
+    if(status) status.textContent='لا تملك صلاحية عرض التقرير.';
+    return false;
+  }
+  const seq=++INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.requestSeq;
+  INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.loading=true;
+  renderInventoryAdjustmentNotesReport();
+  try{
+    const {data,error}=await WarehouseDB.client.rpc('get_inventory_count_physical_balance_adjustments',{p_version_id:versionId});
+    if(error) throw error;
+    if(seq!==INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.requestSeq || String(INVENTORY_COUNT_STATE.versionId||'')!==versionId) return false;
+    if(data?.status!=='ok') throw new Error(String(data?.status || 'invalid_report_response'));
+    INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.rows=Array.isArray(data.rows) ? data.rows : [];
+    INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.meta=data;
+    inventoryAdjustmentNotesSetScope(data);
+    return true;
+  }catch(err){
+    if(seq===INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.requestSeq){
+      INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.rows=[];
+      INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.meta=null;
+      if(status) status.textContent=inventoryAdjustmentNotesErrorMessage('',err);
+      console.warn('IC-ADJ-01 report load failed',err);
+    }
+    return false;
+  }finally{
+    if(seq===INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.requestSeq){
+      INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.loading=false;
+      renderInventoryAdjustmentNotesReport();
+    }
+  }
+}
+function openInventoryAdjustmentNotesReport(){
+  if(!hasCanonicalPermission('inventory.count.adjustment_notes.open') || !hasCanonicalPermission('inventory.count.adjustment_notes.view')){
+    showInventoryCountToast('لا تملك صلاحية فتح ملاحظات تعديل الجرد.','warning',5000);
+    return;
+  }
+  if(!INVENTORY_COUNT_STATE.versionId){
+    showInventoryCountToast('افتح مستند جرد أولًا.','warning',4000);
+    return;
+  }
+  closeInventoryCountMobilePanels();
+  const main=$('#inventoryCountMainPanel');
+  const report=$('#inventoryCountAdjustmentNotesView');
+  if(main) main.hidden=true;
+  if(report){ report.hidden=false; report.setAttribute('aria-hidden','false'); }
+  INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.filters={};
+  INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.sortKey='adjusted_at';
+  INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.sortDirection='desc';
+  report?.querySelectorAll('.inventory-adjustment-notes-filter').forEach(input=>{input.value='';});
+  applyPermissionActionGuards('inventory_closing');
+  loadInventoryAdjustmentNotesReport();
+}
+function closeInventoryAdjustmentNotesReport(){
+  const main=$('#inventoryCountMainPanel');
+  const report=$('#inventoryCountAdjustmentNotesView');
+  INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.requestSeq++;
+  if(report){ report.hidden=true; report.setAttribute('aria-hidden','true'); }
+  if(main) main.hidden=false;
+  $('#inventoryCountAdjustmentNotesBtn')?.focus({preventScroll:true});
+}
+function ensureInventoryPhysicalAdjustmentModal(){
+  let modal=$('#inventoryPhysicalAdjustmentModal');
+  if(modal) return modal;
+  modal=document.createElement('div');
+  modal.id='inventoryPhysicalAdjustmentModal';
+  modal.className='inventory-physical-adjustment-modal app-liquid-modal-backdrop';
+  modal.hidden=true;
+  modal.setAttribute('aria-hidden','true');
+  modal.innerHTML=`<section class="inventory-physical-adjustment-dialog app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="inventoryPhysicalAdjustmentTitle">
+    <header class="app-liquid-modal__header"><div><h3 id="inventoryPhysicalAdjustmentTitle">تعديل الرصيد الفعلي</h3><p>بعد بدء التسويات، كل تعديل يُطبق على مستند الجرد ويُسجل تاريخيًا مع السبب.</p></div><button type="button" class="app-liquid-modal__close" data-adjustment-modal-close aria-label="إغلاق">×</button></header>
+    <div class="app-liquid-modal__body inventory-physical-adjustment-body">
+      <div class="inventory-physical-adjustment-item"><span>كود المادة</span><strong data-adjustment-material-code>—</strong></div>
+      <div class="inventory-physical-adjustment-item"><span>وصف المادة</span><strong data-adjustment-material-name>—</strong></div>
+      <div class="inventory-physical-adjustment-item"><span>الرصيد الحالي</span><strong data-adjustment-current-balance>—</strong></div>
+      <label>الكمية المعدلة<input type="number" min="0" step="0.001" inputmode="decimal" data-adjustment-new-balance required /></label>
+      <label>سبب التعديل<textarea rows="4" maxlength="2000" data-adjustment-reason required placeholder="اكتب سبب التعديل"></textarea></label>
+      <div class="inventory-physical-adjustment-error" data-adjustment-error hidden></div>
+    </div>
+    <footer class="app-liquid-modal__footer"><button class="secondary" type="button" data-adjustment-modal-close>إلغاء</button><button class="primary" type="button" data-adjustment-save>حفظ</button></footer>
+  </section>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click',event=>{
+    if(event.target===modal || event.target.closest('[data-adjustment-modal-close]')){
+      event.preventDefault();
+      if(modal.dataset.saving!=='1') closeInventoryPhysicalAdjustmentModal();
+    }
+  });
+  modal.querySelector('[data-adjustment-save]')?.addEventListener('click',event=>{event.preventDefault();saveInventoryPhysicalAdjustmentFromModal();});
+  modal.addEventListener('keydown',event=>{
+    if(event.key==='Escape' && modal.dataset.saving!=='1'){event.preventDefault();closeInventoryPhysicalAdjustmentModal();}
+  });
+  return modal;
+}
+function closeInventoryPhysicalAdjustmentModal(){
+  const modal=$('#inventoryPhysicalAdjustmentModal');
+  if(!modal) return;
+  const restoreId=modal.dataset.lineId || '';
+  modal.hidden=true;
+  modal.setAttribute('aria-hidden','true');
+  modal.dataset.lineId='';
+  modal.dataset.rowVersion='';
+  modal.dataset.saving='0';
+  modal.querySelectorAll('input,textarea,button').forEach(control=>{control.disabled=false;});
+  const saveBtn=modal.querySelector('[data-adjustment-save]');
+  if(saveBtn) saveBtn.textContent='حفظ';
+  if(restoreId){
+    document.querySelector(`.inventory-physical-adjustment-btn[data-line-id="${CSS.escape(restoreId)}"]`)?.focus({preventScroll:true});
+  }
+}
+function inventoryPhysicalAdjustmentStatusMessage(status){
+  const messages={
+    reason_required:'سبب التعديل إلزامي.',
+    reason_too_long:'سبب التعديل أطول من الحد المسموح.',
+    physical_balance_required:'أدخل الكمية المعدلة.',
+    physical_balance_invalid:'قيمة الرصيد الفعلي غير صالحة.',
+    negative_physical_balance_not_allowed:'الرصيد الفعلي لا يمكن أن يكون بقيمة سالبة.',
+    permission_denied:'لا تملك صلاحية تعديل الرصيد الفعلي بعد بدء التسويات لهذا المصنع.',
+    not_authenticated:'انتهت جلسة الدخول. سجّل الدخول مرة أخرى.',
+    line_not_found:'تعذر العثور على الصنف في نسخة الجرد.',
+    version_not_current:'هذه ليست نسخة الجرد الحالية.',
+    inventory_count_read_only:'مستند الجرد منتهٍ أو للقراءة فقط ولا يمكن تعديله.',
+    settlement_phase_not_started:'لم تبدأ مرحلة التسويات؛ استخدم التحرير المباشر الحالي.',
+    active_settlement_requires_reversal:'هذا الصنف لديه تسوية جرد فعالة. تراجع عن التسوية أولًا ثم أعد تعديل الرصيد الفعلي من المودال.',
+    row_version_conflict:'تم تعديل الصنف بواسطة مستخدم آخر. أعد تحميل البيانات ثم حاول مرة أخرى.',
+    no_change:'القيمة الجديدة مطابقة للرصيد الحالي؛ لم يتم إنشاء سجل تعديل.'
+  };
+  return messages[String(status||'')] || `تعذر حفظ التعديل (${String(status||'unknown')}).`;
+}
+function openInventoryPhysicalAdjustmentModalFromButton(button){
+  if(!button || inventoryCountIsFinalized()){
+    showInventoryCountToast(inventoryCountFinalizedMessage(),'warning',5000);
+    return;
+  }
+  if(!inventoryCountSettlementPhaseStarted()){
+    showInventoryCountToast('لم تبدأ مرحلة التسويات؛ الرصيد الفعلي ما زال متاحًا للتحرير المباشر.','info',4500);
+    return;
+  }
+  if(!hasCanonicalPermission('inventory.count.line.adjust_after_settlement')){
+    showInventoryCountToast('لا تملك صلاحية تعديل الرصيد الفعلي بعد بدء التسويات.','warning',5000);
+    return;
+  }
+  const lineId=String(button.dataset.lineId || '');
+  const row=(INVENTORY_COUNT_STATE.lines || []).find(item=>String(item.id||'')===lineId);
+  if(!row) return;
+  if(button.dataset.activeSettlementBlocked==='1' || inventoryCountLineHasActiveSettlement(lineId)){
+    showInventoryCountToast(inventoryCountActiveSettlementAdjustmentMessage('الرصيد الفعلي'),'warning',9000);
+    return;
+  }
+  const modal=ensureInventoryPhysicalAdjustmentModal();
+  modal.dataset.lineId=lineId;
+  modal.dataset.rowVersion=String(row.row_version ?? button.dataset.rowVersion ?? '');
+  modal.dataset.saving='0';
+  modal.querySelector('[data-adjustment-material-code]').textContent=String(row.material_code || '—');
+  modal.querySelector('[data-adjustment-material-name]').textContent=String(row.material_name || '—');
+  modal.querySelector('[data-adjustment-current-balance]').textContent=inventoryAdjustmentNotesDisplayBalance(row.physical_balance);
+  const balanceInput=modal.querySelector('[data-adjustment-new-balance]');
+  const reason=modal.querySelector('[data-adjustment-reason]');
+  const error=modal.querySelector('[data-adjustment-error]');
+  balanceInput.value=row.physical_balance===null || row.physical_balance===undefined ? '' : formatInventoryManualThreeDecimal(row.physical_balance);
+  reason.value='';
+  if(error){error.hidden=true;error.textContent='';}
+  modal.hidden=false;
+  modal.setAttribute('aria-hidden','false');
+  requestAnimationFrame(()=>balanceInput.focus());
+}
+async function saveInventoryPhysicalAdjustmentFromModal(){
+  const modal=$('#inventoryPhysicalAdjustmentModal');
+  if(!modal || modal.hidden || modal.dataset.saving==='1') return;
+  const lineId=String(modal.dataset.lineId || '');
+  const expectedRowVersion=modal.dataset.rowVersion ? Number(modal.dataset.rowVersion) : null;
+  const balanceInput=modal.querySelector('[data-adjustment-new-balance]');
+  const reasonInput=modal.querySelector('[data-adjustment-reason]');
+  const errorBox=modal.querySelector('[data-adjustment-error]');
+  const saveBtn=modal.querySelector('[data-adjustment-save]');
+  const reason=String(reasonInput?.value || '').trim();
+  const raw=String(balanceInput?.value || '').trim().replace(',','.');
+  const value=Number(raw);
+  const fail=message=>{if(errorBox){errorBox.hidden=false;errorBox.textContent=message;}return false;};
+  if(!reason) return fail('سبب التعديل إلزامي.');
+  if(reason.length>2000) return fail('سبب التعديل أطول من الحد المسموح.');
+  if(!raw || !Number.isFinite(value)) return fail('أدخل كمية معدلة صحيحة.');
+  if(value<0) return fail('الرصيد الفعلي لا يمكن أن يكون بقيمة سالبة.');
+  if(!lineId || INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.savingLineIds.has(lineId)) return;
+  const row=(INVENTORY_COUNT_STATE.lines || []).find(item=>String(item.id||'')===lineId);
+  const current=row?.physical_balance===null || row?.physical_balance===undefined ? null : roundInventoryManualThreeDecimalValue(row.physical_balance);
+  const rounded=roundInventoryManualThreeDecimalValue(value);
+  if(current!==null && current===rounded) return fail('القيمة الجديدة مطابقة للرصيد الحالي؛ لم يتم إنشاء سجل تعديل.');
+  if(errorBox){errorBox.hidden=true;errorBox.textContent='';}
+  INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.savingLineIds.add(lineId);
+  modal.dataset.saving='1';
+  modal.querySelectorAll('input,textarea,button').forEach(control=>control.disabled=true);
+  if(saveBtn) saveBtn.textContent='جارٍ الحفظ...';
+  try{
+    const {data,error}=await WarehouseDB.client.rpc('adjust_inventory_count_physical_balance_after_settlement',{
+      p_line_id:lineId,
+      p_physical_balance:rounded,
+      p_reason:reason,
+      p_expected_row_version:expectedRowVersion
+    });
+    if(error) throw error;
+    if(data?.status==='no_change'){
+      fail(inventoryPhysicalAdjustmentStatusMessage('no_change'));
+      return;
+    }
+    if(data?.status!=='physical_balance_adjusted') throw new Error(String(data?.status || 'invalid_adjustment_response'));
+    closeInventoryPhysicalAdjustmentModal();
+    showInventoryCountToast('تم تعديل الرصيد الفعلي وتسجيل ملاحظة التعديل.','success',5000);
+    if(INVENTORY_COUNT_STATE.versionId){
+      await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
+    }
+  }catch(err){
+    const status=String(err?.message || err || '');
+    const known=Object.keys({reason_required:1,reason_too_long:1,physical_balance_required:1,physical_balance_invalid:1,negative_physical_balance_not_allowed:1,permission_denied:1,not_authenticated:1,line_not_found:1,version_not_current:1,inventory_count_read_only:1,settlement_phase_not_started:1,active_settlement_requires_reversal:1,row_version_conflict:1,no_change:1}).find(key=>status.includes(key));
+    fail(known ? inventoryPhysicalAdjustmentStatusMessage(known) : status || 'تعذر حفظ تعديل الرصيد الفعلي.');
+    if(known==='row_version_conflict' && INVENTORY_COUNT_STATE.versionId){
+      await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
+    }
+  }finally{
+    INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.savingLineIds.delete(lineId);
+    if(modal.isConnected && !modal.hidden){
+      modal.dataset.saving='0';
+      modal.querySelectorAll('input,textarea,button').forEach(control=>control.disabled=false);
+      if(saveBtn) saveBtn.textContent='حفظ';
+    }
+  }
+}
+function inventoryAdjustmentExcelSafeText(value){
+  const text=String(value ?? '');
+  return /^[=+\-@]/.test(text) ? `'${text}` : text;
+}
+function inventoryAdjustmentExportMetaRows(){
+  const meta=INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.meta || {};
+  return [
+    ['تقرير','ملاحظات تعديل الجرد'],
+    ['المستند',meta.document_number || '—'],
+    ['الإصدار',meta.version_no ?? '—'],
+    ['المصنع',meta.plant_code || '—'],
+    ['المخزن',meta.warehouse_code || '—'],
+    ['تاريخ الجرد',meta.inventory_date || '—'],
+    ['نطاق السجل','من تطبيق IC-ADJ-01 فقط']
+  ];
+}
+function inventoryAdjustmentExportFileStem(){
+  const meta=INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.meta || {};
+  const date=String(meta.inventory_date || inventoryCountTodayIso()).replace(/[^0-9-]/g,'');
+  const plant=String(meta.plant_code || 'plant').replace(/[^A-Za-z0-9_-]/g,'');
+  return `inventory-adjustment-notes-${plant}-${date || inventoryCountTodayIso()}`;
+}
+async function exportInventoryAdjustmentNotesExcel(){
+  if(!hasCanonicalPermission('inventory.count.adjustment_notes.export_excel')) return;
+  const rows=inventoryAdjustmentNotesCurrentRows();
+  if(!window.XLSX){showInventoryCountToast('مكتبة Excel غير محملة.','error');return;}
+  const data=[...inventoryAdjustmentExportMetaRows(),[],INVENTORY_ADJUSTMENT_VISIBLE_COLUMNS.map(c=>c.label)];
+  rows.forEach(row=>data.push([
+    inventoryAdjustmentExcelSafeText(row.material_code),
+    inventoryAdjustmentExcelSafeText(row.material_name),
+    row.physical_balance_before===null || row.physical_balance_before===undefined ? '' : Number(row.physical_balance_before),
+    row.physical_balance_after===null || row.physical_balance_after===undefined ? '' : Number(row.physical_balance_after),
+    inventoryAdjustmentExcelSafeText(row.reason),
+    inventoryAdjustmentExcelSafeText(row.adjusted_by_name)
+  ]));
+  const sheet=XLSX.utils.aoa_to_sheet(data);
+  sheet['!cols']=[{wch:18},{wch:42},{wch:20},{wch:20},{wch:48},{wch:28}];
+  const wb=XLSX.utils.book_new();
+  wb.Workbook={Views:[{RTL:true}]};
+  XLSX.utils.book_append_sheet(wb,sheet,'ملاحظات تعديل الجرد');
+  const bytes=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  await saveBlobWithPicker(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`${inventoryAdjustmentExportFileStem()}.xlsx`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+function buildInventoryAdjustmentExportSheet(rows,{compact=false}={}){
+  const meta=INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.meta || {};
+  const box=document.createElement('div');
+  box.className=`inventory-adjustment-notes-export-sheet${compact?' is-compact':''}`;
+  box.dir='rtl';
+  box.innerHTML=`<div class="inventory-adjustment-export-header"><h1>ملاحظات تعديل الجرد</h1><div>${escapeHtml(`المستند: ${meta.document_number||'—'} | الإصدار: ${meta.version_no??'—'} | المصنع: ${meta.plant_code||'—'} | المخزن: ${meta.warehouse_code||'—'}`)}</div><small>السجل متاح من تطبيق IC-ADJ-01 فقط.</small></div>
+  <table><thead><tr>${INVENTORY_ADJUSTMENT_VISIBLE_COLUMNS.map(c=>`<th>${escapeHtml(c.label)}</th>`).join('')}</tr></thead><tbody>${rows.length ? rows.map(row=>`<tr><td>${escapeHtml(row.material_code||'—')}</td><td>${escapeHtml(row.material_name||'—')}</td><td>${escapeHtml(inventoryAdjustmentNotesDisplayBalance(row.physical_balance_before))}</td><td>${escapeHtml(inventoryAdjustmentNotesDisplayBalance(row.physical_balance_after))}</td><td>${escapeHtml(row.reason||'—')}</td><td>${escapeHtml(row.adjusted_by_name||'—')}</td></tr>`).join('') : '<tr><td colspan="6">لا توجد تعديلات مطابقة.</td></tr>'}</tbody></table>`;
+  return box;
+}
+async function captureInventoryAdjustmentExportSheet(box,scale=1.5){
+  if(!window.html2canvas) throw new Error('مكتبة PNG/PDF غير محملة.');
+  document.body.appendChild(box);
+  if(document.fonts?.ready) await document.fonts.ready;
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  const width=Math.ceil(box.scrollWidth);
+  const height=Math.ceil(box.scrollHeight);
+  const safeScale=Math.max(0.7,Math.min(scale,12000/Math.max(width,1),12000/Math.max(height,1),Math.sqrt(45000000/Math.max(width*height,1))));
+  try{
+    return await window.html2canvas(box,{scale:safeScale,useCORS:true,backgroundColor:'#f4f8f5',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+  }finally{box.remove();}
+}
+function canvasToPngBlob(canvas){
+  return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('تعذر إنشاء صورة PNG.')),'image/png'));
+}
+async function exportInventoryAdjustmentNotesPng(){
+  if(!hasCanonicalPermission('inventory.count.adjustment_notes.export_png')) return;
+  const rows=inventoryAdjustmentNotesCurrentRows();
+  const chunks=[];
+  const size=80;
+  if(rows.length===0) chunks.push([]);
+  for(let i=0;i<rows.length;i+=size) chunks.push(rows.slice(i,i+size));
+  try{
+    for(let i=0;i<chunks.length;i++){
+      const canvas=await captureInventoryAdjustmentExportSheet(buildInventoryAdjustmentExportSheet(chunks[i]),1.5);
+      const blob=await canvasToPngBlob(canvas);
+      const suffix=chunks.length>1 ? `-part-${String(i+1).padStart(2,'0')}-of-${String(chunks.length).padStart(2,'0')}` : '';
+      await saveBlobWithPicker(blob,`${inventoryAdjustmentExportFileStem()}${suffix}.png`,'image/png');
+    }
+    showInventoryCountToast(chunks.length>1 ? `تم تصدير التقرير كاملًا في ${chunks.length} ملفات PNG دون اقتطاع الصفوف.` : 'تم تصدير PNG.','success',5000);
+  }catch(err){console.error('Adjustment notes PNG export failed',err);showInventoryCountToast(err?.message || 'تعذر تصدير PNG.','error',5000);}
+}
+async function exportInventoryAdjustmentNotesPdf(){
+  if(!hasCanonicalPermission('inventory.count.adjustment_notes.export_pdf')) return;
+  const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+  if(!JsPDF){showInventoryCountToast('مكتبة PDF غير محملة.','error');return;}
+  const rows=inventoryAdjustmentNotesCurrentRows();
+  const pageSize=24;
+  const chunks=[];
+  if(rows.length===0) chunks.push([]);
+  for(let i=0;i<rows.length;i+=pageSize) chunks.push(rows.slice(i,i+pageSize));
+  try{
+    const pdf=new JsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
+    for(let i=0;i<chunks.length;i++){
+      if(i>0) pdf.addPage('a4','landscape');
+      const canvas=await captureInventoryAdjustmentExportSheet(buildInventoryAdjustmentExportSheet(chunks[i],{compact:true}),1.35);
+      const pageWidth=pdf.internal.pageSize.getWidth();
+      const pageHeight=pdf.internal.pageSize.getHeight();
+      const margin=5;
+      const maxWidth=pageWidth-margin*2;
+      const maxHeight=pageHeight-margin*2;
+      const ratio=Math.min(maxWidth/canvas.width,maxHeight/canvas.height);
+      const w=canvas.width*ratio,h=canvas.height*ratio;
+      pdf.addImage(canvas.toDataURL('image/jpeg',0.93),'JPEG',(pageWidth-w)/2,margin,w,h,undefined,'FAST');
+    }
+    await saveBlobWithPicker(pdf.output('blob'),`${inventoryAdjustmentExportFileStem()}.pdf`,'application/pdf');
+    showInventoryCountToast('تم تصدير PDF بكل الصفوف المفلترة وبترتيبها الحالي.','success',4500);
+  }catch(err){console.error('Adjustment notes PDF export failed',err);showInventoryCountToast(err?.message || 'تعذر تصدير PDF.','error',5000);}
+}
+function initInventoryAdjustmentNotesFeature(){
+  const openBtn=$('#inventoryCountAdjustmentNotesBtn');
+  const report=$('#inventoryCountAdjustmentNotesView');
+  if(!openBtn || !report || openBtn.dataset.adjustmentNotesBound==='1') return;
+  openBtn.dataset.adjustmentNotesBound='1';
+  openBtn.addEventListener('click',event=>{event.preventDefault();openInventoryAdjustmentNotesReport();});
+  $('#inventoryCountAdjustmentNotesBackBtn')?.addEventListener('click',event=>{event.preventDefault();if(hasCanonicalPermission('inventory.count.adjustment_notes.back')) closeInventoryAdjustmentNotesReport();});
+  report.addEventListener('input',event=>{
+    const input=event.target.closest('.inventory-adjustment-notes-filter');
+    if(!input || !hasCanonicalPermission('inventory.count.adjustment_notes.search.use')) return;
+    INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.filters[input.dataset.adjustmentFilterKey]=String(input.value||'');
+    renderInventoryAdjustmentNotesReport();
+  });
+  report.addEventListener('click',event=>{
+    const sortBtn=event.target.closest('.inventory-adjustment-notes-sort-btn');
+    if(sortBtn){
+      event.preventDefault();
+      if(!hasCanonicalPermission('inventory.count.adjustment_notes.table.sort')) return;
+      const key=sortBtn.dataset.adjustmentSortKey;
+      if(INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.sortKey===key){
+        INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.sortDirection=INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.sortDirection==='asc'?'desc':'asc';
+      }else{
+        INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.sortKey=key;
+        INVENTORY_COUNT_ADJUSTMENT_NOTES_STATE.sortDirection='asc';
+      }
+      renderInventoryAdjustmentNotesReport();
+    }
+  });
+  $('#inventoryCountAdjustmentNotesExportExcelBtn')?.addEventListener('click',event=>{event.preventDefault();exportInventoryAdjustmentNotesExcel();});
+  $('#inventoryCountAdjustmentNotesExportPdfBtn')?.addEventListener('click',event=>{event.preventDefault();exportInventoryAdjustmentNotesPdf();});
+  $('#inventoryCountAdjustmentNotesExportPngBtn')?.addEventListener('click',event=>{event.preventDefault();exportInventoryAdjustmentNotesPng();});
+}
+
 function bindInventoryOpeningBalanceEvents(){
   const table=$('#inventoryCountLinesTable');
   if(!table || table.dataset.openingBalanceBound==='1') return;
@@ -14416,6 +14925,18 @@ function bindInventoryOpeningBalanceEvents(){
     if(oldestQuantityInput && table.contains(oldestQuantityInput)) updateInventoryOldestQuantityInputWidth(oldestQuantityInput);
   });
   table.addEventListener('click',event=>{
+    const physicalAdjustmentBtn=event.target.closest('.inventory-physical-adjustment-btn');
+    if(physicalAdjustmentBtn && table.contains(physicalAdjustmentBtn)){
+      event.preventDefault();
+      openInventoryPhysicalAdjustmentModalFromButton(physicalAdjustmentBtn);
+      return;
+    }
+    const bookBalanceGuidanceBtn=event.target.closest('.inventory-book-balance-guidance-btn');
+    if(bookBalanceGuidanceBtn && table.contains(bookBalanceGuidanceBtn)){
+      event.preventDefault();
+      showInventoryCountToast(inventoryCountBookBalanceGuidanceMessage(),'warning',11000);
+      return;
+    }
     const retryBtn=event.target.closest('.inventory-settlement-context-retry-btn');
     if(retryBtn && table.contains(retryBtn)){
       event.preventDefault();
@@ -15750,6 +16271,7 @@ function initInventoryCountScreen(){
   initInventoryCountSearchSortControls();
   initInventoryCountMobilePanels();
   initInventoryCountColumnManager();
+  initInventoryAdjustmentNotesFeature();
   initInventoryReviewRecommendations();
   updateInventoryCountReviewerFooter();
   inventoryCountUpdateCreateButton();

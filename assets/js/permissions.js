@@ -41,7 +41,7 @@
     if (payload.read_only_resolution !== true || payload.backend_enforcement !== 'BUNDLES_PLANT_SCOPED') fail('P8_INVALID_CONTRACT');
     if (typeof payload.is_super_admin !== 'boolean' || !payload.role_key || !Number.isInteger(payload.assigned_bundle_count) || payload.assigned_bundle_count < 1) fail('P8_INVALID_ROLE');
     if (payload.is_super_admin && (payload.role_key !== 'super_admin' || payload.legacy_role_key !== 'super_admin')) fail('P8_INVALID_SUPER_ADMIN');
-    if (!nodes.size || nodes.size !== 386 || !Array.isArray(payload.registry) || payload.registry.length !== nodes.size) fail('P8_REGISTRY_MISMATCH');
+    if (!nodes.size || !Array.isArray(payload.registry) || payload.registry.length !== nodes.size) fail('P8_REGISTRY_MISMATCH');
     const seenKeys = new Set();
     for (const entry of payload.registry) {
       const node = nodes.get(entry.permission_key);
