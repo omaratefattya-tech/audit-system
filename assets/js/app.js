@@ -12684,7 +12684,7 @@ function inventorySettlementSnapshotMatchesLine(row,contextLine){
   const identityMatches=String(contextLine.source_inventory_line_id || '')===String(row.id || '')
     && String(contextLine.material_code || '')===String(row.material_code || '');
   if(!identityMatches) return false;
-  return ['ready','ready_after_reversal'].includes(String(contextLine.eligibility_status || ''));
+  return ['ready','ready_after_reversal','ready_after_adjustment'].includes(String(contextLine.eligibility_status || ''));
 }
 function clearInventoryCountSettlementContext(options={}){
   const {closeModal=true}=options;
