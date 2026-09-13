@@ -10689,13 +10689,20 @@ function updateInventoryCountRefreshButton(){
   const phaseLocked=inventoryCountSettlementPhaseStarted();
   const finalized=inventoryCountIsFinalized();
   const busy=!!INVENTORY_COUNT_STATE.loading || !!INVENTORY_COUNT_STATE.creating || !!INVENTORY_COUNT_STATE.snapshotCreating || !!INVENTORY_COUNT_STATE.refreshSaving || !!INVENTORY_COUNT_STATE.finalizing;
-  const required=!!INVENTORY_COUNT_STATE.sourceRefreshRequired;
   const sourceMissing=!!INVENTORY_COUNT_STATE.sourceRefreshMissing;
   const loading=!!INVENTORY_COUNT_STATE.sourceRefreshLoading;
   const error=String(INVENTORY_COUNT_STATE.sourceRefreshError || '');
-  btn.disabled=busy || loading || !canRefresh || !hasVersion || !required || sourceMissing || phaseLocked || finalized || !!error;
+  const context=INVENTORY_COUNT_STATE.sourceRefreshContext || null;
+  const contextMatches=!!context && String(INVENTORY_COUNT_STATE.sourceRefreshVersionId || '')===String(INVENTORY_COUNT_STATE.versionId || '') && String(context?.version_id || '')===String(INVENTORY_COUNT_STATE.versionId || '');
+  const latestBatchId=String(context?.latest_batch?.batch_id || '').trim();
+  const appliedBatchId=String(context?.applied_batch?.batch_id || '').trim();
+  const required=contextMatches && INVENTORY_COUNT_STATE.sourceRefreshRequired===true && !!latestBatchId && latestBatchId!==appliedBatchId;
+  const ready=required && !sourceMissing && canRefresh && hasVersion && !phaseLocked && !finalized && !error && !loading && !busy;
+  btn.disabled=!ready;
   btn.classList.toggle('permission-disabled',!canRefresh || !hasVersion || sourceMissing || phaseLocked || finalized || !!error);
-  btn.classList.toggle('is-update-ready',required && !sourceMissing && canRefresh && hasVersion && !phaseLocked && !finalized && !error);
+  btn.classList.toggle('is-update-ready',ready);
+  btn.classList.toggle('is-synced',hasVersion && contextMatches && !required && !sourceMissing && !loading && !error);
+  btn.setAttribute('aria-busy',INVENTORY_COUNT_STATE.refreshSaving ? 'true' : 'false');
   btn.textContent=INVENTORY_COUNT_STATE.refreshSaving ? 'جارٍ تحديث الجرد...' : 'تحديث الجرد';
   if(finalized) btn.title='تم إنهاء مستند الجرد؛ لا يمكن تحديثه.';
   else if(phaseLocked) btn.title='بدأت مرحلة تسوية فروق الجرد؛ انتهت إمكانية تحديث الجرد بعد أول تسوية.';
@@ -10704,9 +10711,9 @@ function updateInventoryCountRefreshButton(){
   else if(loading) btn.title='جارٍ فحص أحدث تقرير تقفيل.';
   else if(error) btn.title=error;
   else if(sourceMissing) btn.title='لا يوجد تقرير تقفيل نشط. ارفع التقرير البديل أولاً ثم استخدم «تحديث الجرد».';
-  else if(!required) btn.title='بيانات الجرد مطابقة لأحدث تقرير تقفيل مطبق.';
+  else if(!required) btn.title='لا يوجد تقرير أحدث يحتاج إلى تطبيق؛ بيانات الجرد محدثة.';
   else {
-    const latest=INVENTORY_COUNT_STATE.sourceRefreshContext?.latest_batch || {};
+    const latest=context?.latest_batch || {};
     const date=latest?.report_date ? formatDisplayDate(latest.report_date,latest.report_date) : '';
     btn.title=`يوجد تقرير تقفيل أحدث${date ? ` بتاريخ ${date}` : ''}. اضغط لإعادة حساب الجرد من أحدث تقرير.`;
   }
@@ -10809,26 +10816,39 @@ async function refreshInventoryCountFromLatestClosing(){
     showInventoryCountToast('تم إنهاء مستند الجرد؛ لا يمكن تحديثه.','warning',5000);
     return;
   }
-  if(!INVENTORY_COUNT_STATE.sourceRefreshRequired){
-    showInventoryCountToast('الجرد مطابق لأحدث تقرير تقفيل مطبق.','info',4500);
+  const context=INVENTORY_COUNT_STATE.sourceRefreshContext || {};
+  const latestBatchId=String(context?.latest_batch?.batch_id || '').trim();
+  const appliedBatchId=String(context?.applied_batch?.batch_id || '').trim();
+  const refreshReady=INVENTORY_COUNT_STATE.sourceRefreshRequired===true && !!latestBatchId && latestBatchId!==appliedBatchId;
+  if(!refreshReady){
+    showInventoryCountToast('لا يوجد تقرير أحدث يحتاج إلى تطبيق على الجرد.','info',4500);
+    updateInventoryCountRefreshButton();
     return;
   }
-  const context=INVENTORY_COUNT_STATE.sourceRefreshContext || {};
   const hasSnapshot=Boolean(context?.has_current_snapshot);
   const message=hasSnapshot
     ? 'سيتم إعادة حساب بيانات الجرد من أحدث تقرير تقفيل، ثم إنشاء مستند فروق جديد بدل المستند الحالي. هل تريد المتابعة؟'
     : 'سيتم إعادة حساب بيانات الجرد من أحدث تقرير تقفيل. هل تريد المتابعة؟';
   if(!await showAppLiquidConfirm({message})) return;
+
   INVENTORY_COUNT_STATE.refreshSaving=true;
-  inventoryCountSetLoading(true,'جارٍ تحديث الجرد من أحدث تقرير تقفيل...');
-  updateInventoryCountRefreshButton();
-  try{
+  inventoryCountUpdateCreateButton();
+
+  const executeRefresh=async progress=>{
+    progress?.stage?.('جارٍ إعادة حساب بيانات الجرد من أحدث تقرير تقفيل…');
     const {data,error}=await WarehouseDB.client.rpc('refresh_inventory_count_from_latest_closing',{p_version_id:versionId});
     if(error) throw error;
     const status=String(data?.status || '');
     if(status==='no_refresh_required'){
+      INVENTORY_COUNT_STATE.sourceRefreshRequired=false;
+      updateInventoryCountRefreshButton();
       showInventoryCountToast('الجرد مطابق بالفعل لأحدث تقرير تقفيل.','info',4500);
     }else if(status==='inventory_count_refreshed'){
+      INVENTORY_COUNT_STATE.sourceRefreshRequired=false;
+      if(INVENTORY_COUNT_STATE.sourceRefreshContext){
+        INVENTORY_COUNT_STATE.sourceRefreshContext={...INVENTORY_COUNT_STATE.sourceRefreshContext,refresh_required:false};
+      }
+      updateInventoryCountRefreshButton();
       const snapshotReplaced=Boolean(data?.snapshot_replaced);
       showInventoryCountToast(snapshotReplaced
         ? 'تم تحديث الجرد وإنشاء مستند فروق جديد بنجاح.'
@@ -10836,13 +10856,25 @@ async function refreshInventoryCountFromLatestClosing(){
     }else{
       throw new Error(inventoryCountSourceRefreshStatusMessage(status));
     }
+    progress?.stage?.('جارٍ تحديث نسخة الجرد المعروضة والتحقق من المصدر المطبق…');
     await loadInventoryCountLines(versionId,INVENTORY_COUNT_STATE.requestSeq);
+    await loadInventoryCountSourceRefreshContext(versionId,INVENTORY_COUNT_STATE.requestSeq);
+    progress?.report?.(1,1,'تم تحديث نسخة الجرد وأصبحت مطابقة لأحدث تقرير تقفيل.');
+    return data;
+  };
+
+  try{
+    if(window.AppOperationProgress?.run){
+      await window.AppOperationProgress.run('inventory-count:refresh','تحديث الجرد',executeRefresh,{scope:'#inventory_closing'});
+    }else{
+      await executeRefresh({stage(){},report(){}});
+    }
   }catch(err){
     console.error('Inventory count refresh failed',err);
     showInventoryCountToast(inventoryCountPhaseLockErrorMessage(err,err?.message || 'تعذر تحديث الجرد.'),'error',7000);
   }finally{
     INVENTORY_COUNT_STATE.refreshSaving=false;
-    inventoryCountSetLoading(false);
+    inventoryCountUpdateCreateButton();
     updateInventoryCountRefreshButton();
   }
 }

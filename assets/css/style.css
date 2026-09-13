@@ -4201,19 +4201,51 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
 
 #inventory_closing .inventory-count-refresh-btn {
   min-height: 40px;
-  border-color: rgba(141, 220, 89, .34);
-  background: rgba(0, 54, 42, .42);
+  border: 1px solid rgba(79, 186, 174, .28);
+  background: rgba(0, 47, 42, .26);
+  color: rgba(222, 248, 244, .72);
+  box-shadow: none;
+  transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, color .18s ease, opacity .18s ease, transform .18s ease;
+}
+
+#inventory_closing .inventory-count-refresh-btn:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+  filter: saturate(.58);
+  border-color: rgba(87, 157, 148, .22);
+  background: rgba(0, 42, 38, .18);
+  color: rgba(206, 230, 226, .5);
+  box-shadow: none;
+}
+
+#inventory_closing .inventory-count-refresh-btn.is-synced:disabled {
+  opacity: .48;
 }
 
 #inventory_closing .inventory-count-refresh-btn.is-update-ready:not(:disabled) {
-  border-color: rgba(241, 191, 53, .86);
-  background: linear-gradient(135deg, rgba(241, 191, 53, .19), rgba(141, 220, 89, .14));
-  color: #fff4bd;
-  box-shadow: 0 0 0 1px rgba(241, 191, 53, .12), 0 8px 24px rgba(0, 0, 0, .2);
+  border-color: rgba(70, 236, 220, .82);
+  background:
+    linear-gradient(135deg, rgba(22, 210, 194, .27), rgba(25, 135, 151, .18)),
+    rgba(3, 83, 80, .34);
+  color: #d8fffb;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset 0 -1px 0 rgba(3, 109, 105, .28),
+    0 0 0 1px rgba(62, 229, 214, .10),
+    0 10px 28px rgba(0, 173, 166, .17);
+  backdrop-filter: blur(10px) saturate(145%);
+  -webkit-backdrop-filter: blur(10px) saturate(145%);
 }
 
 #inventory_closing .inventory-count-refresh-btn.is-update-ready:not(:disabled):hover {
-  background: linear-gradient(135deg, rgba(241, 191, 53, .27), rgba(141, 220, 89, .2));
+  border-color: rgba(107, 255, 240, .94);
+  background:
+    linear-gradient(135deg, rgba(31, 226, 209, .35), rgba(34, 158, 171, .24)),
+    rgba(3, 91, 87, .40);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.18),
+    0 12px 32px rgba(0, 185, 176, .23);
+  transform: translateY(-1px);
 }
 
 #inventory_closing .inventory-count-export-btn {
