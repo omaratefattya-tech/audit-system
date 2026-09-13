@@ -13154,7 +13154,7 @@ function ensureInventoryCountSettlementModal(){
           </label>
           <section class="inventory-settlement-preview" aria-live="polite">
             <h3>ملاحظة الإجراء المتوقع</h3>
-            <p id="inventorySettlementPreviewText">اختر سبب التسوية لعرض الإجراء الذي سينفذه النظام.</p>
+            <div id="inventorySettlementPreviewText" class="inventory-settlement-preview-content">اختر سبب التسوية لعرض الإجراء الذي سينفذه النظام.</div>
           </section>
           <p id="inventorySettlementModalError" class="inventory-settlement-error" role="alert" hidden></p>
         </div>
@@ -13298,6 +13298,161 @@ function inventoryCountSettlementModalValidation(modal){
   if(!status && !preview.valid) status=preview.status || (preview.negative ? 'negative_result_not_allowed' : (reasonCode==='production_difference' ? 'production_reason_not_allowed' : 'invalid_snapshot_values'));
   return {valid:!status,row,contextLine,reasons:selectedReasons,reasonCode,actionText,preview,status,versionId,snapshotId,lineId,correctionQty};
 }
+function inventorySettlementPreviewFieldLabel(key){
+  const labels={
+    sales:'كمية البيع', outgoing:'التحويلات الصادرة', incoming:'التحويلات الواردة', production:'الإنتاج', physical:'الرصيد الفعلي', book:'الرصيد الدفتري',
+    sales_quantity:'كمية البيع', outgoing_transfers:'التحويلات الصادرة', incoming_transfers:'التحويلات الواردة', production_quantity:'الإنتاج', physical_balance:'الرصيد الفعلي', book_balance:'الرصيد الدفتري'
+  };
+  return labels[String(key || '')] || String(key || '—');
+}
+function inventorySettlementPreviewDelta(before,after){
+  const delta=roundInventorySettlementQuantity(normalizeInventorySettlementNumber(after)-normalizeInventorySettlementNumber(before));
+  return `${delta>0?'+':''}${formatInventorySettlementQuantity(delta)}`;
+}
+function inventorySettlementPreviewSingleView(validation){
+  const preview=validation?.preview;
+  const contextLine=validation?.contextLine;
+  const reason=validation?.reasons?.[0];
+  if(!preview?.valid || !contextLine || !reason?.code) return null;
+  const production=roundInventorySettlementQuantity(contextLine.production_quantity);
+  const incoming=roundInventorySettlementQuantity(contextLine.incoming_transfers);
+  const outgoing=roundInventorySettlementQuantity(contextLine.outgoing_transfers);
+  const sales=roundInventorySettlementQuantity(contextLine.sales_quantity);
+  const book=roundInventorySettlementQuantity(contextLine.book_balance);
+  const physical=roundInventorySettlementQuantity(contextLine.physical_balance);
+  const q=Number(reason.quantity);
+  const rows=[];
+  let remainingVariance=0;
+  let final={production,incoming,outgoing,sales,book,physical};
+  const addRow=(stage,field,before,after,kind='reason')=>rows.push({stage,field,before,after,delta:inventorySettlementPreviewDelta(before,after),kind});
+  const stageLabel=getInventorySettlementReason(reason.code)?.label || 'سبب التسوية';
+  if(['transfer_overloaded','transfer_not_loaded','sales_overloaded','sales_not_loaded'].includes(reason.code) && Number.isFinite(q) && q>0){
+    let bookAfter=book;
+    if(reason.code==='transfer_overloaded'){
+      addRow(stageLabel,'التحويلات الصادرة',outgoing,outgoing+q);
+      final.outgoing=roundInventorySettlementQuantity(outgoing+q);
+      bookAfter=roundInventorySettlementQuantity(book-q);
+    }else if(reason.code==='transfer_not_loaded'){
+      addRow(stageLabel,'التحويلات الصادرة',outgoing,outgoing-q);
+      addRow(stageLabel,'التحويلات الواردة',incoming,incoming+q);
+      final.outgoing=roundInventorySettlementQuantity(outgoing-q);
+      final.incoming=roundInventorySettlementQuantity(incoming+q);
+      bookAfter=roundInventorySettlementQuantity(book+(2*q));
+    }else if(reason.code==='sales_overloaded'){
+      addRow(stageLabel,'كمية البيع',sales,sales+q);
+      final.sales=roundInventorySettlementQuantity(sales+q);
+      bookAfter=roundInventorySettlementQuantity(book-q);
+    }else if(reason.code==='sales_not_loaded'){
+      addRow(stageLabel,'كمية البيع',sales,sales-q);
+      final.sales=roundInventorySettlementQuantity(sales-q);
+      bookAfter=roundInventorySettlementQuantity(book+q);
+    }
+    remainingVariance=roundInventorySettlementQuantity(physical-bookAfter);
+    if(production>0){
+      const productionAfter=roundInventorySettlementQuantity(production+remainingVariance);
+      addRow('تسوية المتبقي','الإنتاج',production,productionAfter,'residual');
+      final.production=productionAfter;
+      final.book=physical;
+    }else{
+      addRow('تسوية المتبقي','الرصيد الفعلي',physical,bookAfter,'residual');
+      final.physical=bookAfter;
+      final.book=bookAfter;
+    }
+    return {rows,remainingVariance,final};
+  }
+  if(preview.targetField && preview.before!==undefined && preview.after!==undefined){
+    addRow(stageLabel,inventorySettlementPreviewFieldLabel(preview.targetField),preview.before,preview.after);
+    if(preview.targetField==='production_quantity'){
+      final.production=preview.after;
+      final.book=physical;
+    }else if(preview.targetField==='physical_balance'){
+      final.physical=preview.after;
+    }
+    return {rows,remainingVariance:0,final};
+  }
+  return null;
+}
+function inventorySettlementPreviewView(validation){
+  const preview=validation?.preview;
+  if(!preview?.valid) return null;
+  if(!preview.multi) return inventorySettlementPreviewSingleView(validation);
+  const rows=[];
+  const tracked=['sales','outgoing','incoming','production','physical'];
+  (preview.steps || []).forEach((step,index)=>{
+    tracked.forEach(field=>{
+      const before=step?.before?.[field];
+      const after=step?.after?.[field];
+      if(before===undefined || after===undefined || Math.abs(normalizeInventorySettlementNumber(after)-normalizeInventorySettlementNumber(before))<0.0005) return;
+      rows.push({stage:`${index+1}. ${step.reason?.label || 'سبب التسوية'}`,field:inventorySettlementPreviewFieldLabel(field),before,after,delta:inventorySettlementPreviewDelta(before,after),kind:'reason'});
+    });
+  });
+  const lastStep=(preview.steps || [])[Math.max(0,(preview.steps || []).length-1)];
+  if(preview.residualTarget==='production_quantity'){
+    const before=lastStep?.after?.production ?? preview.start?.production;
+    const after=preview.final?.production;
+    if(before!==undefined && after!==undefined) rows.push({stage:'تسوية المتبقي',field:'الإنتاج',before,after,delta:inventorySettlementPreviewDelta(before,after),kind:'residual'});
+  }else if(preview.residualTarget==='physical_balance'){
+    const before=lastStep?.after?.physical ?? preview.start?.physical;
+    const after=preview.final?.physical;
+    if(before!==undefined && after!==undefined) rows.push({stage:'تسوية المتبقي',field:'الرصيد الفعلي',before,after,delta:inventorySettlementPreviewDelta(before,after),kind:'residual'});
+  }
+  return {rows,remainingVariance:preview.variance,final:preview.final};
+}
+function renderInventorySettlementPreview(container,validation){
+  if(!container) return;
+  const preview=validation?.preview;
+  const fallback=preview?.message || 'اختر سبب التسوية لعرض الإجراء الذي سينفذه النظام.';
+  const view=inventorySettlementPreviewView(validation);
+  container.replaceChildren();
+  if(!view?.rows?.length){
+    const text=document.createElement('p');
+    text.className='inventory-settlement-preview-message';
+    text.textContent=fallback;
+    container.appendChild(text);
+    return;
+  }
+  const tableWrap=document.createElement('div');
+  tableWrap.className='inventory-settlement-preview-table-wrap';
+  const table=document.createElement('table');
+  table.className='inventory-settlement-preview-table';
+  const thead=document.createElement('thead');
+  const headerRow=document.createElement('tr');
+  ['السبب / المرحلة','العمود المتأثر','قبل','بعد','التغيير'].forEach(label=>{
+    const th=document.createElement('th'); th.scope='col'; th.textContent=label; headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  const tbody=document.createElement('tbody');
+  view.rows.forEach(row=>{
+    const tr=document.createElement('tr');
+    if(row.kind==='residual') tr.classList.add('is-residual');
+    [row.stage,row.field,`${formatInventorySettlementQuantity(row.before)} طن`,`${formatInventorySettlementQuantity(row.after)} طن`,`${row.delta} طن`].forEach((value,index)=>{
+      const td=document.createElement('td');
+      td.textContent=value;
+      if(index>=2) td.className='is-number';
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.append(thead,tbody);
+  tableWrap.appendChild(table);
+  container.appendChild(tableWrap);
+  if(view.final){
+    const summary=document.createElement('div');
+    summary.className='inventory-settlement-preview-summary';
+    [
+      ['فرق الجرد بعد الأسباب',view.remainingVariance],
+      ['الرصيد الدفتري النهائي',view.final.book],
+      ['الرصيد الفعلي النهائي',view.final.physical],
+      ['فرق الجرد النهائي',0]
+    ].forEach(([label,value])=>{
+      const item=document.createElement('div');
+      const span=document.createElement('span'); span.textContent=label;
+      const strong=document.createElement('strong'); strong.textContent=`${formatInventorySettlementQuantity(value)} طن`;
+      item.append(span,strong); summary.appendChild(item);
+    });
+    container.appendChild(summary);
+  }
+}
 function syncInventoryCountSettlementModal(modal=$('#inventorySettlementModal')){
   if(!modal) return null;
   const validation=inventoryCountSettlementModalValidation(modal);
@@ -13309,7 +13464,7 @@ function syncInventoryCountSettlementModal(modal=$('#inventorySettlementModal'))
   const submit=modal.querySelector('#inventorySettlementSubmitBtn');
   if(counter) counter.textContent=String(String(action?.value || '').length);
   syncInventorySettlementReasonRows(modal);
-  if(previewText) previewText.textContent=validation.preview?.message || 'اختر سبب التسوية لعرض الإجراء الذي سينفذه النظام.';
+  if(previewText) renderInventorySettlementPreview(previewText,validation);
   if(previewBox) previewBox.classList.toggle('is-warning',Boolean(validation.preview?.negative));
   const serverError=String(modal.dataset.serverError || '');
   const visibleError=serverError || (validation.status && !['invalid_reason','action_required'].includes(validation.status) ? inventorySettlementStatusMessage(validation.status,validation.reasonCode) : '');

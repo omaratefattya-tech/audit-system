@@ -6767,6 +6767,111 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
   line-height: 1.75;
 }
 
+.inventory-settlement-preview-content {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.inventory-settlement-preview-message {
+  margin: 0;
+  line-height: 1.75;
+}
+
+.inventory-settlement-preview-table-wrap {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(153, 225, 95, .22);
+  border-radius: 13px;
+  background: rgba(0, 31, 25, .48);
+}
+
+.inventory-settlement-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  direction: rtl;
+}
+
+.inventory-settlement-preview-table th,
+.inventory-settlement-preview-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  text-align: right;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.inventory-settlement-preview-table th {
+  background: rgba(14, 92, 65, .72);
+  color: #f2ffe9;
+  font-size: .76rem;
+  font-weight: 900;
+}
+
+.inventory-settlement-preview-table td {
+  color: #e9f8ec;
+  font-size: .8rem;
+  line-height: 1.5;
+}
+
+.inventory-settlement-preview-table th:nth-child(1),
+.inventory-settlement-preview-table td:nth-child(1) { width: 34%; }
+.inventory-settlement-preview-table th:nth-child(2),
+.inventory-settlement-preview-table td:nth-child(2) { width: 18%; }
+.inventory-settlement-preview-table th:nth-child(3),
+.inventory-settlement-preview-table td:nth-child(3),
+.inventory-settlement-preview-table th:nth-child(4),
+.inventory-settlement-preview-table td:nth-child(4),
+.inventory-settlement-preview-table th:nth-child(5),
+.inventory-settlement-preview-table td:nth-child(5) { width: 16%; }
+
+.inventory-settlement-preview-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.inventory-settlement-preview-table tbody tr.is-residual td {
+  background: rgba(135, 199, 67, .1);
+  color: #f2ffda;
+  font-weight: 800;
+}
+
+.inventory-settlement-preview-table td.is-number {
+  direction: ltr;
+  text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.inventory-settlement-preview-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.inventory-settlement-preview-summary > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(153, 225, 95, .18);
+  border-radius: 11px;
+  background: rgba(0, 31, 25, .44);
+}
+
+.inventory-settlement-preview-summary span {
+  color: rgba(226, 246, 230, .72);
+  font-size: .7rem;
+  font-weight: 700;
+}
+
+.inventory-settlement-preview-summary strong {
+  color: #f3ffe9;
+  font-size: .86rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .inventory-settlement-preview.is-warning {
   border-color: rgba(185, 55, 45, .34);
   background: rgba(255, 226, 223, .76);
@@ -6837,6 +6942,44 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 
   .inventory-settlement-scroll {
     padding: 14px;
+  }
+
+  .inventory-settlement-preview-table thead {
+    display: none;
+  }
+
+  .inventory-settlement-preview-table,
+  .inventory-settlement-preview-table tbody,
+  .inventory-settlement-preview-table tr,
+  .inventory-settlement-preview-table td {
+    display: block;
+    width: 100% !important;
+  }
+
+  .inventory-settlement-preview-table tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px 10px;
+    padding: 10px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+
+  .inventory-settlement-preview-table td {
+    padding: 0;
+    border: 0;
+  }
+
+  .inventory-settlement-preview-table td:first-child,
+  .inventory-settlement-preview-table td:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+
+  .inventory-settlement-preview-table td.is-number {
+    text-align: right;
+  }
+
+  .inventory-settlement-preview-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .inventory-settlement-summary-grid {
