@@ -3817,8 +3817,8 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
 }
 #icBatchViewModal {
   position: relative;
-  width: min(1200px, 97vw);
-  max-height: 92vh;
+  width: min(1600px, 97vw);
+  max-height: 94vh;
   display: flex;
   flex-direction: column;
   border: 1px solid rgba(131, 255, 190, .24);
