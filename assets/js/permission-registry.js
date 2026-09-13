@@ -138,6 +138,7 @@
     ['columns', 'بحث أعمدة الجرد', '.inventory-count-column-filter']
   ].forEach(([key, label, selector]) => filter(`inventory.count.filter.${key}`, label, count, APP, selector));
   action('inventory.count.create', 'جرد جديد', count, APP, '#createInventoryCountBtn');
+  action('inventory.count.refresh', 'تحديث الجرد', count, APP, '#inventoryCountRefreshBtn');
   action('inventory.count.finish', 'إنهاء الجرد', count, APP, '#finishInventoryCountBtn');
   action('inventory.count.post_close_adjust', 'تعديلات بعد إنهاء الجرد', count, APP, '#inventoryCountPostCloseInvoiceBtn');
   action('inventory.count.differences.create', 'إنشاء مستند فروق الجرد', count, APP, '#createInventoryDifferenceSnapshotBtn');
@@ -392,7 +393,7 @@
   action('settings.permission_settings.bundles.screen_permissions.save', 'حفظ اختيارات الشاشة', permissionBundles, 'assets/js/permission-settings.js', '#permissionEditorSaveBtn');
 
   const registry = Object.freeze({
-    version: 'IC-ADJ-01-2026-09-12',
+    version: 'IC-REFRESH-01-2026-09-13',
     phase: 'P3_PERMISSION_SETTINGS',
     enforcementEnabled: false,
     runtimeLoaded: true,

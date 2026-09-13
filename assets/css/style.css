@@ -4189,6 +4189,33 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
   flex-wrap: wrap;
 }
 
+#inventory_closing .inventory-count-create-actions {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+#inventory_closing .inventory-count-create-actions > button {
+  width: 100%;
+}
+
+#inventory_closing .inventory-count-refresh-btn {
+  min-height: 40px;
+  border-color: rgba(141, 220, 89, .34);
+  background: rgba(0, 54, 42, .42);
+}
+
+#inventory_closing .inventory-count-refresh-btn.is-update-ready:not(:disabled) {
+  border-color: rgba(241, 191, 53, .86);
+  background: linear-gradient(135deg, rgba(241, 191, 53, .19), rgba(141, 220, 89, .14));
+  color: #fff4bd;
+  box-shadow: 0 0 0 1px rgba(241, 191, 53, .12), 0 8px 24px rgba(0, 0, 0, .2);
+}
+
+#inventory_closing .inventory-count-refresh-btn.is-update-ready:not(:disabled):hover {
+  background: linear-gradient(135deg, rgba(241, 191, 53, .27), rgba(141, 220, 89, .2));
+}
+
 #inventory_closing .inventory-count-export-btn {
   min-width: 74px;
   min-height: 40px;

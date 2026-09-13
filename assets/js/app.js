@@ -10564,7 +10564,7 @@ const INVENTORY_COUNT_WAREHOUSE_BY_PLANT = {
   EL01: 'N401',
   EL02: 'E401'
 };
-let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, documentStatus: null, versionStatus: null, lines: [], creating: false, snapshotCreating: false, loading: false, finalizing: false, postCloseInvoiceSaving: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: '—', visibleColumnKeys: null, columnManagerDraftKeys: null, searchText: '', columnFilters: {}, sortKey: '', sortDirection: 'asc', settlementContextVersionId: null, settlementContextSnapshot: null, settlementContextByLine: new Map(), settlementContextLoading: false, settlementContextError: '', settlementContextRequestSeq: 0, settlementPhaseStarted: false, settlementSaving: new Set(), settlementModalLineId: null, settlementModalSnapshotId: null, reversalSaving: new Set(), reversalModalLineId: null, reversalModalSettlementId: null, postCloseInvoiceModalLineId: null, auditHistoryRequestSeq: 0, auditHistoryLineId: null, auditHistoryVersionId: null };
+let INVENTORY_COUNT_STATE = { documentId: null, versionId: null, versionNo: null, documentStatus: null, versionStatus: null, lines: [], creating: false, snapshotCreating: false, refreshSaving: false, loading: false, finalizing: false, postCloseInvoiceSaving: false, requestSeq: 0, status: 'idle', openingBalanceMode: 'manual_first_day', openingBalanceSaving: new Set(), productionSaving: new Set(), physicalBalanceSaving: new Set(), oldestQuantitySaving: new Set(), oldestDateSaving: new Set(), inventoryCounterSaving: new Set(), inventoryCounterOptions: [], inventoryCounterPlantCode: '', inventoryCounterLoading: false, reviewerUserId: null, reviewerName: '—', visibleColumnKeys: null, columnManagerDraftKeys: null, searchText: '', columnFilters: {}, sortKey: '', sortDirection: 'asc', sourceRefreshVersionId: null, sourceRefreshContext: null, sourceRefreshRequired: false, sourceRefreshMissing: false, sourceSettlementBlocked: false, sourceRefreshLoading: false, sourceRefreshError: '', sourceRefreshRequestSeq: 0, settlementContextVersionId: null, settlementContextSnapshot: null, settlementContextByLine: new Map(), settlementContextLoading: false, settlementContextError: '', settlementContextRequestSeq: 0, settlementPhaseStarted: false, settlementSaving: new Set(), settlementModalLineId: null, settlementModalSnapshotId: null, reversalSaving: new Set(), reversalModalLineId: null, reversalModalSettlementId: null, postCloseInvoiceModalLineId: null, auditHistoryRequestSeq: 0, auditHistoryLineId: null, auditHistoryVersionId: null };
 const INVENTORY_COUNT_VISIBLE_COLUMNS_STORAGE_KEY = 'inventory_count_visible_columns';
 const INVENTORY_COUNT_COLUMNS = [
   { key: 'material_code', label: 'كود المادة', required: true },
@@ -10678,11 +10678,180 @@ function inventoryCountRejectNegativeManualValue(input,label,updateWidth){
   }
   return false;
 }
+function inventoryCountSourceRefreshPhaseLocked(){
+  return inventoryCountSettlementPhaseStarted() || inventoryCountIsFinalized();
+}
+function updateInventoryCountRefreshButton(){
+  const btn=$('#inventoryCountRefreshBtn');
+  if(!btn) return;
+  const canRefresh=hasCanonicalPermission('inventory.count.refresh');
+  const hasVersion=!!INVENTORY_COUNT_STATE.documentId && !!INVENTORY_COUNT_STATE.versionId && (INVENTORY_COUNT_STATE.lines || []).length>0;
+  const phaseLocked=inventoryCountSettlementPhaseStarted();
+  const finalized=inventoryCountIsFinalized();
+  const busy=!!INVENTORY_COUNT_STATE.loading || !!INVENTORY_COUNT_STATE.creating || !!INVENTORY_COUNT_STATE.snapshotCreating || !!INVENTORY_COUNT_STATE.refreshSaving || !!INVENTORY_COUNT_STATE.finalizing;
+  const required=!!INVENTORY_COUNT_STATE.sourceRefreshRequired;
+  const sourceMissing=!!INVENTORY_COUNT_STATE.sourceRefreshMissing;
+  const loading=!!INVENTORY_COUNT_STATE.sourceRefreshLoading;
+  const error=String(INVENTORY_COUNT_STATE.sourceRefreshError || '');
+  btn.disabled=busy || loading || !canRefresh || !hasVersion || !required || sourceMissing || phaseLocked || finalized || !!error;
+  btn.classList.toggle('permission-disabled',!canRefresh || !hasVersion || sourceMissing || phaseLocked || finalized || !!error);
+  btn.classList.toggle('is-update-ready',required && !sourceMissing && canRefresh && hasVersion && !phaseLocked && !finalized && !error);
+  btn.textContent=INVENTORY_COUNT_STATE.refreshSaving ? 'جارٍ تحديث الجرد...' : 'تحديث الجرد';
+  if(finalized) btn.title='تم إنهاء مستند الجرد؛ لا يمكن تحديثه.';
+  else if(phaseLocked) btn.title='بدأت مرحلة تسوية فروق الجرد؛ انتهت إمكانية تحديث الجرد بعد أول تسوية.';
+  else if(!canRefresh) btn.title='غير متاح للصلاحية الحالية.';
+  else if(!hasVersion) btn.title='افتح مستند جرد أولاً.';
+  else if(loading) btn.title='جارٍ فحص أحدث تقرير تقفيل.';
+  else if(error) btn.title=error;
+  else if(sourceMissing) btn.title='لا يوجد تقرير تقفيل نشط. ارفع التقرير البديل أولاً ثم استخدم «تحديث الجرد».';
+  else if(!required) btn.title='بيانات الجرد مطابقة لأحدث تقرير تقفيل مطبق.';
+  else {
+    const latest=INVENTORY_COUNT_STATE.sourceRefreshContext?.latest_batch || {};
+    const date=latest?.report_date ? formatDisplayDate(latest.report_date,latest.report_date) : '';
+    btn.title=`يوجد تقرير تقفيل أحدث${date ? ` بتاريخ ${date}` : ''}. اضغط لإعادة حساب الجرد من أحدث تقرير.`;
+  }
+}
+function clearInventoryCountSourceRefreshContext(){
+  INVENTORY_COUNT_STATE.sourceRefreshRequestSeq++;
+  INVENTORY_COUNT_STATE.sourceRefreshVersionId=null;
+  INVENTORY_COUNT_STATE.sourceRefreshContext=null;
+  INVENTORY_COUNT_STATE.sourceRefreshRequired=false;
+  INVENTORY_COUNT_STATE.sourceRefreshMissing=false;
+  INVENTORY_COUNT_STATE.sourceSettlementBlocked=false;
+  INVENTORY_COUNT_STATE.sourceRefreshLoading=false;
+  INVENTORY_COUNT_STATE.sourceRefreshError='';
+  updateInventoryCountRefreshButton();
+}
+function inventoryCountSourceRefreshStatusMessage(status){
+  const map={
+    permission_denied:'لا تملك صلاحية تحديث الجرد.',
+    version_not_found:'تعذر العثور على نسخة الجرد الحالية.',
+    version_not_current:'نسخة الجرد لم تعد النسخة الحالية.',
+    inventory_count_read_only:'مستند الجرد غير قابل للتحديث في حالته الحالية.',
+    settlement_phase_started:'بدأت مرحلة تسوية فروق الجرد؛ لا يمكن تحديث الجرد بعد أول تسوية.',
+    no_active_closing_batch:'لا يوجد تقرير تقفيل نشط لهذا التاريخ والمصنع والمخزن.',
+    inventory_count_source_not_ready_before_settlement:'مصدر تقرير التقفيل غير جاهز. ارفع/استبدل التقرير المطلوب ثم اضغط «تحديث الجرد» قبل بدء التسويات.',
+    inventory_count_source_not_ready_before_finalization:'مصدر تقرير التقفيل غير جاهز. ارفع/استبدل التقرير المطلوب ثم اضغط «تحديث الجرد» قبل إنهاء الجرد.',
+    source_context_invalid:'تعذر التحقق من مصدر بيانات الجرد.'
+  };
+  return map[String(status||'')] || 'تعذر التحقق من حالة تحديث الجرد.';
+}
+async function loadInventoryCountSourceRefreshContext(versionId,inventoryRequestSeq=null){
+  const normalizedVersionId=String(versionId || '');
+  const contextRequestSeq=++INVENTORY_COUNT_STATE.sourceRefreshRequestSeq;
+  INVENTORY_COUNT_STATE.sourceRefreshLoading=true;
+  INVENTORY_COUNT_STATE.sourceRefreshError='';
+  INVENTORY_COUNT_STATE.sourceRefreshRequired=false;
+  INVENTORY_COUNT_STATE.sourceRefreshMissing=false;
+  INVENTORY_COUNT_STATE.sourceSettlementBlocked=false;
+  updateInventoryCountRefreshButton();
+  try{
+    if(!normalizedVersionId || !window.WarehouseDB?.ready) return false;
+    const {data,error}=await WarehouseDB.client.rpc('get_inventory_count_source_refresh_context',{p_version_id:normalizedVersionId});
+    if(error) throw error;
+    if(contextRequestSeq!==INVENTORY_COUNT_STATE.sourceRefreshRequestSeq) return false;
+    if(inventoryRequestSeq!==null && inventoryRequestSeq!==INVENTORY_COUNT_STATE.requestSeq) return false;
+    if(String(INVENTORY_COUNT_STATE.versionId || '')!==normalizedVersionId) return false;
+    if(data?.status!=='ok' || String(data?.version_id || '')!==normalizedVersionId){
+      throw new Error(String(data?.status || 'source_context_invalid'));
+    }
+    INVENTORY_COUNT_STATE.sourceRefreshVersionId=normalizedVersionId;
+    INVENTORY_COUNT_STATE.sourceRefreshContext=data;
+    INVENTORY_COUNT_STATE.sourceRefreshRequired=Boolean(data?.refresh_required);
+    INVENTORY_COUNT_STATE.sourceRefreshMissing=Boolean(data?.source_missing);
+    INVENTORY_COUNT_STATE.sourceSettlementBlocked=Boolean(data?.settlement_blocked_by_source);
+    INVENTORY_COUNT_STATE.sourceRefreshError='';
+    return true;
+  }catch(err){
+    if(contextRequestSeq===INVENTORY_COUNT_STATE.sourceRefreshRequestSeq
+      && (inventoryRequestSeq===null || inventoryRequestSeq===INVENTORY_COUNT_STATE.requestSeq)){
+      INVENTORY_COUNT_STATE.sourceRefreshVersionId=normalizedVersionId;
+      INVENTORY_COUNT_STATE.sourceRefreshContext=null;
+      INVENTORY_COUNT_STATE.sourceRefreshRequired=false;
+      INVENTORY_COUNT_STATE.sourceRefreshMissing=false;
+      INVENTORY_COUNT_STATE.sourceSettlementBlocked=false;
+      const raw=String(err?.message || err || '');
+      INVENTORY_COUNT_STATE.sourceRefreshError=/PGRST202|function .* does not exist/i.test(raw)
+        ? 'تحديث قاعدة البيانات الخاص بزر تحديث الجرد غير مُطبق.'
+        : inventoryCountSourceRefreshStatusMessage(raw);
+      console.warn('Inventory source refresh context load failed',err);
+    }
+    return false;
+  }finally{
+    if(contextRequestSeq===INVENTORY_COUNT_STATE.sourceRefreshRequestSeq
+      && (inventoryRequestSeq===null || inventoryRequestSeq===INVENTORY_COUNT_STATE.requestSeq)){
+      INVENTORY_COUNT_STATE.sourceRefreshLoading=false;
+      updateInventoryCountRefreshButton();
+    }
+  }
+}
+async function refreshInventoryCountSourceContextIfCurrent(versionId){
+  const normalizedVersionId=String(versionId || '');
+  if(!normalizedVersionId || String(INVENTORY_COUNT_STATE.versionId || '')!==normalizedVersionId) return false;
+  const ok=await loadInventoryCountSourceRefreshContext(normalizedVersionId,INVENTORY_COUNT_STATE.requestSeq);
+  if(String(INVENTORY_COUNT_STATE.versionId || '')===normalizedVersionId){
+    renderInventoryCountLines(INVENTORY_COUNT_STATE.lines || []);
+  }
+  return ok;
+}
+async function refreshInventoryCountFromLatestClosing(){
+  const versionId=String(INVENTORY_COUNT_STATE.versionId || '');
+  if(!versionId || INVENTORY_COUNT_STATE.refreshSaving) return;
+  if(!hasCanonicalPermission('inventory.count.refresh')){
+    showInventoryCountToast('لا تملك صلاحية تحديث الجرد.','warning',5000);
+    return;
+  }
+  if(inventoryCountSettlementPhaseStarted()){
+    showInventoryCountToast('بدأت مرحلة تسوية فروق الجرد؛ لا يمكن تحديث الجرد بعد أول تسوية.','warning',6000);
+    return;
+  }
+  if(inventoryCountIsFinalized()){
+    showInventoryCountToast('تم إنهاء مستند الجرد؛ لا يمكن تحديثه.','warning',5000);
+    return;
+  }
+  if(!INVENTORY_COUNT_STATE.sourceRefreshRequired){
+    showInventoryCountToast('الجرد مطابق لأحدث تقرير تقفيل مطبق.','info',4500);
+    return;
+  }
+  const context=INVENTORY_COUNT_STATE.sourceRefreshContext || {};
+  const hasSnapshot=Boolean(context?.has_current_snapshot);
+  const message=hasSnapshot
+    ? 'سيتم إعادة حساب بيانات الجرد من أحدث تقرير تقفيل، ثم إنشاء مستند فروق جديد بدل المستند الحالي. هل تريد المتابعة؟'
+    : 'سيتم إعادة حساب بيانات الجرد من أحدث تقرير تقفيل. هل تريد المتابعة؟';
+  if(!await showAppLiquidConfirm({message})) return;
+  INVENTORY_COUNT_STATE.refreshSaving=true;
+  inventoryCountSetLoading(true,'جارٍ تحديث الجرد من أحدث تقرير تقفيل...');
+  updateInventoryCountRefreshButton();
+  try{
+    const {data,error}=await WarehouseDB.client.rpc('refresh_inventory_count_from_latest_closing',{p_version_id:versionId});
+    if(error) throw error;
+    const status=String(data?.status || '');
+    if(status==='no_refresh_required'){
+      showInventoryCountToast('الجرد مطابق بالفعل لأحدث تقرير تقفيل.','info',4500);
+    }else if(status==='inventory_count_refreshed'){
+      const snapshotReplaced=Boolean(data?.snapshot_replaced);
+      showInventoryCountToast(snapshotReplaced
+        ? 'تم تحديث الجرد وإنشاء مستند فروق جديد بنجاح.'
+        : 'تم تحديث الجرد من أحدث تقرير تقفيل بنجاح.','success',6500);
+    }else{
+      throw new Error(inventoryCountSourceRefreshStatusMessage(status));
+    }
+    await loadInventoryCountLines(versionId,INVENTORY_COUNT_STATE.requestSeq);
+  }catch(err){
+    console.error('Inventory count refresh failed',err);
+    showInventoryCountToast(inventoryCountPhaseLockErrorMessage(err,err?.message || 'تعذر تحديث الجرد.'),'error',7000);
+  }finally{
+    INVENTORY_COUNT_STATE.refreshSaving=false;
+    inventoryCountSetLoading(false);
+    updateInventoryCountRefreshButton();
+  }
+}
 function updateInventoryDifferenceSnapshotButton(){
+  updateInventoryCountRefreshButton();
   const btn=$('#createInventoryDifferenceSnapshotBtn');
   if(!btn) return;
   const canAdd=hasCanonicalPermission('inventory.count.differences.create');
-  const busy=!!INVENTORY_COUNT_STATE.loading || !!INVENTORY_COUNT_STATE.creating || !!INVENTORY_COUNT_STATE.snapshotCreating || !!INVENTORY_COUNT_STATE.finalizing;
+  const busy=!!INVENTORY_COUNT_STATE.loading || !!INVENTORY_COUNT_STATE.creating || !!INVENTORY_COUNT_STATE.snapshotCreating || !!INVENTORY_COUNT_STATE.refreshSaving || !!INVENTORY_COUNT_STATE.finalizing;
   const ready=!!INVENTORY_COUNT_STATE.documentId && !!INVENTORY_COUNT_STATE.versionId && (INVENTORY_COUNT_STATE.lines || []).length > 0 && INVENTORY_COUNT_STATE.documentStatus !== 'archived';
   const phaseLocked=inventoryCountSettlementPhaseStarted();
   const finalized=inventoryCountIsFinalized();
@@ -10704,16 +10873,19 @@ function updateInventoryCountFinalizationControls(){
   const finalized=inventoryCountIsFinalized();
   const hasVersion=!!INVENTORY_COUNT_STATE.documentId && !!INVENTORY_COUNT_STATE.versionId && (INVENTORY_COUNT_STATE.lines || []).length>0;
   const unresolved=inventoryCountUnresolvedVarianceCount();
-  const busy=!!INVENTORY_COUNT_STATE.loading || !!INVENTORY_COUNT_STATE.creating || !!INVENTORY_COUNT_STATE.snapshotCreating || !!INVENTORY_COUNT_STATE.finalizing || !!INVENTORY_COUNT_STATE.postCloseInvoiceSaving;
+  const sourceBlocked=!inventoryCountSettlementPhaseStarted() && !!INVENTORY_COUNT_STATE.sourceSettlementBlocked;
+  const busy=!!INVENTORY_COUNT_STATE.loading || !!INVENTORY_COUNT_STATE.creating || !!INVENTORY_COUNT_STATE.snapshotCreating || !!INVENTORY_COUNT_STATE.refreshSaving || !!INVENTORY_COUNT_STATE.finalizing || !!INVENTORY_COUNT_STATE.postCloseInvoiceSaving;
   if(finishBtn){
     finishBtn.textContent=finalized ? 'تم إنهاء الجرد' : (INVENTORY_COUNT_STATE.finalizing ? 'جارٍ إنهاء الجرد...' : 'إنهاء الجرد');
-    finishBtn.disabled=busy || !canEdit || !hasVersion || finalized || unresolved>0;
-    finishBtn.classList.toggle('permission-disabled',!canEdit || !hasVersion || finalized || unresolved>0);
+    finishBtn.disabled=busy || !canEdit || !hasVersion || finalized || sourceBlocked || unresolved>0;
+    finishBtn.classList.toggle('permission-disabled',!canEdit || !hasVersion || finalized || sourceBlocked || unresolved>0);
     finishBtn.title=finalized
       ? 'تم إنهاء مستند الجرد نهائيًا.'
       : (!canEdit ? 'لا تملك صلاحية تعديل مستند الجرد.'
         : (!hasVersion ? 'افتح مستند جرد أولاً.'
-          : (unresolved>0 ? `لا يمكن إنهاء الجرد قبل تسوية جميع الفروق. عدد الأصناف المتبقية: ${unresolved}` : 'إنهاء مستند الجرد نهائيًا وقفل جميع الخانات.')));
+          : (sourceBlocked
+            ? (INVENTORY_COUNT_STATE.sourceRefreshMissing ? 'ارفع تقرير التقفيل البديل ثم اضغط «تحديث الجرد» قبل إنهاء الجرد.' : 'يوجد تقرير تقفيل أحدث. اضغط «تحديث الجرد» قبل إنهاء الجرد.')
+            : (unresolved>0 ? `لا يمكن إنهاء الجرد قبل تسوية جميع الفروق. عدد الأصناف المتبقية: ${unresolved}` : 'إنهاء مستند الجرد نهائيًا وقفل جميع الخانات.'))));
   }
   if(invoiceBtn){
     invoiceBtn.disabled=busy || !hasCanonicalPermission('inventory.count.post_close_adjust') || !hasVersion || !finalized;
@@ -10724,6 +10896,7 @@ function updateInventoryCountFinalizationControls(){
   }
 }
 function inventoryCountUpdateCreateButton(){
+  updateInventoryCountRefreshButton();
   const btn=$('#createInventoryCountBtn');
   if(!btn) return;
   const canAdd=hasCanonicalPermission('inventory.count.create');
@@ -12343,7 +12516,8 @@ function inventorySettlementStatusMessage(status,reasonCode=''){
     insufficient_outgoing_transfers:'لا يمكن تنفيذ التصحيح لأن التحويلات الصادرة الحالية أقل من كمية التحميل الخاطئ المدخلة.',
     insufficient_sales_quantity:'لا يمكن تنفيذ التصحيح لأن كمية البيع الحالية أقل من كمية التحميل الخاطئ المدخلة.',
     negative_production_after_residual:'لا يمكن تسوية الفرق المتبقي؛ الكمية المحسوبة للإنتاج بعد التسوية ستصبح سالبة.',
-    negative_physical_result_not_allowed:'لا يمكن تسوية الفرق المتبقي؛ الرصيد الفعلي النهائي سيصبح سالبًا.'
+    negative_physical_result_not_allowed:'لا يمكن تسوية الفرق المتبقي؛ الرصيد الفعلي النهائي سيصبح سالبًا.',
+    inventory_count_source_refresh_required_before_settlement:'يوجد تقرير تقفيل أحدث لم يتم تطبيقه. اضغط «تحديث الجرد» أولاً قبل بدء التسويات.'
   };
   if(status==='negative_result_not_allowed'){
     if(reasonCode==='production_difference' || reasonCode==='damaged_bags' || reasonCode==='other') return 'لا يمكن تنفيذ هذه التسوية لأن كمية الإنتاج بعد التسوية ستصبح سالبة. اختر سببًا آخر أو راجع بيانات الصنف.';
@@ -13555,7 +13729,8 @@ function inventorySettlementStatusFromError(err){
     'duplicate_reason','too_many_reasons','multi_reason_quantity_required','invalid_multi_reason_quantity',
     'reason_quantity_exceeds_remaining_variance','no_remaining_variance_for_reason',
     'insufficient_outgoing_transfers','insufficient_sales_quantity',
-    'negative_production_after_residual','negative_physical_result_not_allowed'
+    'negative_production_after_residual','negative_physical_result_not_allowed',
+    'inventory_count_source_not_ready_before_settlement'
   ];
   return statuses.find(status=>message.includes(status)) || '';
 }
@@ -13937,6 +14112,15 @@ function renderInventorySettlementCell(row){
     return `<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-reverse-btn" type="button" title="التراجع عن تسوية فرق الجرد" data-line-id="${lineId}" data-version-id="${escapeHtml(versionId)}" data-settlement-id="${settlementId}" data-expected-row-version="${escapeHtml(row?.row_version ?? '')}">تراجع</button></td>`;
   }
 
+  if(INVENTORY_COUNT_STATE.sourceRefreshLoading){
+    return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn is-loading" type="button" disabled title="جاري فحص أحدث تقرير تقفيل.">جاري الفحص...</button></td>';
+  }
+  if(INVENTORY_COUNT_STATE.sourceSettlementBlocked && !inventoryCountSettlementPhaseStarted()){
+    if(INVENTORY_COUNT_STATE.sourceRefreshMissing){
+      return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn is-stale" type="button" disabled title="لا يوجد تقرير تقفيل نشط. ارفع التقرير البديل ثم اضغط «تحديث الجرد» قبل بدء التسويات.">ارفع التقرير أولاً</button></td>';
+    }
+    return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn is-stale" type="button" disabled title="يوجد تقرير تقفيل أحدث. اضغط «تحديث الجرد» أولاً قبل بدء التسويات.">تحديث الجرد أولاً</button></td>';
+  }
   if(INVENTORY_COUNT_STATE.settlementContextLoading){
     return '<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn is-loading" type="button" disabled title="جاري تحميل حالة التسويات.">جاري التحميل...</button></td>';
   }
@@ -14064,6 +14248,7 @@ function resetInventoryCountView(message='لم يتم إنشاء جرد بعد.'
   closeActiveApplicationModals({restoreFocus:false});
   closeInventoryReviewRecommendationsModal({restoreFocus:false});
   clearInventoryCountSettlementContext();
+  clearInventoryCountSourceRefreshContext();
   INVENTORY_COUNT_STATE.status='idle';
   INVENTORY_COUNT_STATE.documentId=null;
   INVENTORY_COUNT_STATE.versionId=null;
@@ -14141,9 +14326,10 @@ async function loadInventoryCountLines(versionId,requestSeq=null){
   const rows=await filterInventoryCountLinesByCurrentWarehouse(data||[]);
   if(requestSeq!==null && requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
   INVENTORY_COUNT_STATE.lines=rows;
+  const sourceRefreshContextPromise=loadInventoryCountSourceRefreshContext(versionId,requestSeq);
   const settlementContextPromise=loadInventoryCountSettlementContext(versionId,requestSeq);
   renderInventoryCountLines(rows);
-  await settlementContextPromise;
+  await Promise.all([sourceRefreshContextPromise,settlementContextPromise]);
   if(requestSeq!==null && requestSeq!==INVENTORY_COUNT_STATE.requestSeq) return;
   if(String(INVENTORY_COUNT_STATE.versionId || '')!==String(versionId)) return;
   renderInventoryCountLines(rows);
@@ -14175,6 +14361,7 @@ async function openDefaultInventoryCountFromUi(options={}){
   }
   closeInventoryReviewRecommendationsModal({restoreFocus:false});
   clearInventoryCountSettlementContext();
+  clearInventoryCountSourceRefreshContext();
   const {showLoading=false}=options;
   const plantSelect=$('#inventoryCountPlantSelect');
   const permittedPlants=(window.PermissionRuntime.allowedPlants('inventory.count.view') || [])
@@ -16214,6 +16401,7 @@ function inventoryCountFinalizationStatusMessage(status,data={}){
     version_not_found:'تعذر العثور على نسخة الجرد الحالية.',
     version_not_current:'نسخة الجرد لم تعد النسخة الحالية للمستند.',
     inventory_count_read_only:'مستند الجرد غير قابل للإنهاء في حالته الحالية.',
+    inventory_count_source_not_ready_before_finalization:'يوجد تقرير تقفيل غير مطبق أو لا يوجد تقرير نشط. ارفع/استبدل التقرير المطلوب ثم اضغط «تحديث الجرد» قبل إنهاء الجرد.',
     unresolved_inventory_variance:'لا يمكن إنهاء الجرد قبل تسوية جميع فروق الجرد.',
     no_inventory_lines:'لا يمكن إنهاء مستند جرد لا يحتوي على أصناف.'
   };
@@ -16264,6 +16452,12 @@ async function finishInventoryCountFromUi(){
     showInventoryCountToast('لا تملك صلاحية إنهاء مستند الجرد.','error');
     return;
   }
+  if(!inventoryCountSettlementPhaseStarted() && INVENTORY_COUNT_STATE.sourceSettlementBlocked){
+    showInventoryCountToast(INVENTORY_COUNT_STATE.sourceRefreshMissing
+      ? 'لا يوجد تقرير تقفيل نشط. ارفع التقرير البديل ثم اضغط «تحديث الجرد» قبل إنهاء الجرد.'
+      : 'يوجد تقرير تقفيل أحدث لم يتم تطبيقه. اضغط «تحديث الجرد» قبل إنهاء الجرد.','warning',6500);
+    return;
+  }
   const unresolved=inventoryCountUnresolvedVarianceCount();
   if(unresolved>0){
     showInventoryCountToast(`لا يمكن إنهاء الجرد قبل تسوية جميع الفروق. عدد الأصناف المتبقية: ${unresolved}.`,'warning',6000);
@@ -16294,7 +16488,11 @@ async function finishInventoryCountFromUi(){
     showInventoryCountToast(status==='already_finalized' ? 'تم إنهاء مستند الجرد بالفعل.' : 'تم إنهاء مستند الجرد بنجاح.','success',5000);
   }catch(err){
     console.error('Inventory count finalization failed',err);
-    showInventoryCountToast(err?.message || 'تعذر إنهاء مستند الجرد.','error',6000);
+    const raw=String(err?.message || err || '');
+    const message=raw.includes('inventory_count_source_not_ready_before_finalization')
+      ? inventoryCountFinalizationStatusMessage('inventory_count_source_not_ready_before_finalization')
+      : (raw || 'تعذر إنهاء مستند الجرد.');
+    showInventoryCountToast(message,'error',6000);
   }finally{
     INVENTORY_COUNT_STATE.finalizing=false;
     updateInventoryCountFinalizationControls();
@@ -16745,6 +16943,7 @@ function initInventoryCountScreen(){
   const plantSelect=$('#inventoryCountPlantSelect');
   const warehouseSelect=$('#inventoryCountWarehouseSelect');
   const createBtn=$('#createInventoryCountBtn');
+  const refreshBtn=$('#inventoryCountRefreshBtn');
   const snapshotBtn=$('#createInventoryDifferenceSnapshotBtn');
   const finishBtn=$('#finishInventoryCountBtn');
   const postCloseInvoiceBtn=$('#inventoryCountPostCloseInvoiceBtn');
@@ -16766,6 +16965,10 @@ function initInventoryCountScreen(){
     createBtn.dataset.inventoryCountCreateBound='1';
     createBtn.addEventListener('click',createInventoryCountFromUi);
   }
+  if(refreshBtn && refreshBtn.dataset.inventoryCountRefreshBound!=='1'){
+    refreshBtn.dataset.inventoryCountRefreshBound='1';
+    refreshBtn.addEventListener('click',refreshInventoryCountFromLatestClosing);
+  }
   if(snapshotBtn && snapshotBtn.dataset.inventoryDifferenceSnapshotBound!=='1'){
     snapshotBtn.dataset.inventoryDifferenceSnapshotBound='1';
     snapshotBtn.addEventListener('click',createInventoryDifferenceSnapshotFromUi);
@@ -16783,6 +16986,7 @@ function initInventoryCountScreen(){
     dateInput.addEventListener('change',()=>{
       closeInventoryReviewRecommendationsModal({restoreFocus:false});
       clearInventoryCountSettlementContext();
+      clearInventoryCountSourceRefreshContext();
       updateInventoryCountSelectedDateSummary();
       persistInventoryCountViewState();
       scheduleInventoryCountOpen();
@@ -16793,6 +16997,7 @@ function initInventoryCountScreen(){
     plantSelect.addEventListener('change',()=>{
       closeInventoryReviewRecommendationsModal({restoreFocus:false});
       clearInventoryCountSettlementContext();
+      clearInventoryCountSourceRefreshContext();
       syncInventoryCountWarehouse();
       persistInventoryCountViewState();
       openDefaultInventoryCountFromUi({showLoading:true});
@@ -16803,6 +17008,7 @@ function initInventoryCountScreen(){
     warehouseSelect.addEventListener('change',()=>{
       closeInventoryReviewRecommendationsModal({restoreFocus:false});
       clearInventoryCountSettlementContext();
+      clearInventoryCountSourceRefreshContext();
       persistInventoryCountViewState();
       scheduleInventoryCountOpen();
     });
@@ -16848,22 +17054,20 @@ async function refreshOpenInventoryCountAfterClosingSource(reportDate, plantCode
     current.inventoryDate !== sourceDate ||
     current.plantCode !== sourcePlant ||
     current.warehouseCode !== sourceWarehouse
-  ) {
-    return;
-  }
+  ) return;
 
   try {
-    await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId, INVENTORY_COUNT_STATE.requestSeq);
-    if(inventoryCountSettlementPhaseStarted()){
-      showInventoryCountToast('تم تحديث تقرير التقفيل، ولم يتم تعديل مستند الجرد لأن مرحلة تسوية فروق الجرد بدأت.','info',6000);
-      return;
+    await refreshInventoryCountSourceContextIfCurrent(INVENTORY_COUNT_STATE.versionId);
+    if(INVENTORY_COUNT_STATE.sourceRefreshMissing && !inventoryCountSettlementPhaseStarted()){
+      showInventoryCountToast('لا يوجد تقرير تقفيل نشط حاليًا لهذا الجرد. ارفع التقرير البديل ثم استخدم «تحديث الجرد».','warning',6500);
+    }else if(INVENTORY_COUNT_STATE.sourceRefreshRequired && !inventoryCountSettlementPhaseStarted()){
+      showInventoryCountToast('تم رفع أو استبدال تقرير تقفيل أحدث. أصبح زر «تحديث الجرد» متاحًا لإعادة الحساب.','info',7000);
     }
-    showInventoryCountToast('تم تحديث تقرير التقفيل وإعادة احتساب الجرد بنجاح.','success');
   } catch (err) {
-    console.warn('Inventory count reload after closing source change failed', err);
-    showInventoryCountToast(err?.message || 'تعذر تحديث بيانات الجرد بعد تقرير التقفيل.','error');
+    console.warn('Inventory count source freshness check failed', err);
   }
 }
+
 const IC_ALLOWED_UOM = ['TO', 'TON', 'T', 'KG', 'KGS', 'KILOGRAM', 'طن', 'كجم'];
 
 function icCleanHeader(h) {
