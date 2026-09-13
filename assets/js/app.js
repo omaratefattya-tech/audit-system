@@ -12274,6 +12274,12 @@ function inventorySettlementStatusMessage(status,reasonCode=''){
     invalid_snapshot_values:'قيم مستند فروق الجرد غير صالحة للتسوية.',
     zero_variance:'لا يوجد فرق جرد يحتاج إلى تسوية.',
     invalid_reason:'سبب التسوية المحدد غير صالح.',
+    duplicate_reason:'لا يمكن إضافة نفس سبب التسوية أكثر من مرة. اجمع كميته في سطر واحد.',
+    too_many_reasons:'عدد أسباب التسوية أكبر من الأسباب المتاحة.',
+    multi_reason_quantity_required:'يجب إدخال كمية لكل سبب عند استخدام أكثر من سبب للتسوية.',
+    invalid_multi_reason_quantity:'إحدى كميات أسباب التسوية غير صالحة. أدخل قيمة أكبر من صفر وبحد أقصى 3 منازل عشرية.',
+    reason_quantity_exceeds_remaining_variance:'إحدى كميات الأسباب أكبر من فرق الجرد المتبقي الذي يمكن تخصيصه لهذا السبب.',
+    no_remaining_variance_for_reason:'تمت تغطية فرق الجرد قبل تطبيق أحد الأسباب الإضافية. احذف السبب الزائد أو راجع الكميات.',
     action_required:'الإجراء مطلوب.',
     action_too_long:'الإجراء يجب ألا يتجاوز 2000 حرف.',
     production_reason_not_allowed:'لا يمكن تسوية الفرق بسبب الإنتاج لأن الصنف لا يحتوي على إنتاج في هذا اليوم.',
@@ -12861,6 +12867,187 @@ function calculateInventorySettlementPreview(contextLine,reasonCode,Q){
 }
 
 
+
+function inventorySettlementReasonRequiresQuantity(reasonCode){
+  return ['transfer_overloaded','transfer_not_loaded','sales_overloaded','sales_not_loaded'].includes(String(reasonCode || ''));
+}
+function inventorySettlementCreateReasonRow(modal,initial={}){
+  const list=modal?.querySelector('#inventorySettlementReasonsList');
+  if(!list) return null;
+  const row=document.createElement('div');
+  row.className='inventory-settlement-reason-row';
+  row.innerHTML=`
+    <label class="inventory-settlement-reason-control">
+      <span>سبب التسوية <b aria-hidden="true">*</b></span>
+      <select class="inventory-settlement-reason-select" required aria-label="سبب التسوية">
+        <option value="">اختر سبب التسوية</option>
+      </select>
+    </label>
+    <label class="inventory-settlement-reason-control inventory-settlement-reason-quantity-field">
+      <span>كمية السبب (طن) <b aria-hidden="true">*</b></span>
+      <input class="inventory-settlement-reason-quantity" type="number" step="0.001" min="0.001" inputmode="decimal" placeholder="0.000">
+    </label>
+    <button type="button" class="secondary inventory-settlement-remove-reason" aria-label="حذف سبب التسوية">حذف السبب</button>`;
+  const select=row.querySelector('.inventory-settlement-reason-select');
+  INVENTORY_SETTLEMENT_REASONS.forEach(reason=>{
+    const option=document.createElement('option');
+    option.value=reason.code;
+    option.textContent=reason.label;
+    select?.appendChild(option);
+  });
+  if(select && initial.code) select.value=String(initial.code);
+  const quantity=row.querySelector('.inventory-settlement-reason-quantity');
+  if(quantity && initial.quantity!==null && initial.quantity!==undefined && initial.quantity!=='') quantity.value=String(initial.quantity);
+  list.appendChild(row);
+  return row;
+}
+function inventorySettlementResetReasonRows(modal){
+  const list=modal?.querySelector('#inventorySettlementReasonsList');
+  if(!list) return;
+  list.innerHTML='';
+  inventorySettlementCreateReasonRow(modal);
+  syncInventorySettlementReasonRows(modal);
+}
+function inventorySettlementCollectReasons(modal){
+  const rows=[...(modal?.querySelectorAll('.inventory-settlement-reason-row') || [])];
+  const reasons=rows.map((row,index)=>{
+    const code=String(row.querySelector('.inventory-settlement-reason-select')?.value || '');
+    const rawQuantity=String(row.querySelector('.inventory-settlement-reason-quantity')?.value || '').trim();
+    const numeric=rawQuantity==='' ? null : Number(rawQuantity);
+    const quantity=rawQuantity==='' || !Number.isFinite(numeric) ? null : roundInventorySettlementQuantity(numeric);
+    return {index,code,rawQuantity,quantity,row};
+  });
+  const selectedCodes=reasons.map(item=>item.code).filter(Boolean);
+  const duplicateCode=selectedCodes.find((code,index)=>selectedCodes.indexOf(code)!==index) || '';
+  return {reasons,duplicateCode,rowCount:rows.length};
+}
+function syncInventorySettlementReasonRows(modal){
+  const rows=[...(modal?.querySelectorAll('.inventory-settlement-reason-row') || [])];
+  const multi=rows.length>1;
+  const selectedCodes=rows.map(row=>String(row.querySelector('.inventory-settlement-reason-select')?.value || '')).filter(Boolean);
+  const contextLine=inventorySettlementContextLine(String(INVENTORY_COUNT_STATE.settlementModalLineId || ''));
+  const productionAvailable=normalizeInventorySettlementNumber(contextLine?.production_quantity)>0;
+  rows.forEach(row=>{
+    const select=row.querySelector('.inventory-settlement-reason-select');
+    const code=String(select?.value || '');
+    const quantityField=row.querySelector('.inventory-settlement-reason-quantity-field');
+    const quantityInput=row.querySelector('.inventory-settlement-reason-quantity');
+    const quantityRequired=multi || inventorySettlementReasonRequiresQuantity(code);
+    if(quantityField) quantityField.hidden=!quantityRequired;
+    if(quantityInput){
+      quantityInput.required=quantityRequired;
+      quantityInput.disabled=!quantityRequired;
+      if(!quantityRequired) quantityInput.value='';
+    }
+    if(select){
+      [...select.options].forEach(option=>{
+        if(!option.value){option.disabled=false;return;}
+        option.disabled=option.value!==code && selectedCodes.includes(option.value);
+        if(option.value==='production_difference') option.hidden=!productionAvailable;
+      });
+    }
+    const remove=row.querySelector('.inventory-settlement-remove-reason');
+    if(remove) remove.hidden=rows.length<=1;
+  });
+  const add=modal?.querySelector('#inventorySettlementAddReasonBtn');
+  if(add) add.disabled=rows.length>=INVENTORY_SETTLEMENT_REASONS.length;
+}
+function calculateInventorySettlementMultiPreview(contextLine,reasons){
+  if(!Array.isArray(reasons) || !reasons.length) return {valid:false,status:'invalid_reason',message:'أضف سبب تسوية واحدًا على الأقل.'};
+  if(reasons.length===1){
+    const item=reasons[0];
+    return calculateInventorySettlementPreview(contextLine,item.code,item.quantity);
+  }
+  if(!contextLine || contextLine.physical_balance===null || contextLine.physical_balance===undefined){
+    return {valid:false,status:'physical_balance_required',message:'يجب إدخال الرصيد الفعلي قبل تنفيذ التسوية.'};
+  }
+  let production=roundInventorySettlementQuantity(contextLine.production_quantity);
+  let incoming=roundInventorySettlementQuantity(contextLine.incoming_transfers);
+  let outgoing=roundInventorySettlementQuantity(contextLine.outgoing_transfers);
+  let sales=roundInventorySettlementQuantity(contextLine.sales_quantity);
+  let book=roundInventorySettlementQuantity(contextLine.book_balance);
+  let physical=roundInventorySettlementQuantity(contextLine.physical_balance);
+  const hasProduction=production>0;
+  const start={production,incoming,outgoing,sales,book,physical};
+  const steps=[];
+  for(const item of reasons){
+    const reason=getInventorySettlementReason(item.code);
+    const q=Number(item.quantity);
+    if(!reason) return {valid:false,status:'invalid_reason',message:'أحد أسباب التسوية المحددة غير صالح.'};
+    if(!Number.isFinite(q) || q<=0) return {valid:false,status:'multi_reason_quantity_required',message:`أدخل كمية صحيحة أكبر من صفر للسبب «${reason.label}».`};
+    const before={production,incoming,outgoing,sales,book,physical};
+    const residualBefore=roundInventorySettlementQuantity(physical-book);
+    if(reason.code==='transfer_overloaded'){
+      outgoing=roundInventorySettlementQuantity(outgoing+q);
+      book=roundInventorySettlementQuantity(book-q);
+    }else if(reason.code==='transfer_not_loaded'){
+      outgoing=roundInventorySettlementQuantity(outgoing-q);
+      if(outgoing<0) return {valid:false,status:'insufficient_outgoing_transfers',negative:true,message:`لا يمكن تطبيق «${reason.label}» لأن التحويلات الصادرة ستصبح سالبة.`};
+      incoming=roundInventorySettlementQuantity(incoming+q);
+      book=roundInventorySettlementQuantity(book+(2*q));
+    }else if(reason.code==='sales_overloaded'){
+      sales=roundInventorySettlementQuantity(sales+q);
+      book=roundInventorySettlementQuantity(book-q);
+    }else if(reason.code==='sales_not_loaded'){
+      sales=roundInventorySettlementQuantity(sales-q);
+      if(sales<0) return {valid:false,status:'insufficient_sales_quantity',negative:true,message:`لا يمكن تطبيق «${reason.label}» لأن كمية البيع ستصبح سالبة.`};
+      book=roundInventorySettlementQuantity(book+q);
+    }else{
+      if(Math.abs(residualBefore)<0.0005) return {valid:false,status:'no_remaining_variance_for_reason',message:`لا يوجد فرق متبقٍ يمكن تخصيصه للسبب «${reason.label}».`};
+      if(q-Math.abs(residualBefore)>0.0005) return {valid:false,status:'reason_quantity_exceeds_remaining_variance',message:`كمية السبب «${reason.label}» (${formatInventorySettlementQuantity(q)} طن) أكبر من فرق الجرد المتبقي (${formatInventorySettlementQuantity(Math.abs(residualBefore))} طن).`};
+      const direction=residualBefore>0 ? 1 : -1;
+      if(reason.code==='production_difference'){
+        if(!hasProduction) return {valid:false,status:'production_reason_not_allowed',message:'لا يمكن تخصيص فرق بسبب الإنتاج لأن الصنف لا يحتوي على إنتاج في هذا اليوم.'};
+        production=roundInventorySettlementQuantity(production+(direction*q));
+        if(production<0) return {valid:false,status:'negative_result_not_allowed',negative:true,message:'كمية سبب فرق الإنتاج ستجعل الإنتاج بعد التسوية سالبًا.'};
+        book=roundInventorySettlementQuantity(book+(direction*q));
+      }else if(hasProduction){
+        production=roundInventorySettlementQuantity(production+(direction*q));
+        if(production<0) return {valid:false,status:'negative_result_not_allowed',negative:true,message:`كمية السبب «${reason.label}» ستجعل الإنتاج بعد التسوية سالبًا.`};
+        book=roundInventorySettlementQuantity(book+(direction*q));
+      }else{
+        physical=roundInventorySettlementQuantity(physical-(direction*q));
+        if(physical<0) return {valid:false,status:'negative_physical_result_not_allowed',negative:true,message:`كمية السبب «${reason.label}» ستجعل الرصيد الفعلي سالبًا.`};
+      }
+    }
+    steps.push({reason,quantity:q,before,after:{production,incoming,outgoing,sales,book,physical},residualAfter:roundInventorySettlementQuantity(physical-book)});
+  }
+  const bookAfterReasons=book;
+  const physicalAfterReasons=physical;
+  let residual=roundInventorySettlementQuantity(physical-book);
+  let residualTarget='none';
+  const productionBeforeResidual=production;
+  const physicalBeforeResidual=physical;
+  if(Math.abs(residual)>=0.0005){
+    if(hasProduction){
+      production=roundInventorySettlementQuantity(production+residual);
+      if(production<0) return {valid:false,status:'negative_production_after_residual',negative:true,message:`لا يمكن تسوية الفرق المتبقي لأن الإنتاج النهائي سيصبح سالبًا (${formatInventorySettlementQuantity(production)} طن).`};
+      book=roundInventorySettlementQuantity(physical);
+      residualTarget='production_quantity';
+    }else{
+      physical=roundInventorySettlementQuantity(book);
+      if(physical<0) return {valid:false,status:'negative_physical_result_not_allowed',negative:true,message:`لا يمكن تسوية الفرق المتبقي لأن الرصيد الفعلي النهائي سيصبح سالبًا (${formatInventorySettlementQuantity(physical)} طن).`};
+      residualTarget='physical_balance';
+    }
+  }
+  const lines=['سيتم تطبيق أسباب التسوية بالترتيب التالي:'];
+  steps.forEach((step,index)=>{
+    const changes=[];
+    if(step.before.sales!==step.after.sales) changes.push(`البيع ${formatInventorySettlementQuantity(step.before.sales)} ← ${formatInventorySettlementQuantity(step.after.sales)}`);
+    if(step.before.outgoing!==step.after.outgoing) changes.push(`التحويلات الصادرة ${formatInventorySettlementQuantity(step.before.outgoing)} ← ${formatInventorySettlementQuantity(step.after.outgoing)}`);
+    if(step.before.incoming!==step.after.incoming) changes.push(`التحويلات الواردة ${formatInventorySettlementQuantity(step.before.incoming)} ← ${formatInventorySettlementQuantity(step.after.incoming)}`);
+    if(step.before.production!==step.after.production) changes.push(`الإنتاج ${formatInventorySettlementQuantity(step.before.production)} ← ${formatInventorySettlementQuantity(step.after.production)}`);
+    if(step.before.physical!==step.after.physical) changes.push(`الرصيد الفعلي ${formatInventorySettlementQuantity(step.before.physical)} ← ${formatInventorySettlementQuantity(step.after.physical)}`);
+    lines.push(`${index+1}) ${step.reason.label} — ${formatInventorySettlementQuantity(step.quantity)} طن${changes.length?` — ${changes.join('، ')}`:''}.`);
+  });
+  lines.push(`فرق الجرد بعد الأسباب: ${formatInventorySettlementQuantity(residual)} طن.`);
+  if(residualTarget==='production_quantity') lines.push(`المتبقي سيُسوّى في الإنتاج: ${formatInventorySettlementQuantity(productionBeforeResidual)} ← ${formatInventorySettlementQuantity(production)} طن.`);
+  else if(residualTarget==='physical_balance') lines.push(`لا يوجد إنتاج؛ المتبقي سيُسوّى في الرصيد الفعلي: ${formatInventorySettlementQuantity(physicalBeforeResidual)} ← ${formatInventorySettlementQuantity(physical)} طن.`);
+  else lines.push('الأسباب المحددة غطّت فرق الجرد بالكامل، ولا توجد كمية متبقية للتسوية التلقائية.');
+  lines.push(`الرصيد الدفتري النهائي: ${formatInventorySettlementQuantity(book)} طن — الرصيد الفعلي النهائي: ${formatInventorySettlementQuantity(physical)} طن — فرق الجرد النهائي: 0.000 طن.`);
+  return {valid:true,multi:true,message:lines.join('\n'),variance:roundInventorySettlementQuantity(physicalAfterReasons-bookAfterReasons),steps,residualTarget,final:{production,incoming,outgoing,sales,book,physical},start};
+}
+
 function inventorySettlementModalSetText(modal,key,value){
   const element=modal?.querySelector(`[data-inventory-settlement-value="${key}"]`);
   if(element) element.textContent=value===null || value===undefined || value==='' ? '—' : String(value);
@@ -12901,16 +13088,16 @@ function ensureInventoryCountSettlementModal(){
           </div>
         </section>
         <div class="inventory-settlement-form">
-          <label class="inventory-settlement-field">
-            <span>سبب التسوية <b aria-hidden="true">*</b></span>
-            <select id="inventorySettlementReason" required>
-              <option value="">اختر سبب التسوية</option>
-            </select>
-          </label>
-          <label class="inventory-settlement-field" id="inventorySettlementCorrectionField" hidden>
-            <span>كمية التحميل الخاطئ (طن) <b aria-hidden="true">*</b></span>
-            <input type="number" id="inventorySettlementCorrectionQuantity" step="0.001" min="0.001" placeholder="أدخل كمية التحميل الخاطئ (Q)">
-          </label>
+          <section class="inventory-settlement-reasons-block" aria-labelledby="inventorySettlementReasonsTitle">
+            <header class="inventory-settlement-reasons-head">
+              <div>
+                <h3 id="inventorySettlementReasonsTitle">أسباب التسوية <b aria-hidden="true">*</b></h3>
+                <p>يمكن إضافة أكثر من سبب. عند وجود أكثر من سبب تحدد كمية كل سبب، ثم يُسوّى المتبقي بنفس المنطق الحالي.</p>
+              </div>
+              <button type="button" class="secondary" id="inventorySettlementAddReasonBtn">إضافة سبب آخر</button>
+            </header>
+            <div id="inventorySettlementReasonsList" class="inventory-settlement-reasons-list"></div>
+          </section>
           <label class="inventory-settlement-field">
             <span>الإجراء <b aria-hidden="true">*</b></span>
             <textarea id="inventorySettlementAction" rows="5" maxlength="2000" placeholder="اكتب الإجراء والمراجعة التي تم تنفيذها..."></textarea>
@@ -12929,18 +13116,35 @@ function ensureInventoryCountSettlementModal(){
       </footer>
     </section>`;
   document.body.appendChild(modal);
-  const reasonSelect=modal.querySelector('#inventorySettlementReason');
-  INVENTORY_SETTLEMENT_REASONS.forEach(reason=>{
-    const option=document.createElement('option');
-    option.value=reason.code;
-    option.textContent=reason.label;
-    reasonSelect?.appendChild(option);
-  });
+  inventorySettlementResetReasonRows(modal);
   modal.addEventListener('click',event=>{
     const closeTarget=event.target.closest('[data-inventory-settlement-close]');
     if(closeTarget && modal.contains(closeTarget) && closeTarget.dataset.inventorySettlementClose==='button'){
       event.preventDefault();
       closeInventoryCountSettlementModal();
+      return;
+    }
+    const addReason=event.target.closest('#inventorySettlementAddReasonBtn');
+    if(addReason && modal.contains(addReason)){
+      event.preventDefault();
+      if(modal.querySelectorAll('.inventory-settlement-reason-row').length<INVENTORY_SETTLEMENT_REASONS.length){
+        inventorySettlementCreateReasonRow(modal);
+        modal.dataset.serverError='';
+        syncInventoryCountSettlementModal(modal);
+        const rows=modal.querySelectorAll('.inventory-settlement-reason-row');
+        rows[rows.length-1]?.querySelector('.inventory-settlement-reason-select')?.focus({preventScroll:true});
+      }
+      return;
+    }
+    const removeReason=event.target.closest('.inventory-settlement-remove-reason');
+    if(removeReason && modal.contains(removeReason)){
+      event.preventDefault();
+      const rows=modal.querySelectorAll('.inventory-settlement-reason-row');
+      if(rows.length>1){
+        removeReason.closest('.inventory-settlement-reason-row')?.remove();
+        modal.dataset.serverError='';
+        syncInventoryCountSettlementModal(modal);
+      }
       return;
     }
     const submit=event.target.closest('#inventorySettlementSubmitBtn');
@@ -12956,13 +13160,13 @@ function ensureInventoryCountSettlementModal(){
     }
   });
   modal.addEventListener('change',event=>{
-    if(event.target.matches('#inventorySettlementReason')){
+    if(event.target.matches('.inventory-settlement-reason-select')){
       modal.dataset.serverError='';
       syncInventoryCountSettlementModal(modal);
     }
   });
   modal.addEventListener('input',event=>{
-    if(event.target.matches('#inventorySettlementCorrectionQuantity')){
+    if(event.target.matches('.inventory-settlement-reason-quantity')){
       modal.dataset.serverError='';
       syncInventoryCountSettlementModal(modal);
     }
@@ -13003,8 +13207,9 @@ function renderInventoryCountSettlementModal(modal,row,contextLine){
   inventorySettlementModalSetText(modal,'physical_balance',contextLine.physical_balance===null || contextLine.physical_balance===undefined ? '—' : formatInventorySettlementQuantity(contextLine.physical_balance));
   inventorySettlementModalSetText(modal,'inventory_variance',formatInventorySettlementQuantity(contextLine.inventory_variance));
   inventorySettlementModalSetText(modal,'snapshot_number',INVENTORY_COUNT_STATE.settlementContextSnapshot?.snapshot_number || '—');
-  const productionOption=modal.querySelector('#inventorySettlementReason option[value="production_difference"]');
-  if(productionOption) productionOption.hidden=normalizeInventorySettlementNumber(contextLine.production_quantity)<=0;
+  modal.querySelectorAll('.inventory-settlement-reason-select option[value="production_difference"]').forEach(option=>{
+    option.hidden=normalizeInventorySettlementNumber(contextLine.production_quantity)<=0;
+  });
 }
 function inventoryCountSettlementModalValidation(modal){
   const lineId=String(INVENTORY_COUNT_STATE.settlementModalLineId || '');
@@ -13012,12 +13217,12 @@ function inventoryCountSettlementModalValidation(modal){
   const snapshotId=String(INVENTORY_COUNT_STATE.settlementContextSnapshot?.snapshot_id || '');
   const row=(INVENTORY_COUNT_STATE.lines || []).find(item=>String(item.id || '')===lineId) || null;
   const contextLine=inventorySettlementContextLine(lineId);
-  const reasonCode=String(modal?.querySelector('#inventorySettlementReason')?.value || '');
   const actionText=String(modal?.querySelector('#inventorySettlementAction')?.value || '').trim();
-  const correctionInput=modal?.querySelector('#inventorySettlementCorrectionQuantity');
-  const rawQ=correctionInput?.value;
-  const correctionQty=rawQ ? normalizeInventorySettlementNumber(rawQ) : null;
-  const requiresQ = ['transfer_overloaded','transfer_not_loaded','sales_overloaded','sales_not_loaded'].includes(reasonCode);
+  const collected=inventorySettlementCollectReasons(modal);
+  const reasons=collected.reasons;
+  const selectedReasons=reasons.filter(item=>item.code);
+  const reasonCode=selectedReasons[0]?.code || '';
+  const correctionQty=selectedReasons.length===1 ? selectedReasons[0]?.quantity : null;
   let status='';
   if(!lineId || !row || !contextLine) status='line_not_found';
   else if(String(INVENTORY_COUNT_STATE.settlementContextVersionId || '')!==versionId) status='version_not_current';
@@ -13028,14 +13233,21 @@ function inventoryCountSettlementModalValidation(modal){
   else if(Math.abs(normalizeInventorySettlementNumber(row.inventory_variance))<0.0005) status='zero_variance';
   else if(!hasCanonicalPermission('inventory.count.line.review')) status='permission_denied';
   else if(inventoryCountLineHasActiveSave(lineId) && !INVENTORY_COUNT_STATE.settlementSaving.has(lineId)) status='row_version_conflict';
-  else if(!getInventorySettlementReason(reasonCode)) status='invalid_reason';
-  else if(requiresQ && (rawQ===null || rawQ===undefined || String(rawQ).trim()==='')) status='correction_quantity_required';
-  else if(requiresQ && (!Number.isFinite(Number(rawQ)) || correctionQty<=0)) status='invalid_correction_quantity';
+  else if(!selectedReasons.length || selectedReasons.length!==reasons.length) status='invalid_reason';
+  else if(collected.duplicateCode) status='duplicate_reason';
+  else if(selectedReasons.length>INVENTORY_SETTLEMENT_REASONS.length) status='too_many_reasons';
+  else if(selectedReasons.some(item=>!getInventorySettlementReason(item.code))) status='invalid_reason';
+  else if(selectedReasons.length>1 && selectedReasons.some(item=>!item.rawQuantity)) status='multi_reason_quantity_required';
+  else if(selectedReasons.length>1 && selectedReasons.some(item=>!Number.isFinite(Number(item.rawQuantity)) || item.quantity===null || item.quantity<=0)) status='invalid_multi_reason_quantity';
+  else if(selectedReasons.length===1 && inventorySettlementReasonRequiresQuantity(reasonCode) && !selectedReasons[0].rawQuantity) status='correction_quantity_required';
+  else if(selectedReasons.length===1 && inventorySettlementReasonRequiresQuantity(reasonCode) && (!Number.isFinite(Number(selectedReasons[0].rawQuantity)) || correctionQty===null || correctionQty<=0)) status='invalid_correction_quantity';
   else if(!actionText) status='action_required';
   else if(actionText.length>2000) status='action_too_long';
-  const preview=calculateInventorySettlementPreview(contextLine,reasonCode,correctionQty);
-  if(!status && !preview.valid) status=preview.negative ? 'negative_result_not_allowed' : (reasonCode==='production_difference' ? 'production_reason_not_allowed' : 'invalid_snapshot_values');
-  return {valid:!status,row,contextLine,reasonCode,actionText,preview,status,versionId,snapshotId,lineId,correctionQty};
+  const preview=selectedReasons.length>1
+    ? calculateInventorySettlementMultiPreview(contextLine,selectedReasons)
+    : calculateInventorySettlementPreview(contextLine,reasonCode,correctionQty);
+  if(!status && !preview.valid) status=preview.status || (preview.negative ? 'negative_result_not_allowed' : (reasonCode==='production_difference' ? 'production_reason_not_allowed' : 'invalid_snapshot_values'));
+  return {valid:!status,row,contextLine,reasons:selectedReasons,reasonCode,actionText,preview,status,versionId,snapshotId,lineId,correctionQty};
 }
 function syncInventoryCountSettlementModal(modal=$('#inventorySettlementModal')){
   if(!modal) return null;
@@ -13047,10 +13259,9 @@ function syncInventoryCountSettlementModal(modal=$('#inventorySettlementModal'))
   const errorBox=modal.querySelector('#inventorySettlementModalError');
   const submit=modal.querySelector('#inventorySettlementSubmitBtn');
   if(counter) counter.textContent=String(String(action?.value || '').length);
+  syncInventorySettlementReasonRows(modal);
   if(previewText) previewText.textContent=validation.preview?.message || 'اختر سبب التسوية لعرض الإجراء الذي سينفذه النظام.';
   if(previewBox) previewBox.classList.toggle('is-warning',Boolean(validation.preview?.negative));
-  const correctionField=modal.querySelector('#inventorySettlementCorrectionField');
-  if(correctionField) correctionField.hidden=!['transfer_overloaded','transfer_not_loaded','sales_overloaded','sales_not_loaded'].includes(validation.reasonCode);
   const serverError=String(modal.dataset.serverError || '');
   const visibleError=serverError || (validation.status && !['invalid_reason','action_required'].includes(validation.status) ? inventorySettlementStatusMessage(validation.status,validation.reasonCode) : '');
   if(errorBox){
@@ -13101,12 +13312,11 @@ function openInventoryCountSettlementModalFromButton(button){
   INVENTORY_COUNT_STATE.settlementModalLineId=lineId;
   INVENTORY_COUNT_STATE.settlementModalSnapshotId=snapshotId;
   renderInventoryCountSettlementModal(modal,row,contextLine);
-  const reason=modal.querySelector('#inventorySettlementReason');
+  inventorySettlementResetReasonRows(modal);
+  renderInventoryCountSettlementModal(modal,row,contextLine);
+  const reason=modal.querySelector('.inventory-settlement-reason-select');
   const action=modal.querySelector('#inventorySettlementAction');
-  const correctionInput=modal.querySelector('#inventorySettlementCorrectionQuantity');
-  if(reason) reason.value='';
   if(action) action.value='';
-  if(correctionInput) correctionInput.value='';
   modal.hidden=false;
   modal.setAttribute('aria-hidden','false');
   modal._appModalClose=closeInventoryCountSettlementModal;
@@ -13119,7 +13329,7 @@ function openInventoryCountSettlementModalFromButton(button){
 function setInventoryCountSettlementModalLoading(modal,loading){
   if(!modal) return;
   modal.classList.toggle('is-saving',Boolean(loading));
-  modal.querySelectorAll('select,textarea,input,[data-inventory-settlement-close]').forEach(control=>{
+  modal.querySelectorAll('select,textarea,input,#inventorySettlementAddReasonBtn,.inventory-settlement-remove-reason,[data-inventory-settlement-close]').forEach(control=>{
     control.disabled=Boolean(loading);
   });
   const submit=modal.querySelector('#inventorySettlementSubmitBtn');
@@ -13138,6 +13348,8 @@ function inventorySettlementStatusFromError(err){
     'zero_variance','invalid_reason','action_required','action_too_long','postcondition_failed',
     'invalid_snapshot_values','settlement_state_changed',
     'correction_quantity_required','invalid_correction_quantity',
+    'duplicate_reason','too_many_reasons','multi_reason_quantity_required','invalid_multi_reason_quantity',
+    'reason_quantity_exceeds_remaining_variance','no_remaining_variance_for_reason',
     'insufficient_outgoing_transfers','insufficient_sales_quantity',
     'negative_production_after_residual','negative_physical_result_not_allowed'
   ];
@@ -13156,14 +13368,24 @@ async function submitInventoryCountSettlement(){
   modal.dataset.serverError='';
   setInventoryCountSettlementModalLoading(modal,true);
   try{
-    const {data,error}=await WarehouseDB.client.rpc('reconcile_inventory_count_line_phase_locked',{
+    const rpcName=validation.reasons.length>1
+      ? 'reconcile_inventory_count_line_multi_phase_locked'
+      : 'reconcile_inventory_count_line_phase_locked';
+    const rpcPayload=validation.reasons.length>1 ? {
+      p_line_id:lineId,
+      p_snapshot_id:validation.snapshotId,
+      p_reasons:validation.reasons.map(item=>({reason_code:item.code,quantity:item.quantity})),
+      p_action_text:validation.actionText,
+      p_expected_row_version:Number(validation.row.row_version)
+    } : {
       p_line_id:lineId,
       p_snapshot_id:validation.snapshotId,
       p_reason_code:validation.reasonCode,
       p_action_text:validation.actionText,
       p_expected_row_version:Number(validation.row.row_version),
       p_correction_quantity:validation.correctionQty || null
-    });
+    };
+    const {data,error}=await WarehouseDB.client.rpc(rpcName,rpcPayload);
     if(error) throw error;
     if(data?.status!=='inventory_line_reconciled'){
       const failure=new Error(inventorySettlementStatusMessage(data?.status,validation.reasonCode));
@@ -13222,6 +13444,7 @@ function inventorySettlementMethodLabel(method){
     increase_sales:'زيادة كمية البيع',
     decrease_sales:'خفض كمية البيع',
     two_stage_reconciliation:'تسوية على مرحلتين',
+    multiple:'تطبيق عدة أسباب',
     none:'لا توجد تسوية متبقية'
   })[String(method || '')] || (method ? String(method) : '—');
 }
@@ -13358,7 +13581,11 @@ function openInventoryCountSettlementReversalModalFromButton(button){
     if(actionContainer) actionContainer.hidden=true;
     grid?.classList.add('is-two-stage');
     const primaryChanges=[];
-    if(contextLine.primary_target_field==='outgoing_transfers+incoming_transfers' || contextLine.primary_target_field==='multiple'){
+    if(contextLine.primary_target_field==='multiple'){
+      if(roundInventorySettlementQuantity(contextLine.outgoing_transfers_before)!==roundInventorySettlementQuantity(contextLine.outgoing_transfers_after)) primaryChanges.push(`<div class="inventory-settlement-reversal-summary-row"><span>التحويلات الصادرة</span><strong>${formatInventorySettlementQuantity(contextLine.outgoing_transfers_before)} ← ${formatInventorySettlementQuantity(contextLine.outgoing_transfers_after)} طن</strong></div>`);
+      if(roundInventorySettlementQuantity(contextLine.incoming_transfers_before)!==roundInventorySettlementQuantity(contextLine.incoming_transfers_after)) primaryChanges.push(`<div class="inventory-settlement-reversal-summary-row"><span>التحويلات الواردة</span><strong>${formatInventorySettlementQuantity(contextLine.incoming_transfers_before)} ← ${formatInventorySettlementQuantity(contextLine.incoming_transfers_after)} طن</strong></div>`);
+      if(roundInventorySettlementQuantity(contextLine.sales_quantity_before)!==roundInventorySettlementQuantity(contextLine.sales_quantity_after)) primaryChanges.push(`<div class="inventory-settlement-reversal-summary-row"><span>كمية البيع</span><strong>${formatInventorySettlementQuantity(contextLine.sales_quantity_before)} ← ${formatInventorySettlementQuantity(contextLine.sales_quantity_after)} طن</strong></div>`);
+    }else if(contextLine.primary_target_field==='outgoing_transfers+incoming_transfers'){
       primaryChanges.push(`<div class="inventory-settlement-reversal-summary-row"><span>التحويلات الصادرة</span><strong>${formatInventorySettlementQuantity(contextLine.outgoing_transfers_before)} ← ${formatInventorySettlementQuantity(contextLine.outgoing_transfers_after)} طن</strong></div>`);
       primaryChanges.push(`<div class="inventory-settlement-reversal-summary-row"><span>التحويلات الواردة</span><strong>${formatInventorySettlementQuantity(contextLine.incoming_transfers_before)} ← ${formatInventorySettlementQuantity(contextLine.incoming_transfers_after)} طن</strong></div>`);
     }else if(contextLine.primary_target_field==='outgoing_transfers'){
@@ -13378,7 +13605,7 @@ function openInventoryCountSettlementReversalModalFromButton(button){
           <div class="inventory-settlement-reversal-summary-row"><span>الإجراء</span><strong>${escapeHtml(contextLine.action_text || '—')}</strong></div>
           <div class="inventory-settlement-reversal-summary-row"><span>منفذ التسوية</span><strong>${escapeHtml(contextLine.reconciled_by_name || '—')}</strong></div>
           <div class="inventory-settlement-reversal-summary-row"><span>وقت التسوية</span><strong>${escapeHtml(formatDisplayDateTime(contextLine.reconciled_at,'—'))}</strong></div>
-          <div class="inventory-settlement-reversal-summary-row is-accent"><span>كمية التحميل الخاطئ (Q)</span><strong>${formatInventorySettlementQuantity(contextLine.correction_quantity)} طن</strong></div>
+          <div class="inventory-settlement-reversal-summary-row is-accent"><span>${contextLine.reason_code==='multiple_reasons'?'إجمالي كميات الأسباب':'كمية التحميل الخاطئ (Q)'}</span><strong>${formatInventorySettlementQuantity(contextLine.correction_quantity)} طن</strong></div>
         </div>
         <section class="inventory-settlement-reversal-stage-card">
           <h4>المرحلة الأولى: ${escapeHtml(inventorySettlementMethodLabel(contextLine.primary_reconciliation_method))}</h4>
