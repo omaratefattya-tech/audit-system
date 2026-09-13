@@ -17243,16 +17243,18 @@ async function icLoadLastUploadBatch(tabKey) {
   }
 
   try {
-    // Order by `id` (primary key — always exists) to avoid 42703 on missing timestamp columns
-    const {data, error} = await WarehouseDB.client
-      .from('inventory_closing_upload_batches')
-      .select('*')
-      .eq('report_key', config.reportKey)
-      .in('status', ['succeeded', 'replaced'])
-      .order('id', { ascending: false })
-      .limit(10);
-
-    if (error) throw error;
+    // Load the complete upload history in deterministic business order.
+    // Do not cap the history to 10 rows and do not order UUID ids as if they were timestamps.
+    const data = await fetchAllRows(
+      'inventory_closing_upload_batches',
+      '*',
+      query => query
+        .eq('report_key', config.reportKey)
+        .in('status', ['succeeded', 'replaced'])
+        .order('report_date', { ascending: false })
+        .order('completed_at', { ascending: false, nullsFirst: false })
+        .order('id', { ascending: false })
+    );
     if (!data || data.length === 0) {
       tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">لا يوجد عمليات رفع سابقة</td></tr>';
       return;
