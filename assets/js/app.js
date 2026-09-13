@@ -91,20 +91,69 @@ function closeActiveApplicationModals(options={}){
   });
   resetAppModalScrollLocks();
 }
+function appModalElementIsVisible(element){
+  if(!element || !element.isConnected || element.closest('[hidden]') || element.closest('[aria-hidden="true"]')) return false;
+  const style=getComputedStyle(element);
+  return style.display!=='none' && style.visibility!=='hidden' && Number(style.opacity)!==0 && element.getClientRects().length>0;
+}
+function appModalLayerScore(element){
+  let score=0;
+  for(let node=element;node && node!==document.body;node=node.parentElement){
+    const value=Number.parseInt(getComputedStyle(node).zIndex,10);
+    if(Number.isFinite(value)) score=Math.max(score,value);
+  }
+  return score;
+}
+function topVisibleApplicationDialog(){
+  const dialogs=[...document.querySelectorAll('[role="dialog"][aria-modal="true"]')].filter(appModalElementIsVisible);
+  dialogs.sort((a,b)=>{
+    const layerDiff=appModalLayerScore(a)-appModalLayerScore(b);
+    if(layerDiff) return layerDiff;
+    if(a===b) return 0;
+    return a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+  });
+  return dialogs.at(-1) || null;
+}
+function appModalEscapeControl(dialog){
+  if(!dialog) return null;
+  const buttons=[...dialog.querySelectorAll('button:not([disabled])')].filter(appModalElementIsVisible);
+  const explicit=buttons.find(button=>button.matches('.app-liquid-modal__close,.modal-close,.department-evaluation-close,[aria-label*="إغلاق"]'));
+  if(explicit) return explicit;
+  return buttons.find(button=>{
+    const values=Object.values(button.dataset || {}).map(value=>String(value||'').toLowerCase());
+    if(values.some(value=>value==='close' || value==='cancel')) return true;
+    const text=String(button.textContent||'').trim();
+    return text==='إغلاق' || text==='إلغاء';
+  }) || null;
+}
+function closeVisibleApplicationDialogByEscape(dialog){
+  if(!dialog) return false;
+  const container=dialog.closest('.app-liquid-modal-backdrop,.modal-backdrop,.department-evaluation-modal') || dialog.parentElement;
+  const close=container?._appModalClose || dialog._appModalClose;
+  if(typeof close==='function'){close();return true;}
+  const control=appModalEscapeControl(dialog);
+  if(control){control.click();return true;}
+  return false;
+}
 document.addEventListener('keydown',event=>{
   const top=topApplicationModalLock();
-  if(!top) return;
-  const [,entry]=top;
+  const [,entry]=top || [];
   const modal=entry?.element;
   if(event.key==='Escape'){
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    const close=modal?._appModalClose || entry?.close;
-    if(typeof close==='function') close();
+    const dialog=topVisibleApplicationDialog();
+    const handled=closeVisibleApplicationDialogByEscape(dialog) || (()=>{
+      const close=modal?._appModalClose || entry?.close;
+      if(typeof close==='function'){close();return true;}
+      return false;
+    })();
+    if(handled){
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    }
     return;
   }
-  if(event.key!=='Tab' || !modal) return;
+  if(!top || event.key!=='Tab' || !modal) return;
   const focusable=appModalFocusableElements(modal);
   if(!focusable.length){event.preventDefault();return;}
   const first=focusable[0],last=focusable[focusable.length-1];
