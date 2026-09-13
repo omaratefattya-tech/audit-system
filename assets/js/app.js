@@ -16427,17 +16427,59 @@ function icCleanHeader(h) {
   return h.trim().replace(/\s+/g, ' ');
 }
 
-function icMapRow(row, headers, sourceRowNumber) {
+function icPadDatePart(value) {
+  return String(value).padStart(2, '0');
+}
+
+function icValidCalendarISO(year, month, day) {
+  const y = Number(year);
+  const m = Number(month);
+  const d = Number(day);
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)) return null;
+  if (y < 1900 || y > 9999 || m < 1 || m > 12 || d < 1 || d > 31) return null;
+  const check = new Date(Date.UTC(y, m - 1, d));
+  if (check.getUTCFullYear() !== y || check.getUTCMonth() + 1 !== m || check.getUTCDate() !== d) return null;
+  return `${String(y).padStart(4, '0')}-${icPadDatePart(m)}-${icPadDatePart(d)}`;
+}
+
+function icExcelSerialCalendarDateToISO(value, date1904 = false) {
+  const serial = Number(value);
+  if (!Number.isFinite(serial)) return null;
+  const wholeDays = Math.floor(serial + 1e-9);
+  // Inventory closing files contain modern calendar dates. Using UTC arithmetic here
+  // deliberately avoids browser/local timezone conversion of Excel date-only cells.
+  const epochMs = date1904 ? Date.UTC(1904, 0, 1) : Date.UTC(1899, 11, 30);
+  const date = new Date(epochMs + (wholeDays * 86400000));
+  return icValidCalendarISO(date.getUTCFullYear(), date.getUTCMonth() + 1, date.getUTCDate());
+}
+
+function icCalendarDateToISO(value, date1904 = false) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'number') return icExcelSerialCalendarDateToISO(value, date1904);
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return icValidCalendarISO(value.getUTCFullYear(), value.getUTCMonth() + 1, value.getUTCDate());
+  }
+
+  const text = String(value).trim();
+  if (!text) return null;
+
+  let match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s].*)?$/);
+  if (match) return icValidCalendarISO(match[1], match[2], match[3]);
+
+  match = text.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if (match) return icValidCalendarISO(match[3], match[2], match[1]);
+
+  return null;
+}
+
+function icMapRow(row, headers, sourceRowNumber, date1904 = false) {
   const getVal = (name) => {
     const idx = headers.indexOf(name);
     return idx > -1 ? row[idx] : null;
   };
-  
-  let tDate = getVal('التاريخ');
-  if (tDate instanceof Date) {
-    tDate = new Date(tDate.getTime() - (tDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-  }
-  
+
+  const tDate = icCalendarDateToISO(getVal('التاريخ'), date1904);
+
   return {
     source_row_number: sourceRowNumber,
     material_code: String(getVal('كود المادة') || '').trim(),
@@ -16449,7 +16491,7 @@ function icMapRow(row, headers, sourceRowNumber) {
     warehouse_code: String(getVal('المخزن') || '').trim(),
     plant_code: String(getVal('المصنع') || '').trim(),
     plant_name: String(getVal('إسم المصنع') || '').trim(),
-    transaction_date: String(tDate || '').trim(),
+    transaction_date: tDate || '',
     worker_group: String(getVal('مجموعة العمال') || '').trim(),
     raw_row: JSON.stringify(row)
   };
@@ -16924,7 +16966,10 @@ async function handleInventoryClosingReportFile(tabKey, file) {
   try {
     if (!window.XLSX) throw new Error('مكتبة Excel غير متوفرة.');
     const arrayBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+    // Keep Excel date cells as raw serial values. Converting them to JavaScript Date
+    // objects first can shift a date-only value by one day through timezone/UTC rules.
+    const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: false });
+    const date1904 = workbook?.Workbook?.WBProps?.date1904 === true;
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     if (!sheet) throw new Error('الملف لا يحتوي على أوراق صالحة.');
@@ -16957,7 +17002,7 @@ async function handleInventoryClosingReportFile(tabKey, file) {
       const row = matrix[i];
       if (!row || row.length === 0 || !row.some(v => v !== null && String(v).trim() !== '')) continue;
       
-      const mapped = icMapRow(row, headers, i + 1);
+      const mapped = icMapRow(row, headers, i + 1, date1904);
       
       if (!mapped.material_code || !mapped.uom || !mapped.movement_type || !mapped.movement_text || !mapped.transaction_date || isNaN(mapped.quantity)) {
         if(isNaN(mapped.quantity)) {
@@ -16966,11 +17011,17 @@ async function handleInventoryClosingReportFile(tabKey, file) {
         throw new Error('يوجد قيم إلزامية مفقودة في الصف رقم ' + (i + 1));
       }
       
-      const d = new Date(mapped.transaction_date);
-      if (isNaN(d.getTime())) {
-        throw new Error('يوجد تاريخ غير صالح في الصف رقم ' + (i + 1) + ': ' + mapped.transaction_date);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(mapped.transaction_date)) {
+        throw new Error('يوجد تاريخ غير صالح في الصف رقم ' + (i + 1) + '. يجب أن يكون تاريخ Excel صالحًا بدون وقت.');
       }
-      mapped.transaction_date = d.toISOString().split('T')[0];
+      if (mapped.transaction_date !== reportDate) {
+        throw new Error(
+          'تاريخ الحركة داخل الملف لا يطابق تاريخ التقرير المختار في الصف رقم ' + (i + 1) +
+          '. تاريخ التقرير: ' + formatDisplayDate(reportDate, reportDate) +
+          '، تاريخ الحركة: ' + formatDisplayDate(mapped.transaction_date, mapped.transaction_date) +
+          '. صحح تاريخ التقرير أو اختر الملف الصحيح.'
+        );
+      }
       
       if (!IC_ALLOWED_UOM.includes(mapped.uom.toUpperCase())) {
          throw new Error('وحدة قياس غير مدعومة في الصف رقم ' + (i + 1) + ': ' + mapped.uom);
