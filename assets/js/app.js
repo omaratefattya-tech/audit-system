@@ -15891,10 +15891,10 @@ function inventoryCountPostCloseLineByName(value){
   return matches.length===1 ? matches[0] : null;
 }
 const INVENTORY_COUNT_POST_CLOSE_SCOPES={
-  sales:{label:'البيع',actions:[['sale','بيع'],['return','مرتجع']]},
-  incoming_transfer:{label:'التحويلات الواردة',actions:[['increase_transfer','زيادة في التحويل'],['shortage_transfer','عجز في التحويل']]},
-  outgoing_transfer:{label:'التحويلات الصادرة',actions:[['increase_transfer','زيادة في التحويل'],['shortage_transfer','عجز في التحويل']]},
-  production:{label:'الإنتاج',actions:[['add_production','إضافة إنتاج'],['deduct_production','خصم إنتاج']]}
+  sales:{label:'البيع',beforeLabel:'كمية البيع قبل',afterLabel:'كمية البيع بعد',stateKey:'sales_quantity',actions:[['sale','بيع'],['return','مرتجع']]},
+  incoming_transfer:{label:'التحويلات الواردة',beforeLabel:'كمية الوارد قبل',afterLabel:'كمية الوارد بعد',stateKey:'incoming_transfers',actions:[['increase_transfer','زيادة في التحويل'],['shortage_transfer','عجز في التحويل']]},
+  outgoing_transfer:{label:'التحويلات الصادرة',beforeLabel:'كمية الصادر قبل',afterLabel:'كمية الصادر بعد',stateKey:'outgoing_transfers',actions:[['increase_transfer','زيادة في التحويل'],['shortage_transfer','عجز في التحويل']]},
+  production:{label:'الإنتاج',beforeLabel:'كمية الإنتاج قبل',afterLabel:'كمية الإنتاج بعد',stateKey:'production_quantity',actions:[['add_production','إضافة إنتاج'],['deduct_production','خصم إنتاج']]}
 };
 const INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER=['sales','incoming_transfer','outgoing_transfer','production'];
 function inventoryCountPostCloseScopeConfig(scope){return INVENTORY_COUNT_POST_CLOSE_SCOPES[String(scope||'')] || null;}
@@ -15958,7 +15958,7 @@ function inventoryCountPostCloseActionOptions(scope){
   const config=inventoryCountPostCloseScopeConfig(scope);
   return '<option value="">اختر الإجراء</option>'+(config?.actions || []).map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
 }
-const INVENTORY_COUNT_POST_CLOSE_UI_BUILD='inv-postclose-firstrow-binding-20260813-1';
+const INVENTORY_COUNT_POST_CLOSE_UI_BUILD='inv-postclose-before-after-columns-20260913-1';
 let INVENTORY_COUNT_POST_CLOSE_ENTRY_SEQ=0;
 function inventoryCountPostCloseBuildLookup(modal){
   if(!modal) return;
@@ -16049,10 +16049,11 @@ function inventoryCountPostCloseBindEntry(entry){
 function inventoryCountPostCloseCreateEntry(scope){
   const tr=document.createElement('tr');
   const entrySeq=++INVENTORY_COUNT_POST_CLOSE_ENTRY_SEQ;
+  const config=inventoryCountPostCloseScopeConfig(scope);
   tr.dataset.postCloseEntry='1';
   tr.dataset.postCloseScope=scope;
   tr.dataset.postCloseRowKey=String(entrySeq);
-  tr.innerHTML=`<td><input type="text" name="post_close_code_${entrySeq}" data-post-close-code list="inventoryCountPostCloseCodeList" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="أدخل كود المادة"></td><td><input type="text" name="post_close_name_${entrySeq}" data-post-close-name list="inventoryCountPostCloseNameList" autocomplete="off" spellcheck="false" placeholder="ابحث باسم الصنف"></td><td><input type="text" data-post-close-uom readonly aria-label="وحدة القياس"></td><td><input type="number" min="0.001" step="0.001" inputmode="decimal" data-post-close-quantity placeholder="0.000"></td><td><div class="inventory-count-post-close-action-cell"><select data-post-close-action>${inventoryCountPostCloseActionOptions(scope)}</select><button class="inventory-count-post-close-remove" type="button" data-post-close-remove aria-label="حذف الصنف">×</button></div></td>`;
+  tr.innerHTML=`<td><input type="text" name="post_close_code_${entrySeq}" data-post-close-code list="inventoryCountPostCloseCodeList" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="أدخل كود المادة"></td><td><input type="text" name="post_close_name_${entrySeq}" data-post-close-name list="inventoryCountPostCloseNameList" autocomplete="off" spellcheck="false" placeholder="ابحث باسم الصنف"></td><td><input type="text" data-post-close-uom readonly aria-label="وحدة القياس"></td><td><input type="number" min="0.001" step="0.001" inputmode="decimal" data-post-close-quantity placeholder="0.000"></td><td><div class="inventory-count-post-close-action-cell"><select data-post-close-action>${inventoryCountPostCloseActionOptions(scope)}</select><button class="inventory-count-post-close-remove" type="button" data-post-close-remove aria-label="حذف الصنف">×</button></div></td><td class="inventory-count-post-close-projection" data-post-close-before aria-label="${config?.beforeLabel||'القيمة قبل'}">—</td><td class="inventory-count-post-close-projection is-after" data-post-close-after aria-label="${config?.afterLabel||'القيمة بعد'}">—</td>`;
   return tr;
 }
 function inventoryCountPostCloseSyncRowControls(modal,scope){
@@ -16101,6 +16102,14 @@ function inventoryCountPostCloseEntryHasInput(entry){
   return ['[data-post-close-code]','[data-post-close-name]','[data-post-close-quantity]','[data-post-close-action]']
     .some(selector=>String(entry.querySelector(selector)?.value || '').trim()!=='');
 }
+function inventoryCountPostCloseSetProjection(entry,beforeValue=null,afterValue=null){
+  if(!entry) return;
+  const before=entry.querySelector('[data-post-close-before]');
+  const after=entry.querySelector('[data-post-close-after]');
+  const format=value=>(value===null || value===undefined || String(value).trim()==='' || !Number.isFinite(Number(value))) ? '—' : formatInventoryCountThreeDecimalQuantity(Number(value));
+  if(before) before.textContent=format(beforeValue);
+  if(after) after.textContent=format(afterValue);
+}
 function inventoryCountPostCloseCollectItems(modal){
   const items=[];
   const errors=[];
@@ -16112,6 +16121,7 @@ function inventoryCountPostCloseCollectItems(modal){
     const entries=[...modal.querySelectorAll(`[data-post-close-panel="${scope}"] [data-post-close-entry]`)];
     entries.forEach((entry,index)=>{
       const row=inventoryCountPostCloseResolveEntry(entry);
+      inventoryCountPostCloseSetProjection(entry);
       if(!inventoryCountPostCloseEntryHasInput(entry)) return;
       activeCount++;
       const rowNumber=index+1;
@@ -16126,6 +16136,8 @@ function inventoryCountPostCloseCollectItems(modal){
         production_quantity:normalizeInventorySettlementNumber(row.production_quantity),
         book_balance:normalizeInventorySettlementNumber(row.book_balance)
       };
+      const beforeValue=normalizeInventorySettlementNumber(base?.[config.stateKey]);
+      inventoryCountPostCloseSetProjection(entry,beforeValue,null);
       const preview=inventoryCountPostClosePreview(base,scope,action,quantity);
       if(!action){errors.push(`${config.label} — الصف ${rowNumber}: اختر الإجراء.`);return;}
       if(!preview.valid){
@@ -16134,6 +16146,7 @@ function inventoryCountPostCloseCollectItems(modal){
         return;
       }
       simulatedByMaterial.set(materialCode,preview.stateAfter);
+      inventoryCountPostCloseSetProjection(entry,preview.beforeValue,preview.afterValue);
       items.push({
         adjustment_scope:scope,
         material_code:materialCode,
@@ -16185,7 +16198,7 @@ function openInventoryCountPostCloseInvoiceModal(){
   modal.dataset.postCloseUiBuild=INVENTORY_COUNT_POST_CLOSE_UI_BUILD;
   const panels=INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER.map(scope=>{
     const config=inventoryCountPostCloseScopeConfig(scope);
-    return `<section class="inventory-count-post-close-panel" data-post-close-panel="${scope}" role="tabpanel"${scope==='sales'?'':' hidden'}><div class="inventory-count-post-close-table-wrap"><table class="inventory-count-post-close-table"><colgroup><col class="post-close-col-code"><col class="post-close-col-name"><col class="post-close-col-uom"><col class="post-close-col-quantity"><col class="post-close-col-action"></colgroup><thead><tr><th>كود المادة</th><th>وصف المادة</th><th>وحدة القياس</th><th>الكمية</th><th>الإجراء</th></tr></thead><tbody></tbody></table></div><div class="inventory-count-post-close-row-tools"><button class="secondary inventory-count-post-close-add-row" type="button" data-post-close-add="${scope}">إضافة صنف</button><span>يمكن إضافة أكثر من صنف في نفس العملية.</span></div></section>`;
+    return `<section class="inventory-count-post-close-panel" data-post-close-panel="${scope}" role="tabpanel"${scope==='sales'?'':' hidden'}><div class="inventory-count-post-close-table-wrap"><table class="inventory-count-post-close-table"><colgroup><col class="post-close-col-code"><col class="post-close-col-name"><col class="post-close-col-uom"><col class="post-close-col-quantity"><col class="post-close-col-action"><col class="post-close-col-before"><col class="post-close-col-after"></colgroup><thead><tr><th>كود المادة</th><th>وصف المادة</th><th>وحدة القياس</th><th>الكمية</th><th>الإجراء</th><th>${config.beforeLabel}</th><th>${config.afterLabel}</th></tr></thead><tbody></tbody></table></div><div class="inventory-count-post-close-row-tools"><button class="secondary inventory-count-post-close-add-row" type="button" data-post-close-add="${scope}">إضافة صنف</button><span>يمكن إضافة أكثر من صنف في نفس العملية.</span></div></section>`;
   }).join('');
   modal.innerHTML=`<div class="inventory-count-post-close-dialog app-liquid-modal">
     <div class="inventory-count-post-close-header app-liquid-modal__header"><div><div class="inventory-count-post-close-eyebrow">الجرد وتوثيق المخزون</div><h2 class="app-liquid-modal__title" id="inventoryCountPostCloseInvoiceTitle">تعديلات بعد إنهاء الجرد</h2></div><button class="app-liquid-modal__close inventory-count-post-close-close" type="button" aria-label="إغلاق">×</button></div>
