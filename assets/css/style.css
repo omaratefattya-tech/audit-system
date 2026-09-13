@@ -105,7 +105,8 @@ table{display:block;overflow-x:auto;white-space:nowrap}
 #settings .permission-settings-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 #settings .permission-settings-fields>label{display:grid;gap:7px;min-width:0;color:#f5fff1;font-weight:800}
 #settings .permission-settings-fields input,#settings .permission-settings-fields textarea{width:100%;min-width:0;font-family:inherit}
-#settings .permission-settings-fields textarea{resize:vertical;line-height:1.65}
+#settings .permission-settings-fields textarea{resize:vertical;line-height:1.65;background:rgba(0,35,27,.9);background-color:rgba(0,35,27,.9);border:1px solid rgba(132,207,80,.52);border-radius:7px;color:#fff;caret-color:#fff;appearance:none;-webkit-appearance:none;color-scheme:dark}
+#settings .permission-settings-fields textarea::placeholder{color:rgba(216,255,209,.58);opacity:1}
 #settings .permission-settings-fields small{color:var(--muted);font-size:11px;font-weight:500;line-height:1.6}
 #settings .permission-settings-field-wide{grid-column:1/-1}
 #settings .permission-settings-active-check{grid-column:1/-1;width:max-content;max-width:100%}
@@ -5246,6 +5247,7 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .inventory-difference-replace-modal{position:fixed;inset:0;z-index:180;display:grid;place-items:center;padding:18px;background:rgba(0,12,10,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
 .inventory-difference-replace-modal[hidden]{display:none!important;}
 .inventory-difference-replace-dialog{width:min(520px,calc(100vw - 28px));border:1px solid rgba(141,220,89,.32);border-radius:22px;background:linear-gradient(145deg,rgba(0,58,43,.94),rgba(0,22,18,.98));box-shadow:0 28px 80px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.08);padding:18px;direction:rtl;color:#f4fff5;display:grid;gap:14px;}
+.inventory-difference-replace-dialog>.app-liquid-modal__close{justify-self:end}
 .inventory-difference-replace-dialog h3{margin:0;color:#dfffce;font-size:18px;}
 .inventory-difference-replace-dialog p{margin:0;line-height:1.7;color:#f4fff5;font-weight:800;}
 .inventory-difference-replace-reason label{display:grid;gap:8px;color:#dfffce;font-weight:900;}
@@ -6894,7 +6896,7 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .app-liquid-modal__title{margin:0;color:#fff;overflow-wrap:anywhere}
 .app-liquid-modal__body{min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;overflow-wrap:anywhere;-webkit-overflow-scrolling:touch}
 .app-liquid-modal__footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;border-top:1px solid rgba(255,255,255,.1)}
-.app-liquid-modal__close{display:inline-grid;place-items:center;min-width:44px;min-height:44px;cursor:pointer}
+.app-liquid-modal__close{display:inline-grid;place-items:center;width:44px;min-width:44px;height:44px;min-height:44px;padding:0;border:1px solid rgba(153,225,95,.46);border-radius:50%;background:linear-gradient(145deg,rgba(2,48,38,.92),rgba(0,24,20,.96));color:#f3ffe9;font-family:inherit;font-size:20px;font-weight:900;line-height:1;box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 8px 22px rgba(0,0,0,.28);appearance:none;-webkit-appearance:none;cursor:pointer;flex:0 0 44px}
 .app-liquid-modal :where(button,input,select,textarea):focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
 .app-liquid-modal__section{border:1px solid rgba(141,220,89,.22);border-radius:16px;background:rgba(255,255,255,.045)}
 .app-liquid-modal__error{border:1px solid rgba(255,92,92,.55);background:rgba(112,11,19,.25);color:#ffd9d9}
