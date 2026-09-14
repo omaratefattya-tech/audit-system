@@ -5303,7 +5303,7 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 #inventoryDifferenceHistoryTable{min-width:1100px;width:100%;}
 #inventoryDifferenceHistoryTable th{background:rgba(70,52,0,.78);color:#ffe9a5;}
 #inventoryDifferenceHistoryTable td{background:rgba(48,36,0,.28);color:#fdf6df;}
-.inventory-difference-replace-modal{position:fixed;inset:0;z-index:180;display:grid;place-items:center;padding:18px;background:rgba(0,12,10,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
+.inventory-difference-replace-modal{position:fixed;inset:0;z-index:12050;display:grid;place-items:center;padding:18px;background:rgba(0,12,10,.62);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
 .inventory-difference-replace-modal[hidden]{display:none!important;}
 .inventory-difference-replace-dialog{width:min(520px,calc(100vw - 28px));border:1px solid rgba(141,220,89,.32);border-radius:22px;background:linear-gradient(145deg,rgba(0,58,43,.94),rgba(0,22,18,.98));box-shadow:0 28px 80px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.08);padding:18px;direction:rtl;color:#f4fff5;display:grid;gap:14px;}
 .inventory-difference-replace-dialog>.app-liquid-modal__close{justify-self:end}
