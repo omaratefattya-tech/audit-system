@@ -23,7 +23,9 @@
   }
   function isFinePointerDoubleClick(event){
     if(event.detail<2 || event.sourceCapabilities?.firesTouchEvents===true) return false;
-    return !window.matchMedia || window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    // Desktop webviews/Electron can report pointer media queries inconsistently.
+    // A genuine dblclick event is sufficient for the hire-date picker; touch remains excluded.
+    return true;
   }
 
   function pad(n){return String(n).padStart(2,'0');}
