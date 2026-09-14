@@ -4148,7 +4148,7 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
 #inventoryCountLinesTable .inventory-physical-balance-input:focus,
 #inventoryCountLinesTable .inventory-oldest-quantity-input:focus,
 #inventoryCountLinesTable .inventory-oldest-date-input:focus,
-#inventoryCountLinesTable .inventory-counter-select:focus {
+#inventoryCountLinesTable .inventory-counter-input:focus {
   position: relative;
   z-index: 5;
 }
@@ -4162,7 +4162,7 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
 }
 
 #inventoryCountLinesTable .inventory-oldest-date-input,
-#inventoryCountLinesTable .inventory-counter-select {
+#inventoryCountLinesTable .inventory-counter-input {
   box-sizing: border-box;
   min-width: 132px;
   max-width: 220px;
@@ -8413,4 +8413,27 @@ body.focus-mode-active .report-workspace-toolbar{position:sticky;top:0;z-index:3
 @media(max-width:700px){.inventory-physical-adjustment-body{grid-template-columns:1fr}.inventory-physical-adjustment-body label:has(textarea){grid-column:auto}.inventory-adjustment-notes-head{display:block}.inventory-adjustment-notes-actions{display:flex;margin-top:10px;overflow-x:auto;flex-wrap:nowrap}.inventory-adjustment-notes-actions button{flex:0 0 auto}}
 .inventory-physical-adjustment-btn.is-settled{border-color:rgba(214,90,103,.55);background:linear-gradient(135deg,rgba(214,90,103,.12),rgba(216,166,45,.08));cursor:help}
 .inventory-book-balance-cell{font-variant-numeric:tabular-nums}.inventory-book-balance-readonly{display:inline-flex;min-width:72px;justify-content:center}
+/* IC-EDITCELLS-01 — editable oldest date and free-text inventory counter */
+#inventoryCountLinesTable .inventory-oldest-date-cell .custom-date-picker {
+  width: 148px;
+  min-width: 148px;
+  margin: 0 auto;
+}
+#inventoryCountLinesTable .inventory-oldest-date-cell .custom-date-picker-display {
+  min-width: 148px;
+  height: 34px;
+  min-height: 34px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+#inventoryCountLinesTable .inventory-counter-input {
+  width: 100%;
+  min-width: 190px;
+  max-width: 260px;
+  min-height: 34px;
+  margin: 0 auto;
+  text-align: right;
+}
 

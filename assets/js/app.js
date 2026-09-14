@@ -12751,9 +12751,21 @@ function formatInventoryDateInputValue(value){
   return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0,10) : '';
 }
 function inventoryCountCounterOptionLabel(option){
-  const name=String(option?.full_name || option?.name || '').trim();
-  const job=String(option?.job_title || '').trim();
-  return job ? `${name} — ${job}` : name;
+  return String(option?.full_name || option?.name || '').trim();
+}
+function inventoryCountEnsureCounterDatalist(){
+  let list=document.getElementById('inventoryCountCounterSuggestions');
+  if(!list){
+    list=document.createElement('datalist');
+    list.id='inventoryCountCounterSuggestions';
+    document.body.appendChild(list);
+  }
+  const names=[...new Set((INVENTORY_COUNT_STATE.inventoryCounterOptions || [])
+    .map(option=>inventoryCountCounterOptionLabel(option))
+    .filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}));
+  list.innerHTML=names.map(name=>`<option value="${escapeHtml(name)}"></option>`).join('');
+  return list;
 }
 let INVENTORY_COUNT_OPENING_BALANCE_MEASURE_CANVAS=null;
 function inventoryCountCssPixels(value){
@@ -12864,7 +12876,7 @@ function renderInventoryOldestQuantityCell(row){
 function renderInventoryOldestDateCell(row){
   const value=formatInventoryDateInputValue(row.oldest_date);
   const lockAttrs=inventoryCountManualControlLockAttributes();
-  return `<td class="inventory-oldest-date-cell"><input class="inventory-oldest-date-input" type="date" data-custom-date-picker data-custom-date-picker-placeholder="أقدم تاريخ" aria-label="أقدم تاريخ" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
+  return `<td class="inventory-oldest-date-cell"><input class="inventory-oldest-date-input" type="date" data-custom-date-picker data-custom-date-picker-editable="true" data-custom-date-picker-placeholder="dd/MM/yyyy" autocomplete="off" aria-label="أقدم تاريخ" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
 }
 function updateInventoryCountFilterOptions(rows=[]){
   const uomSelect=$('#inventoryCountLinesTable thead [data-inventory-filter-key="uom"]');
@@ -14198,21 +14210,9 @@ function renderInventorySettlementCell(row){
 function renderInventoryCounterCell(row){
   const currentId=String(row.inventory_counter_id || '').trim();
   const currentName=String(row.inventory_counter_name_snapshot || '').trim();
-  const currentJob=String(row.inventory_counter_job_title_snapshot || '').trim();
-  const options=INVENTORY_COUNT_STATE.inventoryCounterOptions || [];
-  const hasCurrent=currentId && options.some(option=>String(option.id)===currentId);
-  let html='<option value="">—</option>';
-  if(currentId && !hasCurrent && currentName){
-    const label=currentJob ? `${currentName} — ${currentJob}` : currentName;
-    html += `<option value="${escapeHtml(currentId)}" selected>${escapeHtml(label)}</option>`;
-  }
-  html += options.map(option=>{
-    const id=String(option.id || '');
-    const selected=id===currentId ? ' selected' : '';
-    return `<option value="${escapeHtml(id)}"${selected}>${escapeHtml(inventoryCountCounterOptionLabel(option))}</option>`;
-  }).join('');
   const lockAttrs=inventoryCountManualControlLockAttributes();
-  return `<td class="inventory-counter-cell"><select class="inventory-counter-select" aria-label="القائم بالجرد" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(currentId)}"${lockAttrs}>${html}</select></td>`;
+  inventoryCountEnsureCounterDatalist();
+  return `<td class="inventory-counter-cell"><input class="inventory-counter-input" type="text" list="inventoryCountCounterSuggestions" autocomplete="off" spellcheck="false" aria-label="القائم بالجرد" placeholder="اكتب اسم أمين المخزن" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(currentName)}" data-last-saved-id="${escapeHtml(currentId)}" value="${escapeHtml(currentName)}"${lockAttrs} /></td>`;
 }
 function renderInventoryCountLines(rows=[]){
   const tbody=$('#inventoryCountLinesTable tbody');
@@ -14318,6 +14318,7 @@ async function loadInventoryCountCounterOptions(plantCode=inventoryCountReadInpu
     if(error) throw error;
     INVENTORY_COUNT_STATE.inventoryCounterOptions=(data||[]).filter(row=>String(row.plant_code||'').trim().toUpperCase()===normalizedPlant && row.is_active!==false);
     INVENTORY_COUNT_STATE.inventoryCounterPlantCode=normalizedPlant;
+    inventoryCountEnsureCounterDatalist();
   }finally{
     INVENTORY_COUNT_STATE.inventoryCounterLoading=false;
   }
@@ -15003,47 +15004,51 @@ async function saveInventoryOldestDateInput(input){
     if(window.CustomDatePicker) window.CustomDatePicker.refresh(input);
   }
 }
-async function saveInventoryCounterSelect(select){
+async function saveInventoryCounterInput(input){
   if(!hasCanonicalPermission('inventory.count.line.edit_actual_balance')) return;
   if(inventoryCountBlockManualEditIfSettlementPhaseStarted()) return;
-  if(!select) return;
-  const lineId=select.dataset.lineId || '';
+  if(!input) return;
+  const lineId=input.dataset.lineId || '';
   if(!lineId) return;
-  const currentValue=String(select.value || '').trim();
-  const lastSaved=select.dataset.lastSaved || '';
+  const currentValue=String(input.value || '').trim().replace(/\s+/g,' ');
+  const lastSaved=String(input.dataset.lastSaved || '').trim();
   if(currentValue===lastSaved) return;
   if(INVENTORY_COUNT_STATE.inventoryCounterSaving.has(lineId)) return;
-  const expectedRowVersion=select.dataset.rowVersion ? Number(select.dataset.rowVersion) : null;
+  const expectedRowVersion=input.dataset.rowVersion ? Number(input.dataset.rowVersion) : null;
   INVENTORY_COUNT_STATE.inventoryCounterSaving.add(lineId);
-  select.disabled=true;
+  input.disabled=true;
   try{
-    const {data,error}=await WarehouseDB.client.rpc('save_inventory_count_counter',{
+    const {data,error}=await WarehouseDB.client.rpc('save_inventory_count_counter_text',{
       p_line_id: lineId,
-      p_inventory_counter_id: currentValue || null,
+      p_inventory_counter_name: currentValue || null,
       p_expected_row_version: expectedRowVersion
     });
     if(error) throw error;
+    const savedName=String(data?.inventory_counter_name_snapshot || '').trim();
     const row=INVENTORY_COUNT_STATE.lines.find(x=>String(x.id)===String(lineId));
     if(row){
       row.inventory_counter_id=data?.inventory_counter_id || null;
-      row.inventory_counter_name_snapshot=data?.inventory_counter_name_snapshot || null;
+      row.inventory_counter_name_snapshot=savedName || null;
       row.inventory_counter_job_title_snapshot=data?.inventory_counter_job_title_snapshot || null;
       row.row_version=data?.row_version ?? row.row_version;
     }
-    select.dataset.lastSaved=String(data?.inventory_counter_id || '');
-    select.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
+    input.value=savedName;
+    input.dataset.lastSaved=savedName;
+    input.dataset.lastSavedId=String(data?.inventory_counter_id || '');
+    input.dataset.rowVersion=String(data?.row_version ?? expectedRowVersion ?? '');
     showInventoryCountToast('تم حفظ القائم بالجرد.','success');
     if(INVENTORY_COUNT_STATE.versionId){
       await loadInventoryCountLines(INVENTORY_COUNT_STATE.versionId,INVENTORY_COUNT_STATE.requestSeq);
     }
   }catch(err){
-    select.value=lastSaved;
+    input.value=lastSaved;
     showInventoryCountToast(inventoryCountPhaseLockErrorMessage(err),'error');
   }finally{
     INVENTORY_COUNT_STATE.inventoryCounterSaving.delete(lineId);
-    select.disabled=false;
+    input.disabled=false;
   }
 }
+
 function inventoryCountManualControlDescriptor(control){
   if(!control) return null;
   if(control.matches('.inventory-opening-balance-input')) return {selector:'.inventory-opening-balance-input',save:saveInventoryOpeningBalanceInput,normalize:inventoryCountOpeningBalanceKey,savingSet:INVENTORY_COUNT_STATE.openingBalanceSaving};
@@ -15051,7 +15056,7 @@ function inventoryCountManualControlDescriptor(control){
   if(control.matches('.inventory-physical-balance-input')) return {selector:'.inventory-physical-balance-input',save:saveInventoryPhysicalBalanceInput,normalize:inventoryCountManualThreeDecimalKey,savingSet:INVENTORY_COUNT_STATE.physicalBalanceSaving};
   if(control.matches('.inventory-oldest-quantity-input')) return {selector:'.inventory-oldest-quantity-input',save:saveInventoryOldestQuantityInput,normalize:inventoryCountManualThreeDecimalKey,savingSet:INVENTORY_COUNT_STATE.oldestQuantitySaving};
   if(control.matches('.inventory-oldest-date-input')) return {selector:'.inventory-oldest-date-input',save:saveInventoryOldestDateInput,normalize:value=>formatInventoryDateInputValue(value),savingSet:INVENTORY_COUNT_STATE.oldestDateSaving};
-  if(control.matches('.inventory-counter-select')) return {selector:'.inventory-counter-select',save:saveInventoryCounterSelect,normalize:value=>String(value || '').trim(),savingSet:INVENTORY_COUNT_STATE.inventoryCounterSaving};
+  if(control.matches('.inventory-counter-input')) return {selector:'.inventory-counter-input',save:saveInventoryCounterInput,normalize:value=>String(value || '').trim().replace(/\s+/g,' '),savingSet:INVENTORY_COUNT_STATE.inventoryCounterSaving};
   return null;
 }
 function inventoryCountNextManualControlTarget(control){
@@ -15612,6 +15617,8 @@ function bindInventoryOpeningBalanceEvents(){
     }
     const oldestDateInput=event.target.closest('.inventory-oldest-date-input');
     if(oldestDateInput && table.contains(oldestDateInput)) saveInventoryOldestDateInput(oldestDateInput);
+    const counterInput=event.target.closest('.inventory-counter-input');
+    if(counterInput && table.contains(counterInput)) saveInventoryCounterInput(counterInput);
   });
   table.addEventListener('input',event=>{
     const openingInput=event.target.closest('.inventory-opening-balance-input');
@@ -15651,11 +15658,11 @@ function bindInventoryOpeningBalanceEvents(){
   table.addEventListener('change',event=>{
     const oldestDateInput=event.target.closest('.inventory-oldest-date-input');
     if(oldestDateInput && table.contains(oldestDateInput)) saveInventoryOldestDateInput(oldestDateInput);
-    const counterSelect=event.target.closest('.inventory-counter-select');
-    if(counterSelect && table.contains(counterSelect)) saveInventoryCounterSelect(counterSelect);
+    const counterInput=event.target.closest('.inventory-counter-input');
+    if(counterInput && table.contains(counterInput)) saveInventoryCounterInput(counterInput);
   });
   table.addEventListener('keydown',async event=>{
-    const input=event.target.closest('.inventory-opening-balance-input,.inventory-production-quantity-input,.inventory-physical-balance-input,.inventory-oldest-quantity-input,.inventory-oldest-date-input,.inventory-counter-select');
+    const input=event.target.closest('.inventory-opening-balance-input,.inventory-production-quantity-input,.inventory-physical-balance-input,.inventory-oldest-quantity-input,.inventory-oldest-date-input,.inventory-counter-input');
     if(!input || !table.contains(input) || event.key!=='Enter') return;
     event.preventDefault();
     const nextTarget=inventoryCountNextManualControlTarget(input);

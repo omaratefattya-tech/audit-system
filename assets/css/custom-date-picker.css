@@ -40,6 +40,23 @@
   color: rgba(216, 255, 209, .58);
 }
 
+.custom-date-picker-display.is-editable {
+  cursor: text;
+  direction: ltr;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.custom-date-picker-display.is-editable.is-invalid {
+  border-color: rgba(255, 112, 112, .9);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 0 3px rgba(255, 76, 76, .13);
+}
+
+.custom-date-picker .custom-date-picker-icon.is-clickable {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 .custom-date-picker-icon {
   position: absolute;
   top: 50%;

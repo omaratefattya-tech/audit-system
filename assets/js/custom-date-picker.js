@@ -38,6 +38,29 @@
     if(date.getFullYear()!==y || date.getMonth()!==m-1 || date.getDate()!==d) return null;
     return {year:y,month:m,day:d,date,iso:text};
   }
+  function normalizeDateDigits(value){
+    return String(value||'')
+      .replace(/[٠-٩]/g,ch=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(ch)))
+      .replace(/[۰-۹]/g,ch=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(ch)));
+  }
+  function parseFlexibleDate(value){
+    const text=normalizeDateDigits(value).trim();
+    if(!text) return {empty:true,iso:'',year:null,month:null,day:null};
+    const iso=parseIso(text);
+    if(iso) return {...iso,empty:false};
+    const normalized=text.replace(/[.\-]/g,'/').replace(/\s+/g,'');
+    let match=normalized.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    let d,m,y;
+    if(match){ d=Number(match[1]); m=Number(match[2]); y=Number(match[3]); }
+    else{
+      match=normalized.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+      if(!match) return null;
+      y=Number(match[1]); m=Number(match[2]); d=Number(match[3]);
+    }
+    const date=new Date(y,m-1,d);
+    if(date.getFullYear()!==y || date.getMonth()!==m-1 || date.getDate()!==d) return null;
+    return {year:y,month:m,day:d,date,iso:toIso(y,m,d),empty:false};
+  }
   function toIso(year,month,day){return year+'-'+pad(month)+'-'+pad(day);}
   function displayDate(value,emptyText=''){
     const p=parseIso(value);
@@ -58,16 +81,42 @@
     display.value=displayDate(input.value,'');
     display.placeholder=input.dataset.customDatePickerPlaceholder || 'dd/MM/yyyy';
     display.disabled=!!input.disabled;
+    display.classList.remove('is-invalid');
+    display.removeAttribute('aria-invalid');
+    display.title='';
+  }
+  function commitEditableDisplay(input,display,{silent=false}={}){
+    if(!input || !display || input.dataset.customDatePickerEditable!=='true') return true;
+    const parsed=parseFlexibleDate(display.value);
+    if(!parsed){
+      display.classList.add('is-invalid');
+      display.setAttribute('aria-invalid','true');
+      display.title='اكتب التاريخ بصيغة يوم/شهر/سنة، ويمكن استخدام / أو - أو .';
+      return false;
+    }
+    const nextValue=parsed.empty ? '' : parsed.iso;
+    const changed=input.value!==nextValue;
+    input.value=nextValue;
+    display.value=parsed.empty ? '' : displayDate(nextValue,'');
+    display.classList.remove('is-invalid');
+    display.removeAttribute('aria-invalid');
+    display.title='';
+    if(changed && !silent){
+      input.dispatchEvent(new Event('input',{bubbles:true}));
+      input.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+    return true;
   }
   function createDisplay(input){
     const wrap=document.createElement('span');
     wrap.className='custom-date-picker';
     const display=document.createElement('input');
+    const editable=input.dataset.customDatePickerEditable==='true';
     display.type='text';
-    display.readOnly=true;
-    display.inputMode='none';
+    display.readOnly=!editable;
+    display.inputMode=editable ? 'text' : 'none';
     display.autocomplete='off';
-    display.className='custom-date-picker-display';
+    display.className='custom-date-picker-display'+(editable?' is-editable':'');
     display.setAttribute('aria-label',input.getAttribute('aria-label') || input.dataset.customDatePickerLabel || 'اختيار التاريخ');
     display.setAttribute('aria-haspopup','dialog');
     display.setAttribute('aria-expanded','false');
@@ -84,13 +133,41 @@
     wrap.appendChild(arrow);
     input.type='hidden';
     input.dataset.customDatePickerBound='1';
-    display.addEventListener('click',()=>open(input));
-    display.addEventListener('keydown',event=>{
-      if(event.key==='Enter' || event.key===' ' || event.key==='ArrowDown'){
-        event.preventDefault();
-        open(input);
-      }
-    });
+    if(editable){
+      calendar.classList.add('is-clickable');
+      arrow.classList.add('is-clickable');
+      calendar.addEventListener('mousedown',event=>event.preventDefault());
+      arrow.addEventListener('mousedown',event=>event.preventDefault());
+      calendar.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();open(input);});
+      arrow.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();open(input);});
+      display.addEventListener('input',()=>{display.classList.remove('is-invalid');display.removeAttribute('aria-invalid');display.title='';});
+      display.addEventListener('blur',()=>{
+        if(active?.input===input) return;
+        commitEditableDisplay(input,display);
+      });
+      display.addEventListener('keydown',event=>{
+        if(event.key==='Enter'){
+          event.preventDefault();
+          if(commitEditableDisplay(input,display)) display.blur();
+        }else if(event.key==='ArrowDown' && event.altKey){
+          event.preventDefault();
+          open(input);
+        }else if(event.key==='Escape'){
+          display.value=displayDate(input.value,'');
+          display.classList.remove('is-invalid');
+          display.removeAttribute('aria-invalid');
+          display.title='';
+        }
+      });
+    }else{
+      display.addEventListener('click',()=>open(input));
+      display.addEventListener('keydown',event=>{
+        if(event.key==='Enter' || event.key===' ' || event.key==='ArrowDown'){
+          event.preventDefault();
+          open(input);
+        }
+      });
+    }
     syncDisplay(input);
   }
   function init(root=document){
@@ -203,7 +280,8 @@
     const wrap=input.closest('.custom-date-picker');
     const display=wrap?.querySelector('.custom-date-picker-display');
     if(!display) return;
-    const selected=parseIso(input.value) || parseIso(todayIso());
+    const typed=input.dataset.customDatePickerEditable==='true' ? parseFlexibleDate(display.value) : null;
+    const selected=(typed && !typed.empty ? typed : null) || parseIso(input.value) || parseIso(todayIso());
     const popup=document.createElement('div');
     popup.className='custom-date-picker-popup';
     popup.dir='rtl';
@@ -212,7 +290,7 @@
     popup.setAttribute('aria-label',input.getAttribute('aria-label') || 'اختيار التاريخ');
     document.body.appendChild(popup);
     syncPopupLayer(input,popup);
-    active={input,display,popup,previousValue:input.value||'',previewIso:input.value||'',viewYear:selected.year,viewMonth:selected.month,options:optionsFor(input)};
+    active={input,display,popup,previousValue:input.value||'',previewIso:(typed && !typed.empty ? typed.iso : input.value)||'',viewYear:selected.year,viewMonth:selected.month,options:optionsFor(input)};
     display.setAttribute('aria-expanded','true');
     render(active);
     position(active);
@@ -283,7 +361,7 @@
   });
   window.addEventListener('resize',()=>{if(active) position(active);});
   window.addEventListener('scroll',()=>{if(active) position(active);},true);
-  window.CustomDatePicker={init,configure(input,options={}){configure(input,options);if(input?.dataset.customDatePickerBound==='1')syncDisplay(input);},refresh(target){if(!target)return init(document);if(target.matches?.('input[data-custom-date-picker]')) syncDisplay(target);else init(target);},closeWithin(target,commit=false){if(!active || !target?.contains?.(active.input)) return false;close(commit);return true;},formatDisplayDate:displayDate,isValidIso:value=>!!parseIso(value)};
+  window.CustomDatePicker={init,configure(input,options={}){configure(input,options);if(input?.dataset.customDatePickerBound==='1')syncDisplay(input);},refresh(target){if(!target)return init(document);if(target.matches?.('input[data-custom-date-picker]')) syncDisplay(target);else init(target);},closeWithin(target,commit=false){if(!active || !target?.contains?.(active.input)) return false;close(commit);return true;},formatDisplayDate:displayDate,parseFlexibleDateToIso:value=>parseFlexibleDate(value)?.iso ?? null,isValidIso:value=>!!parseIso(value)};
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>init(document));
   else init(document);
 })();
