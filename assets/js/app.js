@@ -18457,6 +18457,7 @@ function applyDepartmentPersonnelPermissions(){
   if(form)form.classList.toggle('permission-hidden',!canUseForm);
   setElementsDisabled('#departmentPersonnelForm input:not([type="hidden"]),#departmentPersonnelForm select,#saveDepartmentPersonnelBtn',!canUseForm,true);
   const hireDateInput=$('#departmentPersonnelHireDateInput');
+  if(hireDateInput) hireDateInput.disabled=!canUseForm;
   if(window.CustomDatePicker&&hireDateInput){window.CustomDatePicker.configure?.(hireDateInput,{commitOnDoubleClick:true});window.CustomDatePicker.init(hireDateInput.parentElement||form||document);window.CustomDatePicker.refresh(hireDateInput);}
   setElementsDisabled('#cancelDepartmentPersonnelBtn',false,true);
   document.querySelectorAll('#departmentPersonnelTable [data-action]').forEach(button=>{
