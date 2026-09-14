@@ -10882,18 +10882,28 @@ function updateInventoryDifferenceSnapshotButton(){
   updateInventoryCountRefreshButton();
   const btn=$('#createInventoryDifferenceSnapshotBtn');
   if(!btn) return;
-  const canAdd=hasCanonicalPermission('inventory.count.differences.create');
+  const currentVersionId=String(INVENTORY_COUNT_STATE.versionId || '');
+  const contextMatches=String(INVENTORY_COUNT_STATE.settlementContextVersionId || '')===currentVersionId;
+  const hasCurrentSnapshot=!!currentVersionId && contextMatches && !!String(INVENTORY_COUNT_STATE.settlementContextSnapshot?.snapshot_id || '');
+  const canCreate=hasCanonicalPermission('inventory.count.differences.create');
+  const canReplace=hasCanonicalPermission('inventory.differences.document.replace');
+  const canOperate=hasCurrentSnapshot ? canReplace : canCreate;
   const busy=!!INVENTORY_COUNT_STATE.loading || !!INVENTORY_COUNT_STATE.creating || !!INVENTORY_COUNT_STATE.snapshotCreating || !!INVENTORY_COUNT_STATE.refreshSaving || !!INVENTORY_COUNT_STATE.finalizing;
   const ready=!!INVENTORY_COUNT_STATE.documentId && !!INVENTORY_COUNT_STATE.versionId && (INVENTORY_COUNT_STATE.lines || []).length > 0 && INVENTORY_COUNT_STATE.documentStatus !== 'archived';
   const phaseLocked=inventoryCountSettlementPhaseStarted();
   const finalized=inventoryCountIsFinalized();
-  btn.disabled=busy || !canAdd || !ready || phaseLocked || finalized;
-  btn.classList.toggle('permission-disabled',!canAdd || !ready || phaseLocked || finalized);
+  btn.textContent=hasCurrentSnapshot ? 'استبدال مستند فروق الجرد' : 'إنشاء مستند فروق الجرد';
+  btn.disabled=busy || !canOperate || !ready || phaseLocked || finalized;
+  btn.classList.toggle('permission-disabled',!canOperate || !ready || phaseLocked || finalized);
   btn.title=finalized
     ? 'تم إنهاء مستند الجرد؛ لا يمكن إعداد أو استبدال مستند فروق الجرد.'
     : (phaseLocked
       ? 'بدأت مرحلة تسوية فروق الجرد؛ لا يمكن إعداد أو استبدال مستند فروق الجرد بعد أول تسوية.'
-      : (!canAdd ? "غير متاح للصلاحية الحالية" : (!ready ? "افتح مستند جرد يحتوي على أصناف أولاً" : "إنشاء نسخة مصمتة لعرضها في شاشة فروق الجرد")));
+      : (!ready
+        ? 'افتح مستند جرد يحتوي على أصناف أولاً'
+        : (!canOperate
+          ? (hasCurrentSnapshot ? 'لا تملك صلاحية استبدال مستند فروق الجرد الحالي.' : 'لا تملك صلاحية إنشاء مستند فروق الجرد.')
+          : (hasCurrentSnapshot ? 'استبدال مستند فروق الجرد الحالي مع حفظ النسخة السابقة.' : 'إنشاء نسخة مصمتة لعرضها في شاشة فروق الجرد'))));
 }
 function inventoryCountUnresolvedVarianceCount(){
   return (INVENTORY_COUNT_STATE.lines || []).reduce((count,row)=>count+(Math.abs(normalizeInventorySettlementNumber(row?.inventory_variance))>=0.0005 ? 1 : 0),0);
@@ -16269,6 +16279,10 @@ function ensureInventoryDifferenceReplaceModal(){
   return modal;
 }
 function openInventoryDifferenceReplaceConfirm(versionId){
+  if(!hasCanonicalPermission('inventory.differences.document.replace')){
+    showInventoryCountToast('لا تملك صلاحية استبدال مستند فروق الجرد الحالي.','warning',6000);
+    return;
+  }
   if(String(versionId || '')===String(INVENTORY_COUNT_STATE.versionId || '') && inventoryCountSettlementPhaseStarted()){
     showInventoryCountToast(inventoryCountSettlementPhaseLockMessage(),'warning',6000);
     return;
@@ -16310,7 +16324,10 @@ function syncInventoryDifferenceReplaceReason(){
   if(submit) submit.disabled=value.trim().length<5 || value.length>500 || INVENTORY_DIFFERENCE_STATE.replacing;
 }
 async function submitInventoryDifferenceReplacement(){
-  if(!hasCanonicalPermission('inventory.differences.document.replace')) return;
+  if(!hasCanonicalPermission('inventory.differences.document.replace')){
+    showInventoryCountToast('لا تملك صلاحية استبدال مستند فروق الجرد الحالي.','warning',6000);
+    return;
+  }
   const modal=ensureInventoryDifferenceReplaceModal();
   const reason=String(modal.querySelector('#inventoryDifferenceReplaceReason')?.value || '').trim();
   if(reason.length<5){ showInventoryCountToast('سبب الاستبدال مطلوب.','warning',6000); return; }
@@ -16343,8 +16360,19 @@ async function submitInventoryDifferenceReplacement(){
 async function createInventoryDifferenceSnapshotFromUi(){
   if(!WarehouseDB?.ready){ showInventoryCountToast('قاعدة البيانات غير متصلة.','error'); return; }
   if(inventoryCountSettlementPhaseStarted()){ showInventoryCountToast(inventoryCountSettlementPhaseLockMessage(),'warning',6000); return; }
-  if(!hasCanonicalPermission('inventory.count.differences.create')){ showInventoryCountToast('غير متاح للصلاحية الحالية','error'); return; }
   if(!INVENTORY_COUNT_STATE.versionId || !(INVENTORY_COUNT_STATE.lines || []).length){ showInventoryCountToast('افتح مستند جرد يحتوي على أصناف أولًا','warning'); return; }
+  const currentVersionId=String(INVENTORY_COUNT_STATE.versionId || '');
+  const contextMatches=String(INVENTORY_COUNT_STATE.settlementContextVersionId || '')===currentVersionId;
+  const hasCurrentSnapshot=contextMatches && !!String(INVENTORY_COUNT_STATE.settlementContextSnapshot?.snapshot_id || '');
+  if(hasCurrentSnapshot){
+    if(!hasCanonicalPermission('inventory.differences.document.replace')){
+      showInventoryCountToast('يوجد مستند فروق حالي بالفعل، لكن لا تملك صلاحية استبداله.','warning',6500);
+      return;
+    }
+    openInventoryDifferenceReplaceConfirm(currentVersionId);
+    return;
+  }
+  if(!hasCanonicalPermission('inventory.count.differences.create')){ showInventoryCountToast('لا تملك صلاحية إنشاء مستند فروق الجرد.','error'); return; }
   if(INVENTORY_COUNT_STATE.snapshotCreating) return;
   INVENTORY_COUNT_STATE.snapshotCreating=true;
   updateInventoryDifferenceSnapshotButton();
@@ -16352,6 +16380,11 @@ async function createInventoryDifferenceSnapshotFromUi(){
     const {data,error}=await WarehouseDB.client.rpc('create_inventory_difference_snapshot',{p_inventory_version_id:INVENTORY_COUNT_STATE.versionId});
     if(error) throw error;
     if(data && data.status==='snapshot_already_exists'){
+      if(!hasCanonicalPermission('inventory.differences.document.replace')){
+        showInventoryCountToast('يوجد مستند فروق حالي بالفعل، لكن لا تملك صلاحية استبداله.','warning',6500);
+        await refreshInventoryCountSettlementContextIfCurrent(INVENTORY_COUNT_STATE.versionId);
+        return;
+      }
       openInventoryDifferenceReplaceConfirm(INVENTORY_COUNT_STATE.versionId);
       return;
     }
