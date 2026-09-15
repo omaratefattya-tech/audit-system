@@ -532,6 +532,13 @@
             <button class="secondary export-btn" id="salesExportPngBtn" type="button">تصدير PNG</button>
           </div>
           <div class="table-wrap"><table id="salesTable"></table></div>
+          <div id="salesPagination" hidden>
+            <p id="salesPageStatus" class="hint" role="status" aria-live="polite"></p>
+            <div class="export-actions">
+              <button class="secondary" id="salesPagePrev" type="button" aria-controls="salesTable" disabled>الصفحة السابقة</button>
+              <button class="secondary" id="salesPageNext" type="button" aria-controls="salesTable" disabled>الصفحة التالية</button>
+            </div>
+          </div>
         </article>
       </section>
       <section id="inbound" class="section">
@@ -2190,7 +2197,7 @@
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/operation-progress.js?v=p8-1-15-20260909-1"></script>
-  <script src="assets/js/app.js?v=dp-hiredate-02-20260914-1"></script>
+  <script src="assets/js/app.js?v=p10-3-04-20260915-1"></script>
   <script src="assets/js/permission-registry.js?v=ic-refresh-01b-20260913-1"></script>
   <script src="assets/js/permissions.js?v=ic-refresh-01b-20260913-1"></script>
   <script src="assets/js/permission-ui.js?v=p8-1-15-20260909-1"></script>

@@ -493,6 +493,7 @@ function renderPlants(){
   }
 }
 const TABLE_STATE={};
+const SALES_REVIEW_PAGING={enabled:false,ready:false,page:0,pageSize:100,heads:[],rows:[],visible:[]};
 function escapeHtml(v){return String(v??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));}
 function stripHtml(v){const tmp=document.createElement('div');tmp.innerHTML=String(v??'');return (tmp.textContent||tmp.innerText||'').trim();}
 function normalizeArabicDigits(v){return String(v??'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));}
@@ -629,8 +630,15 @@ function table(el,heads,rows){
     const inputAttrs=key==='inboundTable' ? ` data-column-key="${escapeHtml(columnKeys[i])}"` : '';
     return `<th${colAttrs}><input class="col-filter" data-col="${i}"${inputAttrs} value="${escapeHtml(state.filters[i]||'')}" placeholder="بحث ${escapeHtml(h)}" /></th>`;
   }).join('');
-  const bodyHtml=visible.length
-    ? visible.map(r=>`<tr>${heads.map((_,i)=>{ const colAttrs=key==='inboundTable' ? ` data-column-key="${escapeHtml(columnKeys[i])}"` : ''; return `<td${colAttrs}>${r[i]??''}</td>`; }).join('')}</tr>`).join('')
+  let displayRows=visible;
+  if(key==='salesTable' && SALES_REVIEW_PAGING.enabled){
+    const paging=SALES_REVIEW_PAGING;
+    paging.page=Math.min(paging.page,Math.max(0,Math.ceil(visible.length/paging.pageSize)-1));
+    Object.assign(paging,{heads,rows,visible});
+    displayRows=visible.slice(paging.page*paging.pageSize,(paging.page+1)*paging.pageSize);
+  }
+  const bodyHtml=displayRows.length
+    ? displayRows.map(r=>`<tr>${heads.map((_,i)=>{ const colAttrs=key==='inboundTable' ? ` data-column-key="${escapeHtml(columnKeys[i])}"` : ''; return `<td${colAttrs}>${r[i]??''}</td>`; }).join('')}</tr>`).join('')
     : `<tr><td colspan="${heads.length}" class="empty-row">لا توجد بيانات مطابقة</td></tr>`;
   
 function numericCellValue(v){
@@ -648,6 +656,7 @@ let footerHtml='';
   node.querySelectorAll('.sort-btn').forEach(btn=>{
     btn.onclick=()=>{
       const col=Number(btn.dataset.col);
+      if(key==='salesTable') SALES_REVIEW_PAGING.page=0;
       if(state.sortIndex===col) state.sortDir=state.sortDir==='asc'?'desc':'asc';
       else {state.sortIndex=col;state.sortDir='asc';}
       table(el,heads,rows);
@@ -656,6 +665,7 @@ let footerHtml='';
   node.querySelectorAll('.col-filter').forEach(input=>{
     input.oninput=()=>{
       const col=Number(input.dataset.col);
+      if(key==='salesTable') SALES_REVIEW_PAGING.page=0;
       state.filters[col]=input.value;
       const pos=input.selectionStart;
       table(el,heads,rows);
@@ -663,6 +673,7 @@ let footerHtml='';
       if(next){ next.focus(); try{next.setSelectionRange(pos,pos);}catch(_){}}
     };
   });
+  if(key==='salesTable') syncSalesReviewPagination();
   if(key==='inboundTable' && typeof applyInboundColumnVisibility==='function') applyInboundColumnVisibility();
 }
 
@@ -872,6 +883,7 @@ function cleanHeaderText(text){
   return String(text||'').replace(/[▲▼↕]/g,'').replace(/\s+/g,' ').trim();
 }
 function tableExportMatrix(tableId){
+  if(tableId==='salesTable' && SALES_REVIEW_PAGING.enabled) return salesReviewAllVersionsMatrix();
   const tbl=document.getElementById(tableId);
   if(!tbl) return [];
   const header=[...tbl.querySelectorAll('thead tr:first-child th')].map(th=>cleanHeaderText(th.textContent));
@@ -891,7 +903,7 @@ async function saveBlobWithPicker(blob, suggestedName, mimeType){
   if(window.showSaveFilePicker){
     try{
       const lowerName=fileName.toLowerCase();
-      const extension=lowerName.endsWith('.pdf') ? '.pdf' : (lowerName.endsWith('.xlsx') ? '.xlsx' : (lowerName.endsWith('.png') ? '.png' : ''));
+      const extension=lowerName.endsWith('.pdf') ? '.pdf' : (lowerName.endsWith('.xlsx') ? '.xlsx' : (lowerName.endsWith('.png') ? '.png' : (lowerName.endsWith('.zip') ? '.zip' : '')));
       const description=extension==='.pdf' ? 'PDF File' : (extension==='.xlsx' ? 'Excel Workbook' : (extension==='.png' ? 'PNG Image' : 'File'));
       const pickerOptions={
         suggestedName:fileName,
@@ -942,6 +954,7 @@ async function exportTableToExcel(tableId,reportTitle){
   await logSystemActivity(activityExportSection(reportTitle),'تصدير Excel',`تصدير ${reportTitle} Excel`);
 }
 async function exportTableToPdf(tableId,reportTitle){
+  if(tableId==='salesTable' && SALES_REVIEW_PAGING.enabled) return exportSalesReviewAllVersions('pdf');
   const matrix=tableExportMatrix(tableId);
   if(!matrix.length || matrix.length===1){ alert('لا توجد بيانات للتصدير.'); return; }
   const Html2Canvas=window.html2canvas;
@@ -1069,6 +1082,7 @@ function prepareSalesReviewExportTable(sourceTable){
   return clone;
 }
 async function exportSalesReviewPng(){
+  if(SALES_REVIEW_PAGING.enabled) return exportSalesReviewAllVersions('png');
   const tableEl=$('#salesTable');
   if(!tableEl){ alert('لم يتم العثور على جدول مراجعة البيع.'); return; }
   const rows=[...tableEl.querySelectorAll('tbody tr')].filter(row=>!row.querySelector('.empty-row'));
@@ -4467,6 +4481,164 @@ function initSalesUploader(){
     dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files?.[0];if(f)handleSalesFile(f)};
   }
 }
+// P10.3-04: bounded API requests; publish only a complete report.
+// Ordering covers the view's group key within the selected warehouse.
+async function fetchSalesReviewAllVersions(warehouseCode,operation){
+  const all=[],seen=new Set(),pageSize=500,start=salesPerfNow();
+  let expected=null,pages=0;
+  const checkCurrent=()=>{
+    if(operation.signal.aborted) throw new DOMException('Aborted','AbortError');
+    const plant=warehouseMetaByCode(warehouseCode)?.plant_code;
+    if(!applicationBusinessDataReady() || activeSalesWarehouse!==warehouseCode || activeSalesReportDate || !window.PermissionRuntime?.can('sales_review.view',plant || [])){
+      throw new Error('Sales report context changed');
+    }
+  };
+  do{
+    checkCurrent();
+    let query=WarehouseDB.client.from('sales_audit_report');
+    query=expected===null ? query.select('*',{count:'exact'}) : query.select('*');
+    const {data,error,count}=await query.eq('warehouse_code',warehouseCode)
+      .order('material_code').order('report_date').order('batch_id').order('plant_code')
+      .range(all.length,all.length+pageSize-1).abortSignal(operation.signal);
+    checkCurrent();
+    if(error) throw error;
+    if(!Array.isArray(data)) throw new Error('Missing sales page');
+    if(expected===null){
+      if(!Number.isSafeInteger(count) || count<0) throw new Error('Missing exact sales count');
+      expected=count;
+    }
+    if(data.length>pageSize || all.length+data.length>expected || (!data.length && all.length<expected)) throw new Error('Incomplete or changed sales report');
+    for(const row of data){
+      const key=JSON.stringify([row.batch_id,row.report_date,row.plant_code,row.warehouse_code,row.material_code]);
+      if(row.warehouse_code!==warehouseCode || seen.has(key)) throw new Error('Repeated or invalid sales page');
+      seen.add(key);all.push(row);
+    }
+    pages++;
+    operation.report(all.length,expected,`تحميل كل النسخ: ${all.length} من ${expected} صف`);
+    // Advance by actual returned rows: a lower API limit is not end-of-data.
+  }while(all.length<expected);
+  checkCurrent();
+  const {count,error}=await WarehouseDB.client.from('sales_audit_report')
+    .select('*',{count:'exact',head:true}).eq('warehouse_code',warehouseCode).abortSignal(operation.signal);
+  checkCurrent();
+  if(error) throw error;
+  if(count!==expected) throw new Error('Sales report changed while loading; reload');
+  SALES_REVIEW_PAGING.measurement={warehouseCode,pages,sourceRows:all.length,expectedRows:expected,fetchMs:salesPerfMs(start),complete:true};
+  salesPerfLog('salesReviewAllVersions',start,SALES_REVIEW_PAGING.measurement);
+  return all;
+}
+function resetSalesReviewPagination(){
+  Object.assign(SALES_REVIEW_PAGING,{enabled:false,ready:false,page:0,heads:[],visible:[],rows:[],measurement:null});
+  const pager=$('#salesPagination');
+  if(pager) pager.hidden=true;
+}
+function syncSalesReviewPagination(){
+  const state=SALES_REVIEW_PAGING,pager=$('#salesPagination');
+  if(!pager) return;
+  pager.hidden=!state.enabled;
+  const busy=window.AppOperationProgress?.isBusy('screen:sales') || window.AppOperationProgress?.isBusy('export:sales-all');
+  const pages=Math.max(1,Math.ceil(state.visible.length/state.pageSize));
+  const count=state.visible.length,from=count ? state.page*state.pageSize+1 : 0,to=Math.min((state.page+1)*state.pageSize,count);
+  $('#salesPageStatus').textContent=state.ready
+    ? `عرض ${from}–${to} من ${count} صف — الصفحة ${state.page+1} من ${pages}. الإجمالي والتصدير لكل النتائج المطابقة.`
+    : 'لم يكتمل تحميل التقرير. أعد اختيار المخزن للمحاولة مرة أخرى.';
+  for(const [id,delta,edge] of [['salesPagePrev',-1,state.page===0],['salesPageNext',1,state.page>=pages-1]]){
+    const button=$('#'+id);
+    button.disabled=!!busy || !state.ready || edge;
+    button.onclick=()=>{
+      const plant=warehouseMetaByCode(activeSalesWarehouse)?.plant_code;
+      if(button.disabled || !applicationBusinessDataReady() || !window.PermissionRuntime?.can('sales_review.view',plant || [])) return;
+      state.page+=delta;
+      table('#salesTable',state.heads,state.rows);
+    };
+  }
+}
+function salesReviewAllVersionsMatrix(){
+  const state=SALES_REVIEW_PAGING;
+  if(!state.ready || !applicationBusinessDataReady()) return [];
+  const plant=warehouseMetaByCode(activeSalesWarehouse)?.plant_code;
+  if(!window.PermissionRuntime?.can('sales_review.view',plant || [])) return [];
+  const header=state.heads.map(cleanHeaderText);
+  const rows=state.visible.map(row=>row.map(cell=>stripHtml(cell).replace(/\s+/g,' ').trim()));
+  if(!rows.length) return [header];
+  // Use the canonical footer, calculated from ALL filtered rows by table().
+  const total=[...$('#salesTable').querySelectorAll('tfoot td')].flatMap(td=>[
+    td.textContent.trim(),...Array(Math.max(0,Number(td.colSpan)-1)).fill('')
+  ]);
+  return [header,...rows,total];
+}
+// Store-only ZIP keeps each PNG page independent of browser canvas height limits.
+function salesReviewPngZip(files){
+  const encoder=new TextEncoder(),parts=[],central=[];
+  const crcTable=Array.from({length:256},(_,n)=>{let c=n;for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xedb88320:0);return c>>>0;});
+  let offset=0,centralSize=0;
+  for(const file of files){
+    const name=encoder.encode(file.name),data=file.data;
+    let crc=0xffffffff;
+    for(const byte of data) crc=(crc>>>8)^crcTable[(crc^byte)&255];
+    crc=(crc^0xffffffff)>>>0;
+    const local=new Uint8Array(30+name.length),lv=new DataView(local.buffer);
+    lv.setUint32(0,0x04034b50,true);lv.setUint16(4,20,true);lv.setUint16(6,0x800,true);
+    lv.setUint16(12,33,true);lv.setUint32(14,crc,true);lv.setUint32(18,data.length,true);lv.setUint32(22,data.length,true);lv.setUint16(26,name.length,true);local.set(name,30);
+    const entry=new Uint8Array(46+name.length),cv=new DataView(entry.buffer);
+    cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);cv.setUint16(8,0x800,true);
+    cv.setUint16(14,33,true);cv.setUint32(16,crc,true);cv.setUint32(20,data.length,true);cv.setUint32(24,data.length,true);cv.setUint16(28,name.length,true);cv.setUint32(42,offset,true);entry.set(name,46);
+    parts.push(local,data);central.push(entry);offset+=local.length+data.length;centralSize+=entry.length;
+  }
+  if(files.length>65535 || offset+centralSize>0xffffffff) throw new Error('PNG archive too large');
+  const end=new Uint8Array(22),ev=new DataView(end.buffer);
+  ev.setUint32(0,0x06054b50,true);ev.setUint16(8,files.length,true);ev.setUint16(10,files.length,true);ev.setUint32(12,centralSize,true);ev.setUint32(16,offset,true);
+  return new Blob([...parts,...central,end],{type:'application/zip'});
+}
+async function exportSalesReviewAllVersions(format){
+  const matrix=salesReviewAllVersionsMatrix();
+  if(matrix.length<3){alert('لا توجد بيانات مكتملة للتصدير.');return;}
+  const plant=warehouseMetaByCode(activeSalesWarehouse)?.plant_code;
+  if(!window.PermissionRuntime?.can(`sales_review.export_${format}`,plant || [])) return;
+  const Html2Canvas=window.html2canvas,JsPDF=window.jspdf?.jsPDF || window.jsPDF;
+  if(!Html2Canvas || (format==='pdf' && !JsPDF)){alert('مكتبة التصدير غير محملة.');return;}
+  const warehouse=currentSalesReviewWarehouseLabel(),code=String(activeSalesWarehouse).replace(/[^a-zA-Z0-9_-]/g,'_');
+  return window.AppOperationProgress.run('export:sales-all','تصدير مراجعة البيع',async operation=>{
+    const header=matrix[0],rows=matrix.slice(1,-1),total=matrix.at(-1),pageSize=25,pages=Math.ceil(rows.length/pageSize);
+    const files=[],pdf=format==='pdf'?new JsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true}):null;
+    const layer=document.createElement('section');
+    layer.className='export-capture';layer.dir='rtl';layer.lang='ar';layer.setAttribute('aria-hidden','true');
+    layer.style.cssText='position:fixed;left:0;top:0;z-index:-1;width:1600px;padding:24px;box-sizing:border-box;background:#fff;color:#111;font-family:Cairo,Arial,sans-serif;pointer-events:none;';
+    document.body.appendChild(layer);
+    try{
+      if(document.fonts?.ready) await document.fonts.ready;
+      for(let page=0;page<pages;page++){
+        if(operation.signal.aborted) return;
+        const part=rows.slice(page*pageSize,(page+1)*pageSize);
+        const body=page===pages-1?[...part,total]:part;
+        layer.innerHTML=`<h2 style="margin:0;text-align:center">مراجعة البيع والتحويلات — كل النسخ المتاحة</h2><p style="text-align:center">${escapeHtml(warehouse)} — صفحة ${page+1} من ${pages} — ${rows.length} صف مطابق</p><table data-no-universal-table="1" style="width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed;color:#111"><thead><tr>${header.map(h=>`<th style="padding:8px;border:1px solid #777;background:#dff1d8;color:#111;white-space:normal">${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${body.map(row=>`<tr>${header.map((_,i)=>`<td style="padding:7px;border:1px solid #777;background:#fff;color:#111;white-space:normal;overflow-wrap:anywhere">${escapeHtml(row[i]??'')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        if(operation.signal.aborted) return;
+        const canvas=await Html2Canvas(layer,{scale:1.5,useCORS:true,backgroundColor:'#fff',logging:false,scrollX:0,scrollY:0,width:layer.scrollWidth,height:layer.scrollHeight,windowWidth:layer.scrollWidth,windowHeight:layer.scrollHeight});
+        if(operation.signal.aborted) return;
+        if(pdf){
+          if(page) pdf.addPage('a4','landscape');
+          const width=pdf.internal.pageSize.getWidth()-14,height=pdf.internal.pageSize.getHeight()-14;
+          const ratio=Math.min(width/canvas.width,height/canvas.height);
+          pdf.addImage(canvas.toDataURL('image/jpeg',0.95),'JPEG',7,7,canvas.width*ratio,canvas.height*ratio,undefined,'FAST');
+        }else{
+          const blob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error('PNG generation failed')),'image/png'));
+          files.push({name:`sales-${code}-${String(page+1).padStart(4,'0')}.png`,data:new Uint8Array(await blob.arrayBuffer())});
+        }
+        canvas.width=0;canvas.height=0;
+        operation.report(page+1,pages,`تجهيز صفحة ${page+1} من ${pages}`);
+      }
+      if(operation.signal.aborted) return;
+      const blob=pdf?pdf.output('blob'):salesReviewPngZip(files);
+      // The save helper uses the supplied Blob type for the fallback download.
+      await saveBlobWithPicker(blob,`sales-${code}-all-${todayISO()}.${pdf?'pdf':'zip'}`,pdf?'application/pdf':'application/zip');
+      await logSystemActivity('مراجعة البيع',`تصدير ${format.toUpperCase()}`,`كل النسخ المتاحة: ${rows.length} صف، ${pages} صفحة`);
+    }catch(error){
+      if(!operation.signal.aborted){operation.fail(error);console.error(error);alert('تعذر إكمال التصدير. حاول مرة أخرى.');}
+    }finally{layer.remove();}
+  },{scope:'#sales',controls:'#sales button,#sales input,#sales select'}).finally(syncSalesReviewPagination);
+}
+
 async function loadSalesReport(warehouseCode){
   if(!applicationBusinessDataReady()) return;
   return window.AppOperationProgress.run('screen:sales','مراجعة البيع',async operation=>{
@@ -4475,12 +4647,32 @@ async function loadSalesReport(warehouseCode){
   if(!window.PermissionRuntime?.can('sales_review.view',plant || [])) return;
   activeSalesWarehouse=warehouseCode;
   if(!WarehouseDB?.ready){ return; }
-  let query=WarehouseDB.client.from('sales_audit_report').select('*').eq('warehouse_code',warehouseCode);
-  if(activeSalesReportDate) query=query.eq('report_date',activeSalesReportDate);
-  const {data,error}=await query.order('material_code').abortSignal(operation.signal);
-  if(operation.signal.aborted)return;
-  if(error){ operation.fail(error);console.error(error); return; }
+  const allVersions=!activeSalesReportDate,loadStart=allVersions?salesPerfNow():null;
+  if(SALES_REVIEW_PAGING.enabled) $('#salesTable').innerHTML='';
+  resetSalesReviewPagination();
+  let data;
+  if(allVersions){
+    SALES_REVIEW_PAGING.enabled=true;
+    // Never display/export the previous warehouse or a partially fetched report.
+    $('#salesTable').innerHTML='';
+    try{
+      data=await fetchSalesReviewAllVersions(warehouseCode,operation);
+    }catch(error){
+      if(!operation.signal.aborted){operation.fail(error);console.error(error);}
+      return;
+    }
+  }else{
+    // The measured single-day request is unchanged.
+    let query=WarehouseDB.client.from('sales_audit_report').select('*').eq('warehouse_code',warehouseCode);
+    if(activeSalesReportDate) query=query.eq('report_date',activeSalesReportDate);
+    const result=await query.order('material_code').abortSignal(operation.signal);
+    if(operation.signal.aborted)return;
+    if(result.error){ operation.fail(result.error);console.error(result.error); return; }
+    data=result.data;
+  }
   const catalog=await loadSalesReviewCatalog();
+  if(operation.signal.aborted || !applicationBusinessDataReady()) return;
+  if(allVersions && (activeSalesWarehouse!==warehouseCode || activeSalesReportDate || !window.PermissionRuntime?.can('sales_review.view',plant || []))) return;
   const rows=filterSalesReviewRows(data||[],catalog).map(r=>[
     escapeHtml(r.material_code),
     escapeHtml(r.material_name),
@@ -4492,8 +4684,13 @@ async function loadSalesReport(warehouseCode){
     fmt(r.incoming_transfer_quantity),
     fmt(r.total_loading_quantity)
   ]);
+  if(allVersions) SALES_REVIEW_PAGING.ready=true;
   table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحميل'],rows);
-  },{scope:'#sales',controls:'#sales button,#sales input,#sales select'});
+  if(allVersions){
+    Object.assign(SALES_REVIEW_PAGING.measurement,{reportRows:rows.length,loadAndRenderMs:salesPerfMs(loadStart)});
+    console.log('[P10.3-04]',{...SALES_REVIEW_PAGING.measurement,displayedRows:$('#salesTable tbody').rows.length});
+  }
+  },{scope:'#sales',controls:'#sales button,#sales input,#sales select'}).finally(syncSalesReviewPagination);
 }
 renderTabs = function(){
   $('#salesTabs').innerHTML=SALES_WAREHOUSES.map((w,i)=>`<button class="${i===0?'active':''}" data-warehouse="${w}">${w}</button>`).join('');
@@ -6126,6 +6323,7 @@ function showLoginScreen(){
   APPLICATION_VIEW_RESTORED_USER_ID='';
   resetApplicationBusinessLoadState();
   window.AppOperationProgress?.cancelAll();
+  resetSalesReviewPagination();
   clearUnifiedSalesRowsCache();
   CURRENT_AUTH_USER=null;
   CURRENT_APP_PROFILE=null;
