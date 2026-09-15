@@ -3547,7 +3547,7 @@ function auditStatusCell(value,status){
   const map={green:'#0f5f35',red:'#7a1f1f',yellow:'#7a6a1f',gold:'#b98612',blue:'#145da0',neutral:'transparent'};
   const color=map[status]||map.neutral;
   const glow=status==='gold' ? 'box-shadow:0 0 12px rgba(241,191,48,.85);border:1px solid rgba(255,225,120,.9);font-weight:800;' : '';
-  return `<span style="display:block;padding:6px 8px;border-radius:8px;background:${color};color:#fff;${glow}">${value ?? '-'}</span>`;
+  return `<span style="display:block;padding:6px 8px;border-radius:8px;background:${color};color:#fff;${glow}">${escapeHtml(value ?? '-')}</span>`;
 }
 function normalizePlantCodeForAudit(value, warehouseCode=''){
   const v=normKey(value);
@@ -3901,10 +3901,10 @@ async function loadSalesBatches(){
   }
   const rows=(data||[]).map(b=>[
     formatDisplayDate(b.report_date,'-'),
-    b.file_name || '-',
+    escapeHtml(b.file_name || '-'),
     Number(b.row_count||0).toLocaleString('en-US'),
     formatFileSize(b.file_size_bytes),
-    b.uploaded_by_name || b.uploaded_by || '-',
+    escapeHtml(b.uploaded_by_name || b.uploaded_by || '-'),
     formatDisplayDateTime(b.upload_date,'-'),
     `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض</button>
      <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
@@ -4024,10 +4024,10 @@ async function loadIncomingBatches(){
   }
   const rows=(data||[]).map(b=>[
     formatDisplayDate(b.report_date,'-'),
-    b.file_name || '-',
+    escapeHtml(b.file_name || '-'),
     Number(b.row_count||0).toLocaleString('en-US'),
     formatFileSize(b.file_size_bytes),
-    b.uploaded_by_name || b.uploaded_by || '-',
+    escapeHtml(b.uploaded_by_name || b.uploaded_by || '-'),
     formatDisplayDateTime(b.upload_date,'-'),
     `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض</button>
      <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
@@ -4139,10 +4139,10 @@ async function loadScaleBatches(){
   }
   const rows=(data||[]).map(b=>[
     formatDisplayDate(b.report_date,'-'),
-    b.file_name || '-',
+    escapeHtml(b.file_name || '-'),
     Number(b.row_count||0).toLocaleString('en-US'),
     formatFileSize(b.file_size_bytes),
-    b.uploaded_by_name || b.uploaded_by || '-',
+    escapeHtml(b.uploaded_by_name || b.uploaded_by || '-'),
     formatDisplayDateTime(b.upload_date,'-'),
     `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض المراجعة</button>
      <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
@@ -4315,7 +4315,7 @@ async function loadInboundAuditReport(date='',options={}){
     }else if(movementStatus==='gold'){
       statuses=values.map((_,i)=> i>=values.length-3 ? freightStatus : 'gold');
     }
-    return values.map((v,i)=>statuses[i]==='neutral' ? v : auditStatusCell(v,statuses[i]));
+    return values.map((v,i)=>statuses[i]==='neutral' ? escapeHtml(v) : auditStatusCell(v,statuses[i]));
   });
   table('#inboundTable',heads,rows);
   };
@@ -4382,12 +4382,12 @@ async function loadFreightBatches(){
   if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل سجل نولون الوارد: ${escapeHtml(String(error.message))}</td></tr></tbody>`; return; }
   const rows=(data||[]).map(b=>[
     formatDisplayDate(b.reference_date,'-'),
-    b.file_name || '-',
+    escapeHtml(b.file_name || '-'),
     Number(b.row_count||0).toLocaleString('en-US'),
     formatFileSize(b.file_size_bytes),
-    b.uploaded_by_name || b.uploaded_by || '-',
+    escapeHtml(b.uploaded_by_name || b.uploaded_by || '-'),
     formatDisplayDateTime(b.upload_date,'-'),
-    b.status || '-',
+    escapeHtml(b.status || '-'),
     `<button class="small-action view" data-action="view">عرض المرجع الحالي</button>
      <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.reference_date)}">حذف</button>`
   ]);
@@ -4405,10 +4405,10 @@ async function loadFreightRates(){
     .order('freight_description',{ascending:true});
   if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل مرجع النولون: ${escapeHtml(String(error.message))}</td></tr></tbody>`; return; }
   const rows=(data||[]).map(r=>[
-    r.freight_description || '-',
-    r.goods_type || '-',
-    r.plant_code || '-',
-    r.vehicle_description || '-',
+    escapeHtml(r.freight_description || '-'),
+    escapeHtml(r.goods_type || '-'),
+    escapeHtml(r.plant_code || '-'),
+    escapeHtml(r.vehicle_description || '-'),
     fmt(r.rate_per_ton || 0),
     r.is_active ? 'نشط' : 'غير نشط',
     formatDisplayDateTime(r.updated_at,'-')
@@ -7782,12 +7782,12 @@ async function loadRawMaterialsUploadBatch(key){
     .limit(1);
   if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل آخر رفع: ${escapeHtml(String(error.message))}</td></tr></tbody>`; return; }
   const rows=(data||[]).map(b=>[
-    b.file_name || '-',
+    escapeHtml(b.file_name || '-'),
     Number(b.row_count||0).toLocaleString('en-US'),
     formatFileSize(b.file_size_bytes),
-    b.uploaded_by_name || b.uploaded_by || '-',
+    escapeHtml(b.uploaded_by_name || b.uploaded_by || '-'),
     formatDisplayDateTime(b.upload_date,'-'),
-    b.status || '-'
+    escapeHtml(b.status || '-')
   ]);
   table('#'+config.tableId,['اسم الملف','عدد الصفوف','الحجم','الرافع','تاريخ الرفع','الحالة'],rows);
 }
