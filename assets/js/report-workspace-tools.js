@@ -793,7 +793,8 @@
     const display=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(normalized);
     if(/تاريخ|اليوم/.test(header||'') && (iso||display)){
       const parts=iso?[+iso[1],+iso[2],+iso[3]]:[+display[3],+display[2],+display[1]];
-      return new Date(Date.UTC(parts[0],parts[1]-1,parts[2]));
+      const serial=(Date.UTC(parts[0],parts[1]-1,parts[2])-Date.UTC(1899,11,30))/86400000;
+      return {t:'n',v:serial,z:'dd/mm/yyyy'};
     }
     if(/كود|الموقع|المصنع|الهاتف|التليفون/.test(header||'')) return raw;
     const numeric=normalized.replace(/,/g,'').replace(/%$/,'').replace(/^\+/,'');
@@ -831,6 +832,7 @@
       fill:{patternType:'solid',fgColor:{rgb:fill||(isHeader?'FF06452F':'FFF7FBF8')}}
     };
     const exportType=text(sourceCell?.getAttribute?.('data-export-type'));
+    if(cell.t==='n'&&cell.z==='dd/mm/yyyy') return;
     if(cell.v instanceof Date) cell.z='dd/mm/yyyy';
     else if(typeof cell.v==='number'&&exportType==='percentage') cell.z='0.00%';
     else if(typeof cell.v==='number'&&exportType==='rating') cell.z='0.00';
@@ -855,7 +857,7 @@
     if(!descriptor.tables.length) aoa.push(['لا توجد بيانات']);
     const sheet=window.XLSX.utils.aoa_to_sheet(aoa,{cellDates:true,dateNF:'dd/mm/yyyy'});
     sheet['!rtl']=true;
-    sheet['!cols']=Array.from({length:maxColumns},(_,column)=>({wch:column<descriptor.freezeColumns?22:Math.min(38,Math.max(13,...aoa.map(row=>text(row[column]).length+2)))}));
+    sheet['!cols']=Array.from({length:maxColumns},(_,column)=>({wch:column<descriptor.freezeColumns?22:Math.min(38,Math.max(13,...aoa.map(row=>row[column]?.z==='dd/mm/yyyy'?38:text(row[column]).length+2)))}));
     sheet['!rows']=aoa.map((_,index)=>({hpt:index<2?24:20}));
     sheet['!merges']=[{s:{r:0,c:0},e:{r:0,c:maxColumns-1}},{s:{r:1,c:0},e:{r:1,c:maxColumns-1}}];
     sheet['!freeze']={xSplit:descriptor.freezeColumns||0,ySplit:tableRecords[0]?.headerRow+1||1,topLeftCell:window.XLSX.utils.encode_cell({r:tableRecords[0]?.headerRow+1||1,c:descriptor.freezeColumns||0}),activePane:'bottomRight',state:'frozen'};
