@@ -3392,6 +3392,70 @@ function initAuthPanel(){
   logoutBtn.onclick=async()=>{ await logSystemActivity('المستخدمين','تسجيل خروج',`تسجيل خروج: ${CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'المستخدم الحالي'}`); await WarehouseDB.signOut(); updateAuthStatus(); };
   updateAuthStatus();
 }
+const EXCEL_UPLOAD_WORKER_URL='assets/js/excel-parser-worker.js?v=p10-f05-20260916-1';
+function excelWorkerInfrastructureError(message,originalError){
+  const error=new Error(message || 'تعذر تشغيل معالج Excel في الخلفية.');
+  error.excelWorkerInfrastructure=true;
+  if(originalError) error.cause=originalError;
+  return error;
+}
+function parseExcelBufferOnMainThread(arrayBuffer,mode,options={}){
+  if(!window.XLSX) throw new Error('مكتبة Excel غير محملة.');
+  if(mode==='rows'){
+    const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
+    return {rows:rowsFromWorkbook(workbook)};
+  }
+  if(mode==='raw_materials'){
+    const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
+    const sheetName=String(options.sheetName || 'Data');
+    const sheet=workbook.Sheets[sheetName];
+    if(!sheet) return {sheetMissing:true,sheetName};
+    return {sheetMissing:false,sheetName,...rawMaterialsSheetMatrix(sheet)};
+  }
+  if(mode==='inventory_closing'){
+    const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:false});
+    const date1904=workbook?.Workbook?.WBProps?.date1904===true;
+    const sheetName=workbook.SheetNames[0];
+    const sheet=workbook.Sheets[sheetName];
+    if(!sheet) throw new Error('الملف لا يحتوي على أوراق صالحة.');
+    return {matrix:XLSX.utils.sheet_to_json(sheet,{header:1,defval:null}),date1904};
+  }
+  throw new Error('نوع تحليل Excel غير مدعوم.');
+}
+function parseExcelBufferWithWorker(arrayBuffer,mode,options={}){
+  return new Promise((resolve,reject)=>{
+    let worker;
+    try{ worker=new Worker(EXCEL_UPLOAD_WORKER_URL); }
+    catch(err){ reject(excelWorkerInfrastructureError('تعذر بدء معالج Excel في الخلفية.',err)); return; }
+    const finish=()=>{ try{ worker.terminate(); }catch(_){} };
+    worker.onmessage=event=>{
+      const payload=event?.data || {};
+      finish();
+      if(payload.ok){ resolve(payload.result); return; }
+      const error=new Error(payload.error || 'تعذر تحليل ملف Excel.');
+      if(payload.kind==='infrastructure') error.excelWorkerInfrastructure=true;
+      reject(error);
+    };
+    worker.onerror=event=>{
+      finish();
+      reject(excelWorkerInfrastructureError(event?.message || 'تعذر تحميل معالج Excel في الخلفية.'));
+    };
+    try{ worker.postMessage({buffer:arrayBuffer,mode,options},[arrayBuffer]); }
+    catch(err){ finish();reject(excelWorkerInfrastructureError('تعذر إرسال ملف Excel إلى المعالج الخلفي.',err)); }
+  });
+}
+async function readExcelUpload(file,mode,options={}){
+  if(typeof Worker==='function'){
+    const workerBuffer=await file.arrayBuffer();
+    try{ return await parseExcelBufferWithWorker(workerBuffer,mode,options); }
+    catch(err){
+      if(!err?.excelWorkerInfrastructure) throw err;
+      console.warn('Excel worker unavailable; using the existing main-thread parser.',err);
+    }
+  }
+  const fallbackBuffer=await file.arrayBuffer();
+  return parseExcelBufferOnMainThread(fallbackBuffer,mode,options);
+}
 function rowsFromWorkbook(workbook){
   const sheet=workbook.Sheets[workbook.SheetNames[0]];
   return XLSX.utils.sheet_to_json(sheet,{defval:'',raw:false});
@@ -3803,9 +3867,7 @@ async function handleSalesFile(file){
   const {data:userData}=await WarehouseDB.getUser();
   if(!userData?.user){ status.textContent='سجل الدخول أولًا قبل رفع الملف.'; status.className='upload-status err'; return; }
   try{
-    const arrayBuffer=await file.arrayBuffer();
-    const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
-    const sourceRows=rowsFromWorkbook(workbook);
+    const {rows:sourceRows}=await readExcelUpload(file,'rows');
     if(!sourceRows.length) throw new Error('الملف لا يحتوي على بيانات.');
     const payloadPreview=mapSalesRows(sourceRows,'00000000-0000-0000-0000-000000000000');
     if(!payloadPreview.length) throw new Error('لم يتم العثور على صفوف صالحة. راجع رؤوس الأعمدة.');
@@ -3954,9 +4016,7 @@ async function handleIncomingFile(file){
   const {data:userData}=await WarehouseDB.getUser();
   if(!userData?.user){ status.textContent='سجل الدخول أولًا قبل رفع الملف.'; status.className='upload-status err'; return; }
   try{
-    const arrayBuffer=await file.arrayBuffer();
-    const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
-    const sourceRows=rowsFromWorkbook(workbook);
+    const {rows:sourceRows}=await readExcelUpload(file,'rows');
     if(!sourceRows.length) throw new Error('الملف لا يحتوي على بيانات.');
     const payloadPreview=mapIncomingRows(sourceRows,'00000000-0000-0000-0000-000000000000');
     if(!payloadPreview.length) throw new Error('لم يتم العثور على صفوف وارد صالحة. راجع رؤوس الأعمدة.');
@@ -4072,9 +4132,7 @@ async function handleScaleFile(file){
   const {data:userData}=await WarehouseDB.getUser();
   if(!userData?.user){ status.textContent='سجل الدخول أولًا قبل رفع الملف.'; status.className='upload-status err'; return; }
   try{
-    const arrayBuffer=await file.arrayBuffer();
-    const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
-    const sourceRows=rowsFromWorkbook(workbook);
+    const {rows:sourceRows}=await readExcelUpload(file,'rows');
     if(!sourceRows.length) throw new Error('الملف لا يحتوي على بيانات.');
     const payloadPreview=mapScaleRows(sourceRows,'00000000-0000-0000-0000-000000000000');
     if(!payloadPreview.length) throw new Error('لم يتم العثور على صفوف ميزان صالحة. راجع رؤوس الأعمدة.');
@@ -4332,9 +4390,7 @@ async function handleFreightFile(file){
   const {data:userData}=await WarehouseDB.getUser();
   if(!userData?.user){ status.textContent='سجل الدخول أولًا قبل رفع الملف.'; status.className='upload-status err'; return; }
   try{
-    const arrayBuffer=await file.arrayBuffer();
-    const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
-    const sourceRows=rowsFromWorkbook(workbook);
+    const {rows:sourceRows}=await readExcelUpload(file,'rows');
     if(!sourceRows.length) throw new Error('الملف لا يحتوي على بيانات.');
     const payloadPreview=mapFreightRows(sourceRows,'00000000-0000-0000-0000-000000000000');
     if(!payloadPreview.length) throw new Error('لم يتم العثور على صفوف نولون صالحة. راجع رؤوس الأعمدة.');
@@ -7590,12 +7646,11 @@ function parseRawMaterialsDate(value,label,rowNumber){
   if(!iso) throw new Error(`الصف ${rowNumber}: ${label} يجب أن يكون تاريخًا صالحًا.`);
   return iso;
 }
-function readRawMaterialsWorkbookRows(workbook,key){
+function readRawMaterialsParsedRows(parsed,key){
   const spec=RAW_MATERIALS_TEMPLATE_HEADERS[key];
   if(!spec) throw new Error('نوع تقرير غير معروف.');
-  const sheet=workbook.Sheets[spec.sheetName];
-  if(!sheet) throw new Error(`يجب أن يحتوي الملف على ورقة باسم ${spec.sheetName}.`);
-  const {matrix,columnCount,startRow}=rawMaterialsSheetMatrix(sheet);
+  if(parsed?.sheetMissing) throw new Error(`يجب أن يحتوي الملف على ورقة باسم ${spec.sheetName}.`);
+  const {matrix=[],columnCount=0,startRow=0}=parsed || {};
   if(!matrix.length) throw new Error('ورقة Data فارغة.');
   if(columnCount!==spec.headers.length) throw new Error(`عدد الأعمدة غير صحيح. المطلوب ${spec.headers.length} أعمدة فقط.`);
   const actualHeaders=matrix[0].map(cleanRawMaterialsHeader);
@@ -7613,6 +7668,13 @@ function readRawMaterialsWorkbookRows(workbook,key){
   }
   if(!data.length) throw new Error('الملف لا يحتوي على صفوف بيانات صالحة.');
   return data;
+}
+function readRawMaterialsWorkbookRows(workbook,key){
+  const spec=RAW_MATERIALS_TEMPLATE_HEADERS[key];
+  if(!spec) throw new Error('نوع تقرير غير معروف.');
+  const sheet=workbook.Sheets[spec.sheetName];
+  if(!sheet) throw new Error(`يجب أن يحتوي الملف على ورقة باسم ${spec.sheetName}.`);
+  return readRawMaterialsParsedRows({sheetMissing:false,sheetName:spec.sheetName,...rawMaterialsSheetMatrix(sheet)},key);
 }
 function mapRawMaterialsReportRow(key,row,rowNumber){
   if(key==='current_plant_stock'){
@@ -7745,9 +7807,8 @@ async function handleRawMaterialsReportFile(key,file){
     if(!window.XLSX) throw new Error('مكتبة Excel غير محملة.');
     const {data:userData}=await WarehouseDB.getUser();
     if(!userData?.user) throw new Error('سجل الدخول أولًا قبل رفع الملف.');
-    const arrayBuffer=await file.arrayBuffer();
-    const workbook=XLSX.read(arrayBuffer,{type:'array',cellDates:true});
-    const rows=readRawMaterialsWorkbookRows(workbook,key);
+    const parsedWorkbook=await readExcelUpload(file,'raw_materials',{sheetName:RAW_MATERIALS_TEMPLATE_HEADERS[key]?.sheetName || 'Data'});
+    const rows=readRawMaterialsParsedRows(parsedWorkbook,key);
     const ok=await showAppLiquidConfirm({message:`تم التحقق من ${rows.length} صف صالح في تقرير ${config.title}. سيتم رفع الصفوف على دفعات ثم استبدال النسخة الحالية لهذا التقرير فقط بعد اكتمال كل الدفعات. هل تريد المتابعة؟`});
     if(!ok){ setRawMaterialsUploadStatus(key,'تم إلغاء الرفع بدون تغيير البيانات.'); return; }
     setRawMaterialsUploadStatus(key,`جاري بدء Batch الرفع لتقرير ${config.title}...`);
@@ -17885,16 +17946,9 @@ async function handleInventoryClosingReportFile(tabKey, file) {
 
   try {
     if (!window.XLSX) throw new Error('مكتبة Excel غير متوفرة.');
-    const arrayBuffer = await file.arrayBuffer();
-    // Keep Excel date cells as raw serial values. Converting them to JavaScript Date
-    // objects first can shift a date-only value by one day through timezone/UTC rules.
-    const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: false });
-    const date1904 = workbook?.Workbook?.WBProps?.date1904 === true;
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    if (!sheet) throw new Error('الملف لا يحتوي على أوراق صالحة.');
-
-    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+    // Keep inventory-closing date cells as raw Excel serial values. The worker parses
+    // the workbook off the UI thread without changing the existing date-only rules.
+    const {matrix,date1904}=await readExcelUpload(file,'inventory_closing');
     
     let headerRowIdx = -1;
     for(let i=0; i<matrix.length; i++){
