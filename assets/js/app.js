@@ -10519,6 +10519,7 @@ async function exportDashboardElementAsPng(element,title){
 function initExecutiveReports(){
   fillReportFilters();
   initMobileReportsUI();
+  bindItemAnalyticsUI();
   document.querySelectorAll('[data-report-tab]').forEach(btn=>{
     if(!btn.disabled) btn.addEventListener('click',()=>switchReportTab(btn.dataset.reportTab));
   });
