@@ -479,11 +479,6 @@
     cloned.querySelectorAll('.department-sort-indicator,.inventory-production-sort b').forEach(node=>node.remove());
     return text(cloned.textContent)||'—';
   }
-  function sanitizedTable(table){
-    const clone=sanitizeClone(table);
-    clone.classList.add('report-export-table');
-    return clone;
-  }
   function buildHeader(descriptor,compact=false){
     const header=document.createElement('header');
     header.className='report-export-header'+(compact?' compact':'');
