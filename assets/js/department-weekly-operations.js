@@ -674,9 +674,9 @@
         records=recordResult.data||[];
         if(kind==='evaluations'){
           const statusResult=await WarehouseDB.client.from(DAILY_STATUSES_TABLE)
-            .select('personnel_id,work_date,shift_code_snapshot,shift_description_snapshot,blocks_evaluation_snapshot,display_color_snapshot,is_voided')
+            .select('personnel_id,work_date,shift_status_code_id,shift_code_snapshot,shift_description_snapshot,blocks_evaluation_snapshot,display_color_snapshot,is_voided')
             .in('personnel_id',ids).gte('work_date',requestedWeek).lte('work_date',weekEnd)
-            .eq('is_voided',false).eq('blocks_evaluation_snapshot',true);
+            .eq('is_voided',false);
           if(statusResult.error) throw statusResult.error;
           blockingStatuses=statusResult.data||[];
         }
@@ -699,7 +699,12 @@
       state.statusCodes=statusCodes;
       renderStatusCodeDatalist(state);
       state.evaluatorNames=evaluatorNames;
-      state.blockingStatuses=new Map(blockingStatuses.filter(row=>!row.is_voided).map(row=>[
+      const currentStatusById=new Map(statusCodes.map(row=>[String(row.id||''),row]));
+      state.blockingStatuses=new Map(blockingStatuses.filter(row=>{
+        if(row.is_voided) return false;
+        const currentStatus=currentStatusById.get(String(row.shift_status_code_id||''));
+        return currentStatus?.blocks_evaluation===true;
+      }).map(row=>[
         cellKey(row.personnel_id,row.work_date),
         {code:String(row.shift_code_snapshot||'').trim(),description:String(row.shift_description_snapshot||''),color:String(row.display_color_snapshot||'')}
       ]));
