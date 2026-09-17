@@ -18543,6 +18543,15 @@ function applyDepartmentStatusCodesPermissions(){
   syncDepartmentStatusBlockingField();
   setElementsDisabled('#cancelDepartmentStatusCodeBtn',editing ? !canEdit : false,true);
   setElementsDisabled('#departmentStatusCodesTable [data-action="edit-department-status"],#departmentStatusCodesTable [data-action="toggle-department-status"]',!canEdit,true);
+  document.querySelectorAll('#departmentStatusCodesTable [data-action="toggle-department-status-evaluation"]').forEach(button=>{
+    const fixed=button.dataset.fixedBlocking==='true';
+    const pending=DEPARTMENT_STATUS_CODE_PENDING.has(button.dataset.recordId);
+    button.disabled=!canEdit || fixed || pending;
+    button.classList.toggle('permission-disabled',!canEdit || pending);
+    if(!canEdit) button.title='غير متاح للصلاحية الحالية';
+    else if(fixed) button.title='هذه الحالة غير مؤهلة للتقييم حسب القواعد المعتمدة.';
+    else button.title=button.dataset.nextBlocksEvaluation==='true'?'اضغط لجعل الحالة غير مؤهلة للتقييم.':'اضغط لجعل الحالة مؤهلة للتقييم.';
+  });
 }
 function renderDepartmentPersonnelTable(rows=[]){
   const tbody=$('#departmentPersonnelTable tbody');
@@ -18768,17 +18777,20 @@ function renderDepartmentStatusCodesTable(rows=[]){
   const tbody=$('#departmentStatusCodesTable tbody');
   if(!tbody) return;
   if(!rows.length){
-    tbody.innerHTML='<tr><td colspan="6" class="empty-row">لا توجد أكواد ورديات أو إجازات.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="7" class="empty-row">لا توجد أكواد ورديات أو إجازات.</td></tr>';
   }else{
     tbody.innerHTML=rows.map(row=>{
       const id=escapeHtml(row.id||'');
       const color=String(row.display_color||'#0F766E').toUpperCase();
+      const fixedBlocking=DEPARTMENT_STATUS_BLOCKING_FIXED_CODES.has(String(row.shift_code||'').trim());
+      const evaluationEligible=row.blocks_evaluation!==true;
       return '<tr data-record-id="'+id+'">'
         +'<td dir="ltr">'+escapeHtml(row.shift_code||'')+'</td>'
         +'<td>'+escapeHtml(row.description||'')+'</td>'
         +'<td><span class="department-status-color-badge" style="--status-color:'+escapeHtml(color)+';--status-text:'+departmentStatusTextColor(color)+'"><i aria-hidden="true"></i>'+escapeHtml(color)+'</span></td>'
         +'<td><span class="status-badge '+(row.blocks_evaluation?'status-inactive':'status-active')+'">'+(row.blocks_evaluation?'نعم':'لا')+'</span></td>'
         +'<td><span class="status-badge '+(row.is_active?'status-active':'status-inactive')+'">'+(row.is_active?'نشط':'غير نشط')+'</span></td>'
+        +'<td><button class="small-action '+(evaluationEligible?'':'delete')+'" type="button" data-action="toggle-department-status-evaluation" data-record-id="'+id+'" data-next-blocks-evaluation="'+evaluationEligible+'" data-fixed-blocking="'+fixedBlocking+'" aria-label="'+(evaluationEligible?'مؤهل للتقييم؛ اضغط لجعله غير مؤهل':'غير مؤهل للتقييم'+(fixedBlocking?'':'؛ اضغط لجعله مؤهل'))+'">'+(evaluationEligible?'مؤهل':'غير مؤهل')+'</button></td>'
         +'<td><div class="actions-cell">'
         +'<button class="small-action edit" type="button" data-action="edit-department-status" data-record-id="'+id+'">تعديل</button>'
         +'<button class="small-action '+(row.is_active?'delete':'view')+'" type="button" data-action="toggle-department-status" data-record-id="'+id+'" data-next-active="'+(!row.is_active)+'">'+(row.is_active?'إيقاف':'تفعيل')+'</button>'
@@ -18794,12 +18806,12 @@ async function loadDepartmentStatusCodesTable(options={}){
   const tbody=$('#departmentStatusCodesTable tbody');
   if(!tbody) return false;
   if(!WarehouseDB?.ready){
-    tbody.innerHTML='<tr><td colspan="6" class="empty-row">Supabase غير متصل.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="7" class="empty-row">Supabase غير متصل.</td></tr>';
     setDepartmentStatusCodesStatus('Supabase غير متصل. تعذر تحميل أكواد الورديات والإجازات.','err');
     return false;
   }
   if(!options.silent){
-    tbody.innerHTML='<tr><td colspan="6" class="empty-row">جاري التحميل...</td></tr>';
+    tbody.innerHTML='<tr><td colspan="7" class="empty-row">جاري التحميل...</td></tr>';
     setDepartmentStatusCodesStatus('');
   }
   try{
@@ -18813,7 +18825,7 @@ async function loadDepartmentStatusCodesTable(options={}){
     renderDepartmentStatusCodesTable(DEPARTMENT_STATUS_CODE_ROWS);
     return true;
   }catch(error){
-    tbody.innerHTML='<tr><td colspan="6" class="empty-row">تعذر تحميل أكواد الورديات والإجازات.</td></tr>';
+    tbody.innerHTML='<tr><td colspan="7" class="empty-row">تعذر تحميل أكواد الورديات والإجازات.</td></tr>';
     setDepartmentStatusCodesStatus(departmentCodingErrorMessage(error,'كود الوردية'),'err');
     return false;
   }
@@ -18924,6 +18936,48 @@ async function saveDepartmentStatusCode(event){
     applyDepartmentStatusCodesPermissions();
   }
 }
+async function toggleDepartmentStatusEvaluation(recordId,nextBlocksEvaluation){
+  if(DEPARTMENT_STATUS_CODE_PENDING.has(recordId)) return;
+  if(!canEditDepartmentCodingSettings()){
+    setDepartmentStatusCodesStatus('غير متاح للصلاحية الحالية.','err');
+    return;
+  }
+  const row=DEPARTMENT_STATUS_CODE_ROWS.find(item=>String(item.id)===String(recordId));
+  if(!row){
+    setDepartmentStatusCodesStatus('تعذر العثور على سجل الكود. أعد تحميل الجدول.','err');
+    return;
+  }
+  const fixedBlocking=DEPARTMENT_STATUS_BLOCKING_FIXED_CODES.has(String(row.shift_code||'').trim());
+  if(fixedBlocking && nextBlocksEvaluation===false){
+    setDepartmentStatusCodesStatus('هذه الحالة غير مؤهلة للتقييم حسب القواعد المعتمدة ولا يمكن تغييرها إلى مؤهل.','err');
+    applyDepartmentStatusCodesPermissions();
+    return;
+  }
+  if(!WarehouseDB?.ready){
+    setDepartmentStatusCodesStatus('Supabase غير متصل. لم يتم تحديث الموقف من التقييم.','err');
+    return;
+  }
+  DEPARTMENT_STATUS_CODE_PENDING.add(recordId);
+  applyDepartmentStatusCodesPermissions();
+  try{
+    const {data,error}=await WarehouseDB.client
+      .from(DEPARTMENT_STATUS_CODES_TABLE)
+      .update({blocks_evaluation:nextBlocksEvaluation})
+      .eq('id',recordId)
+      .select('id,blocks_evaluation')
+      .maybeSingle();
+    if(error) throw error;
+    if(!data) throw new Error('لم يتم العثور على سجل الكود.');
+    const refreshed=await loadDepartmentStatusCodesTable({silent:true});
+    const label=nextBlocksEvaluation?'غير مؤهل':'مؤهل';
+    setDepartmentStatusCodesStatus(refreshed ? 'تم تحديث الموقف من التقييم إلى «'+label+'».':'تم تحديث الموقف من التقييم، لكن تعذر تحديث الجدول.','ok');
+  }catch(error){
+    setDepartmentStatusCodesStatus(departmentCodingErrorMessage(error,'كود الوردية'),'err');
+  }finally{
+    DEPARTMENT_STATUS_CODE_PENDING.delete(recordId);
+    applyDepartmentStatusCodesPermissions();
+  }
+}
 async function toggleDepartmentStatusCode(recordId,nextActive){
   if(DEPARTMENT_STATUS_CODE_PENDING.has(recordId)) return;
   if(!canEditDepartmentCodingSettings()){
@@ -18987,6 +19041,7 @@ function initDepartmentCodingSettings(){
       const id=button.dataset.recordId;
       if(button.dataset.action==='edit-department-status') editDepartmentStatusCode(id);
       if(button.dataset.action==='toggle-department-status') toggleDepartmentStatusCode(id,button.dataset.nextActive==='true');
+      if(button.dataset.action==='toggle-department-status-evaluation') toggleDepartmentStatusEvaluation(id,button.dataset.nextBlocksEvaluation==='true');
     });
   }
 }
