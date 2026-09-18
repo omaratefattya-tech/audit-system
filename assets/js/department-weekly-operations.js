@@ -1347,18 +1347,20 @@
   }
   function renderStorekeepersSummary(rows){
     const summaryRows=Array.isArray(rows)?rows:[];
-    const counts={
-      total:summaryRows.length,
-      shift1:summaryRows.filter(row=>String(row.currentShift||'').trim()==='1').length,
-      shift2:summaryRows.filter(row=>String(row.currentShift||'').trim()==='2').length,
-      shift3:summaryRows.filter(row=>String(row.currentShift||'').trim()==='3').length
-    };
-    [
+    const counts={total:summaryRows.length};
+    WEEKLY_TABS.forEach(tab=>{
+      counts[tab.key]=summaryRows.filter(row=>row.plant_code===tab.plantCode && row.department===tab.department).length;
+    });
+    const targets=[
       ['departmentStorekeepersTotalCount',counts.total],
-      ['departmentStorekeepersShift1Count',counts.shift1],
-      ['departmentStorekeepersShift2Count',counts.shift2],
-      ['departmentStorekeepersShift3Count',counts.shift3]
-    ].forEach(([id,value])=>{
+      ['departmentStorekeepersWf01FinishedCount',counts['wf01-finished']||0],
+      ['departmentStorekeepersWf01SparePartsCount',counts['wf01-spare-parts']||0],
+      ['departmentStorekeepersEl01FinishedCount',counts['el01-finished']||0],
+      ['departmentStorekeepersEl01SparePartsCount',counts['el01-spare-parts']||0],
+      ['departmentStorekeepersEl02FinishedCount',counts['el02-finished']||0],
+      ['departmentStorekeepersEl02SparePartsCount',counts['el02-spare-parts']||0]
+    ];
+    targets.forEach(([id,value])=>{
       const target=document.getElementById(id);
       if(target) target.textContent=String(value);
     });

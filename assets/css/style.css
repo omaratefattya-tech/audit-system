@@ -7826,14 +7826,18 @@ body.focus-mode-active .inventory-count-post-close-modal{
 .department-storekeepers-toolbar{display:grid;grid-template-columns:minmax(220px,1.4fr) repeat(3,minmax(150px,1fr));gap:10px;margin-bottom:13px;padding:12px;border-radius:14px}
 .department-storekeepers-toolbar label,.department-weekly-period label{display:grid;gap:6px;color:#dfffd5;font-size:12px;font-weight:900}
 .department-storekeepers-toolbar input,.department-storekeepers-toolbar select,.department-weekly-period input{width:100%;min-width:0;height:42px;border-radius:10px}
-.department-storekeepers-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:0 0 14px}
-.department-storekeepers-summary-card{position:relative;display:grid;align-content:center;gap:5px;min-height:88px;padding:13px 16px;overflow:hidden;border:1px solid rgba(141,220,89,.28);border-radius:14px;background:linear-gradient(145deg,rgba(7,64,48,.92),rgba(2,39,31,.8));box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 9px 24px rgba(0,19,15,.17)}
+.department-storekeepers-summary{display:flex;flex-wrap:nowrap;gap:11px;margin:0 0 14px;overflow-x:auto;overflow-y:hidden;padding-bottom:2px;scrollbar-width:thin;scrollbar-color:rgba(155,230,80,.5) rgba(0,35,27,.28)}
+.department-storekeepers-summary-card{position:relative;display:grid;align-content:center;gap:5px;flex:1 0 176px;min-width:176px;min-height:88px;padding:13px 16px;overflow:hidden;border:1px solid rgba(141,220,89,.28);border-radius:14px;background:linear-gradient(145deg,rgba(7,64,48,.92),rgba(2,39,31,.8));box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 9px 24px rgba(0,19,15,.17)}
 .department-storekeepers-summary-card::before{content:"";position:absolute;inset-block-start:0;inset-inline:0;height:3px;background:linear-gradient(90deg,#78c850,#9be650)}
 .department-storekeepers-summary-card span{color:#cce8d8;font-size:12px;font-weight:800;line-height:1.5}
 .department-storekeepers-summary-card strong{color:#f5fff0;font-size:27px;font-weight:950;line-height:1.1;font-variant-numeric:tabular-nums;text-shadow:0 0 16px rgba(155,230,80,.14)}
-.department-storekeepers-summary-card.shift-one::before{background:linear-gradient(90deg,#74c5ff,#9be650)}
-.department-storekeepers-summary-card.shift-two::before{background:linear-gradient(90deg,#f1bb30,#9be650)}
-.department-storekeepers-summary-card.shift-three::before{background:linear-gradient(90deg,#c99cff,#9be650)}
+.department-storekeepers-summary-card.department-card span{font-size:11px;line-height:1.45}
+.department-storekeepers-summary-card.wf01-finished::before{background:linear-gradient(90deg,#7cd7a2,#9be650)}
+.department-storekeepers-summary-card.wf01-spare-parts::before{background:linear-gradient(90deg,#57b5ff,#9be650)}
+.department-storekeepers-summary-card.el01-finished::before{background:linear-gradient(90deg,#f2c74a,#9be650)}
+.department-storekeepers-summary-card.el01-spare-parts::before{background:linear-gradient(90deg,#ff9a57,#9be650)}
+.department-storekeepers-summary-card.el02-finished::before{background:linear-gradient(90deg,#d79bff,#9be650)}
+.department-storekeepers-summary-card.el02-spare-parts::before{background:linear-gradient(90deg,#ff7aa8,#9be650)}
 .department-operational-table-wrap,.department-weekly-table-wrap{width:100%;max-width:100%;overflow:auto;border:1px solid rgba(141,220,89,.28);border-radius:12px;background:rgba(0,35,27,.46);overscroll-behavior-inline:contain;scrollbar-gutter:stable;box-shadow:0 16px 36px rgba(0,0,0,.2)}
 .department-weekly-table-wrap{max-height:min(72vh,760px)}
 #departmentStorekeepersTable{min-width:1560px}
@@ -7885,14 +7889,14 @@ body.focus-mode-active .inventory-count-post-close-modal{
 .department-weekly-input.invalid{border-color:#ff7272;color:#ffd0d0;box-shadow:inset 0 0 0 1px rgba(255,114,114,.25)}
 .department-weekly-table .outside-range{background:repeating-linear-gradient(135deg,rgba(75,94,84,.15),rgba(75,94,84,.15) 7px,rgba(18,39,32,.32) 7px,rgba(18,39,32,.32) 14px);color:#8ea69a}
 .department-weekly-input:disabled{opacity:.5;cursor:not-allowed;background:rgba(20,36,31,.6)}
-@media(max-width:900px){.department-storekeepers-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.department-storekeepers-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}.department-weekly-period{grid-template-columns:repeat(2,minmax(0,1fr))}.department-weekly-navigation{grid-column:1/-1}.department-weekly-label{grid-column:1/-1}}
+@media(max-width:900px){.department-storekeepers-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}.department-weekly-period{grid-template-columns:repeat(2,minmax(0,1fr))}.department-weekly-navigation{grid-column:1/-1}.department-weekly-label{grid-column:1/-1}}
 @media(max-width:650px){
   #department_storekeepers.active-section,#department_weekly_leave_schedule.active-section,#department_evaluations.active-section{width:100%;max-width:100%;min-width:0;padding-bottom:calc(28px + env(safe-area-inset-bottom));overflow-x:hidden}
   .department-storekeepers-panel,.department-weekly-panel{width:100%;min-width:0;padding:15px 12px 18px;border-radius:20px;overflow:hidden}
   .department-screen-head{align-items:stretch;flex-direction:column}
   .department-screen-head .secondary{width:100%}
-  .department-storekeepers-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
-  .department-storekeepers-summary-card{min-height:78px;padding:11px 12px}
+  .department-storekeepers-summary{gap:9px}
+  .department-storekeepers-summary-card{flex-basis:160px;min-width:160px;min-height:78px;padding:11px 12px}
   .department-storekeepers-summary-card strong{font-size:24px}
   .department-storekeepers-toolbar,.department-weekly-period{grid-template-columns:1fr}
   .department-weekly-navigation,.department-weekly-label,.department-weekly-actions{grid-column:auto}
