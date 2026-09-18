@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=ic-editcells-01-20260914-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=storekeepers-kpi-20260918-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ic-editcells-01-20260914-1" />
   <link rel="stylesheet" href="assets/css/operation-progress.css?v=p8-1-15-20260909-1" />
 </head>
@@ -1273,6 +1273,24 @@
             </label>
           </div>
           <div class="upload-status" id="departmentStorekeepersStatus" aria-live="polite"></div>
+          <div class="department-storekeepers-summary" id="departmentStorekeepersSummary" aria-label="ملخص أمناء المخازن حسب الفلاتر الحالية">
+            <article class="department-storekeepers-summary-card total">
+              <span>إجمالي الموظفين</span>
+              <strong id="departmentStorekeepersTotalCount" dir="ltr">0</strong>
+            </article>
+            <article class="department-storekeepers-summary-card shift-one">
+              <span>الوردية الأولى</span>
+              <strong id="departmentStorekeepersShift1Count" dir="ltr">0</strong>
+            </article>
+            <article class="department-storekeepers-summary-card shift-two">
+              <span>الوردية الثانية</span>
+              <strong id="departmentStorekeepersShift2Count" dir="ltr">0</strong>
+            </article>
+            <article class="department-storekeepers-summary-card shift-three">
+              <span>الوردية الثالثة</span>
+              <strong id="departmentStorekeepersShift3Count" dir="ltr">0</strong>
+            </article>
+          </div>
           <div class="table-wrap department-operational-table-wrap">
             <table id="departmentStorekeepersTable" data-no-universal-table="1">
               <thead><tr><th>الكود الوظيفي</th><th>اسم أمين المخزن</th><th>الوظيفة</th><th>الموقع</th><th>القسم</th><th>رقم التليفون</th><th>تاريخ التعيين</th><th class="department-work-duration-heading">مدة العمل</th><th>الوردية الحالية</th><th>عدد الراحات</th><th>عدد أيام الشهر</th><th>عدد أيام العيد</th><th>أيام بالخصم</th><th>غياب بدون إذن</th></tr></thead>
@@ -2204,7 +2222,7 @@
   <script src="assets/js/permission-data-loader.js?v=p6-complete-permissions-20260905-1"></script>
   <script src="assets/js/permission-settings.js?v=p8-20260907-1"></script>
   <script src="assets/js/permission-management.js?v=p9-7-1-20260910-1"></script>
-  <script src="assets/js/department-weekly-operations.js?v=evaluation-eligibility-guard-20260917-1"></script>
+  <script src="assets/js/department-weekly-operations.js?v=storekeepers-kpi-20260918-1"></script>
   <script src="assets/js/custom-date-picker.js?v=dp-hiredate-01-20260914-1"></script>
   <script src="assets/js/department-loading-errors.js?v=p7-20260905-1"></script>
   <script src="assets/js/department-hr-reports.js?v=p8-1-15-20260909-1"></script>

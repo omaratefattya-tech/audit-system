@@ -1345,6 +1345,24 @@
       return result;
     }).map(item=>item.row);
   }
+  function renderStorekeepersSummary(rows){
+    const summaryRows=Array.isArray(rows)?rows:[];
+    const counts={
+      total:summaryRows.length,
+      shift1:summaryRows.filter(row=>String(row.currentShift||'').trim()==='1').length,
+      shift2:summaryRows.filter(row=>String(row.currentShift||'').trim()==='2').length,
+      shift3:summaryRows.filter(row=>String(row.currentShift||'').trim()==='3').length
+    };
+    [
+      ['departmentStorekeepersTotalCount',counts.total],
+      ['departmentStorekeepersShift1Count',counts.shift1],
+      ['departmentStorekeepersShift2Count',counts.shift2],
+      ['departmentStorekeepersShift3Count',counts.shift3]
+    ].forEach(([id,value])=>{
+      const target=document.getElementById(id);
+      if(target) target.textContent=String(value);
+    });
+  }
   function renderStorekeepersHeader(){
     const head=document.querySelector('#departmentStorekeepersTable thead');
     if(!head) return;
@@ -1364,6 +1382,7 @@
     if(!tbody) return;
     renderStorekeepersHeader();
     const rows=filteredStorekeepersRows();
+    renderStorekeepersSummary(rows);
     if(!rows.length){tbody.innerHTML='<tr><td colspan="14" class="empty-row">لا يوجد أفراد نشطون مطابقون للبحث والفلاتر.</td></tr>';return;}
     tbody.innerHTML=rows.map(row=>{
       const plant=String(row.plant_code||'');
@@ -1383,6 +1402,7 @@
     if(!tbody) return false;
     const token=++STOREKEEPERS_STATE.requestToken;
     STOREKEEPERS_STATE.loading=true;tbody.innerHTML='<tr><td colspan="14" class="empty-row">جاري تحميل أفراد القسم والملخص السنوي...</td></tr>';
+    renderStorekeepersSummary([]);
     setStorekeepersStatus('جاري التحميل...');if(retry) retry.hidden=true;
     if(!WarehouseDB?.ready){setStorekeepersStatus('Supabase غير متصل. تعذر تحميل الجدول.','err');if(retry) retry.hidden=false;return false;}
     const year=new Date().getFullYear();const range=yearRange(year);
