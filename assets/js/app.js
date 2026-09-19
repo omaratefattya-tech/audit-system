@@ -8238,16 +8238,21 @@ function rawMaterialsExportTableHtml(matrix){
   const body=matrix.slice(1);
   return `<table class="raw-materials-export-table"><thead><tr>${head.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${body.map((row,index)=>`<tr class="${index===body.length-1?'is-total':''}">${head.map((_,i)=>`<td>${escapeHtml(row[i] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 }
+function rawMaterialsExportVisualTheme(){
+  const light=document.documentElement.dataset.theme==='light';
+  return {light,background:light?'#f6f8f7':'#001611',text:light?'#1f342b':'#f4fff5'};
+}
 function rawMaterialsExportBox(data){
+  const visual=rawMaterialsExportVisualTheme();
   const box=document.createElement('section');
-  box.className='raw-materials-export-box';
+  box.className='raw-materials-export-box'+(visual.light?' is-light-export':'');
   box.dir='rtl';
   box.lang='ar';
-  box.style.cssText='position:fixed;left:0;top:0;width:1500px;min-height:400px;background:#001611;color:#f4fff5;font-family:Cairo,Arial,Tahoma,sans-serif;padding:22px;box-sizing:border-box;z-index:2147483647;overflow:visible;';
+  box.style.cssText=`position:fixed;left:0;top:0;width:1500px;min-height:400px;background:${visual.background};color:${visual.text};font-family:Cairo,Arial,Tahoma,sans-serif;padding:22px;box-sizing:border-box;z-index:2147483647;overflow:visible;`;
   box.innerHTML=`<header class="raw-materials-export-header"><h1>${escapeHtml(rawMaterialsExportTitle(data.tabKey))}</h1><p>تاريخ التصدير: ${escapeHtml(formatDisplayDateTime(new Date()))}</p><div>${data.summary.map(line=>`<span>${escapeHtml(line)}</span>`).join('')}</div></header>${rawMaterialsExportTableHtml(data.matrix)}`;
   return box;
 }
-async function rawMaterialsCaptureExportBox(box,backgroundColor='#001611'){
+async function rawMaterialsCaptureExportBox(box,backgroundColor=rawMaterialsExportVisualTheme().background){
   const Html2Canvas=window.html2canvas;
   if(!Html2Canvas) throw new Error('html2canvas is not loaded');
   document.body.appendChild(box);
@@ -8265,7 +8270,7 @@ async function exportRawMaterialsPdf(){
   if(!window.html2canvas || !JsPDF){ alert('مكتبة PDF غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
   const box=rawMaterialsExportBox(data);
   try{
-    const canvas=await rawMaterialsCaptureExportBox(box,'#001611');
+    const canvas=await rawMaterialsCaptureExportBox(box,rawMaterialsExportVisualTheme().background);
     const pdf=new JsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
     const pageWidth=pdf.internal.pageSize.getWidth();
     const pageHeight=pdf.internal.pageSize.getHeight();
@@ -8298,7 +8303,7 @@ async function exportRawMaterialsPng(){
   if(!window.html2canvas){ alert('مكتبة PNG غير محملة.'); return; }
   const box=rawMaterialsExportBox(data);
   try{
-    const canvas=await rawMaterialsCaptureExportBox(box,'#001611');
+    const canvas=await rawMaterialsCaptureExportBox(box,rawMaterialsExportVisualTheme().background);
     canvas.toBlob(async blob=>{
       if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
       await saveBlobWithPicker(blob,rawMaterialsExportFileName(data.tabKey,'png'),'image/png');
