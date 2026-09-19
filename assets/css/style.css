@@ -8048,7 +8048,7 @@ body.focus-mode-active .inventory-count-post-close-modal{
 .login-logo-refresh:disabled{opacity:1}
 .login-logo-refresh .login-logo{display:block;margin:0}
 .mobile-dashboard-session-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}
-.mobile-dashboard-refresh{display:none}
+.mobile-dashboard-refresh,.mobile-dashboard-theme-toggle{display:none}
 #settings #departmentStatusCodeForm{grid-template-columns:minmax(120px,.9fr) minmax(190px,1.35fr) minmax(118px,.62fr) auto auto auto auto}
 .department-status-color-field{
   position:relative;
@@ -8408,6 +8408,26 @@ body.focus-mode-active .inventory-count-post-close-modal{
   body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-refresh svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
   body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-refresh:active{transform:scale(.96)}
   body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-refresh:focus-visible{outline:3px solid rgba(155,230,80,.72);outline-offset:2px}
+  body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-theme-toggle{
+    width:40px;
+    height:40px;
+    min-width:40px;
+    display:grid;
+    place-items:center;
+    padding:0;
+    border:1px solid rgba(141,220,89,.26);
+    border-radius:14px;
+    background:rgba(255,255,255,.055);
+    color:#f1bb30;
+    box-shadow:none;
+    cursor:pointer;
+    touch-action:manipulation;
+  }
+  body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-theme-toggle .theme-toggle-icon,
+  body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-theme-toggle .theme-toggle-icon svg{width:21px;height:21px}
+  body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-theme-toggle:active{transform:scale(.96)}
+  body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-theme-toggle:focus-visible{outline:3px solid rgba(241,187,48,.72);outline-offset:2px}
+  html[data-theme="light"] body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-theme-toggle{color:#214f72}
   .department-evaluation-modal{align-items:flex-end;padding:12px 10px calc(12px + env(safe-area-inset-bottom))}
   .department-evaluation-dialog{max-height:calc(100dvh - 18px);padding:16px 13px;border-radius:20px}
   .department-evaluation-details{grid-template-columns:1fr}

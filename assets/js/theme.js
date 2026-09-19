@@ -19,15 +19,16 @@
     const meta=document.getElementById('appThemeColorMeta') || document.querySelector('meta[name="theme-color"]');
     if(meta) meta.setAttribute('content',theme==='light'?LIGHT_THEME_COLOR:DARK_THEME_COLOR);
   }
+  function themeToggles(){return Array.from(document.querySelectorAll('[data-theme-toggle]'));}
   function syncToggle(theme){
-    const button=document.getElementById('themeToggleBtn');
-    if(!button) return;
     const nextIsLight=theme==='dark';
     const label=nextIsLight?'تفعيل الوضع النهاري':'تفعيل الوضع الليلي';
-    button.setAttribute('aria-label',label);
-    button.setAttribute('title',label);
-    button.setAttribute('aria-pressed',theme==='light'?'true':'false');
-    button.dataset.theme=theme;
+    themeToggles().forEach(button=>{
+      button.setAttribute('aria-label',label);
+      button.setAttribute('title',label);
+      button.setAttribute('aria-pressed',theme==='light'?'true':'false');
+      button.dataset.theme=theme;
+    });
   }
   function applyTheme(value,options={}){
     const theme=normalizeTheme(value);
@@ -43,11 +44,11 @@
   function toggleTheme(){return applyTheme(currentTheme()==='dark'?'light':'dark');}
   function initTheme(){
     applyTheme(currentTheme(),{persist:false,emit:false});
-    const button=document.getElementById('themeToggleBtn');
-    if(button && !button.dataset.themeBound){
+    themeToggles().forEach(button=>{
+      if(button.dataset.themeBound) return;
       button.dataset.themeBound='1';
       button.addEventListener('click',toggleTheme);
-    }
+    });
   }
 
   window.AuditTheme=Object.freeze({

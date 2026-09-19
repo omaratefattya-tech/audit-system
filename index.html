@@ -24,7 +24,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=l2-login-light-20260919-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=l1-mobile-theme-toggle-20260919-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ic-editcells-01-20260914-1" />
   <link rel="stylesheet" href="assets/css/operation-progress.css?v=p8-1-15-20260909-1" />
 </head>
@@ -92,7 +92,7 @@
         <div class="user-card">
           <div class="avatar" id="currentUserAvatar">أ</div>
           <div><strong id="currentUserName">--</strong><small id="currentUserRole">--</small></div>
-          <button class="theme-toggle" id="themeToggleBtn" type="button" aria-label="تفعيل الوضع النهاري" aria-pressed="false" title="تفعيل الوضع النهاري">
+          <button class="theme-toggle" id="themeToggleBtn" data-theme-toggle type="button" aria-label="تفعيل الوضع النهاري" aria-pressed="false" title="تفعيل الوضع النهاري">
             <span class="theme-toggle-icon theme-toggle-icon-sun" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.75"></circle><path d="M12 2.25v2.1M12 19.65v2.1M2.25 12h2.1M19.65 12h2.1M5.1 5.1l1.5 1.5M17.4 17.4l1.5 1.5M18.9 5.1l-1.5 1.5M6.6 17.4l-1.5 1.5"></path></svg></span>
             <span class="theme-toggle-icon theme-toggle-icon-moon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.25 14.35A8.35 8.35 0 0 1 9.65 3.75 8.5 8.5 0 1 0 20.25 14.35Z"></path><path d="M17.8 4.1v2.7M16.45 5.45h2.7M20.1 8.1v1.9M19.15 9.05h1.9"></path></svg></span>
           </button>
@@ -132,6 +132,10 @@
             <div class="mobile-dashboard-session-actions">
               <button class="mobile-dashboard-refresh" id="mobileDashboardRefreshBtn" type="button" aria-label="تحديث البرنامج" title="تحديث البرنامج">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5"/><path d="M19 11a7.5 7.5 0 1 0 1 5"/></svg>
+              </button>
+              <button class="mobile-dashboard-theme-toggle" id="mobileDashboardThemeToggleBtn" data-theme-toggle type="button" aria-label="تفعيل الوضع النهاري" aria-pressed="false" title="تفعيل الوضع النهاري">
+                <span class="theme-toggle-icon theme-toggle-icon-sun" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.75"></circle><path d="M12 2.25v2.1M12 19.65v2.1M2.25 12h2.1M19.65 12h2.1M5.1 5.1l1.5 1.5M17.4 17.4l1.5 1.5M18.9 5.1l-1.5 1.5M6.6 17.4l-1.5 1.5"></path></svg></span>
+                <span class="theme-toggle-icon theme-toggle-icon-moon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.25 14.35A8.35 8.35 0 0 1 9.65 3.75 8.5 8.5 0 1 0 20.25 14.35Z"></path><path d="M17.8 4.1v2.7M16.45 5.45h2.7M20.1 8.1v1.9M19.15 9.05h1.9"></path></svg></span>
               </button>
               <button class="mobile-dashboard-logout" id="mobileDashboardLogoutBtn" type="button" aria-label="تسجيل الخروج">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M7.2 6.8a7 7 0 1 0 9.6 0"/></svg>
@@ -2238,7 +2242,7 @@
   <script src="vendor/sheetjs/xlsx-0.20.3.full.min.js"></script>
   <script src="vendor/html2canvas/html2canvas.min.js?v=2.2-m433"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
-  <script src="assets/js/theme.js?v=l1-theme-foundation-20260919-1"></script>
+  <script src="assets/js/theme.js?v=l1-mobile-theme-toggle-20260919-1"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/operation-progress.js?v=p8-1-15-20260909-1"></script>
