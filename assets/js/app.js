@@ -1048,7 +1048,19 @@ function currentSalesReviewWarehouseLabel(){
   const meta=warehouseMetaByCode(code);
   return meta?.warehouse_name ? `${code} - ${meta.warehouse_name}` : (code || '-');
 }
-function prepareSalesReviewExportTable(sourceTable){
+function salesReviewExportPalette(){
+  const light=document.documentElement.getAttribute('data-theme')==='light';
+  return light?{
+    pageBackground:'linear-gradient(180deg,#f4f7f5,#eef3f1)',canvasBackground:'#f4f7f5',text:'#193128',heading:'#143c2a',meta:'#3d7550',metaStrong:'#2f7044',
+    divider:'#cddbd5',wrapBackground:'#ffffff',wrapBorder:'#cedbd5',tableText:'#263b33',headBackground:'#e2f1e6',headText:'#1d6538',headBorder:'#c8dbcf',
+    cellBackground:'#ffffff',cellBorder:'#d9e3df',totalBackground:'#dff0e4',totalText:'#185f34'
+  }:{
+    pageBackground:'radial-gradient(circle at 50% 0%,rgba(94,180,71,.14),transparent 34%),linear-gradient(180deg,#00291f,#001611)',canvasBackground:'#001611',text:'#f4fff5',heading:'#ffffff',meta:'#bdf2a0',metaStrong:'#dfffd4',
+    divider:'rgba(141,220,89,.28)',wrapBackground:'rgba(0,24,20,.48)',wrapBorder:'rgba(141,220,89,.22)',tableText:'#f4fff5',headBackground:'rgba(0,70,45,.92)',headText:'#d8ffd1',headBorder:'rgba(141,220,89,.26)',
+    cellBackground:'rgba(0,35,27,.58)',cellBorder:'rgba(255,255,255,.10)',totalBackground:'rgba(0,74,43,.96)',totalText:'#ffffff'
+  };
+}
+function prepareSalesReviewExportTable(sourceTable,palette=salesReviewExportPalette()){
   const clone=sourceTable.cloneNode(true);
   clone.querySelectorAll('.column-filter-row').forEach(row=>row.remove());
   clone.querySelectorAll('thead tr:first-child th').forEach(th=>{ th.textContent=cleanHeaderText(th.textContent); });
@@ -1057,16 +1069,16 @@ function prepareSalesReviewExportTable(sourceTable){
     control.replaceWith(document.createTextNode(text));
   });
   clone.removeAttribute('id');
-  clone.style.cssText='width:100%;border-collapse:collapse;table-layout:auto;font-size:18px;color:#f4fff5;direction:rtl;';
+  clone.style.cssText=`width:100%;border-collapse:collapse;table-layout:auto;font-size:18px;color:${palette.tableText};direction:rtl;background:${palette.wrapBackground};`;
   clone.querySelectorAll('th').forEach(th=>{
-    th.style.cssText='background:rgba(0,70,45,.92);color:#d8ffd1;border:1px solid rgba(141,220,89,.26);padding:13px 10px;text-align:center;white-space:normal;font-weight:900;line-height:1.35;';
+    th.style.cssText=`background:${palette.headBackground};color:${palette.headText};border:1px solid ${palette.headBorder};padding:13px 10px;text-align:center;white-space:normal;font-weight:900;line-height:1.35;`;
   });
   clone.querySelectorAll('td').forEach(td=>{
-    td.style.cssText='border:1px solid rgba(255,255,255,.10);padding:12px 10px;text-align:center;white-space:normal;line-height:1.35;background:rgba(0,35,27,.58);';
+    td.style.cssText=`border:1px solid ${palette.cellBorder};padding:12px 10px;text-align:center;white-space:normal;line-height:1.35;background:${palette.cellBackground};color:${palette.tableText};`;
   });
   clone.querySelectorAll('tfoot td').forEach(td=>{
-    td.style.background='rgba(0,74,43,.96)';
-    td.style.color='#fff';
+    td.style.background=palette.totalBackground;
+    td.style.color=palette.totalText;
     td.style.fontWeight='900';
   });
   return clone;
@@ -1082,6 +1094,7 @@ async function exportSalesReviewPng(){
   const date=currentSalesReviewDate();
   const warehouseLabel=currentSalesReviewWarehouseLabel();
   const warehouseCode=String(activeSalesWarehouse || $('#salesTabs button.active')?.dataset?.warehouse || 'ALL').trim().toUpperCase() || 'ALL';
+  const palette=salesReviewExportPalette();
   const exportBox=document.createElement('section');
   exportBox.className='sales-review-png-export-box';
   exportBox.dir='rtl';
@@ -1089,15 +1102,15 @@ async function exportSalesReviewPng(){
   exportBox.setAttribute('aria-hidden','true');
   exportBox.style.cssText=[
     'position:fixed','top:0','left:0','z-index:-1','width:1600px','min-height:420px','padding:28px','box-sizing:border-box',
-    'background:radial-gradient(circle at 50% 0%,rgba(94,180,71,.14),transparent 34%),linear-gradient(180deg,#00291f,#001611)',
-    'color:#fff','direction:rtl','font-family:Cairo,Arial,sans-serif','overflow:visible','pointer-events:none'
+    `background:${palette.pageBackground}`,
+    `color:${palette.text}`,'direction:rtl','font-family:Cairo,Arial,sans-serif','overflow:visible','pointer-events:none'
   ].join(';');
   const header=document.createElement('header');
-  header.style.cssText='display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid rgba(141,220,89,.28);';
-  header.innerHTML=`<div><h2 style="margin:0 0 8px;color:#fff;font-size:34px;line-height:1.25;font-weight:900;">مراجعة البيع والتحويلات</h2><p style="margin:0;color:#bdf2a0;font-size:17px;line-height:1.5;font-weight:800;">تاريخ التقرير: ${escapeHtml(formatSalesReviewExportDate(date) || '--/--/----')}</p></div><p style="margin:0;color:#dfffd4;font-size:18px;line-height:1.5;font-weight:900;">المخزن: ${escapeHtml(warehouseLabel)}</p>`;
+  header.style.cssText=`display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid ${palette.divider};`;
+  header.innerHTML=`<div><h2 style="margin:0 0 8px;color:${palette.heading};font-size:34px;line-height:1.25;font-weight:900;">مراجعة البيع والتحويلات</h2><p style="margin:0;color:${palette.meta};font-size:17px;line-height:1.5;font-weight:800;">تاريخ التقرير: ${escapeHtml(formatSalesReviewExportDate(date) || '--/--/----')}</p></div><p style="margin:0;color:${palette.metaStrong};font-size:18px;line-height:1.5;font-weight:900;">المخزن: ${escapeHtml(warehouseLabel)}</p>`;
   const tableWrap=document.createElement('div');
-  tableWrap.style.cssText='width:100%;overflow:visible;border:1px solid rgba(141,220,89,.22);border-radius:18px;background:rgba(0,24,20,.48);padding:12px;box-sizing:border-box;';
-  tableWrap.appendChild(prepareSalesReviewExportTable(tableEl));
+  tableWrap.style.cssText=`width:100%;overflow:visible;border:1px solid ${palette.wrapBorder};border-radius:18px;background:${palette.wrapBackground};padding:12px;box-sizing:border-box;`;
+  tableWrap.appendChild(prepareSalesReviewExportTable(tableEl,palette));
   exportBox.append(header,tableWrap);
   document.body.appendChild(exportBox);
   try{
@@ -1107,7 +1120,7 @@ async function exportSalesReviewPng(){
     const width=Math.ceil(exportBox.scrollWidth);
     const height=Math.ceil(exportBox.scrollHeight);
     if(!rect.width || !rect.height || !width || !height) throw new Error('Invalid sales review export dimensions');
-    const canvas=await Html2Canvas(exportBox,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+    const canvas=await Html2Canvas(exportBox,{scale:2,useCORS:true,allowTaint:true,backgroundColor:palette.canvasBackground,logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
     canvas.toBlob(async blob=>{
       if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
       const fileDate=date || todayISO();

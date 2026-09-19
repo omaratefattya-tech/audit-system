@@ -1008,15 +1008,19 @@ html[data-theme="light"] body.focus-mode-active[data-focus-section="sales"] .foc
 }
 
 /* Shared notification skin while Sales is the active phase */
-html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast{
+html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast,
+html[data-theme="light"] body:has(#dashboard.active-section) .dashboard-png-toast{
   background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(246,249,247,.97));
   color:#213a30;
   border-color:#cddbd5;
   box-shadow:0 16px 36px rgba(37,69,57,.16),inset 0 1px 0 rgba(255,255,255,.9);
 }
-html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast-success{border-color:#8fc79b}
-html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast-error{border-color:#e2a09b;color:#8b3731}
-html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast-close{background:#eef4f1;border-color:#d1ddd7;color:inherit}
+html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast-success,
+html[data-theme="light"] body:has(#dashboard.active-section) .dashboard-png-toast-success{border-color:#8fc79b}
+html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast-error,
+html[data-theme="light"] body:has(#dashboard.active-section) .dashboard-png-toast-error{border-color:#e2a09b;color:#8b3731}
+html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast-close,
+html[data-theme="light"] body:has(#dashboard.active-section) .dashboard-png-toast-close{background:#eef4f1;border-color:#d1ddd7;color:inherit}
 
 @media(max-width:768px){
   html[data-theme="light"] #sales.active-section{width:100%;max-width:100%;min-width:0;overflow-x:hidden}
