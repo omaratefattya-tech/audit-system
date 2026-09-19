@@ -2549,21 +2549,30 @@ html[data-theme="light"] .login-password-toggle:hover,html[data-theme="light"] .
     border-color:#cddbd5;
     color:#315347;
   }
+
+  html[data-theme="light"] body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-filter-trigger,
   html[data-theme="light"] body.mobile-dashboard-active #dashboard .mobile-dashboard-filter-trigger{
     background:linear-gradient(145deg,#ffffff,#f5f8f6);
     border-color:#d3dfda;
     color:#20392f;
     box-shadow:0 8px 20px rgba(37,69,57,.08);
   }
+  html[data-theme="light"] body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-filter-trigger b,
+  html[data-theme="light"] body.mobile-dashboard-active #dashboard .mobile-dashboard-filter-trigger b{color:#173229}
+  html[data-theme="light"] body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-filter-trigger small,
   html[data-theme="light"] body.mobile-dashboard-active #dashboard .mobile-dashboard-filter-trigger small{color:#588069}
+  html[data-theme="light"] body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-filter-icon,
   html[data-theme="light"] body.mobile-dashboard-active #dashboard .mobile-filter-icon{background:#e5f2e8;color:#277744}
+  html[data-theme="light"] body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-period-label,
   html[data-theme="light"] body.mobile-dashboard-active #dashboard .mobile-dashboard-period-label{
     background:linear-gradient(145deg,#ffffff,#f6f9f7);
     border-color:#d4dfda;
     box-shadow:0 8px 20px rgba(37,69,57,.08);
     color:#223b31;
   }
+  html[data-theme="light"] body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-period-label span,
   html[data-theme="light"] body.mobile-dashboard-active #dashboard .mobile-dashboard-period-label span{background:#e4f1e7;color:#2b7a45}
+  html[data-theme="light"] body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-stats-title,
   html[data-theme="light"] body.mobile-dashboard-active #dashboard .mobile-dashboard-stats-title{color:#1e342b}
   html[data-theme="light"] body.mobile-app-shell-active .main > .mobile-dashboard-shell .mobile-dashboard-bottom-nav,
   html[data-theme="light"] body.mobile-dashboard-active #dashboard .mobile-dashboard-bottom-nav{
@@ -8871,4 +8880,29 @@ body.focus-mode-active .report-workspace-toolbar{position:sticky;top:0;z-index:3
   margin: 0 auto;
   text-align: right;
 }
+
+
+
+html[data-theme="light"] .db-status{background:#f4f8f5;border-color:#d4dfd9;color:#345345;box-shadow:0 4px 12px rgba(37,69,57,.06)}
+html[data-theme="light"] .db-status::before{background:#89b44d}
+html[data-theme="light"] .db-status.ready{color:#1f6a38;border-color:#cfe0d3;background:#eef7f0}
+html[data-theme="light"] .db-status.ready::before{background:#3ca153}
+html[data-theme="light"] #dashboard .sortable-th{background:#e8f3eb}
+html[data-theme="light"] #dashboard .sort-btn{color:#24673a}
+html[data-theme="light"] #dashboard .sort-btn:hover{background:#dff0e3}
+html[data-theme="light"] #dashboard .sort-btn span{color:#7a9450}
+html[data-theme="light"] #dashboard .column-filter-row th{background:#f1f6f3;border-bottom-color:#d8e3de}
+html[data-theme="light"] #dashboard .col-filter{background:#ffffff;border-color:#cfdcd6;color:#254236}
+html[data-theme="light"] #dashboard .col-filter::placeholder{color:#89a197}
+html[data-theme="light"] #dashboard .table-wrap table thead th,
+html[data-theme="light"] #dashboard .table-wrap table tfoot td{color:#24673a}
+html[data-theme="light"] #dashboard .table-wrap table tbody td{color:#263b33}
+html[data-theme="light"] #dashboard .plant-performance-table .sort-btn,
+html[data-theme="light"] #dashboard .rank-table-wrap .sort-btn{color:#24673a}
+html[data-theme="light"] #dashboard .plant-performance-table .sort-btn span,
+html[data-theme="light"] #dashboard .rank-table-wrap .sort-btn span{color:#7a9450}
+html[data-theme="light"] #dashboard .plant-performance-table .column-filter-row th,
+html[data-theme="light"] #dashboard .rank-table-wrap .column-filter-row th{background:#f1f6f3}
+html[data-theme="light"] #dashboard .plant-performance-table .col-filter,
+html[data-theme="light"] #dashboard .rank-table-wrap .col-filter{background:#ffffff;color:#254236;border-color:#cfdcd6}
 
