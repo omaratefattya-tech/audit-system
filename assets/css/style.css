@@ -880,6 +880,161 @@ html[data-theme="light"] #upload .small-action.delete{border-color:#e0a19b;color
   color:#d8ffd1;
 }
 
+
+/* L5 Light Mode owner: Sales review only */
+html[data-theme="light"] .app-shell:has(#sales.active-section){background:var(--l3-page,#f3f6f5)}
+html[data-theme="light"] .app-shell:has(#sales.active-section) .main{
+  background:
+    radial-gradient(circle at 16% 2%,rgba(112,183,126,.09),transparent 28%),
+    linear-gradient(180deg,#f5f8f7 0%,#eef3f1 100%);
+  color:#172c25;
+}
+html[data-theme="light"] .app-shell:has(#sales.active-section) .page-title h1{color:#173e2d;text-shadow:none}
+html[data-theme="light"] .app-shell:has(#sales.active-section) .page-title p{color:#4c825d}
+html[data-theme="light"] #sales{color:#172c25}
+html[data-theme="light"] #sales>.panel.glass{
+  background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(247,250,248,.98));
+  border-color:#d2ded9;
+  box-shadow:0 12px 30px rgba(34,64,52,.10);
+}
+html[data-theme="light"] #sales .focus-mode-title-row h2{color:#173b2c;text-shadow:none}
+html[data-theme="light"] #sales>.panel>.hint{color:#63766d}
+html[data-theme="light"] #sales .sales-report-date-bar label{color:#29483a}
+html[data-theme="light"] #sales .sales-report-date-bar select{
+  background:#ffffff;
+  color:#1c352a;
+  border-color:#cbd9d3;
+  box-shadow:0 4px 12px rgba(37,69,57,.05);
+}
+html[data-theme="light"] #sales .sales-report-date-bar select:focus{outline:2px solid rgba(52,146,77,.17);border-color:#6cae7e}
+html[data-theme="light"] #sales .sales-report-date-bar select option{background:#fff;color:#1c352a}
+html[data-theme="light"] #sales #salesTabs.subtabs{gap:9px}
+html[data-theme="light"] #sales #salesTabs.subtabs button{
+  background:#f8fbf9;
+  color:#315347;
+  border-color:#cbdad3;
+  box-shadow:none;
+}
+html[data-theme="light"] #sales #salesTabs.subtabs button:hover{background:#edf7ef;border-color:#9bc4a6;color:#1f6c39}
+html[data-theme="light"] #sales #salesTabs.subtabs button.active{
+  background:linear-gradient(135deg,#70c34f,#2f9148);
+  border-color:#78b97f;
+  color:#fff;
+  box-shadow:0 7px 18px rgba(54,137,70,.15);
+}
+html[data-theme="light"] #sales .export-btn,
+html[data-theme="light"] #sales .export-actions .secondary,
+html[data-theme="light"] #sales .focus-mode-btn{
+  background:#f7fbf8!important;
+  color:#276b3d!important;
+  border-color:#9fc8a9!important;
+  box-shadow:none!important;
+}
+html[data-theme="light"] #sales .export-btn:hover,
+html[data-theme="light"] #sales .export-actions .secondary:hover,
+html[data-theme="light"] #sales .focus-mode-btn:hover{background:#eaf6ed!important;border-color:#6fad80!important;color:#165f32!important}
+html[data-theme="light"] #sales .table-wrap{
+  background:#ffffff;
+  border:1px solid #d4dfda;
+  border-radius:13px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8);
+  scrollbar-color:#9fb7ac #eef3f1;
+}
+html[data-theme="light"] #sales .table-wrap::-webkit-scrollbar{width:11px;height:11px}
+html[data-theme="light"] #sales .table-wrap::-webkit-scrollbar-track{background:#eef3f1;border-radius:999px}
+html[data-theme="light"] #sales .table-wrap::-webkit-scrollbar-thumb{background:#a8bdb3;border:2px solid #eef3f1;border-radius:999px}
+html[data-theme="light"] #sales #salesTable{background:#fff;color:#263b33}
+html[data-theme="light"] #sales #salesTable thead tr:first-child th,
+html[data-theme="light"] #sales #salesTable .sortable-th{
+  background:#e7f2ea;
+  color:#22663a;
+  border-bottom-color:#cadbd2;
+}
+html[data-theme="light"] #sales #salesTable .sort-btn{color:#22663a;background:transparent}
+html[data-theme="light"] #sales #salesTable .sort-btn:hover{background:#dceee1}
+html[data-theme="light"] #sales #salesTable .sort-btn span{color:#9a790e}
+html[data-theme="light"] #sales #salesTable .column-filter-row th{background:#f1f6f3;border-bottom-color:#d8e3de}
+html[data-theme="light"] #sales #salesTable .col-filter{
+  background:#ffffff;
+  color:#254236;
+  border-color:#c9d8d1;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.85);
+}
+html[data-theme="light"] #sales #salesTable .col-filter::placeholder{color:#879d93}
+html[data-theme="light"] #sales #salesTable tbody td{color:#263b33;border-bottom-color:#e1e9e5;background:#fff}
+html[data-theme="light"] #sales #salesTable tbody tr:nth-child(even) td{background:#f8faf9}
+html[data-theme="light"] #sales #salesTable tbody tr:hover td{background:#edf7ef}
+html[data-theme="light"] #sales #salesTable tfoot td{
+  background:#e3f1e7;
+  border-top-color:#a8cdb1;
+  color:#1f6e3a;
+}
+html[data-theme="light"] #sales #salesTable tfoot .sales-total-row td:first-child{color:#165d31}
+html[data-theme="light"] #sales #salesPagination #salesPageStatus{color:#62756c}
+html[data-theme="light"] #sales #salesPagination button:disabled{opacity:.5;background:#f1f4f2!important;color:#87958f!important;border-color:#d8e0dc!important}
+
+/* Sales Focus Mode: keep the same Light owner instead of falling back to Dark focus colors */
+html[data-theme="light"] body.focus-mode-active[data-focus-section="sales"] .main{
+  background:linear-gradient(180deg,#f5f8f7 0%,#edf3f0 100%);
+}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="sales"] #sales>.panel.glass{
+  background:#ffffff;
+  border-color:#d2ded9;
+  box-shadow:0 12px 30px rgba(34,64,52,.10);
+}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="sales"] #sales .table-wrap{border-color:#d4dfda;background:#fff}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="sales"] #sales table thead tr:first-child th{
+  background:#e7f2ea!important;
+  color:#22663a!important;
+  box-shadow:0 1px 0 #cbdcd3,0 8px 15px rgba(40,73,59,.08)!important;
+}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="sales"] #sales table thead tr:first-child th .sort-btn{
+  background:#e7f2ea!important;
+  color:#22663a!important;
+}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="sales"] #sales table thead tr.column-filter-row th{
+  background:#f1f6f3!important;
+  box-shadow:0 1px 0 #d8e3de,0 6px 12px rgba(40,73,59,.05)!important;
+}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="sales"] #sales table thead tr.column-filter-row .col-filter{
+  background:#ffffff!important;
+  color:#254236!important;
+  border-color:#c9d8d1!important;
+}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="sales"] .focus-mode-close-btn{
+  background:#fff8e8!important;
+  color:#76570a!important;
+  border-color:#dfc273!important;
+}
+
+/* Shared notification skin while Sales is the active phase */
+html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast{
+  background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(246,249,247,.97));
+  color:#213a30;
+  border-color:#cddbd5;
+  box-shadow:0 16px 36px rgba(37,69,57,.16),inset 0 1px 0 rgba(255,255,255,.9);
+}
+html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast-success{border-color:#8fc79b}
+html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast-error{border-color:#e2a09b;color:#8b3731}
+html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast-close{background:#eef4f1;border-color:#d1ddd7;color:inherit}
+
+@media(max-width:768px){
+  html[data-theme="light"] #sales.active-section{width:100%;max-width:100%;min-width:0;overflow-x:hidden}
+  html[data-theme="light"] #sales>.panel.glass{padding:13px 11px;border-radius:17px}
+  html[data-theme="light"] #sales .focus-mode-title-row{align-items:stretch}
+  html[data-theme="light"] #sales .focus-mode-actions{width:100%}
+  html[data-theme="light"] #sales .focus-mode-actions button{flex:1;min-width:0}
+  html[data-theme="light"] #sales .sales-report-date-bar{width:100%;margin:10px 0}
+  html[data-theme="light"] #sales .sales-report-date-bar label{width:100%;min-width:0}
+  html[data-theme="light"] #sales #salesTabs.subtabs{display:flex;flex-wrap:nowrap;justify-content:flex-start;width:100%;overflow-x:auto;padding:2px 0 7px;scrollbar-width:thin;scrollbar-color:#9fb7ac #eef3f1}
+  html[data-theme="light"] #sales #salesTabs.subtabs button{flex:0 0 auto;min-height:42px}
+  html[data-theme="light"] #sales .export-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;width:100%}
+  html[data-theme="light"] #sales .export-btn{width:100%;min-width:0;padding-inline:7px}
+  html[data-theme="light"] #sales .table-wrap{width:100%;max-width:100%;overflow:auto;-webkit-overflow-scrolling:touch}
+  html[data-theme="light"] #sales #salesTable{min-width:1050px}
+  html[data-theme="light"] #sales #salesPagination .export-actions{grid-template-columns:1fr 1fr}
+}
+
 /* Report export buttons */
 .export-actions{display:flex;gap:10px;justify-content:flex-start;align-items:center;margin:12px 0 10px;flex-wrap:wrap}
 .export-actions.compact{margin:0}

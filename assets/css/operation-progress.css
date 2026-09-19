@@ -14,3 +14,19 @@
 @media(max-width:600px){.application-operation-progress{padding:10px 12px}.operation-progress-heading{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.operation-progress-track i{transition:none}.operation-progress-track.is-indeterminate i{animation:none}}
 @media print{.application-operation-progress{display:none}}
+
+
+/* L5 Light Mode: shared task indicator while Sales review is active */
+html[data-theme="light"] body:has(#sales.active-section) .application-operation-progress{
+  border-color:#b7d1bf;
+  background:rgba(255,255,255,.96);
+  color:#1f392e;
+  box-shadow:0 12px 30px rgba(36,69,55,.16);
+  backdrop-filter:blur(14px);
+}
+html[data-theme="light"] body:has(#sales.active-section) .operation-progress-heading b{color:#2b8746}
+html[data-theme="light"] body:has(#sales.active-section) .operation-progress-heading button{color:#315347}
+html[data-theme="light"] body:has(#sales.active-section) .operation-progress-track{background:#e5eee9;box-shadow:inset 0 0 0 1px #d9e5df}
+html[data-theme="light"] body:has(#sales.active-section) .operation-progress-track i{background:linear-gradient(90deg,#55ae52,#86cf57)}
+html[data-theme="light"] body:has(#sales.active-section) .application-operation-progress small{color:#62786d}
+html[data-theme="light"] body:has(#sales.active-section) .application-operation-progress[data-state="error"]{border-color:#dea39d;background:#fff8f7;color:#8c3a33}
