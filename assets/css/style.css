@@ -654,6 +654,11 @@ html[data-theme="light"] .theme-toggle:hover{background:#edf5f0!important;border
 @media (max-width:700px){.daily-upload-box{grid-template-columns:1fr}.daily-upload-box .primary,.daily-upload-box .raw-template-download-btn{width:100%}.history-panel{padding:12px}.upload-report-tab{width:100%}}
 
 /* L4 Light Mode owner: Upload reports screen and its upload tabs only */
+html[data-theme="light"] .app-shell:has(#upload.active-section){background:#f3f6f5}
+html[data-theme="light"] .app-shell:has(#upload.active-section) .main{
+  background:radial-gradient(circle at 32% 0,rgba(210,235,220,.38) 0,rgba(243,246,245,0) 32%),#f3f6f5;
+}
+html[data-theme="light"] .app-shell:has(#upload.active-section) .topbar{background:transparent}
 html[data-theme="light"] #upload{color:var(--l3-text)}
 html[data-theme="light"] #upload.active-section > .panel.glass{
   background:linear-gradient(145deg,#ffffff 0%,#f7faf8 100%);
@@ -7722,6 +7727,78 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 .inventory-review-history-comparison h4{margin:0 0 4px;color:var(--yellow)}
 .audit-score-dialog.app-liquid-modal{display:flex;flex-direction:column}
 .users-modal-card.app-liquid-modal,.inventory-difference-replace-dialog.app-liquid-modal,#icBatchViewModal.app-liquid-modal{font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif}
+/* L4 Light Mode owner: uploaded closing-report viewer modal only */
+html[data-theme="light"] #icBatchViewOverlay{
+  background:rgba(42,61,53,.30);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+html[data-theme="light"] #icBatchViewModal.app-liquid-modal{
+  color:#243d33;
+  background:linear-gradient(145deg,#ffffff,#f5f8f6);
+  border-color:#cddbd5;
+  box-shadow:0 28px 70px rgba(34,64,52,.20),inset 0 1px 0 rgba(255,255,255,.92);
+}
+html[data-theme="light"] #icBatchViewModal .ic-batch-view-head{
+  background:linear-gradient(180deg,#fbfdfc,#f4f8f6);
+  border-bottom-color:#d9e4df;
+}
+html[data-theme="light"] #icBatchViewModal .ic-batch-view-head-info h3{color:#173d2d}
+html[data-theme="light"] #icBatchViewModal .ic-batch-view-meta-item{color:#647d72}
+html[data-theme="light"] #icBatchViewModal .ic-batch-view-meta-item span{color:#267743}
+html[data-theme="light"] #icBatchViewModal #icBatchViewCloseBtn.app-liquid-modal__close{
+  background:#f7faf8;
+  border-color:#c9d8d1;
+  color:#315347;
+  box-shadow:0 5px 14px rgba(37,69,57,.08);
+}
+html[data-theme="light"] #icBatchViewModal #icBatchViewCloseBtn.app-liquid-modal__close:hover{
+  background:#fff0ef;
+  border-color:#dda5a0;
+  color:#a33e37;
+}
+html[data-theme="light"] #icBatchViewModal #icBatchViewStatus{
+  background:#f7faf8;
+  color:#2f7d46;
+  border-bottom-color:#dce6e1;
+}
+html[data-theme="light"] #icBatchViewModal #icBatchViewStatus.ic-batch-view-status-error{color:#a43d36;background:#fff5f4}
+html[data-theme="light"] #icBatchViewModal #icBatchViewStatus.ic-batch-view-status-empty{color:#74877e}
+html[data-theme="light"] #icBatchViewModal .ic-batch-view-table-wrap{
+  background:#ffffff;
+  scrollbar-color:#aabdb4 #edf2ef;
+}
+html[data-theme="light"] #icBatchViewModal .ic-batch-view-table-wrap::-webkit-scrollbar{width:11px;height:11px}
+html[data-theme="light"] #icBatchViewModal .ic-batch-view-table-wrap::-webkit-scrollbar-track{background:#edf2ef}
+html[data-theme="light"] #icBatchViewModal .ic-batch-view-table-wrap::-webkit-scrollbar-thumb{background:#aabdb4;border:2px solid #edf2ef;border-radius:999px}
+html[data-theme="light"] #icBatchViewModal .ic-batch-view-table-wrap::-webkit-scrollbar-thumb:hover{background:#879f94}
+html[data-theme="light"] #icBatchViewTable thead th,
+html[data-theme="light"] #icBatchViewTable .sortable-th{
+  background:linear-gradient(180deg,#e6f2e9,#dcecdf);
+  color:#236b3b;
+  border-bottom-color:#cbdcd3;
+}
+html[data-theme="light"] #icBatchViewTable .sort-btn{color:#236b3b}
+html[data-theme="light"] #icBatchViewTable .sort-btn:hover{background:#d4e8d9}
+html[data-theme="light"] #icBatchViewTable .sort-btn span{color:#8a7b3e}
+html[data-theme="light"] #icBatchViewTable .column-filter-row th{background:#f1f6f3;border-bottom-color:#d7e3dd}
+html[data-theme="light"] #icBatchViewTable .col-filter{
+  background:#ffffff;
+  border-color:#c8d8d0;
+  color:#27463a;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.75);
+}
+html[data-theme="light"] #icBatchViewTable .col-filter::placeholder{color:#8aa097}
+html[data-theme="light"] #icBatchViewTable tbody td{
+  background:#ffffff;
+  color:#2a4037;
+  border-bottom-color:#e1e8e4;
+}
+html[data-theme="light"] #icBatchViewTable tbody tr:nth-child(even) td{background:#f8fbf9}
+html[data-theme="light"] #icBatchViewTable tbody tr:hover td{background:#eef7f0}
+html[data-theme="light"] #icBatchViewTable .ic-batch-view-row-num{color:#9a6900}
+html[data-theme="light"] #icBatchViewTable .ic-batch-view-code{color:#15713a}
+html[data-theme="light"] #icBatchViewTable .ic-batch-view-null{color:#9aacA3}
 @media(max-width:700px){.app-liquid-modal{max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);border-radius:17px}.app-liquid-modal__footer{padding-bottom:max(12px,env(safe-area-inset-bottom))}.inventory-settlement-reversal-modal,.app-liquid-confirm{padding:8px}.inventory-settlement-reversal-dialog,.app-liquid-confirm__dialog{width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}.inventory-settlement-reversal-grid,.inventory-review-history-meta,.inventory-review-history-comparison{grid-template-columns:1fr}.inventory-settlement-reversal-header,.inventory-settlement-reversal-body,.inventory-settlement-reversal-actions{padding-inline:13px}.inventory-settlement-reversal-actions{display:grid;grid-template-columns:1fr 1fr}.inventory-settlement-reversal-actions button,.app-liquid-modal__footer button{min-height:46px}.inventory-review-tabs{padding-inline:12px}}
 
 /* Department loading error register */
