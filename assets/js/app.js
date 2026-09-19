@@ -3608,10 +3608,17 @@ async function fetchAllRows(tableName, select='*', buildQuery){
   return all;
 }
 function auditStatusCell(value,status){
-  const map={green:'#0f5f35',red:'#7a1f1f',yellow:'#7a6a1f',gold:'#b98612',blue:'#145da0',neutral:'transparent'};
+  const light=document.documentElement.getAttribute('data-theme')==='light';
+  const map=light
+    ? {green:'#dff2e4',red:'#fde5e3',yellow:'#fff5d8',gold:'#fff0bf',blue:'#e1effa',neutral:'transparent'}
+    : {green:'#0f5f35',red:'#7a1f1f',yellow:'#7a6a1f',gold:'#b98612',blue:'#145da0',neutral:'transparent'};
+  const textMap=light
+    ? {green:'#206c3b',red:'#983e36',yellow:'#765b0b',gold:'#7a5b09',blue:'#245f89',neutral:'#263b33'}
+    : {green:'#fff',red:'#fff',yellow:'#fff',gold:'#fff',blue:'#fff',neutral:'#fff'};
   const color=map[status]||map.neutral;
-  const glow=status==='gold' ? 'box-shadow:0 0 12px rgba(241,191,48,.85);border:1px solid rgba(255,225,120,.9);font-weight:800;' : '';
-  return `<span style="display:block;padding:6px 8px;border-radius:8px;background:${color};color:#fff;${glow}">${escapeHtml(value ?? '-')}</span>`;
+  const textColor=textMap[status]||textMap.neutral;
+  const glow=status==='gold' ? (light?'border:1px solid #dfc76f;font-weight:800;':'box-shadow:0 0 12px rgba(241,191,48,.85);border:1px solid rgba(255,225,120,.9);font-weight:800;') : '';
+  return `<span style="display:block;padding:6px 8px;border-radius:8px;background:${color};color:${textColor};${glow}">${escapeHtml(value ?? '-')}</span>`;
 }
 function normalizePlantCodeForAudit(value, warehouseCode=''){
   const v=normKey(value);
