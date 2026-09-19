@@ -1143,17 +1143,30 @@ function toNumber(v){
 }
 function dashboardDateKey(v){return normalizeDateISO(v)||'غير محدد';}
 function dashboardPlantFromWarehouse(code){return warehouseMetaByCode(code).plant_code || 'غير محدد';}
-function drawDashboardDonut(items){
+let DASHBOARD_LAST_VISUALS=null;
+function dashboardThemePalette(){
+  const light=document.documentElement.getAttribute('data-theme')==='light';
+  return light?{
+    canvasText:'#30483e',muted:'#6b7d75',grid:'rgba(45,75,63,.13)',axis:'rgba(69,132,82,.30)',
+    pointStroke:'rgba(255,255,255,.94)',donutHole:'#ffffff',donutValue:'#162b22',donutUnit:'#61746b',plantLabel:'#243b31'
+  }:{
+    canvasText:'#d6ead1',muted:'#cfe8d0',grid:'rgba(255,255,255,.12)',axis:'rgba(132,207,80,.35)',
+    pointStroke:'rgba(0,20,14,.85)',donutHole:'#00251f',donutValue:'#fff',donutUnit:'#d8ffd1',plantLabel:'#fff'
+  };
+}
+function drawDashboardDonut(items,options={}){
   const canvas=$('#donutChart'); if(!canvas) return;
+  const theme=dashboardThemePalette();
+  const visualOnly=options.visualOnly===true;
   const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,340,240);
   const entries=(items||[]).filter(x=>x.value>0).slice(0,8);
   const sum=entries.reduce((a,b)=>a+b.value,0);
   const legend=$('#movementLegend');
-  const statsBox=$('#donutStats') || (()=>{const d=document.createElement('div');d.id='donutStats';d.className='chart-stats-row';legend?.after(d);return d;})();
+  const statsBox=visualOnly?$('#donutStats'):($('#donutStats') || (()=>{const d=document.createElement('div');d.id='donutStats';d.className='chart-stats-row';legend?.after(d);return d;})());
   if(!sum){
-    ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات مبيعات',170,120);ctx.textAlign='start';
-    if(legend) legend.innerHTML='';
-    if(statsBox) statsBox.innerHTML='<div><b>0</b><span>إجمالي المبيعات</span></div><div><b>0</b><span>عدد المخازن</span></div>';
+    ctx.fillStyle=theme.canvasText;ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات مبيعات',170,120);ctx.textAlign='start';
+    if(!visualOnly && legend) legend.innerHTML='';
+    if(!visualOnly && statsBox) statsBox.innerHTML='<div><b>0</b><span>إجمالي المبيعات</span></div><div><b>0</b><span>عدد المخازن</span></div>';
     return;
   }
   let a=-Math.PI/2;
@@ -1163,10 +1176,10 @@ function drawDashboardDonut(items){
     ctx.fillStyle=colors[i%colors.length];ctx.globalAlpha=.92;ctx.fill();a=e;
   });
   ctx.globalAlpha=1;
-  ctx.beginPath();ctx.arc(130,120,48,0,Math.PI*2);ctx.fillStyle='#00251f';ctx.fill();
-  ctx.fillStyle='#fff';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText(fmt(sum),130,118);
-  ctx.font='bold 12px Cairo';ctx.fillStyle='#d8ffd1';ctx.fillText('طن',130,139);ctx.textAlign='start';
-  if(legend){
+  ctx.beginPath();ctx.arc(130,120,48,0,Math.PI*2);ctx.fillStyle=theme.donutHole;ctx.fill();
+  ctx.fillStyle=theme.donutValue;ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText(fmt(sum),130,118);
+  ctx.font='bold 12px Cairo';ctx.fillStyle=theme.donutUnit;ctx.fillText('طن',130,139);ctx.textAlign='start';
+  if(!visualOnly && legend){
     legend.classList.add('dashboard-donut-legend');
     legend.innerHTML=entries.map((it,i)=>{
       const pct=sum?((it.value/sum)*100).toFixed(1):'0.0';
@@ -1175,13 +1188,15 @@ function drawDashboardDonut(items){
       return `<div class="legend-row"><span class="dot" style="background:${colors[i%colors.length]}"></span><b>${escapeHtml(code)}</b><em>${escapeHtml(name)}</em><strong>${fmt(it.value)}</strong><small>${pct}%</small></div>`;
     }).join('');
   }
-  if(statsBox){
+  if(!visualOnly && statsBox){
     const top=entries[0];
     statsBox.innerHTML=`<div><b>${fmt(sum)}</b><span>إجمالي المبيعات</span></div><div><b>${entries.length}</b><span>عدد المخازن</span></div><div><b>${escapeHtml(String(top.label||'-').split(' - ')[0])}</b><span>أعلى مخزن</span></div>`;
   }
 }
-function drawDashboardLine(dailyMap){
+function drawDashboardLine(dailyMap,options={}){
   const canvas=$('#lineChart'); if(!canvas) return;
+  const theme=dashboardThemePalette();
+  const visualOnly=options.visualOnly===true;
   const ctx=canvas.getContext('2d');
   const w=canvas.width, h=canvas.height;
   ctx.clearRect(0,0,w,h);
@@ -1192,14 +1207,14 @@ function drawDashboardLine(dailyMap){
     {key:'outgoing',label:'الصادرة',color:'#ff9f2f'},
     {key:'incoming',label:'الواردة',color:'#b965ff'}
   ];
-  if(legend){
+  if(!visualOnly && legend){
     legend.innerHTML=series.map(s=>`<span><i style="background:${s.color};color:${s.color}"></i>${s.label}</span>`).join('');
   }
   const realDays=Object.keys(dailyMap||{}).sort().slice(-31);
-  const summary=$('#lineSummary') || (()=>{const d=document.createElement('div');d.id='lineSummary';d.className='chart-stats-row';canvas.after(d);return d;})();
+  const summary=visualOnly?$('#lineSummary'):($('#lineSummary') || (()=>{const d=document.createElement('div');d.id='lineSummary';d.className='chart-stats-row';canvas.after(d);return d;})());
   if(!realDays.length){
-    ctx.fillStyle='#d6ead1';ctx.font='bold 20px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2);ctx.textAlign='start';
-    if(summary) summary.innerHTML='<div><b>0</b><span>البيع</span></div><div><b>0</b><span>الإنتاج</span></div><div><b>0</b><span>الصادرة</span></div><div><b>0</b><span>الواردة</span></div>';
+    ctx.fillStyle=theme.canvasText;ctx.font='bold 20px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2);ctx.textAlign='start';
+    if(!visualOnly && summary) summary.innerHTML='<div><b>0</b><span>البيع</span></div><div><b>0</b><span>الإنتاج</span></div><div><b>0</b><span>الصادرة</span></div><div><b>0</b><span>الواردة</span></div>';
     return;
   }
   const totals=series.map(s=>({ ...s, total:realDays.reduce((a,d)=>a+(dailyMap[d][s.key]||0),0) }));
@@ -1213,14 +1228,14 @@ function drawDashboardLine(dailyMap){
   const cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
 
   ctx.save();
-  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;
-  ctx.font='bold 12px Cairo';ctx.fillStyle='#cfe8d0';ctx.textAlign='right';ctx.textBaseline='middle';
+  ctx.strokeStyle=theme.grid;ctx.lineWidth=1;
+  ctx.font='bold 12px Cairo';ctx.fillStyle=theme.muted;ctx.textAlign='right';ctx.textBaseline='middle';
   for(let i=0;i<=5;i++){
     const y=pad.t+ch-(i/5)*ch;
     ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();
     ctx.fillText(fmt(max*i/5),pad.l-10,y);
   }
-  ctx.strokeStyle='rgba(132,207,80,.35)';ctx.lineWidth=1.4;
+  ctx.strokeStyle=theme.axis;ctx.lineWidth=1.4;
   ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,pad.t+ch);ctx.lineTo(w-pad.r,pad.t+ch);ctx.stroke();
 
   const xFor=(idx)=> plotDays.length===1 ? pad.l+cw/2 : pad.l+idx*(cw/(plotDays.length-1));
@@ -1232,20 +1247,22 @@ function drawDashboardLine(dailyMap){
     plotDays.forEach((d,i)=>{
       const x=xFor(i), y=yFor(valueFor(d,s.key));
       ctx.beginPath();ctx.arc(x,y,4.2,0,Math.PI*2);ctx.fillStyle=s.color;ctx.fill();
-      ctx.strokeStyle='rgba(0,20,14,.85)';ctx.lineWidth=2;ctx.stroke();
+      ctx.strokeStyle=theme.pointStroke;ctx.lineWidth=2;ctx.stroke();
     });
   });
-  ctx.fillStyle='#d6ead1';ctx.font='bold 13px Cairo';ctx.textAlign='center';ctx.textBaseline='alphabetic';
+  ctx.fillStyle=theme.canvasText;ctx.font='bold 13px Cairo';ctx.textAlign='center';ctx.textBaseline='alphabetic';
   const first=realDays[0]?.slice(5)||'';
   const last=realDays[realDays.length-1]?.slice(5)||first;
   ctx.fillText(first,pad.l,pad.t+ch+30);
   ctx.fillText(last,w-pad.r,pad.t+ch+30);
   ctx.restore();
-  if(summary){summary.innerHTML=totals.map(s=>`<div><b>${fmt(s.total)}</b><span>${s.label}</span></div>`).join('');}
+  if(!visualOnly && summary){summary.innerHTML=totals.map(s=>`<div><b>${fmt(s.total)}</b><span>${s.label}</span></div>`).join('');}
 }
 
-function drawDashboardPlantBar(plantStats){
+function drawDashboardPlantBar(plantStats,options={}){
   const canvas=$('#plantBarChart'); if(!canvas) return;
+  const theme=dashboardThemePalette();
+  const visualOnly=options.visualOnly===true;
   const ctx=canvas.getContext('2d');
   const w=canvas.width, h=canvas.height;
   ctx.clearRect(0,0,w,h);
@@ -1258,12 +1275,12 @@ function drawDashboardPlantBar(plantStats){
     {key:'loading',label:'التحميل',color:'#28c7bd'}
   ];
   const legend=$('#plantBarLegend');
-  if(legend){legend.innerHTML=series.map(s=>`<span><i style="background:${s.color}"></i>${s.label}</span>`).join('');}
+  if(!visualOnly && legend){legend.innerHTML=series.map(s=>`<span><i style="background:${s.color}"></i>${s.label}</span>`).join('');}
   const max=Math.max(1,...plants.flatMap(code=>series.map(s=>Math.abs((plantStats[code]||{})[s.key]||0))));
   const pad={l:48,r:20,t:18,b:40};
   const cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
-  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;
-  ctx.font='11px Cairo';ctx.fillStyle='#cfe8d0';ctx.textAlign='right';
+  ctx.strokeStyle=theme.grid;ctx.lineWidth=1;
+  ctx.font='11px Cairo';ctx.fillStyle=theme.muted;ctx.textAlign='right';
   for(let i=0;i<=5;i++){
     const y=pad.t+ch-(i/5)*ch;
     ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();
@@ -1282,10 +1299,10 @@ function drawDashboardPlantBar(plantStats){
       const x=baseX+si*(barW+4), y=pad.t+ch-bh;
       ctx.fillStyle=ser.color;ctx.globalAlpha=.9;ctx.fillRect(x,y,barW,bh);
     });
-    ctx.globalAlpha=1;ctx.fillStyle='#fff';ctx.font='bold 12px Cairo';ctx.textAlign='center';ctx.fillText(code,groupX+groupW/2,pad.t+ch+25);
+    ctx.globalAlpha=1;ctx.fillStyle=theme.plantLabel;ctx.font='bold 12px Cairo';ctx.textAlign='center';ctx.fillText(code,groupX+groupW/2,pad.t+ch+25);
   });
   ctx.textAlign='start';
-  renderPlantPerformanceTable(plantStats);
+  if(!visualOnly) renderPlantPerformanceTable(plantStats);
 }
 
 function renderPlantPerformanceTable(plantStats){
@@ -2525,11 +2542,13 @@ async function loadDashboardRealData(options={}){
   const plantStats=model.plantStats;
   const warehouseSalesMap=model.warehouseSalesMap;
   const warehouseActivityMap=model.warehouseActivityMap;
+  const donutItems=Object.entries(warehouseSalesMap).sort((a,b)=>b[1]-a[1]).map(([code,value])=>({label:code+' - '+(dashboardWhMeta(code).name||'مخزن بيع'),value}));
+  DASHBOARD_LAST_VISUALS={daily,plantStats,donutItems};
   renderDashboardKPIs(stats);
   renderDashboardSummary(stats);
   drawDashboardLine(daily);
   drawDashboardPlantBar(plantStats);
-  drawDashboardDonut(Object.entries(warehouseSalesMap).sort((a,b)=>b[1]-a[1]).map(([code,value])=>({label:code+' - '+(dashboardWhMeta(code).name||'مخزن بيع'),value})));
+  drawDashboardDonut(donutItems);
   const products=Object.values(model.productMap);
   renderDashboardPlants(plantStats, stats.salesQty);
   renderDashboardSalesHeatmap(sales, filters);
@@ -2561,6 +2580,14 @@ async function loadDashboardRealData(options={}){
   });
 }
 
+
+document.addEventListener('audit-theme-change',()=>{
+  if(!DASHBOARD_LAST_VISUALS || !$('#dashboard')?.classList.contains('active-section')) return;
+  const options={visualOnly:true};
+  drawDashboardLine(DASHBOARD_LAST_VISUALS.daily,options);
+  drawDashboardPlantBar(DASHBOARD_LAST_VISUALS.plantStats,options);
+  drawDashboardDonut(DASHBOARD_LAST_VISUALS.donutItems,options);
+});
 
 function updateFiltersVisibility(section){
   const filters=$('#globalFilters');
