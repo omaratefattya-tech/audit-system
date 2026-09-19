@@ -1,20 +1,30 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#003c2d" />
+  <meta name="theme-color" id="appThemeColorMeta" content="#003c2d" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="مراجعة المخازن" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>برنامج مراجعة المخازن</title>
+  <script>
+    (function(){
+      var theme='dark';
+      try{
+        var saved=window.localStorage.getItem('auditTheme');
+        if(saved==='light' || saved==='dark') theme=saved;
+      }catch(_){ }
+      document.documentElement.setAttribute('data-theme',theme);
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=storekeepers-kpi-dept-20260918-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=l1-theme-foundation-20260919-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=ic-editcells-01-20260914-1" />
   <link rel="stylesheet" href="assets/css/operation-progress.css?v=p8-1-15-20260909-1" />
 </head>
@@ -82,6 +92,10 @@
         <div class="user-card">
           <div class="avatar" id="currentUserAvatar">أ</div>
           <div><strong id="currentUserName">--</strong><small id="currentUserRole">--</small></div>
+          <button class="theme-toggle" id="themeToggleBtn" type="button" aria-label="تفعيل الوضع النهاري" aria-pressed="false" title="تفعيل الوضع النهاري">
+            <span class="theme-toggle-icon theme-toggle-icon-sun" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.75"></circle><path d="M12 2.25v2.1M12 19.65v2.1M2.25 12h2.1M19.65 12h2.1M5.1 5.1l1.5 1.5M17.4 17.4l1.5 1.5M18.9 5.1l-1.5 1.5M6.6 17.4l-1.5 1.5"></path></svg></span>
+            <span class="theme-toggle-icon theme-toggle-icon-moon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.25 14.35A8.35 8.35 0 0 1 9.65 3.75 8.5 8.5 0 1 0 20.25 14.35Z"></path><path d="M17.8 4.1v2.7M16.45 5.45h2.7M20.1 8.1v1.9M19.15 9.05h1.9"></path></svg></span>
+          </button>
           <div class="clock" aria-live="polite"><b id="cairoTime">--:--</b><small id="cairoDate">توقيت القاهرة</small></div><button class="top-logout" id="topLogoutBtn" type="button" title="تسجيل الخروج">خروج</button>
         </div>
         <div class="page-title">
@@ -2224,6 +2238,7 @@
   <script src="vendor/sheetjs/xlsx-0.20.3.full.min.js"></script>
   <script src="vendor/html2canvas/html2canvas.min.js?v=2.2-m433"></script>
   <script src="vendor/jspdf/jspdf.umd.min.js?v=2.2-m433"></script>
+  <script src="assets/js/theme.js?v=l1-theme-foundation-20260919-1"></script>
   <script src="assets/js/supabase-config.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/operation-progress.js?v=p8-1-15-20260909-1"></script>
