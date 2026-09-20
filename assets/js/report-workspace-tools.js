@@ -426,11 +426,18 @@
     root.querySelectorAll?.('table').forEach(table=>tables.push(table));
     tables.forEach(table=>{
       table.classList.add('report-export-table');
-      table.style.width='max-content';
-      table.style.minWidth='100%';
-      table.style.maxWidth='none';
-      table.style.height='auto';
-      table.style.tableLayout='auto';
+      const preserveWeeklyLayout=Boolean(table.dataset.weeklyExportKind);
+      if(preserveWeeklyLayout){
+        table.style.maxWidth='none';
+        table.style.height='auto';
+        table.style.tableLayout='fixed';
+      }else{
+        table.style.width='max-content';
+        table.style.minWidth='100%';
+        table.style.maxWidth='none';
+        table.style.height='auto';
+        table.style.tableLayout='auto';
+      }
       table.querySelectorAll('th,td').forEach(cell=>{
         cell.style.position='static';
         cell.style.inset='auto';
