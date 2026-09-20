@@ -6974,7 +6974,7 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
 /* INV-REVIEW-01: inventory review recommendations */
 #inventoryCountLinesTable tbody td[data-inventory-review-line-id][data-inventory-review-version-id] {
   cursor: pointer;
-  transition: color .16s ease, box-shadow .16s ease, background-color .16s ease;
+  transition: color .16s ease, box-shadow .16s ease;
 }
 
 #inventoryCountLinesTable tbody td[data-inventory-review-line-id][data-inventory-review-version-id]:hover {
@@ -9716,3 +9716,100 @@ html[data-theme="light"] #dashboard .rank-table-wrap .column-filter-row th{backg
 html[data-theme="light"] #dashboard .plant-performance-table .col-filter,
 html[data-theme="light"] #dashboard .rank-table-wrap .col-filter{background:#ffffff;color:#254236;border-color:#cfdcd6}
 
+
+
+/* L8-FIX-01 — Inventory Count theme-switch repaint guard.
+   These review-trigger cells used to animate the Light row background during a
+   theme toggle. Keep the dark surface explicit without re-rendering rows, so
+   in-progress manual values are never touched by a visual theme change. */
+html[data-theme="dark"] #inventoryCountLinesTable tbody td[data-inventory-review-line-id][data-inventory-review-version-id]{
+  background-color:transparent;
+  color:inherit;
+}
+html[data-theme="dark"] #inventoryCountLinesTable tbody td[data-inventory-review-line-id][data-inventory-review-version-id]:hover{
+  background-color:rgba(30,132,94,.07);
+  color:#9be650;
+}
+html[data-theme="dark"] #inventoryCountLinesTable tbody td[data-inventory-review-line-id][data-inventory-review-version-id]:focus-visible{
+  background-color:transparent;
+  color:#9be650;
+}
+
+/* L8-FIX-01 — Production tracking export palette only.
+   The shared report exporter remains unchanged for screens whose Light Mode
+   phase has not been reached. */
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"],
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"]{
+  background:#001611;
+  color:#f3fff6;
+}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-header,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-header{
+  background:linear-gradient(135deg,#07513d,#002b22);
+  color:#f5fff7;
+  border:1px solid #1d6a4e;
+  box-shadow:0 10px 24px rgba(0,0,0,.24);
+}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-header h2,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-header h2{color:#bde9c7}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-meta span,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-meta span{
+  background:rgba(141,220,89,.08);
+  border-color:rgba(141,220,89,.30);
+  color:#e9ffe7;
+}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-table,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-table{
+  background:#00251c;
+  color:#f0fff3;
+}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-table th,
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-table td,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-table th,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-table td{
+  background:#00251c;
+  color:#f0fff3;
+  border-color:#1d5b45;
+}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-table thead th,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-table thead th{
+  background:#07513d;
+  color:#f4fff5;
+  border-color:#2a7558;
+}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-table tbody tr:nth-child(even)>td,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-table tbody tr:nth-child(even)>td{background:#003126}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-empty,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .report-export-empty{
+  background:#00251c;
+  color:#b9d6c3;
+  border-color:#31624f;
+}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card{
+  background:#002b21;
+  color:#effff2;
+  border-color:#2e654f;
+}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card span,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card span{color:#a9c9b5}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card strong,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card strong{color:#f5fff7}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card.healthy,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card.healthy{background:#083b28;border-color:#4b9f50}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card.violation,
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card.premature,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card.violation,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card.premature{background:#3b1f25;border-color:#a64a56}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card.returned,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card.returned{background:#33203a;border-color:#895197}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card.review,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-summary-card.review{background:#3a3118;border-color:#aa8a2b}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-status-pill.healthy,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-status-pill.healthy{background:#174d2d;color:#d8ffd1}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-status-pill.violation,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-status-pill.violation{background:#5a2730;color:#ffd9dd}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-status-pill.review,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-status-pill.review{background:#514018;color:#ffefb7}
+.report-export-document[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-stagnation.is-warning,
+.report-pdf-page[data-report-owner="inventory_expiry_tracking"][data-report-theme="dark"] .inventory-production-stagnation.is-warning{background:#8f2632;color:#fff}

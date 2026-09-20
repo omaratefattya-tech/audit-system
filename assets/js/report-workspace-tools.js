@@ -104,7 +104,8 @@
       root:panel,tables:Array.from(panel?.querySelectorAll('.inventory-production-table')||[]),
       intro:Array.from(panel?.querySelectorAll('.inventory-production-summary')||[]),
       fileBase:safeFilename(`production-tracking-${state.plantCode||'WF01'}-${state.reportDate||todayIso()}`),
-      landscape:true,freezeColumns:2,loading:Boolean(state.loading),hasUnsaved:false
+      landscape:true,freezeColumns:2,loading:Boolean(state.loading),hasUnsaved:false,
+      exportTheme:document.documentElement.getAttribute('data-theme')==='light'?'light':'dark'
     };
   }
   function selectedTextFrom(node){return text(node?.selectedOptions?.[0]?.textContent||node?.value||'الكل')||'الكل';}
@@ -492,6 +493,7 @@
     stage.dir='rtl';
     stage.dataset.reportExportSurface='1';
     stage.dataset.reportOwner=descriptor.sectionId;
+    if(descriptor.exportTheme) stage.dataset.reportTheme=descriptor.exportTheme;
     stage.appendChild(buildHeader(descriptor));
     const content=document.createElement('div');
     content.className='report-export-content';
@@ -691,7 +693,9 @@
     const width=Math.ceil(Math.max(element.scrollWidth,element.getBoundingClientRect().width));
     const height=Math.ceil(Math.max(element.scrollHeight,element.getBoundingClientRect().height));
     if(!width||!height) throw new Error('أبعاد التقرير غير صالحة للتصدير.');
-    return window.html2canvas(element,{scale:captureScale(width,height,preferredScale),backgroundColor:'#f8fbf8',useCORS:true,allowTaint:false,logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+    const reportTheme=element?.dataset?.reportTheme || element?.closest?.('[data-report-theme]')?.dataset?.reportTheme || 'light';
+    const captureBackground=reportTheme==='dark'?'#001611':'#f8fbf8';
+    return window.html2canvas(element,{scale:captureScale(width,height,preferredScale),backgroundColor:captureBackground,useCORS:true,allowTaint:false,logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
   }
   const canvasBlob=(canvas,type='image/png',quality=1)=>new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('تعذر إنشاء ملف الصورة.')),type,quality));
 
@@ -711,6 +715,8 @@
     const page=document.createElement('section');
     page.className='report-pdf-page '+(descriptor.landscape?'landscape':'portrait');
     page.dir='rtl';
+    page.dataset.reportOwner=descriptor.sectionId;
+    if(descriptor.exportTheme) page.dataset.reportTheme=descriptor.exportTheme;
     page.appendChild(buildHeader(descriptor,index>0));
     const content=document.createElement('div');content.className='report-pdf-page-content';page.appendChild(content);
     return {page,content};
@@ -769,7 +775,9 @@
         if(index) pdf.addPage('a4',descriptor.landscape?'landscape':'portrait');
         const canvas=await captureElement(built.pages[index].page,1.55,descriptor.colorAudit);
         pdf.addImage(canvas.toDataURL('image/jpeg',.94),'JPEG',0,0,pageWidth,pageHeight,undefined,'FAST');
-        pdf.setFontSize(8);pdf.setTextColor(70,82,76);pdf.text(`${index+1} / ${built.pages.length}`,pageWidth/2,pageHeight-8,{align:'center'});
+        pdf.setFontSize(8);
+        if(descriptor.exportTheme==='dark') pdf.setTextColor(218,239,226); else pdf.setTextColor(70,82,76);
+        pdf.text(`${index+1} / ${built.pages.length}`,pageWidth/2,pageHeight-8,{align:'center'});
       }
       return pdf.output('blob');
     }finally{built.host.remove();}
