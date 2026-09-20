@@ -8491,7 +8491,7 @@ function reportFilterLabel(filters){
 function reportsThemePalette(){
   const light=document.documentElement.getAttribute('data-theme')==='light';
   return light?{
-    light:true,theme:'light',canvasBackground:'#f4f7f5',pageBackground:'linear-gradient(180deg,#f6f9f7,#eef4f1)',text:'#294137',heading:'#173128',muted:'#667b71',grid:'rgba(45,75,63,.14)',strong:'#173128',label:'#36594a',donutHole:'#ffffff',donutValue:'#173128',donutUnit:'#61766b',barFade:'rgba(56,113,75,.12)',surface:'#ffffff',soft:'#f7faf8',border:'#d2dfd9',meta:'#587164',metaStrong:'#2f7044',divider:'#cfddd6'
+    light:true,theme:'light',canvasBackground:'#f8faf9',pageBackground:'linear-gradient(180deg,#f4f8f5,#eaf1ed)',text:'#17352a',heading:'#0d2e22',muted:'#435d50',grid:'rgba(25,67,50,.22)',strong:'#0d2e22',label:'#244b3a',donutHole:'#ffffff',donutValue:'#0d2e22',donutUnit:'#405b4f',barFade:'rgba(31,105,58,.18)',surface:'#ffffff',soft:'#f3f7f5',border:'#b9ccc2',meta:'#405d50',metaStrong:'#176b37',divider:'#b8ccc2'
   }:{
     light:false,theme:'dark',canvasBackground:'#001611',pageBackground:'radial-gradient(circle at 50% 0%,rgba(94,180,71,.14),transparent 36%),linear-gradient(180deg,#00291f,#001611)',text:'#eaffdf',heading:'#ffffff',muted:'#cfe8d0',grid:'rgba(255,255,255,.13)',strong:'#ffffff',label:'#d8f5d0',donutHole:'#00251f',donutValue:'#ffffff',donutUnit:'#d8ffd1',barFade:'rgba(255,255,255,.18)',surface:'rgba(0,35,27,.78)',soft:'rgba(0,52,39,.72)',border:'rgba(141,220,89,.28)',meta:'#bdf2a0',metaStrong:'#dfffd4',divider:'rgba(141,220,89,.28)'
   };
