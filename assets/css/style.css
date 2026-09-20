@@ -10770,3 +10770,13 @@ html[data-theme="dark"] #inventoryCountLinesTable tbody td[data-inventory-review
 .report-export-document[data-report-owner="department_loading_errors"] .department-loading-error-type.shortage,.report-pdf-page[data-report-owner="department_loading_errors"] .department-loading-error-type.shortage{background:#ffe5e2!important;color:#8e2d28!important;border-color:#d47c75!important}
 .report-export-document[data-report-owner="department_loading_errors"][data-report-theme="dark"] .department-loading-error-type.surplus,.report-pdf-page[data-report-owner="department_loading_errors"][data-report-theme="dark"] .department-loading-error-type.surplus{background:#295f38!important;color:#e6ffe6!important;border-color:#5aa86e!important}
 .report-export-document[data-report-owner="department_loading_errors"][data-report-theme="dark"] .department-loading-error-type.shortage,.report-pdf-page[data-report-owner="department_loading_errors"][data-report-theme="dark"] .department-loading-error-type.shortage{background:#6a2630!important;color:#ffe5e3!important;border-color:#cf7680!important}
+
+
+/* L10-FIX-06: HR header contrast + evaluations dark export alignment */
+html[data-theme="light"] #department_hr_reports .department-hr-table thead th{background:#b8d8c1!important;color:#0b482c!important;border-bottom-color:#789f86!important;font-weight:900!important;opacity:1!important}
+html[data-theme="light"] #department_hr_reports .department-hr-table thead th *{color:#0b482c!important;font-weight:900!important;opacity:1!important;text-shadow:none!important}
+html[data-theme="light"] #department_hr_reports .department-hr-table thead th .department-sort-indicator{color:#9a6500!important}
+html[data-theme="light"] #department_hr_reports .department-hr-sort{color:#0b482c!important;font-weight:900!important;opacity:1!important}
+html[data-theme="light"] #department_hr_reports .department-hr-sort-label{color:#0b482c!important;font-weight:900!important;opacity:1!important}
+.report-export-document[data-report-owner="department_evaluations"][data-report-theme="dark"] .report-export-content{direction:rtl!important;width:100%!important;max-width:none!important;overflow:visible!important}
+.report-export-document[data-report-owner="department_evaluations"][data-report-theme="dark"] table[data-weekly-export-kind="evaluations"]{direction:rtl!important;margin-right:0!important;margin-left:auto!important;float:none!important;transform:none!important}

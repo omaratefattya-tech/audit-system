@@ -725,6 +725,26 @@
       await readyForCapture(stage);
       const desired=Math.max(960,...Array.from(stage.querySelectorAll('table')).map(table=>table.scrollWidth+64));
       stage.style.width=desired+'px';
+      if(descriptor.sectionId==='department_evaluations' && descriptor.exportTheme==='dark'){
+        const content=stage.querySelector('.report-export-content');
+        const table=stage.querySelector('table[data-weekly-export-kind="evaluations"]');
+        stage.style.direction='rtl';
+        if(content){
+          content.style.direction='rtl';
+          content.style.width='100%';
+          content.style.maxWidth='none';
+          content.style.overflow='visible';
+        }
+        if(table){
+          table.style.direction='rtl';
+          table.style.marginRight='0';
+          table.style.marginLeft='auto';
+          table.style.float='none';
+          table.style.transform='none';
+          const tableWidth=Math.ceil(Math.max(table.scrollWidth,table.getBoundingClientRect().width));
+          if(tableWidth+64>desired) stage.style.width=(tableWidth+64)+'px';
+        }
+      }
       await new Promise(resolve=>requestAnimationFrame(resolve));
       const canvas=await captureElement(stage,2,descriptor.colorAudit);
       return canvasBlob(canvas);
