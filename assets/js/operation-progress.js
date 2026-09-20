@@ -61,5 +61,60 @@
   // Blocks pointer, keyboard and synthetic duplicate actions while preserving permission ownership.
   document.addEventListener('click',event=>{if(event.target.closest?.('[data-operation-locked="1"]') || [...tasks.values()].some(task=>task.scope?.contains(event.target)&&event.target.closest?.('button,input,select'))){event.preventDefault();event.stopImmediatePropagation();}},true);
   document.addEventListener('submit',event=>{if(event.target.querySelector?.('[data-operation-locked="1"][type="submit"]')){event.preventDefault();event.stopImmediatePropagation();}},true);
-  globalScope.AppOperationProgress=Object.freeze({run,cancelAll,isBusy:key=>tasks.has(key)});
+  const INLINE_PROGRESS_SELECTOR=[
+    '[data-report-tools-status]','[role="status"]','[aria-live]',
+    '.upload-status','.department-loading-errors-status','.department-loading-error-modal-status',
+    '.department-weekly-status','.department-hr-report-status','.department-hr-state.loading',
+    '.inventory-production-state.loading','.inventory-production-screen-status',
+    '.inventory-review-history-status','.inventory-count-status','.inventory-difference-status',
+    '.permissions-empty-state','.empty-row','.empty-state'
+  ].join(',');
+  const INLINE_LOADING_RE=/(?:جاري|جارٍ)\s+(?:إعداد|تحميل|تجهيز|إنشاء|تصدير|قراءة|معالجة|حفظ|تحديث|استيراد)|(?:loading|preparing|processing|exporting|importing)\b/i;
+  function decorateInlineProgress(node){
+    if(!node||node.nodeType!==1||!node.matches?.(INLINE_PROGRESS_SELECTOR)) return;
+    const message=String(node.textContent||'').replace(/\s+/g,' ').trim();
+    const loading=INLINE_LOADING_RE.test(message)||node.classList.contains('loading')||node.dataset.type==='busy'||node.getAttribute('aria-busy')==='true';
+    if(!loading){
+      node.removeAttribute('data-inline-operation-progress');
+      node.removeAttribute('data-inline-progress-known');
+      node.style.removeProperty('--inline-operation-percent');
+      return;
+    }
+    node.setAttribute('data-inline-operation-progress','1');
+    const match=message.match(/(?:^|\s)(\d{1,3}(?:\.\d+)?)\s*%/);
+    if(match){
+      const percent=Math.max(0,Math.min(100,Number(match[1])||0));
+      node.setAttribute('data-inline-progress-known','1');
+      node.style.setProperty('--inline-operation-percent',percent+'%');
+    }else{
+      node.removeAttribute('data-inline-progress-known');
+      node.style.removeProperty('--inline-operation-percent');
+    }
+  }
+  function scanInlineProgress(root){
+    if(!root) return;
+    if(root.nodeType===1) decorateInlineProgress(root);
+    root.querySelectorAll?.(INLINE_PROGRESS_SELECTOR).forEach(decorateInlineProgress);
+  }
+  function startInlineProgressObserver(){
+    if(document.documentElement.dataset.inlineOperationProgressBound==='1') return;
+    document.documentElement.dataset.inlineOperationProgressBound='1';
+    scanInlineProgress(document);
+    const observer=new MutationObserver(records=>{
+      const candidates=new Set();
+      records.forEach(record=>{
+        const target=record.type==='characterData'?record.target.parentElement:record.target;
+        if(target?.nodeType===1){
+          const match=target.matches?.(INLINE_PROGRESS_SELECTOR)?target:target.closest?.(INLINE_PROGRESS_SELECTOR);
+          if(match)candidates.add(match);
+          record.addedNodes?.forEach(node=>{if(node.nodeType===1)candidates.add(node);});
+        }
+      });
+      candidates.forEach(node=>scanInlineProgress(node));
+    });
+    observer.observe(document.body||document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','data-type','data-state','hidden','aria-busy']});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startInlineProgressObserver,{once:true});
+  else startInlineProgressObserver();
+  globalScope.AppOperationProgress=Object.freeze({run,cancelAll,isBusy:key=>tasks.has(key),refreshInlineProgress:()=>scanInlineProgress(document)});
 })(window);

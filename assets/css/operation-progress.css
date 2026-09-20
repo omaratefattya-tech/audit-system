@@ -16,101 +16,47 @@
 @media print{.application-operation-progress{display:none}}
 
 
-/* Shared Light Mode task indicator for completed screen phases */
-html[data-theme="light"] body:has(#sales.active-section) .application-operation-progress,
-html[data-theme="light"] body:has(#dashboard.active-section) .application-operation-progress,
-html[data-theme="light"] body:has(#inbound.active-section) .application-operation-progress,
-html[data-theme="light"] body:has(#raw_materials.active-section) .application-operation-progress,
-html[data-theme="light"] body:has(#inventory_closing.active-section) .application-operation-progress,
-html[data-theme="light"] body:has(#inventory_differences.active-section) .application-operation-progress,
-html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .application-operation-progress,
-html[data-theme="light"] body:has(#reports.active-section) .application-operation-progress,
-html[data-theme="light"] body:has(#department_storekeepers.active-section) .application-operation-progress,
-html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .application-operation-progress,
-html[data-theme="light"] body:has(#department_hr_reports.active-section) .application-operation-progress,
-html[data-theme="light"] body:has(#department_evaluations.active-section) .application-operation-progress,
-html[data-theme="light"] body:has(#department_loading_errors.active-section) .application-operation-progress{
-  border-color:#b7d1bf;
-  background:rgba(255,255,255,.96);
-  color:#1f392e;
-  box-shadow:0 12px 30px rgba(36,69,55,.16);
-  backdrop-filter:blur(14px);
+/* Theme-aware application progress for every screen. */
+html[data-theme="light"] .application-operation-progress{
+  border-color:#b7d1bf;background:rgba(255,255,255,.96);color:#1f392e;
+  box-shadow:0 12px 30px rgba(36,69,55,.16);backdrop-filter:blur(14px)
 }
-html[data-theme="light"] body:has(#sales.active-section) .operation-progress-heading b,
-html[data-theme="light"] body:has(#dashboard.active-section) .operation-progress-heading b,
-html[data-theme="light"] body:has(#inbound.active-section) .operation-progress-heading b,
-html[data-theme="light"] body:has(#raw_materials.active-section) .operation-progress-heading b,
-html[data-theme="light"] body:has(#inventory_closing.active-section) .operation-progress-heading b,
-html[data-theme="light"] body:has(#inventory_differences.active-section) .operation-progress-heading b,
-html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .operation-progress-heading b,
-html[data-theme="light"] body:has(#reports.active-section) .operation-progress-heading b,
-html[data-theme="light"] body:has(#department_storekeepers.active-section) .operation-progress-heading b,
-html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .operation-progress-heading b,
-html[data-theme="light"] body:has(#department_hr_reports.active-section) .operation-progress-heading b,
-html[data-theme="light"] body:has(#department_evaluations.active-section) .operation-progress-heading b,
-html[data-theme="light"] body:has(#department_loading_errors.active-section) .operation-progress-heading b{color:#2b8746}
-html[data-theme="light"] body:has(#sales.active-section) .operation-progress-heading button,
-html[data-theme="light"] body:has(#dashboard.active-section) .operation-progress-heading button,
-html[data-theme="light"] body:has(#inbound.active-section) .operation-progress-heading button,
-html[data-theme="light"] body:has(#raw_materials.active-section) .operation-progress-heading button,
-html[data-theme="light"] body:has(#inventory_closing.active-section) .operation-progress-heading button,
-html[data-theme="light"] body:has(#inventory_differences.active-section) .operation-progress-heading button,
-html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .operation-progress-heading button,
-html[data-theme="light"] body:has(#reports.active-section) .operation-progress-heading button,
-html[data-theme="light"] body:has(#department_storekeepers.active-section) .operation-progress-heading button,
-html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .operation-progress-heading button,
-html[data-theme="light"] body:has(#department_hr_reports.active-section) .operation-progress-heading button,
-html[data-theme="light"] body:has(#department_evaluations.active-section) .operation-progress-heading button,
-html[data-theme="light"] body:has(#department_loading_errors.active-section) .operation-progress-heading button{color:#315347}
-html[data-theme="light"] body:has(#sales.active-section) .operation-progress-track,
-html[data-theme="light"] body:has(#dashboard.active-section) .operation-progress-track,
-html[data-theme="light"] body:has(#inbound.active-section) .operation-progress-track,
-html[data-theme="light"] body:has(#raw_materials.active-section) .operation-progress-track,
-html[data-theme="light"] body:has(#inventory_closing.active-section) .operation-progress-track,
-html[data-theme="light"] body:has(#inventory_differences.active-section) .operation-progress-track,
-html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .operation-progress-track,
-html[data-theme="light"] body:has(#reports.active-section) .operation-progress-track,
-html[data-theme="light"] body:has(#department_storekeepers.active-section) .operation-progress-track,
-html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .operation-progress-track,
-html[data-theme="light"] body:has(#department_hr_reports.active-section) .operation-progress-track,
-html[data-theme="light"] body:has(#department_evaluations.active-section) .operation-progress-track,
-html[data-theme="light"] body:has(#department_loading_errors.active-section) .operation-progress-track{background:#e5eee9;box-shadow:inset 0 0 0 1px #d9e5df}
-html[data-theme="light"] body:has(#sales.active-section) .operation-progress-track i,
-html[data-theme="light"] body:has(#dashboard.active-section) .operation-progress-track i,
-html[data-theme="light"] body:has(#inbound.active-section) .operation-progress-track i,
-html[data-theme="light"] body:has(#raw_materials.active-section) .operation-progress-track i,
-html[data-theme="light"] body:has(#inventory_closing.active-section) .operation-progress-track i,
-html[data-theme="light"] body:has(#inventory_differences.active-section) .operation-progress-track i,
-html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .operation-progress-track i,
-html[data-theme="light"] body:has(#reports.active-section) .operation-progress-track i,
-html[data-theme="light"] body:has(#department_storekeepers.active-section) .operation-progress-track i,
-html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .operation-progress-track i,
-html[data-theme="light"] body:has(#department_hr_reports.active-section) .operation-progress-track i,
-html[data-theme="light"] body:has(#department_evaluations.active-section) .operation-progress-track i,
-html[data-theme="light"] body:has(#department_loading_errors.active-section) .operation-progress-track i{background:linear-gradient(90deg,#55ae52,#86cf57)}
-html[data-theme="light"] body:has(#sales.active-section) .application-operation-progress small,
-html[data-theme="light"] body:has(#dashboard.active-section) .application-operation-progress small,
-html[data-theme="light"] body:has(#inbound.active-section) .application-operation-progress small,
-html[data-theme="light"] body:has(#raw_materials.active-section) .application-operation-progress small,
-html[data-theme="light"] body:has(#inventory_closing.active-section) .application-operation-progress small,
-html[data-theme="light"] body:has(#inventory_differences.active-section) .application-operation-progress small,
-html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .application-operation-progress small,
-html[data-theme="light"] body:has(#reports.active-section) .application-operation-progress small,
-html[data-theme="light"] body:has(#department_storekeepers.active-section) .application-operation-progress small,
-html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .application-operation-progress small,
-html[data-theme="light"] body:has(#department_hr_reports.active-section) .application-operation-progress small,
-html[data-theme="light"] body:has(#department_evaluations.active-section) .application-operation-progress small,
-html[data-theme="light"] body:has(#department_loading_errors.active-section) .application-operation-progress small{color:#62786d}
-html[data-theme="light"] body:has(#sales.active-section) .application-operation-progress[data-state="error"],
-html[data-theme="light"] body:has(#dashboard.active-section) .application-operation-progress[data-state="error"],
-html[data-theme="light"] body:has(#inbound.active-section) .application-operation-progress[data-state="error"],
-html[data-theme="light"] body:has(#raw_materials.active-section) .application-operation-progress[data-state="error"],
-html[data-theme="light"] body:has(#inventory_closing.active-section) .application-operation-progress[data-state="error"],
-html[data-theme="light"] body:has(#inventory_differences.active-section) .application-operation-progress[data-state="error"],
-html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .application-operation-progress[data-state="error"],
-html[data-theme="light"] body:has(#reports.active-section) .application-operation-progress[data-state="error"],
-html[data-theme="light"] body:has(#department_storekeepers.active-section) .application-operation-progress[data-state="error"],
-html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .application-operation-progress[data-state="error"],
-html[data-theme="light"] body:has(#department_hr_reports.active-section) .application-operation-progress[data-state="error"],
-html[data-theme="light"] body:has(#department_evaluations.active-section) .application-operation-progress[data-state="error"],
-html[data-theme="light"] body:has(#department_loading_errors.active-section) .application-operation-progress[data-state="error"]{border-color:#dea39d;background:#fff8f7;color:#8c3a33}
+html[data-theme="light"] .operation-progress-heading b{color:#2b8746}
+html[data-theme="light"] .operation-progress-heading button{color:#315347}
+html[data-theme="light"] .operation-progress-track{background:#e5eee9;box-shadow:inset 0 0 0 1px #d9e5df}
+html[data-theme="light"] .operation-progress-track i{background:linear-gradient(90deg,#3e9850,#7bc84d)}
+html[data-theme="light"] .application-operation-progress small{color:#5e756a}
+html[data-theme="light"] .application-operation-progress[data-state="error"]{border-color:#dea39d;background:#fff8f7;color:#8c3a33}
+
+/* Inline loading progress under visible status text across the application. */
+[data-inline-operation-progress="1"]{
+  --inline-progress-track:#0b2a21;
+  --inline-progress-start:#3d963d;
+  --inline-progress-end:#a4e42d;
+  display:block!important;position:relative!important;box-sizing:border-box;padding-bottom:13px!important;
+}
+[data-inline-operation-progress="1"]::before{
+  content:"";position:absolute;inset-inline:0;bottom:2px;height:6px;border-radius:999px;
+  background:var(--inline-progress-track);box-shadow:inset 0 0 0 1px rgba(166,226,151,.13);overflow:hidden;
+}
+[data-inline-operation-progress="1"]::after{
+  content:"";position:absolute;bottom:2px;inset-inline-start:0;width:34%;height:6px;border-radius:999px;
+  background:linear-gradient(90deg,var(--inline-progress-start),var(--inline-progress-end));
+  box-shadow:0 0 10px rgba(122,208,75,.26);animation:inline-operation-progress-travel 1.25s ease-in-out infinite;
+}
+[data-inline-operation-progress="1"][data-inline-progress-known="1"]::after{
+  width:var(--inline-operation-percent,0%);animation:none;transition:width .18s ease;
+}
+html[data-theme="light"] [data-inline-operation-progress="1"]{
+  --inline-progress-track:#dce8e1;--inline-progress-start:#2f8b49;--inline-progress-end:#72bf45;
+}
+html[data-theme="light"] [data-inline-operation-progress="1"]::before{box-shadow:inset 0 0 0 1px #c6d9cd}
+html[data-theme="light"] [data-inline-operation-progress="1"]::after{box-shadow:0 0 8px rgba(60,144,75,.2)}
+.report-workspace-tools-status[data-inline-operation-progress="1"]{min-width:min(320px,100%);max-width:620px;padding-inline:2px}
+.empty-row[data-inline-operation-progress="1"],.empty-state[data-inline-operation-progress="1"]{padding-bottom:18px!important}
+@keyframes inline-operation-progress-travel{
+  0%{transform:translateX(190%)}50%{transform:translateX(0)}100%{transform:translateX(-190%)}
+}
+@media(max-width:600px){[data-inline-operation-progress="1"]::before,[data-inline-operation-progress="1"]::after{height:5px}.report-workspace-tools-status[data-inline-operation-progress="1"]{min-width:220px}}
+@media(prefers-reduced-motion:reduce){[data-inline-operation-progress="1"]::after{animation:none;width:55%}}
+@media print{[data-inline-operation-progress="1"]::before,[data-inline-operation-progress="1"]::after{display:none!important}}
