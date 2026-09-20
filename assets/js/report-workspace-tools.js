@@ -734,7 +734,23 @@
     const content=document.createElement('div');content.className='report-pdf-page-content';page.appendChild(content);
     return {page,content};
   }
-  function pageOverflow(page){return page.scrollHeight>page.clientHeight+1;}
+  const DEPARTMENT_PDF_SAFE_OWNERS=new Set(['department_storekeepers','department_weekly_leave_schedule','department_hr_reports','department_evaluations','department_loading_errors']);
+  function pageOverflow(page){
+    const owner=String(page?.dataset?.reportOwner||'');
+    if(DEPARTMENT_PDF_SAFE_OWNERS.has(owner)){
+      const content=page.querySelector('.report-pdf-page-content');
+      const lastTable=content?.lastElementChild;
+      const body=lastTable?.tBodies?.[0];
+      const lastRow=body?.rows?.length?body.rows[body.rows.length-1]:lastTable;
+      if(lastRow){
+        const pageRect=page.getBoundingClientRect();
+        const rowRect=lastRow.getBoundingClientRect();
+        const reserve=owner==='department_storekeepers'?54:42;
+        return rowRect.bottom>pageRect.bottom-reserve;
+      }
+    }
+    return page.scrollHeight>page.clientHeight+1;
+  }
   function appendIntro(pageInfo,descriptor){
     descriptor.intro.forEach(node=>pageInfo.content.appendChild(sanitizeClone(node)));
   }
