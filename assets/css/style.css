@@ -4991,27 +4991,37 @@ body.mobile-raw-materials-filter-open #raw_materials #rawMaterialsFilters .enter
   -webkit-appearance: none;
   margin: 0;
 }
-/* Inventory Count - variance read-only state only */
+/* Inventory Count - variance read-only state only.
+   Theme colors are owned here through variables so a live theme switch cannot
+   leave a cell painted with the previous theme. */
+#inventoryCountLinesTable {
+  --ic-variance-shortage-color:#ffd4d4;
+  --ic-variance-shortage-bg:rgba(219,75,75,.14);
+  --ic-variance-shortage-shadow:inset 0 0 0 1px rgba(219,75,75,.3),0 0 14px rgba(219,75,75,.12);
+  --ic-variance-surplus-color:#d8ffd1;
+  --ic-variance-surplus-bg:rgba(132,207,80,.13);
+  --ic-variance-surplus-shadow:inset 0 0 0 1px rgba(132,207,80,.32),0 0 14px rgba(132,207,80,.12);
+  --ic-variance-match-color:#d8ffd1;
+  --ic-variance-match-bg:rgba(255,255,255,.04);
+}
 #inventoryCountLinesTable .inventory-variance-cell {
-  font-weight: 900;
-  transition: background-color .15s ease, box-shadow .15s ease, color .15s ease;
+  font-weight:900;
+  transition:none;
 }
-
 #inventoryCountLinesTable .inventory-variance-shortage {
-  color: #ffd4d4;
-  background: rgba(219, 75, 75, .14);
-  box-shadow: inset 0 0 0 1px rgba(219, 75, 75, .3), 0 0 14px rgba(219, 75, 75, .12);
+  color:var(--ic-variance-shortage-color);
+  background:var(--ic-variance-shortage-bg);
+  box-shadow:var(--ic-variance-shortage-shadow);
 }
-
 #inventoryCountLinesTable .inventory-variance-surplus {
-  color: #d8ffd1;
-  background: rgba(132, 207, 80, .13);
-  box-shadow: inset 0 0 0 1px rgba(132, 207, 80, .32), 0 0 14px rgba(132, 207, 80, .12);
+  color:var(--ic-variance-surplus-color);
+  background:var(--ic-variance-surplus-bg);
+  box-shadow:var(--ic-variance-surplus-shadow);
 }
-
 #inventoryCountLinesTable .inventory-variance-match {
-  color: #d8ffd1;
-  background: rgba(255, 255, 255, .04);
+  color:var(--ic-variance-match-color);
+  background:var(--ic-variance-match-bg);
+  box-shadow:none;
 }
 /* Inventory Count - remaining manual fields only */
 #inventoryCountLinesTable .inventory-physical-balance-cell,
@@ -9474,9 +9484,16 @@ html[data-theme="light"] #inventoryCountLinesTable tbody tr:hover td{background:
 html[data-theme="light"] #inventoryCountLinesTable tfoot td{background:#dfeee3;border-top-color:#b9d3c0;color:#216b39}
 html[data-theme="light"] #inventoryCountLinesTable .inventory-count-total-row td:first-child{color:#184e2e}
 html[data-theme="light"] #inventory_closing .inventory-count-reviewer-footer{color:#315347;border-top-color:#d6e1dc}
-html[data-theme="light"] #inventoryCountLinesTable .inventory-variance-shortage{color:#9a3e38;background:#fff1ef;box-shadow:inset 0 0 0 1px #ebc1bc}
-html[data-theme="light"] #inventoryCountLinesTable .inventory-variance-surplus{color:#246f3d;background:#edf8ef;box-shadow:inset 0 0 0 1px #b8d9c0}
-html[data-theme="light"] #inventoryCountLinesTable .inventory-variance-match{color:#385247;background:#f5f8f6}
+html[data-theme="light"] #inventoryCountLinesTable{
+  --ic-variance-shortage-color:#9a3e38;
+  --ic-variance-shortage-bg:#fff1ef;
+  --ic-variance-shortage-shadow:inset 0 0 0 1px #ebc1bc;
+  --ic-variance-surplus-color:#246f3d;
+  --ic-variance-surplus-bg:#edf8ef;
+  --ic-variance-surplus-shadow:inset 0 0 0 1px #b8d9c0;
+  --ic-variance-match-color:#385247;
+  --ic-variance-match-bg:#f5f8f6;
+}
 html[data-theme="light"] #inventoryCountLinesTable [data-inventory-settlement-phase-locked="1"]{color:#71877c;background:#eef3f0;border-color:#d4dfda}
 html[data-theme="light"] #inventoryCountLinesTable .inventory-settlement-btn{background:#f4faf5;color:#256d3d;border-color:#afd0b7}
 html[data-theme="light"] #inventoryCountLinesTable .inventory-settlement-btn.is-finalized{background:#e6f4e9;color:#236a3b;border-color:#b7d6be}
