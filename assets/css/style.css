@@ -1011,7 +1011,10 @@ html[data-theme="light"] body.focus-mode-active[data-focus-section="sales"] .foc
 html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast,
 html[data-theme="light"] body:has(#dashboard.active-section) .dashboard-png-toast,
 html[data-theme="light"] body:has(#inbound.active-section) .dashboard-png-toast,
-html[data-theme="light"] body:has(#raw_materials.active-section) .dashboard-png-toast{
+html[data-theme="light"] body:has(#raw_materials.active-section) .dashboard-png-toast,
+html[data-theme="light"] body:has(#inventory_closing.active-section) .dashboard-png-toast,
+html[data-theme="light"] body:has(#inventory_differences.active-section) .dashboard-png-toast,
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .dashboard-png-toast{
   background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(246,249,247,.97));
   color:#213a30;
   border-color:#cddbd5;
@@ -1020,15 +1023,24 @@ html[data-theme="light"] body:has(#raw_materials.active-section) .dashboard-png-
 html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast-success,
 html[data-theme="light"] body:has(#dashboard.active-section) .dashboard-png-toast-success,
 html[data-theme="light"] body:has(#inbound.active-section) .dashboard-png-toast-success,
-html[data-theme="light"] body:has(#raw_materials.active-section) .dashboard-png-toast-success{border-color:#8fc79b}
+html[data-theme="light"] body:has(#raw_materials.active-section) .dashboard-png-toast-success,
+html[data-theme="light"] body:has(#inventory_closing.active-section) .dashboard-png-toast-success,
+html[data-theme="light"] body:has(#inventory_differences.active-section) .dashboard-png-toast-success,
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .dashboard-png-toast-success{border-color:#8fc79b}
 html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast-error,
 html[data-theme="light"] body:has(#dashboard.active-section) .dashboard-png-toast-error,
 html[data-theme="light"] body:has(#inbound.active-section) .dashboard-png-toast-error,
-html[data-theme="light"] body:has(#raw_materials.active-section) .dashboard-png-toast-error{border-color:#e2a09b;color:#8b3731}
+html[data-theme="light"] body:has(#raw_materials.active-section) .dashboard-png-toast-error,
+html[data-theme="light"] body:has(#inventory_closing.active-section) .dashboard-png-toast-error,
+html[data-theme="light"] body:has(#inventory_differences.active-section) .dashboard-png-toast-error,
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .dashboard-png-toast-error{border-color:#e2a09b;color:#8b3731}
 html[data-theme="light"] body:has(#sales.active-section) .dashboard-png-toast-close,
 html[data-theme="light"] body:has(#dashboard.active-section) .dashboard-png-toast-close,
 html[data-theme="light"] body:has(#inbound.active-section) .dashboard-png-toast-close,
-html[data-theme="light"] body:has(#raw_materials.active-section) .dashboard-png-toast-close{background:#eef4f1;border-color:#d1ddd7;color:inherit}
+html[data-theme="light"] body:has(#raw_materials.active-section) .dashboard-png-toast-close,
+html[data-theme="light"] body:has(#inventory_closing.active-section) .dashboard-png-toast-close,
+html[data-theme="light"] body:has(#inventory_differences.active-section) .dashboard-png-toast-close,
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .dashboard-png-toast-close{background:#eef4f1;border-color:#d1ddd7;color:inherit}
 
 @media(max-width:768px){
   html[data-theme="light"] #sales.active-section{width:100%;max-width:100%;min-width:0;overflow-x:hidden}
@@ -5762,19 +5774,19 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
   padding: 9px 13px;
 }
 
-body.light-mode #inventory_closing .inventory-count-column-panel {
+html[data-theme="light"] #inventory_closing .inventory-count-column-panel {
   background: linear-gradient(145deg, rgba(244, 255, 248, .90), rgba(221, 242, 229, .82));
   color: #0f2c18;
   border-color: rgba(29, 128, 69, .34);
   box-shadow: 0 24px 60px rgba(0, 42, 29, .18), inset 0 1px 0 rgba(255, 255, 255, .55);
 }
 
-body.light-mode #inventory_closing .inventory-count-column-panel-head strong,
-body.light-mode #inventory_closing .inventory-count-column-close {
+html[data-theme="light"] #inventory_closing .inventory-count-column-panel-head strong,
+html[data-theme="light"] #inventory_closing .inventory-count-column-close {
   color: #0f2c18;
 }
 
-body.light-mode #inventory_closing .inventory-count-column-option {
+html[data-theme="light"] #inventory_closing .inventory-count-column-option {
   background: rgba(255, 255, 255, .62);
   border-color: rgba(29, 128, 69, .2);
   color: #0f2c18;
@@ -6493,6 +6505,7 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
   #inventory_expiry_tracking .inventory-production-table-wrap { max-width: 100%; }
   #inventory_expiry_tracking .inventory-production-table td { min-height: 46px; }
 }
+
 /* Department HR report tabs */
 #department_hr_reports {
   min-width: 0;
@@ -9395,6 +9408,263 @@ body.focus-mode-active .report-workspace-toolbar{position:sticky;top:0;z-index:3
 .inventory-adjustment-notes-filter-row th{padding:6px}.inventory-adjustment-notes-filter{width:100%;min-width:120px;padding:7px 8px}.inventory-adjustment-number,.inventory-adjustment-code{direction:ltr;unicode-bidi:isolate;text-align:center;font-variant-numeric:tabular-nums}.inventory-adjustment-reason{min-width:260px;white-space:pre-wrap;overflow-wrap:anywhere}
 .inventory-adjustment-notes-export-sheet{position:fixed;left:-20000px;top:0;width:1500px;padding:26px;background:#f4f8f5;color:#14241c;direction:rtl;font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif}.inventory-adjustment-notes-export-sheet.is-compact{width:1500px;padding:18px}.inventory-adjustment-export-header{margin-bottom:15px;padding:14px 18px;border-radius:10px;background:#07513d;color:#fff}.inventory-adjustment-export-header h1{margin:0 0 7px;font-size:23px}.inventory-adjustment-export-header div,.inventory-adjustment-export-header small{display:block;margin-top:4px}.inventory-adjustment-notes-export-sheet table{width:100%;table-layout:fixed;border-collapse:collapse;background:#fff}.inventory-adjustment-notes-export-sheet th,.inventory-adjustment-notes-export-sheet td{padding:9px 8px;border:1px solid #9fb9aa;text-align:center;vertical-align:middle;white-space:normal;overflow-wrap:anywhere}.inventory-adjustment-notes-export-sheet th{background:#0b6149;color:#fff;font-weight:900}.inventory-adjustment-notes-export-sheet th:nth-child(1){width:12%}.inventory-adjustment-notes-export-sheet th:nth-child(2){width:23%}.inventory-adjustment-notes-export-sheet th:nth-child(3),.inventory-adjustment-notes-export-sheet th:nth-child(4){width:12%}.inventory-adjustment-notes-export-sheet th:nth-child(5){width:26%}.inventory-adjustment-notes-export-sheet th:nth-child(6){width:15%}.inventory-adjustment-notes-export-sheet tbody tr:nth-child(even) td{background:#edf5ef}
 @media(max-width:700px){.inventory-physical-adjustment-body{grid-template-columns:1fr}.inventory-physical-adjustment-body label:has(textarea){grid-column:auto}.inventory-adjustment-notes-head{display:block}.inventory-adjustment-notes-actions{display:flex;margin-top:10px;overflow-x:auto;flex-wrap:nowrap}.inventory-adjustment-notes-actions button{flex:0 0 auto}}
+
+/* L8 Light Mode owner: inventory audit module (count, differences, production tracking) */
+html[data-theme="light"] .app-shell:has(#inventory_closing.active-section),
+html[data-theme="light"] .app-shell:has(#inventory_differences.active-section),
+html[data-theme="light"] .app-shell:has(#inventory_expiry_tracking.active-section){background:#f3f6f5}
+html[data-theme="light"] .app-shell:has(#inventory_closing.active-section) .main,
+html[data-theme="light"] .app-shell:has(#inventory_differences.active-section) .main,
+html[data-theme="light"] .app-shell:has(#inventory_expiry_tracking.active-section) .main{
+  background:radial-gradient(circle at 18% 4%,rgba(82,168,105,.08),transparent 28%),linear-gradient(180deg,#f6f9f7 0%,#eef4f1 100%);
+}
+html[data-theme="light"] .app-shell:has(#inventory_closing.active-section) .topbar,
+html[data-theme="light"] .app-shell:has(#inventory_differences.active-section) .topbar,
+html[data-theme="light"] .app-shell:has(#inventory_expiry_tracking.active-section) .topbar{background:transparent}
+html[data-theme="light"] #inventory_closing,
+html[data-theme="light"] #inventory_differences,
+html[data-theme="light"] #inventory_expiry_tracking{color:#203a30}
+html[data-theme="light"] #inventory_closing>.panel.glass,
+html[data-theme="light"] #inventory_differences>.panel.glass,
+html[data-theme="light"] #inventory_expiry_tracking>.panel.glass,
+html[data-theme="light"] #inventory_closing .inventory-adjustment-notes-view{
+  background:linear-gradient(145deg,#ffffff,#f7faf8);border-color:#d3dfda;box-shadow:0 12px 30px rgba(34,64,52,.09);
+}
+html[data-theme="light"] #inventory_closing .focus-mode-title-row h2,
+html[data-theme="light"] #inventory_differences h2,
+html[data-theme="light"] #inventory_expiry_tracking h2{color:#173d2d;text-shadow:none}
+html[data-theme="light"] #inventory_closing>.panel>.hint,
+html[data-theme="light"] #inventory_expiry_tracking .hint,
+html[data-theme="light"] #inventory_differences .hint{color:#687e74}
+html[data-theme="light"] #inventory_closing .secondary,
+html[data-theme="light"] #inventory_differences .secondary,
+html[data-theme="light"] #inventory_expiry_tracking .secondary{background:#f8fbf9;color:#315347;border-color:#b9d2c0;box-shadow:none}
+html[data-theme="light"] #inventory_closing .secondary:hover,
+html[data-theme="light"] #inventory_differences .secondary:hover,
+html[data-theme="light"] #inventory_expiry_tracking .secondary:hover{background:#edf6ef;border-color:#8db99a;color:#1d6738}
+html[data-theme="light"] #inventory_closing .primary,
+html[data-theme="light"] #inventory_differences .primary{background:linear-gradient(135deg,#58b94e,#21863f);border-color:#73b779;color:#fff}
+
+/* Inventory Count: controls, table, states */
+html[data-theme="light"] #inventory_closing .inventory-count-settings-box{
+  background:linear-gradient(145deg,#ffffff,#f5f8f6);border:1px solid #d3dfda;box-shadow:0 8px 20px rgba(37,69,57,.06);
+}
+html[data-theme="light"] #inventory_closing .inventory-count-settings-box label{color:#29483b}
+html[data-theme="light"] #inventory_closing .inventory-count-settings-box input,
+html[data-theme="light"] #inventory_closing .inventory-count-settings-box select,
+html[data-theme="light"] #inventoryCountLinesTable input,
+html[data-theme="light"] #inventoryCountLinesTable select{
+  background:#ffffff;color:#254236;border-color:#c9d8d1;box-shadow:none;
+}
+html[data-theme="light"] #inventory_closing select option{background:#fff;color:#213c31}
+html[data-theme="light"] #inventory_closing #inventoryCountCurrentVersionMeta{color:#647d72}
+html[data-theme="light"] #inventory_closing .table-wrap{background:#fff;border-color:#d4dfda;box-shadow:none;scrollbar-color:#aabdb4 #edf2ef}
+html[data-theme="light"] #inventoryCountLinesTable{color:#263f35;background:#fff}
+html[data-theme="light"] #inventoryCountLinesTable thead tr:first-child th{background:#e3f0e6;color:#236b3b;border-bottom-color:#cbdcd3}
+html[data-theme="light"] #inventoryCountLinesTable .inventory-count-sort-btn{color:#236b3b}
+html[data-theme="light"] #inventoryCountLinesTable .inventory-count-filter-row th{background:#f1f6f3;border-bottom-color:#d7e3dd}
+html[data-theme="light"] #inventoryCountLinesTable .inventory-count-column-filter,
+html[data-theme="light"] #inventoryCountLinesTable .inventory-count-clear-filters-btn{background:#fff;color:#27463a;border-color:#c8d8d0}
+html[data-theme="light"] #inventoryCountLinesTable .inventory-count-column-filter::placeholder{color:#8aa097}
+html[data-theme="light"] #inventoryCountLinesTable tbody tr:nth-child(odd),
+html[data-theme="light"] #inventoryCountLinesTable tbody tr:nth-child(even){background:#fff}
+html[data-theme="light"] #inventoryCountLinesTable tbody tr:nth-child(even) td{background:#f8fbf9}
+html[data-theme="light"] #inventoryCountLinesTable tbody td{color:#293f36;border-bottom-color:#e1e8e4}
+html[data-theme="light"] #inventoryCountLinesTable tbody tr:hover td{background:#edf7f0}
+html[data-theme="light"] #inventoryCountLinesTable tfoot td{background:#dfeee3;border-top-color:#b9d3c0;color:#216b39}
+html[data-theme="light"] #inventoryCountLinesTable .inventory-count-total-row td:first-child{color:#184e2e}
+html[data-theme="light"] #inventory_closing .inventory-count-reviewer-footer{color:#315347;border-top-color:#d6e1dc}
+html[data-theme="light"] #inventoryCountLinesTable .inventory-variance-shortage{color:#9a3e38;background:#fff1ef;box-shadow:inset 0 0 0 1px #ebc1bc}
+html[data-theme="light"] #inventoryCountLinesTable .inventory-variance-surplus{color:#246f3d;background:#edf8ef;box-shadow:inset 0 0 0 1px #b8d9c0}
+html[data-theme="light"] #inventoryCountLinesTable .inventory-variance-match{color:#385247;background:#f5f8f6}
+html[data-theme="light"] #inventoryCountLinesTable [data-inventory-settlement-phase-locked="1"]{color:#71877c;background:#eef3f0;border-color:#d4dfda}
+html[data-theme="light"] #inventoryCountLinesTable .inventory-settlement-btn{background:#f4faf5;color:#256d3d;border-color:#afd0b7}
+html[data-theme="light"] #inventoryCountLinesTable .inventory-settlement-btn.is-finalized{background:#e6f4e9;color:#236a3b;border-color:#b7d6be}
+html[data-theme="light"] #inventory_closing .inventory-count-refresh-btn{background:#f1f7f4;color:#567166;border-color:#c9d9d2}
+html[data-theme="light"] #inventory_closing .inventory-count-refresh-btn:disabled{background:#f3f5f4;color:#9aa9a2;border-color:#e0e6e3}
+html[data-theme="light"] #inventory_closing .inventory-count-refresh-btn.is-update-ready:not(:disabled){background:linear-gradient(135deg,#e0f7f3,#d8eff1);color:#176d70;border-color:#74c8c2;box-shadow:0 8px 20px rgba(41,139,135,.10)}
+html[data-theme="light"] #inventory_closing .inventory-count-finish-btn{background:#fff1f0;color:#9a3d36;border-color:#dda49f;box-shadow:none}
+html[data-theme="light"] #inventory_closing .inventory-count-finish-btn:not(:disabled):hover{background:#ffe8e6;border-color:#cf827b;color:#8a302a}
+html[data-theme="light"] #inventory_closing .inventory-count-post-close-btn{background:#fff9eb;color:#775a0b;border-color:#dec576}
+html[data-theme="light"] #inventory_closing .inventory-count-post-close-btn:not(:disabled):hover{background:#fff3ce;border-color:#cfac4d;color:#684d06}
+html[data-theme="light"] #inventoryCountLoadingOverlay{background:rgba(238,245,241,.82)!important;color:#24483a;backdrop-filter:blur(5px)!important}
+
+/* Inventory Count: mobile sheets and column manager */
+html[data-theme="light"] #inventory_closing .inventory-count-column-panel,
+html[data-theme="light"] #inventory_closing .inventory-count-mobile-sheet,
+html[data-theme="light"] body.inventory-count-settings-open #inventory_closing .inventory-count-settings-box,
+html[data-theme="light"] body.inventory-count-search-open #inventory_closing #inventoryCountMobileFilterPanel{
+  background:linear-gradient(160deg,#ffffff,#f4f8f5)!important;border-color:#cddbd5!important;color:#264338!important;box-shadow:0 -20px 55px rgba(37,69,57,.18)!important;
+}
+html[data-theme="light"] #inventory_closing .inventory-count-mobile-sheet-overlay:not([hidden]){background:rgba(39,61,52,.24);backdrop-filter:blur(5px)}
+html[data-theme="light"] #inventory_closing .inventory-count-mobile-panel-head strong,
+html[data-theme="light"] #inventory_closing .inventory-count-column-panel-head strong,
+html[data-theme="light"] #inventory_closing .inventory-count-mobile-filter-item{color:#234337}
+html[data-theme="light"] #inventory_closing .inventory-count-mobile-panel-close,
+html[data-theme="light"] #inventory_closing .inventory-count-column-close{background:#eef4f1;border-color:#d0dcd7;color:#315347}
+html[data-theme="light"] #inventory_closing .inventory-count-column-option{background:#f8fbf9;border-color:#dbe5e1;color:#30493f}
+html[data-theme="light"] #inventory_closing .inventory-count-column-option:hover{background:#edf6ef;border-color:#c3dac9}
+html[data-theme="light"] #inventory_closing .inventory-count-mobile-filter-item input,
+html[data-theme="light"] #inventory_closing .inventory-count-mobile-filter-item select{background:#fff;color:#27463a;border-color:#cbdad3}
+
+/* Inventory Count: scoped notifications */
+html[data-theme="light"] #inventory_closing .inventory-count-toast,
+html[data-theme="light"] #inventory_differences .inventory-count-toast{
+  background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(246,249,247,.97));color:#213a30;border-color:#cddbd5;box-shadow:0 16px 36px rgba(37,69,57,.16),inset 0 1px 0 rgba(255,255,255,.9);
+}
+html[data-theme="light"] #inventory_closing .inventory-count-toast-success,
+html[data-theme="light"] #inventory_differences .inventory-count-toast-success{border-color:#8fc79b}
+html[data-theme="light"] #inventory_closing .inventory-count-toast-error,
+html[data-theme="light"] #inventory_differences .inventory-count-toast-error{border-color:#e2a09b;color:#8b3731}
+html[data-theme="light"] #inventory_closing .inventory-count-toast-warning,
+html[data-theme="light"] #inventory_differences .inventory-count-toast-warning{border-color:#d9bb62;color:#735500;background:linear-gradient(145deg,#fffdf7,#fff8e9)}
+html[data-theme="light"] #inventory_closing .inventory-count-toast-info,
+html[data-theme="light"] #inventory_differences .inventory-count-toast-info{border-color:#92c5ce}
+html[data-theme="light"] #inventory_closing .inventory-count-toast-close,
+html[data-theme="light"] #inventory_differences .inventory-count-toast-close{background:#eef4f1;border-color:#d1ddd7;color:inherit}
+
+/* Inventory Count: Focus Mode */
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"]{background:#f3f6f5!important;color:#203a30!important}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"] #inventory_closing{background:#f3f6f5!important}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"] #inventory_closing>.panel.glass{background:#fff!important;border-color:#d2ded9!important;box-shadow:none!important}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable thead tr:first-child th{background:#e3f0e6!important;color:#236b3b!important;box-shadow:0 1px 0 #cbdcd3,0 8px 14px rgba(40,73,59,.07)!important}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable .inventory-count-filter-row th,
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable .inventory-count-filter-row th:nth-child(1),
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable .inventory-count-filter-row th:nth-child(2),
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable .inventory-count-filter-row th:nth-child(3){background:#f1f6f3!important;color:#27463a!important;box-shadow:0 1px 0 #d8e3de,0 6px 12px rgba(40,73,59,.05)!important}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable .inventory-count-column-filter{background:#fff!important;color:#27463a!important;border-color:#c8d8d0!important}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"] .focus-mode-close-btn{background:#fff8e8!important;color:#76570a!important;border-color:#dfc273!important}
+
+/* Inventory Count: adjustment notes */
+html[data-theme="light"] #inventory_closing .inventory-adjustment-notes-scope{background:#eef7f0;color:#24683a}
+html[data-theme="light"] #inventory_closing .inventory-adjustment-notes-history-note{background:#fff9e9;border-color:#e2c46d;color:#735a12}
+html[data-theme="light"] #inventory_closing .inventory-adjustment-notes-status{color:#62796f}
+html[data-theme="light"] #inventory_closing .inventory-adjustment-notes-table-wrap{background:#fff;border-color:#d4dfda}
+html[data-theme="light"] #inventory_closing .inventory-adjustment-notes-table-wrap th{background:#e5f1e8;color:#236b3b}
+html[data-theme="light"] #inventory_closing .inventory-adjustment-notes-table-wrap td{color:#294137;background:#fff;border-bottom-color:#e1e8e4}
+html[data-theme="light"] #inventory_closing .inventory-adjustment-notes-filter-row th{background:#f1f6f3}
+html[data-theme="light"] #inventory_closing .inventory-adjustment-notes-filter{background:#fff;color:#27463a;border-color:#c8d8d0}
+
+/* Inventory Count: PNG/PDF export sheet */
+html[data-theme="light"] .inventory-count-export-sheet{color:#193128;background:linear-gradient(180deg,#f5f9f6 0%,#eef5f1 100%)}
+html[data-theme="light"] .inventory-count-export-header{background:linear-gradient(135deg,#e4f2e7,#f8fbf9);border-color:#bcd7c3;color:#174d2d}
+html[data-theme="light"] .inventory-count-export-header h1{color:#174d2d}
+html[data-theme="light"] .inventory-count-export-meta span{color:#335a45;background:#f7faf8;border-color:#d6e2dc}
+html[data-theme="light"] .inventory-count-export-table{background:#fff;border-color:#b9cdc3}
+html[data-theme="light"] .inventory-count-export-table th{background:#dcecdf;color:#1f6838;border-color:#b8cec0}
+html[data-theme="light"] .inventory-count-export-table td{color:#253d33;border-color:#cedbd5}
+html[data-theme="light"] .inventory-count-export-table tbody tr:nth-child(even) td{background:#f1f7f3}
+html[data-theme="light"] .inventory-count-export-table tbody tr:nth-child(odd) td{background:#fff}
+html[data-theme="light"] .inventory-count-export-table tfoot td{background:#d9ebde;color:#1d6336;border-color:#aecab7}
+html[data-theme="light"] .inventory-count-export-sheet footer{color:#315b45;border-top-color:#bfd3c7}
+html[data-theme="light"] .inventory-count-pdf-page-number{color:#527065}
+html[data-theme="light"] .inventory-count-export-sheet-pdf .inventory-count-pdf-empty-row td{color:#687e74;background:#f7faf8}
+html[data-theme="light"] .inventory-count-export-sheet-pdf .inventory-count-pdf-reviewer-footer{color:#315b45}
+
+/* Inventory Count: all owned modals */
+html[data-theme="light"] body:has(#inventory_closing.active-section) :is(.inventory-review-modal,.inventory-settlement-modal,.inventory-settlement-reversal-modal,.inventory-physical-adjustment-modal,.inventory-count-post-close-modal,.app-liquid-confirm){background:rgba(42,61,53,.28);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+html[data-theme="light"] body:has(#inventory_closing.active-section) :is(.inventory-review-card,.inventory-settlement-dialog,.inventory-settlement-reversal-dialog,.inventory-physical-adjustment-dialog,.inventory-count-post-close-dialog,.app-liquid-confirm__dialog).app-liquid-modal{
+  background:linear-gradient(145deg,#ffffff,#f5f8f6);color:#243d33;border-color:#cddbd5;box-shadow:0 28px 70px rgba(34,64,52,.20),inset 0 1px 0 rgba(255,255,255,.92);
+}
+html[data-theme="light"] body:has(#inventory_closing.active-section) .app-liquid-modal__header,
+html[data-theme="light"] body:has(#inventory_closing.active-section) .app-liquid-modal__footer{border-color:#d9e4df}
+html[data-theme="light"] body:has(#inventory_closing.active-section) .app-liquid-modal__title,
+html[data-theme="light"] body:has(#inventory_closing.active-section) :is(.inventory-review-head h2,.inventory-review-section-head h3,.inventory-review-inverse-card h3,.inventory-settlement-header h2,.inventory-settlement-preview h3,.inventory-settlement-reversal-summary h3,.inventory-physical-adjustment-dialog h3){color:#173d2d}
+html[data-theme="light"] body:has(#inventory_closing.active-section) :is(.inventory-review-eyebrow,.inventory-review-detail-label,.inventory-settlement-eyebrow,.inventory-settlement-summary-grid span,.inventory-settlement-field small,.inventory-settlement-reversal-grid span,.inventory-settlement-reversal-action>span,.inventory-count-post-close-eyebrow){color:#667d72}
+html[data-theme="light"] body:has(#inventory_closing.active-section) :is(.inventory-review-material-name,.inventory-review-detail-value,.inventory-review-summary,.inventory-review-inverse-text,.inventory-review-no-inverse,.inventory-review-list,.inventory-settlement-summary-grid strong,.inventory-settlement-field,.inventory-settlement-reason-control,.inventory-settlement-reversal-grid strong,.inventory-settlement-reversal-action p,.app-liquid-confirm__body p){color:#294137}
+html[data-theme="light"] body:has(#inventory_closing.active-section) :is(.inventory-review-product-card,.inventory-review-details-grid,.inventory-review-recommendations,.inventory-review-inverse-card,.inventory-settlement-summary,.inventory-settlement-preview,.inventory-settlement-reasons-block,.inventory-settlement-reversal-summary,.inventory-review-timeline-event,.inventory-count-post-close-preview){background:#f8fbf9;border-color:#d7e3dd}
+html[data-theme="light"] body:has(#inventory_closing.active-section) :is(.inventory-review-detail,.inventory-settlement-summary-grid>div,.inventory-settlement-reason-row,.inventory-settlement-reversal-grid>div,.inventory-settlement-reversal-two-stage-meta,.inventory-settlement-reversal-stage-card,.inventory-settlement-reversal-action,.inventory-review-history-value,.inventory-review-history-action,.inventory-review-history-related){background:#eef5f1;border-color:#d7e3dd;color:#294137}
+html[data-theme="light"] body:has(#inventory_closing.active-section) :is(.inventory-settlement-field select,.inventory-settlement-field input,.inventory-settlement-field textarea,.inventory-settlement-reason-control select,.inventory-settlement-reason-control input,.inventory-physical-adjustment-dialog input,.inventory-physical-adjustment-dialog textarea,.inventory-count-post-close-table input,.inventory-count-post-close-table select,.inventory-count-post-close-reason textarea){background:#fff;color:#27463a;border-color:#c8d8d0}
+html[data-theme="light"] body:has(#inventory_closing.active-section) :is(.inventory-settlement-field select option,.inventory-settlement-reason-control select option,.inventory-count-post-close-table select option){background:#fff;color:#27463a}
+html[data-theme="light"] body:has(#inventory_closing.active-section) .app-liquid-modal__close{background:#f7faf8;border-color:#c9d8d1;color:#315347;box-shadow:0 5px 14px rgba(37,69,57,.08)}
+html[data-theme="light"] body:has(#inventory_closing.active-section) .inventory-review-tabs{border-bottom-color:#dbe5e0}
+html[data-theme="light"] body:has(#inventory_closing.active-section) .inventory-review-tabs button{background:#f7faf8;color:#315347;border-color:#cbdad3}
+html[data-theme="light"] body:has(#inventory_closing.active-section) .inventory-review-tabs button.is-active{background:#e2f3e5;color:#1d6c39;border-color:#9fc8aa}
+html[data-theme="light"] body:has(#inventory_closing.active-section) .inventory-review-history-status{background:#f1f6f3;color:#657b71}
+html[data-theme="light"] body:has(#inventory_closing.active-section) .inventory-review-history-comparison>section{border-color:#dce6e1;background:#fff}
+html[data-theme="light"] body:has(#inventory_closing.active-section) .inventory-count-post-close-table-wrap{background:#fff;border-color:#d4dfda}
+html[data-theme="light"] body:has(#inventory_closing.active-section) .inventory-count-post-close-table th{background:#e4f0e7;color:#236b3b;border-bottom-color:#d3dfda}
+html[data-theme="light"] body:has(#inventory_closing.active-section) .inventory-count-post-close-table td{color:#294137;border-bottom-color:#e1e8e4}
+html[data-theme="light"] body:has(#inventory_closing.active-section) .inventory-count-post-close-projection{color:#315347;background:#f3f7f5}
+html[data-theme="light"] body:has(#inventory_closing.active-section) .inventory-count-post-close-projection.is-after{color:#246a3b;background:#edf7ef}
+
+/* Inventory Differences */
+html[data-theme="light"] #inventory_differences .inventory-differences-panel{background:linear-gradient(145deg,#ffffff,#f7faf8);border-color:#d3dfda;box-shadow:0 12px 30px rgba(34,64,52,.09)}
+html[data-theme="light"] #inventory_differences .inventory-difference-plant-tab{background:linear-gradient(145deg,#ffffff,#f4f8f6);color:#294137;border-color:#d3dfda;box-shadow:0 8px 20px rgba(37,69,57,.07)}
+html[data-theme="light"] #inventory_differences .inventory-difference-plant-tab span{color:#267743}
+html[data-theme="light"] #inventory_differences .inventory-difference-plant-tab b{background:#e5f2e8;color:#267743}
+html[data-theme="light"] #inventory_differences .inventory-difference-plant-tab.active{background:linear-gradient(135deg,#dff3e3,#ccead3);border-color:#9bc6a6;color:#185e33;box-shadow:0 10px 22px rgba(44,113,65,.10)}
+html[data-theme="light"] #inventory_differences :is(.inventory-difference-documents-wrap,.inventory-difference-table-wrap){background:#fff;border-color:#d4dfda;box-shadow:none}
+html[data-theme="light"] #inventoryDifferenceDocumentsTable th,
+html[data-theme="light"] #inventoryDifferenceLinesTable th{background:#e4f0e7;color:#236b3b;border-bottom-color:#cbdcd3}
+html[data-theme="light"] #inventoryDifferenceDocumentsTable td,
+html[data-theme="light"] #inventoryDifferenceLinesTable td{background:#fff;color:#294137;border-bottom-color:#e1e8e4}
+html[data-theme="light"] #inventoryDifferenceDocumentsTable tbody tr:nth-child(even) td,
+html[data-theme="light"] #inventoryDifferenceLinesTable tbody tr:nth-child(even) td{background:#f8fbf9}
+html[data-theme="light"] #inventoryDifferenceLinesTable tfoot td{background:#dfeee3;color:#216b39}
+html[data-theme="light"] #inventory_differences .inventory-difference-meta-card{background:#f7faf8;border-color:#d8e3de}
+html[data-theme="light"] #inventory_differences .inventory-difference-meta-card span{color:#687e74}
+html[data-theme="light"] #inventory_differences .inventory-difference-meta-card strong{color:#203a30}
+html[data-theme="light"] #inventory_differences .inventory-difference-history-panel{background:#fffaf0;border-color:#e4cf91}
+html[data-theme="light"] #inventory_differences .inventory-difference-history-head strong{color:#7b5b0a}
+html[data-theme="light"] #inventoryDifferenceHistoryTable th{background:#f4e7ba;color:#735500}
+html[data-theme="light"] #inventoryDifferenceHistoryTable td{background:#fffdf7;color:#4f4527;border-bottom-color:#eadfbf}
+html[data-theme="light"] #inventory_differences .empty-state{color:#72857b}
+html[data-theme="light"] body:has(#inventory_differences.active-section) .inventory-difference-replace-modal{background:rgba(42,61,53,.28)}
+html[data-theme="light"] body:has(#inventory_differences.active-section) .inventory-difference-replace-dialog.app-liquid-modal{background:linear-gradient(145deg,#ffffff,#f5f8f6);color:#243d33;border-color:#cddbd5;box-shadow:0 28px 70px rgba(34,64,52,.20)}
+html[data-theme="light"] body:has(#inventory_differences.active-section) .inventory-difference-replace-dialog h3{color:#173d2d}
+html[data-theme="light"] body:has(#inventory_differences.active-section) .inventory-difference-replace-dialog p,
+html[data-theme="light"] body:has(#inventory_differences.active-section) .inventory-difference-replace-reason label{color:#294137}
+html[data-theme="light"] body:has(#inventory_differences.active-section) .inventory-difference-replace-reason textarea{background:#fff;color:#27463a;border-color:#c8d8d0}
+html[data-theme="light"] body:has(#inventory_differences.active-section) #inventoryDifferenceReplaceCounter{color:#687e74}
+
+/* Production-date tracking */
+html[data-theme="light"] #inventory_expiry_tracking .inventory-expiry-panel{background:linear-gradient(145deg,#ffffff,#f7faf8);border-color:#d3dfda;box-shadow:0 12px 30px rgba(34,64,52,.09)}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-controls,
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-toolbar{background:#f7faf8;border:1px solid #d7e2dd;box-shadow:none}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-date-field,
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-toolbar label{color:#29483b}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-comparison{background:#fff;border-color:#d4dfda}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-comparison span{color:#71847b}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-comparison b{color:#246f3d}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-screen-status{background:#f7faf8;color:#315347;border-color:#d4dfda}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-screen-status.error{background:#fff4f3;color:#963c35;border-color:#e2a39e}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-screen-status.warning{background:#fff9e9;color:#795d10;border-color:#dfc36f}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-screen-status.success{background:#eef8f0;color:#246b3a;border-color:#a9d1b2}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-expiry-tab{background:#f7faf8;color:#315347;border-color:#d0ddd7}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-expiry-tab:hover{background:#edf6ef;border-color:#a7cbb0;color:#1e6938}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-expiry-tab.active{background:linear-gradient(135deg,#dff3e3,#ccead3);color:#185e33;border-color:#9bc6a6;box-shadow:none}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-summary-card{background:linear-gradient(145deg,#ffffff,#f6f9f7);border-color:#d5e1dc;box-shadow:0 6px 16px rgba(37,69,57,.05)}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-summary-card span{color:#6c8076}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-summary-card strong{color:#183027}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-toolbar input,
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-toolbar select{background:#fff;color:#27463a;border-color:#c8d8d0}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-toolbar-note{background:#fff;color:#60776c;border-color:#d6e1dc}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-table-wrap{background:#fff;border-color:#d4dfda;scrollbar-color:#aabdb4 #edf2ef}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-table thead th{background:#e4f0e7;color:#236b3b;border-bottom-color:#cbdcd3}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-sort{color:#236b3b}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-sort:hover,
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-sort:focus-visible{background:#dceee1;outline-color:#9bc7a6}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-sort b{color:#4e8b5f}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-table td{color:#294137;border-bottom-color:#e1e8e4;background:#fff}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-table tbody tr:nth-child(even) td{background:#f8fbf9}
+html[data-theme="light"] #inventory_expiry_tracking .movement-negative{background:#fff2e9!important}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-number small,
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-result em{color:#a4512e}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-expected-note,
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-result small{color:#687d73}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-status-pill{color:#fff;border-color:rgba(0,0,0,.06)}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-status-pill.healthy{background:#3c9858}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-status-pill.violation{background:#b84b45}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-status-pill.review{background:#ad7b23}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-stagnation.is-warning{background:#fff0ef;color:#9a3e38;box-shadow:inset 0 0 0 1px #e7b5b0}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-state{background:#f7faf8;color:#294137;border-color:#cbdad3}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-state p{color:#6a7f75}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-state.error{background:#fff5f4;border-color:#e1aaa5}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-state.warning{background:#fffaf0;border-color:#dfc87e}
+html[data-theme="light"] #inventory_expiry_tracking .inventory-production-spinner{border-color:#d1e1d6;border-top-color:#3f9b59}
+
+
 .inventory-physical-adjustment-btn.is-settled{border-color:rgba(214,90,103,.55);background:linear-gradient(135deg,rgba(214,90,103,.12),rgba(216,166,45,.08));cursor:help}
 .inventory-book-balance-cell{font-variant-numeric:tabular-nums}.inventory-book-balance-readonly{display:inline-flex;min-width:72px;justify-content:center}
 /* IC-EDITCELLS-01 — editable oldest date and free-text inventory counter */

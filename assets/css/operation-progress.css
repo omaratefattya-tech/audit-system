@@ -16,11 +16,14 @@
 @media print{.application-operation-progress{display:none}}
 
 
-/* L5 Light Mode: shared task indicator while Sales review is active */
+/* Shared Light Mode task indicator for completed screen phases */
 html[data-theme="light"] body:has(#sales.active-section) .application-operation-progress,
 html[data-theme="light"] body:has(#dashboard.active-section) .application-operation-progress,
 html[data-theme="light"] body:has(#inbound.active-section) .application-operation-progress,
-html[data-theme="light"] body:has(#raw_materials.active-section) .application-operation-progress{
+html[data-theme="light"] body:has(#raw_materials.active-section) .application-operation-progress,
+html[data-theme="light"] body:has(#inventory_closing.active-section) .application-operation-progress,
+html[data-theme="light"] body:has(#inventory_differences.active-section) .application-operation-progress,
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .application-operation-progress{
   border-color:#b7d1bf;
   background:rgba(255,255,255,.96);
   color:#1f392e;
@@ -30,24 +33,42 @@ html[data-theme="light"] body:has(#raw_materials.active-section) .application-op
 html[data-theme="light"] body:has(#sales.active-section) .operation-progress-heading b,
 html[data-theme="light"] body:has(#dashboard.active-section) .operation-progress-heading b,
 html[data-theme="light"] body:has(#inbound.active-section) .operation-progress-heading b,
-html[data-theme="light"] body:has(#raw_materials.active-section) .operation-progress-heading b{color:#2b8746}
+html[data-theme="light"] body:has(#raw_materials.active-section) .operation-progress-heading b,
+html[data-theme="light"] body:has(#inventory_closing.active-section) .operation-progress-heading b,
+html[data-theme="light"] body:has(#inventory_differences.active-section) .operation-progress-heading b,
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .operation-progress-heading b{color:#2b8746}
 html[data-theme="light"] body:has(#sales.active-section) .operation-progress-heading button,
 html[data-theme="light"] body:has(#dashboard.active-section) .operation-progress-heading button,
 html[data-theme="light"] body:has(#inbound.active-section) .operation-progress-heading button,
-html[data-theme="light"] body:has(#raw_materials.active-section) .operation-progress-heading button{color:#315347}
+html[data-theme="light"] body:has(#raw_materials.active-section) .operation-progress-heading button,
+html[data-theme="light"] body:has(#inventory_closing.active-section) .operation-progress-heading button,
+html[data-theme="light"] body:has(#inventory_differences.active-section) .operation-progress-heading button,
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .operation-progress-heading button{color:#315347}
 html[data-theme="light"] body:has(#sales.active-section) .operation-progress-track,
 html[data-theme="light"] body:has(#dashboard.active-section) .operation-progress-track,
 html[data-theme="light"] body:has(#inbound.active-section) .operation-progress-track,
-html[data-theme="light"] body:has(#raw_materials.active-section) .operation-progress-track{background:#e5eee9;box-shadow:inset 0 0 0 1px #d9e5df}
+html[data-theme="light"] body:has(#raw_materials.active-section) .operation-progress-track,
+html[data-theme="light"] body:has(#inventory_closing.active-section) .operation-progress-track,
+html[data-theme="light"] body:has(#inventory_differences.active-section) .operation-progress-track,
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .operation-progress-track{background:#e5eee9;box-shadow:inset 0 0 0 1px #d9e5df}
 html[data-theme="light"] body:has(#sales.active-section) .operation-progress-track i,
 html[data-theme="light"] body:has(#dashboard.active-section) .operation-progress-track i,
 html[data-theme="light"] body:has(#inbound.active-section) .operation-progress-track i,
-html[data-theme="light"] body:has(#raw_materials.active-section) .operation-progress-track i{background:linear-gradient(90deg,#55ae52,#86cf57)}
+html[data-theme="light"] body:has(#raw_materials.active-section) .operation-progress-track i,
+html[data-theme="light"] body:has(#inventory_closing.active-section) .operation-progress-track i,
+html[data-theme="light"] body:has(#inventory_differences.active-section) .operation-progress-track i,
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .operation-progress-track i{background:linear-gradient(90deg,#55ae52,#86cf57)}
 html[data-theme="light"] body:has(#sales.active-section) .application-operation-progress small,
 html[data-theme="light"] body:has(#dashboard.active-section) .application-operation-progress small,
 html[data-theme="light"] body:has(#inbound.active-section) .application-operation-progress small,
-html[data-theme="light"] body:has(#raw_materials.active-section) .application-operation-progress small{color:#62786d}
+html[data-theme="light"] body:has(#raw_materials.active-section) .application-operation-progress small,
+html[data-theme="light"] body:has(#inventory_closing.active-section) .application-operation-progress small,
+html[data-theme="light"] body:has(#inventory_differences.active-section) .application-operation-progress small,
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .application-operation-progress small{color:#62786d}
 html[data-theme="light"] body:has(#sales.active-section) .application-operation-progress[data-state="error"],
 html[data-theme="light"] body:has(#dashboard.active-section) .application-operation-progress[data-state="error"],
 html[data-theme="light"] body:has(#inbound.active-section) .application-operation-progress[data-state="error"],
-html[data-theme="light"] body:has(#raw_materials.active-section) .application-operation-progress[data-state="error"]{border-color:#dea39d;background:#fff8f7;color:#8c3a33}
+html[data-theme="light"] body:has(#raw_materials.active-section) .application-operation-progress[data-state="error"],
+html[data-theme="light"] body:has(#inventory_closing.active-section) .application-operation-progress[data-state="error"],
+html[data-theme="light"] body:has(#inventory_differences.active-section) .application-operation-progress[data-state="error"],
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .application-operation-progress[data-state="error"]{border-color:#dea39d;background:#fff8f7;color:#8c3a33}

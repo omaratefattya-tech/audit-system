@@ -12490,7 +12490,7 @@ async function inventoryCountCapturePdfPages(){
         const width=Math.max(1,Math.ceil(page.clientWidth));
         const height=Math.max(1,Math.ceil(page.clientHeight));
         const scale=inventoryCountPdfCaptureScale(width,height);
-        const canvas=await Html2Canvas(page,{scale,useCORS:true,allowTaint:true,backgroundColor:'#00291f',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+        const canvas=await Html2Canvas(page,{scale,useCORS:true,allowTaint:true,backgroundColor:inventoryCountExportCanvasBackground(),logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
         canvases.push(canvas);
       }finally{
         page.remove();
@@ -12503,6 +12503,8 @@ async function inventoryCountCapturePdfPages(){
     throw error;
   }
 }
+function inventoryCountExportIsLightTheme(){return document.documentElement?.dataset?.theme==='light';}
+function inventoryCountExportCanvasBackground(){return inventoryCountExportIsLightTheme()?'#f4f8f5':'#00291f';}
 async function inventoryCountCreatePdfDocument(){
   const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
   if(!JsPDF) throw new Error('مكتبة PDF غير محملة.');
@@ -12513,7 +12515,8 @@ async function inventoryCountCreatePdfDocument(){
   try{
     captured.canvases.forEach((canvas,index)=>{
       if(index>0) pdf.addPage('a4','portrait');
-      pdf.setFillColor(0,41,31);
+      if(inventoryCountExportIsLightTheme()) pdf.setFillColor(244,248,245);
+      else pdf.setFillColor(0,41,31);
       pdf.rect(0,0,pageWidth,pageHeight,'F');
       pdf.addImage(canvas.toDataURL('image/png',1),'PNG',0,0,pageWidth,pageHeight,'inventory-count-pdf-page-'+(index+1),'FAST');
       canvas.width=1;
@@ -12727,7 +12730,7 @@ async function inventoryCountCaptureExportSheet(options={}){
       const width=Math.max(1,Math.ceil(sheet.scrollWidth));
       const height=Math.max(1,Math.ceil(sheet.scrollHeight));
       const captureScale=inventoryCountPngCaptureScale(width,height);
-      const canvas=await Html2Canvas(sheet,{scale:captureScale,useCORS:true,allowTaint:true,backgroundColor:'#00291f',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+      const canvas=await Html2Canvas(sheet,{scale:captureScale,useCORS:true,allowTaint:true,backgroundColor:inventoryCountExportCanvasBackground(),logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
       return {canvas,width,height};
     }
     const content=sheet.querySelector('.inventory-count-export-content');
@@ -12749,7 +12752,7 @@ async function inventoryCountCaptureExportSheet(options={}){
     const width=Math.max(1,Math.ceil(sheet.clientWidth));
     const height=Math.max(1,Math.ceil(sheet.clientHeight));
     const captureScale=Math.min(3,Math.max(2,1/Math.max(fitScale,.01)));
-    const canvas=await Html2Canvas(sheet,{scale:captureScale,useCORS:true,allowTaint:true,backgroundColor:'#00291f',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+    const canvas=await Html2Canvas(sheet,{scale:captureScale,useCORS:true,allowTaint:true,backgroundColor:inventoryCountExportCanvasBackground(),logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
     return {canvas,width,height};
   }finally{
     sheet.remove();
