@@ -392,25 +392,33 @@
 
 /* L8 Light Mode: inventory audit date controls; app theme takes precedence over OS preference. */
 html[data-theme="light"] body:has(#inventory_closing.active-section) .custom-date-picker-popup,
-html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .custom-date-picker-popup{color:#052318}
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .custom-date-picker-popup,
+html[data-theme="light"] body:has(#reports.active-section) .custom-date-picker-popup{color:#052318}
 html[data-theme="light"] #inventory_closing .custom-date-picker-display,
-html[data-theme="light"] #inventory_expiry_tracking .custom-date-picker-display{
+html[data-theme="light"] #inventory_expiry_tracking .custom-date-picker-display,
+html[data-theme="light"] #reports .custom-date-picker-display{
   border-color:rgba(22,128,69,.42);background:linear-gradient(135deg,#ffffff,#edf7ef);color:#17382a;box-shadow:0 5px 14px rgba(15,75,47,.07);
 }
 html[data-theme="light"] #inventory_closing .custom-date-picker-display::placeholder,
-html[data-theme="light"] #inventory_expiry_tracking .custom-date-picker-display::placeholder{color:#789085}
+html[data-theme="light"] #inventory_expiry_tracking .custom-date-picker-display::placeholder,
+html[data-theme="light"] #reports .custom-date-picker-display::placeholder{color:#789085}
 html[data-theme="light"] #inventory_closing .custom-date-picker-icon,
-html[data-theme="light"] #inventory_expiry_tracking .custom-date-picker-icon{color:#356f4a}
+html[data-theme="light"] #inventory_expiry_tracking .custom-date-picker-icon,
+html[data-theme="light"] #reports .custom-date-picker-icon{color:#356f4a}
 html[data-theme="light"] body:has(#inventory_closing.active-section) .custom-date-picker-panel,
-html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .custom-date-picker-panel{
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .custom-date-picker-panel,
+html[data-theme="light"] body:has(#reports.active-section) .custom-date-picker-panel{
   border-color:#bfd6c6;background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(238,248,240,.97));color:#17382a;box-shadow:0 24px 64px rgba(31,75,54,.18),inset 0 1px 0 rgba(255,255,255,.9);
 }
 html[data-theme="light"] body:has(#inventory_closing.active-section) .custom-date-picker-head strong,
-html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .custom-date-picker-head strong{color:#17382a}
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .custom-date-picker-head strong,
+html[data-theme="light"] body:has(#reports.active-section) .custom-date-picker-head strong{color:#17382a}
 html[data-theme="light"] body:has(#inventory_closing.active-section) :is(.custom-date-picker-head button,.custom-date-picker-footer button,.custom-date-picker-day),
-html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) :is(.custom-date-picker-head button,.custom-date-picker-footer button,.custom-date-picker-day){background:#fff;color:#234437;border-color:#cbdcd3}
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) :is(.custom-date-picker-head button,.custom-date-picker-footer button,.custom-date-picker-day),
+html[data-theme="light"] body:has(#reports.active-section) :is(.custom-date-picker-head button,.custom-date-picker-footer button,.custom-date-picker-day){background:#fff;color:#234437;border-color:#cbdcd3}
 html[data-theme="light"] body:has(#inventory_closing.active-section) .custom-date-picker-weekdays span,
-html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .custom-date-picker-weekdays span{color:#5f786c}
+html[data-theme="light"] body:has(#inventory_expiry_tracking.active-section) .custom-date-picker-weekdays span,
+html[data-theme="light"] body:has(#reports.active-section) .custom-date-picker-weekdays span{color:#5f786c}
 html[data-theme="light"] #inventory_closing .inventory-count-selected-date-summary{background:linear-gradient(135deg,#ffffff,#eef7f0);border-color:#c8d9d0;color:#315347;box-shadow:0 7px 18px rgba(37,69,57,.07)}
 html[data-theme="light"] #inventory_closing .inventory-count-day-badge{color:#195e32;background:linear-gradient(135deg,#dcf4df,#bce6c4);box-shadow:none}
 html[data-theme="light"] #inventory_closing .inventory-count-date-value{color:#203a30}

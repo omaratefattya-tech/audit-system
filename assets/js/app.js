@@ -8488,6 +8488,16 @@ function reportFilterLabel(filters){
   const period=formatDisplayDateRange(filters.from,filters.to);
   return `الفترة: ${period} / المصنع: ${plant} / المخزن: ${wh} / تاريخ الإصدار: ${formatDisplayDateTime(new Date())}`;
 }
+function reportsThemePalette(){
+  const light=document.documentElement.getAttribute('data-theme')==='light';
+  return light?{
+    light:true,theme:'light',canvasBackground:'#f4f7f5',pageBackground:'linear-gradient(180deg,#f6f9f7,#eef4f1)',text:'#294137',heading:'#173128',muted:'#667b71',grid:'rgba(45,75,63,.14)',strong:'#173128',label:'#36594a',donutHole:'#ffffff',donutValue:'#173128',donutUnit:'#61766b',barFade:'rgba(56,113,75,.12)',surface:'#ffffff',soft:'#f7faf8',border:'#d2dfd9',meta:'#587164',metaStrong:'#2f7044',divider:'#cfddd6'
+  }:{
+    light:false,theme:'dark',canvasBackground:'#001611',pageBackground:'radial-gradient(circle at 50% 0%,rgba(94,180,71,.14),transparent 36%),linear-gradient(180deg,#00291f,#001611)',text:'#eaffdf',heading:'#ffffff',muted:'#cfe8d0',grid:'rgba(255,255,255,.13)',strong:'#ffffff',label:'#d8f5d0',donutHole:'#00251f',donutValue:'#ffffff',donutUnit:'#d8ffd1',barFade:'rgba(255,255,255,.18)',surface:'rgba(0,35,27,.78)',soft:'rgba(0,52,39,.72)',border:'rgba(141,220,89,.28)',meta:'#bdf2a0',metaStrong:'#dfffd4',divider:'rgba(141,220,89,.28)'
+  };
+}
+function reportsCurrentTheme(){return reportsThemePalette().theme;}
+
 function renderExecutiveKPIs(stats){
   const cards=[
     {title:'إجمالي البيع',value:fmt(stats.salesQty),unit:'طن',icon:'sales'},
@@ -8499,31 +8509,31 @@ function renderExecutiveKPIs(stats){
   const node=$('#executiveKpiCards'); if(node) node.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
 function drawReportLine(daily){
-  const canvas=$('#reportLineChart'); if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
+  const canvas=$('#reportLineChart'); if(!canvas) return; const palette=reportsThemePalette(); const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
   const series=[{key:'sales',label:'البيع',color:'#83d84b'},{key:'production',label:'الإنتاج',color:'#32aee9'},{key:'outgoing',label:'الصادرة',color:'#ff9f2f'},{key:'incoming',label:'الواردة',color:'#b965ff'}];
-  const days=Object.keys(daily||{}).sort().slice(-31); if(!days.length){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2);return;}
+  const days=Object.keys(daily||{}).sort().slice(-31); if(!days.length){ctx.fillStyle=palette.muted;ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2);return;}
   const plotDays=days.length===1?[days[0],days[0]]:days; const rawMax=Math.max(1,...days.flatMap(d=>series.map(s=>daily[d][s.key]||0))); const max=Math.ceil(rawMax*1.15);
   const pad={l:54,r:20,t:25,b:38}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
-  ctx.strokeStyle='rgba(255,255,255,.13)';ctx.lineWidth=1;ctx.font='bold 11px Cairo';ctx.fillStyle='#cfe8d0';ctx.textAlign='right';
+  ctx.strokeStyle=palette.grid;ctx.lineWidth=1;ctx.font='bold 11px Cairo';ctx.fillStyle=palette.muted;ctx.textAlign='right';
   for(let i=0;i<=5;i++){const y=pad.t+ch-(i/5)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmt(max*i/5),pad.l-8,y+4);}
   const xFor=i=>pad.l+i*(cw/(plotDays.length-1)); const yFor=v=>pad.t+ch-(v/max)*ch;
   series.forEach(s=>{ctx.strokeStyle=s.color;ctx.lineWidth=3;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();plotDays.forEach((d,i)=>{const x=xFor(i),y=yFor(daily[d]?.[s.key]||0);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();});
   // legend
-  ctx.textAlign='left'; ctx.font='bold 12px Cairo'; let lx=25; series.forEach(s=>{ctx.fillStyle=s.color;ctx.fillRect(lx,8,18,4);ctx.fillStyle='#eaffdf';ctx.fillText(s.label,lx+24,13);lx+=95;});
-  ctx.fillStyle='#d6ead1';ctx.font='bold 12px Cairo';ctx.textAlign='center';ctx.fillText(days[0].slice(5),pad.l,pad.t+ch+28);ctx.fillText(days[days.length-1].slice(5),w-pad.r,pad.t+ch+28);
+  ctx.textAlign='left'; ctx.font='bold 12px Cairo'; let lx=25; series.forEach(s=>{ctx.fillStyle=s.color;ctx.fillRect(lx,8,18,4);ctx.fillStyle=palette.text;ctx.fillText(s.label,lx+24,13);lx+=95;});
+  ctx.fillStyle=palette.muted;ctx.font='bold 12px Cairo';ctx.textAlign='center';ctx.fillText(days[0].slice(5),pad.l,pad.t+ch+28);ctx.fillText(days[days.length-1].slice(5),w-pad.r,pad.t+ch+28);
 }
 function drawReportPlantBar(plantStats){
-  const canvas=$('#reportPlantChart'); if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
+  const canvas=$('#reportPlantChart'); if(!canvas) return; const palette=reportsThemePalette(); const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
   const plants=getPlantsCatalog().map(p=>p.code); const series=[{key:'sales',label:'البيع',color:'#74c54a'},{key:'production',label:'الإنتاج',color:'#2aa6e8'},{key:'outgoing',label:'الصادرة',color:'#ff9f2f'},{key:'incoming',label:'الواردة',color:'#b45cff'},{key:'loading',label:'التحميل',color:'#28c7bd'}];
   const max=Math.max(1,...plants.flatMap(c=>series.map(s=>Math.abs((plantStats[c]||{})[s.key]||0)))); const pad={l:50,r:20,t:30,b:42}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
-  ctx.strokeStyle='rgba(255,255,255,.12)';ctx.font='bold 11px Cairo';ctx.fillStyle='#cfe8d0';ctx.textAlign='right'; for(let i=0;i<=4;i++){const y=pad.t+ch-(i/4)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmt(max*i/4),pad.l-8,y+4);}
-  const groupW=cw/plants.length, barW=Math.min(17,(groupW-30)/series.length); plants.forEach((code,pi)=>{const baseX=pad.l+pi*groupW+groupW/2-((barW+4)*series.length)/2;series.forEach((s,si)=>{const v=Math.abs((plantStats[code]||{})[s.key]||0);const bh=(v/max)*ch;const x=baseX+si*(barW+4),y=pad.t+ch-bh;ctx.fillStyle=s.color;ctx.fillRect(x,y,barW,bh);});ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 13px Cairo';ctx.fillText(code,pad.l+pi*groupW+groupW/2,pad.t+ch+25);});
-  ctx.textAlign='left';ctx.font='bold 11px Cairo';let lx=30;series.forEach(s=>{ctx.fillStyle=s.color;ctx.fillRect(lx,8,12,6);ctx.fillStyle='#eaffdf';ctx.fillText(s.label,lx+16,14);lx+=88;});
+  ctx.strokeStyle=palette.grid;ctx.font='bold 11px Cairo';ctx.fillStyle=palette.muted;ctx.textAlign='right'; for(let i=0;i<=4;i++){const y=pad.t+ch-(i/4)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmt(max*i/4),pad.l-8,y+4);}
+  const groupW=cw/plants.length, barW=Math.min(17,(groupW-30)/series.length); plants.forEach((code,pi)=>{const baseX=pad.l+pi*groupW+groupW/2-((barW+4)*series.length)/2;series.forEach((s,si)=>{const v=Math.abs((plantStats[code]||{})[s.key]||0);const bh=(v/max)*ch;const x=baseX+si*(barW+4),y=pad.t+ch-bh;ctx.fillStyle=s.color;ctx.fillRect(x,y,barW,bh);});ctx.fillStyle=palette.strong;ctx.textAlign='center';ctx.font='bold 13px Cairo';ctx.fillText(code,pad.l+pi*groupW+groupW/2,pad.t+ch+25);});
+  ctx.textAlign='left';ctx.font='bold 11px Cairo';let lx=30;series.forEach(s=>{ctx.fillStyle=s.color;ctx.fillRect(lx,8,12,6);ctx.fillStyle=palette.text;ctx.fillText(s.label,lx+16,14);lx+=88;});
 }
 function drawReportDonut(warehouseSalesMap){
-  const canvas=$('#reportDonutChart'), legend=$('#reportDonutLegend'); if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
-  const entries=Object.entries(warehouseSalesMap||{}).sort((a,b)=>b[1]-a[1]).slice(0,8); const sum=entries.reduce((a,b)=>a+b[1],0); if(!sum){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2); if(legend)legend.innerHTML=''; return;}
-  const cx=155,cy=130,r=86; let a=-Math.PI/2; entries.forEach(([code,val],i)=>{const e=a+(val/sum)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,e);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();a=e;}); ctx.beginPath();ctx.arc(cx,cy,48,0,Math.PI*2);ctx.fillStyle='#00251f';ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText(fmt(sum),cx,cy-2);ctx.font='bold 12px Cairo';ctx.fillStyle='#d8ffd1';ctx.fillText('طن',cx,cy+20);
+  const canvas=$('#reportDonutChart'), legend=$('#reportDonutLegend'); if(!canvas) return; const palette=reportsThemePalette(); const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
+  const entries=Object.entries(warehouseSalesMap||{}).sort((a,b)=>b[1]-a[1]).slice(0,8); const sum=entries.reduce((a,b)=>a+b[1],0); if(!sum){ctx.fillStyle=palette.muted;ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2); if(legend)legend.innerHTML=''; return;}
+  const cx=155,cy=130,r=86; let a=-Math.PI/2; entries.forEach(([code,val],i)=>{const e=a+(val/sum)*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,e);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();a=e;}); ctx.beginPath();ctx.arc(cx,cy,48,0,Math.PI*2);ctx.fillStyle=palette.donutHole;ctx.fill();ctx.fillStyle=palette.donutValue;ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText(fmt(sum),cx,cy-2);ctx.font='bold 12px Cairo';ctx.fillStyle=palette.donutUnit;ctx.fillText('طن',cx,cy+20);
   if(legend) legend.innerHTML=entries.map(([code,val],i)=>`<div><span style="background:${colors[i%colors.length]}"></span><b>${escapeHtml(code)}</b> ${fmt(val)} طن - ${sum?((val/sum)*100).toFixed(1):0}%</div>`).join('');
 }
 function renderExecutiveInsights(products, warehouses, plantStats, stats){
@@ -8859,7 +8869,7 @@ function renderWarehousesReportKPIs(summary){
   const node=$('#warehousesReportKpis'); if(node) node.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
 function drawWarehousesReportChart(warehouses){
-  const canvas=$('#warehousesReportChart'); if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
+  const canvas=$('#warehousesReportChart'); if(!canvas) return; const palette=reportsThemePalette(); const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
   const rows=(warehouses||[]).slice().sort((a,b)=>(b.loading||0)-(a.loading||0)).slice(0,8);
   const series=[
     {key:'sales',label:'البيع',color:'#83d84b'},
@@ -8868,21 +8878,21 @@ function drawWarehousesReportChart(warehouses){
     {key:'incoming',label:'التحويلات الواردة',color:'#29d6cb'},
     {key:'loading',label:'التحميل',color:'#9b5cf6'}
   ];
-  if(!rows.length){ctx.fillStyle='#d6ead1';ctx.font='bold 24px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2);return;}
+  if(!rows.length){ctx.fillStyle=palette.muted;ctx.font='bold 24px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2);return;}
   const max=Math.max(1,...rows.flatMap(r=>series.map(s=>Math.abs(r[s.key]||0))));
   const pad={l:78,r:32,t:74,b:74}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
   ctx.save();
   const g=ctx.createLinearGradient(0,pad.t,0,h-pad.b); g.addColorStop(0,'rgba(131,216,75,.08)'); g.addColorStop(1,'rgba(41,214,203,.02)'); ctx.fillStyle=g; ctx.fillRect(pad.l,pad.t,cw,ch);
-  ctx.strokeStyle='rgba(255,255,255,.13)';ctx.fillStyle='#d8f5d0';ctx.font='bold 13px Cairo';ctx.textAlign='right';ctx.textBaseline='middle';
+  ctx.strokeStyle=palette.grid;ctx.fillStyle=palette.label;ctx.font='bold 13px Cairo';ctx.textAlign='right';ctx.textBaseline='middle';
   for(let i=0;i<=5;i++){const y=pad.t+ch-(i/5)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmt(max*i/5),pad.l-12,y);}
   const groupW=cw/rows.length, barW=Math.max(12,Math.min(22,(groupW-26)/series.length));
   rows.forEach((row,ri)=>{
     const cx=pad.l+ri*groupW+groupW/2; const baseX=cx-((barW+5)*series.length-5)/2;
-    series.forEach((s,si)=>{const v=Math.abs(row[s.key]||0); const bh=(v/max)*ch; const x=baseX+si*(barW+5), y=pad.t+ch-bh; const grad=ctx.createLinearGradient(x,y,x,y+bh); grad.addColorStop(0,s.color); grad.addColorStop(1,'rgba(255,255,255,.25)'); ctx.fillStyle=grad; ctx.fillRect(x,y,barW,bh); if(v>0 && bh>34){ctx.fillStyle='#f5fff0';ctx.font='bold 11px Cairo';ctx.textAlign='center';ctx.fillText(fmt(v),x+barW/2,Math.max(y-10,pad.t+10));}});
-    ctx.fillStyle='#ffffff'; ctx.textAlign='center'; ctx.font='bold 15px Cairo'; ctx.fillText(row.code,cx,pad.t+ch+28);
-    ctx.fillStyle='#aee998'; ctx.font='bold 11px Cairo'; ctx.fillText(String(row.plant||''),cx,pad.t+ch+48);
+    series.forEach((s,si)=>{const v=Math.abs(row[s.key]||0); const bh=(v/max)*ch; const x=baseX+si*(barW+5), y=pad.t+ch-bh; const grad=ctx.createLinearGradient(x,y,x,y+bh); grad.addColorStop(0,s.color); grad.addColorStop(1,palette.barFade); ctx.fillStyle=grad; ctx.fillRect(x,y,barW,bh); if(v>0 && bh>34){ctx.fillStyle=palette.strong;ctx.font='bold 11px Cairo';ctx.textAlign='center';ctx.fillText(fmt(v),x+barW/2,Math.max(y-10,pad.t+10));}});
+    ctx.fillStyle=palette.strong; ctx.textAlign='center'; ctx.font='bold 15px Cairo'; ctx.fillText(row.code,cx,pad.t+ch+28);
+    ctx.fillStyle=palette.meta; ctx.font='bold 11px Cairo'; ctx.fillText(String(row.plant||''),cx,pad.t+ch+48);
   });
-  let lx=pad.l+10; ctx.textAlign='left'; ctx.font='bold 13px Cairo'; series.forEach(s=>{ctx.fillStyle=s.color;ctx.fillRect(lx,24,18,8);ctx.fillStyle='#eaffdf';ctx.fillText(s.label,lx+25,29);lx+=130;});
+  let lx=pad.l+10; ctx.textAlign='left'; ctx.font='bold 13px Cairo'; series.forEach(s=>{ctx.fillStyle=s.color;ctx.fillRect(lx,24,18,8);ctx.fillStyle=palette.text;ctx.fillText(s.label,lx+25,29);lx+=130;});
   ctx.restore();
 }
 function renderWarehousesRanking(warehouses,summary){
@@ -8905,14 +8915,14 @@ function renderWarehousesRanking(warehouses,summary){
   }
 }
 function drawWarehousesLoadingDonut(warehouses,summary){
-  const canvas=$('#warehousesLoadingDonut'); if(!canvas) return; const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
+  const canvas=$('#warehousesLoadingDonut'); if(!canvas) return; const palette=reportsThemePalette(); const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
   const entries=(warehouses||[]).filter(x=>Math.abs(x.loading||0)>0).sort((a,b)=>Math.abs(b.loading)-Math.abs(a.loading)).slice(0,8);
   const sum=entries.reduce((a,b)=>a+Math.abs(b.loading||0),0);
-  if(!sum){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2); return;}
+  if(!sum){ctx.fillStyle=palette.muted;ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2); return;}
   const colors=['#79d84b','#29a9e6','#29d6cb','#ff9f2d','#ffd54a','#9b5cf6','#97a097','#4bc37b']; let start=-Math.PI/2; const cx=w*.36,cy=h*.5,r=Math.min(w,h)*.32,ir=r*.55;
   entries.forEach((e,i)=>{const val=Math.abs(e.loading||0),ang=val/sum*Math.PI*2; ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,start,start+ang);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill(); start+=ang;});
   ctx.globalCompositeOperation='destination-out';ctx.beginPath();ctx.arc(cx,cy,ir,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation='source-over';
-  ctx.fillStyle='#fff';ctx.font='bold 22px Cairo';ctx.textAlign='center';ctx.fillText(fmt(sum),cx,cy-4);ctx.font='bold 13px Cairo';ctx.fillText('طن',cx,cy+22);
+  ctx.fillStyle=palette.donutValue;ctx.font='bold 22px Cairo';ctx.textAlign='center';ctx.fillText(fmt(sum),cx,cy-4);ctx.font='bold 13px Cairo';ctx.fillText('طن',cx,cy+22);
   const lg=$('#warehousesLoadingLegend'); if(lg){lg.innerHTML=entries.map((e,i)=>{const pct=sum?Math.abs(e.loading||0)/sum*100:0; return `<div><i style="background:${colors[i%colors.length]}"></i><b>${escapeHtml(e.code)}</b><span>${fmt(pct)}%</span><em>${fmt(e.loading)} طن</em></div>`;}).join('');}
 }
 function renderWarehouseMiniTables(warehouses,summary){
@@ -9035,21 +9045,21 @@ function resizeExceptionsChartCanvas(canvas){
   return {w:cssWidth,h:cssHeight};
 }
 function drawExceptionsChart(summary){
-  const canvas=$('#exceptionsReportChart'); if(!canvas) return;
+  const canvas=$('#exceptionsReportChart'); if(!canvas) return; const palette=reportsThemePalette();
   const size=resizeExceptionsChartCanvas(canvas);
   const ctx=canvas.getContext('2d'), w=size.w, h=size.h; ctx.clearRect(0,0,w,h);
   const labels=[['no_sales','بدون بيع'],['production_high','إنتاج أعلى من البيع'],['sales_high','بيع أعلى من الإنتاج'],['outgoing_high','صادر مرتفع'],['incoming_high','وارد مرتفع'],['loading_gap','فرق تحميل']];
   const vals=labels.map(([k])=>summary.byType[k]||0), max=Math.max(1,...vals);
   const pad={l:46,r:24,t:34,b:w<560?92:76}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
-  ctx.strokeStyle='rgba(220,255,215,.13)';ctx.fillStyle='#d7f3d2';ctx.font='bold 12px Cairo';ctx.textAlign='right';
+  ctx.strokeStyle=palette.grid;ctx.fillStyle=palette.muted;ctx.font='bold 12px Cairo';ctx.textAlign='right';
   for(let i=0;i<=4;i++){const y=pad.t+ch-(i/4)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmt(max*i/4),pad.l-8,y+4);}
   const bw=Math.max(24,Math.min(64,cw/labels.length*.48));
   labels.forEach(([key,label],i)=>{
     const v=vals[i], x=pad.l+(i+.5)*(cw/labels.length)-bw/2, bh=(v/max)*ch, y=pad.t+ch-bh;
     const colors=exceptionChartColor(key), grad=ctx.createLinearGradient(x,y,x,y+Math.max(bh,1));
     grad.addColorStop(0,colors[0]);grad.addColorStop(1,colors[1]);ctx.fillStyle=grad;ctx.fillRect(x,y,bw,Math.max(bh,2));
-    ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 13px Cairo';ctx.fillText(fmt(v),x+bw/2,Math.max(18,y-8));
-    ctx.save();ctx.translate(x+bw/2,pad.t+ch+18);ctx.rotate(w<560?-Math.PI/4:-Math.PI/8);ctx.fillStyle='#dff8d4';ctx.font='bold 11px Cairo';ctx.fillText(label,0,0);ctx.restore();
+    ctx.fillStyle=palette.strong;ctx.textAlign='center';ctx.font='bold 13px Cairo';ctx.fillText(fmt(v),x+bw/2,Math.max(18,y-8));
+    ctx.save();ctx.translate(x+bw/2,pad.t+ch+18);ctx.rotate(w<560?-Math.PI/4:-Math.PI/8);ctx.fillStyle=palette.text;ctx.font='bold 11px Cairo';ctx.fillText(label,0,0);ctx.restore();
   });
 }
 function renderExceptionsPriority(exceptions){
@@ -9242,14 +9252,16 @@ function normalizeExceptionsPngClone(source,clone){
 }
 function exceptionsPngExportBox(title,width){
   const box=document.createElement('section');
+  const exportPalette=reportsThemePalette();
   box.className='exceptions-widget-png-export-box';
+  box.dataset.reportTheme=exportPalette.theme;
   box.dir='rtl';
   box.lang='ar';
   box.setAttribute('aria-hidden','true');
   box.style.cssText=[
     'position:fixed','top:0','left:0','z-index:-1',`width:${width||1400}px`,'min-height:280px','padding:26px','box-sizing:border-box',
-    'background:radial-gradient(circle at 50% 0%,rgba(94,180,71,.13),transparent 36%),linear-gradient(180deg,#00291f,#001611)',
-    'color:#fff','direction:rtl','font-family:Cairo,Arial,sans-serif','overflow:visible','pointer-events:none'
+    `background:${exportPalette.pageBackground}`,
+    `color:${exportPalette.text}`,'direction:rtl','font-family:Cairo,Arial,sans-serif','overflow:visible','pointer-events:none'
   ].join(';');
   const header=document.createElement('header');
   header.className='exceptions-widget-png-header';
@@ -9268,7 +9280,7 @@ async function captureExceptionsPngBox(box,fileName){
     const width=Math.ceil(Math.max(box.scrollWidth,rect.width,1));
     const height=Math.ceil(Math.max(box.scrollHeight,rect.height,1));
     if(width<=1 || height<=1) throw new Error(`Invalid exceptions PNG dimensions: ${width}x${height}`);
-    const canvas=await Html2Canvas(box,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+    const canvas=await Html2Canvas(box,{scale:2,useCORS:true,allowTaint:true,backgroundColor:reportsThemePalette().canvasBackground,logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
     return await new Promise(resolve=>{
       canvas.toBlob(async blob=>{
         if(!blob){ alert('تعذر إنشاء صورة PNG.'); resolve(false); return; }
@@ -9411,7 +9423,7 @@ function renderSmartKpiCards(model){
   node.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
 function drawSmartMixChart(model){
-  const canvas=$('#smartMixChart'); if(!canvas) return;
+  const canvas=$('#smartMixChart'); if(!canvas) return; const palette=reportsThemePalette();
   const ctx=canvas.getContext('2d'), w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h);
   const stats=model?.stats||{};
   const entries=[
@@ -9423,25 +9435,25 @@ function drawSmartMixChart(model){
   ];
   const max=Math.max(1,...entries.map(e=>e[1]));
   const pad={l:70,r:25,t:24,b:44}, ch=h-pad.t-pad.b, cw=w-pad.l-pad.r;
-  ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.lineWidth=1; ctx.fillStyle='#cfe8d0'; ctx.font='bold 12px Cairo'; ctx.textAlign='right';
+  ctx.strokeStyle=palette.grid; ctx.lineWidth=1; ctx.fillStyle=palette.muted; ctx.font='bold 12px Cairo'; ctx.textAlign='right';
   for(let i=0;i<=4;i++){const y=pad.t+ch-(i/4)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmt(max*i/4),pad.l-8,y+4);}
   const barW=Math.min(72,cw/entries.length*.55); const gap=cw/entries.length;
-  entries.forEach((e,i)=>{const x=pad.l+i*gap+gap/2-barW/2; const bh=(e[1]/max)*ch; const y=pad.t+ch-bh; const grad=ctx.createLinearGradient(0,y,0,pad.t+ch); grad.addColorStop(0,e[2]); grad.addColorStop(1,'rgba(255,255,255,.12)'); ctx.fillStyle=grad; roundRect(ctx,x,y,barW,bh,10,true,false); ctx.fillStyle='#eaffdf'; ctx.textAlign='center'; ctx.font='bold 12px Cairo'; ctx.fillText(e[0],x+barW/2,pad.t+ch+25); ctx.fillStyle='#fff'; ctx.font='bold 13px Cairo'; ctx.fillText(fmt(e[1]),x+barW/2,Math.max(18,y-8));});
+  entries.forEach((e,i)=>{const x=pad.l+i*gap+gap/2-barW/2; const bh=(e[1]/max)*ch; const y=pad.t+ch-bh; const grad=ctx.createLinearGradient(0,y,0,pad.t+ch); grad.addColorStop(0,e[2]); grad.addColorStop(1,palette.barFade); ctx.fillStyle=grad; roundRect(ctx,x,y,barW,bh,10,true,false); ctx.fillStyle=palette.text; ctx.textAlign='center'; ctx.font='bold 12px Cairo'; ctx.fillText(e[0],x+barW/2,pad.t+ch+25); ctx.fillStyle=palette.strong; ctx.font='bold 13px Cairo'; ctx.fillText(fmt(e[1]),x+barW/2,Math.max(18,y-8));});
 }
 function drawSmartPlantScoreChart(model){
-  const canvas=$('#smartPlantScoreChart'); if(!canvas) return;
+  const canvas=$('#smartPlantScoreChart'); if(!canvas) return; const palette=reportsThemePalette();
   const ctx=canvas.getContext('2d'), w=canvas.width, h=canvas.height; ctx.clearRect(0,0,w,h);
   const rows=(model?.auditScores?.plantScores||getPlantsCatalog().map(p=>({...p,score:100,status:auditScoreStatus(100)}))).map(r=>({code:r.plant||r.code,name:r.name,score:r.score,status:r.status}));
   const pad={l:105,r:28,t:22,b:34}, rowH=(h-pad.t-pad.b)/Math.max(1,rows.length);
   ctx.font='bold 14px Cairo';
   rows.forEach((r,i)=>{
     const y=pad.t+i*rowH+rowH/2;
-    ctx.fillStyle='#eaffdf'; ctx.textAlign='right'; ctx.fillText(r.code,pad.l-15,y+5);
+    ctx.fillStyle=palette.text; ctx.textAlign='right'; ctx.fillText(r.code,pad.l-15,y+5);
     const bw=w-pad.l-pad.r; const bh=18; const x=pad.l; const by=y-bh/2;
-    ctx.fillStyle='rgba(255,255,255,.10)'; roundRect(ctx,x,by,bw,bh,10,true,false);
+    ctx.fillStyle=palette.grid; roundRect(ctx,x,by,bw,bh,10,true,false);
     const grad=ctx.createLinearGradient(x,0,x+bw,0); grad.addColorStop(0,'#ff5959'); grad.addColorStop(.55,'#ffd44f'); grad.addColorStop(1,'#74d84b');
     ctx.fillStyle=grad; roundRect(ctx,x,by,bw*(r.score/100),bh,10,true,false);
-    ctx.fillStyle='#fff'; ctx.textAlign='left'; ctx.font='bold 13px Cairo'; ctx.fillText(`${r.score.toFixed(0)}%`,x+bw-4,y+5);
+    ctx.fillStyle=palette.strong; ctx.textAlign='left'; ctx.font='bold 13px Cairo'; ctx.fillText(`${r.score.toFixed(0)}%`,x+bw-4,y+5);
   });
 }
 
@@ -9835,20 +9847,20 @@ function renderProductionKpis(model){
   const node=$('#productionKpiCards'); if(node) node.innerHTML=cards.map(renderStandardKpiCard).join('');
 }
 function drawProductionPlantBar(plants){
-  const canvas=$('#productionPlantBarChart'); if(!canvas) return; const ctx=canvas.getContext('2d'), w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
-  const data=(plants||[]).slice(0,8); if(!data.length){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات إنتاج',w/2,h/2);return;}
+  const canvas=$('#productionPlantBarChart'); if(!canvas) return; const palette=reportsThemePalette(); const ctx=canvas.getContext('2d'), w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
+  const data=(plants||[]).slice(0,8); if(!data.length){ctx.fillStyle=palette.muted;ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات إنتاج',w/2,h/2);return;}
   const max=Math.max(1,...data.map(p=>Math.abs(p.production||0))); const pad={l:58,r:24,t:34,b:55}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
-  ctx.strokeStyle='rgba(255,255,255,.13)'; ctx.fillStyle='#cfe8d0'; ctx.font='bold 11px Cairo'; ctx.textAlign='right';
+  ctx.strokeStyle=palette.grid; ctx.fillStyle=palette.muted; ctx.font='bold 11px Cairo'; ctx.textAlign='right';
   for(let i=0;i<=4;i++){const y=pad.t+ch-(i/4)*ch;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(fmt(max*i/4),pad.l-8,y+4);}
   const barW=Math.min(70,cw/data.length*.55);
-  data.forEach((p,i)=>{const x=pad.l+(i+.5)*(cw/data.length)-barW/2; const bh=Math.abs(p.production)/max*ch; const y=pad.t+ch-bh; const grd=ctx.createLinearGradient(0,y,0,pad.t+ch); grd.addColorStop(0,colors[i%colors.length]); grd.addColorStop(1,'rgba(81,184,72,.18)'); ctx.fillStyle=grd; ctx.fillRect(x,y,barW,bh); ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 12px Cairo';ctx.fillText(fmt(p.production),x+barW/2,y-7);ctx.fillStyle='#eaffdf';ctx.font='bold 13px Cairo';ctx.fillText(p.code,x+barW/2,pad.t+ch+26);});
+  data.forEach((p,i)=>{const x=pad.l+(i+.5)*(cw/data.length)-barW/2; const bh=Math.abs(p.production)/max*ch; const y=pad.t+ch-bh; const grd=ctx.createLinearGradient(0,y,0,pad.t+ch); grd.addColorStop(0,colors[i%colors.length]); grd.addColorStop(1,palette.barFade); ctx.fillStyle=grd; ctx.fillRect(x,y,barW,bh); ctx.fillStyle=palette.strong;ctx.textAlign='center';ctx.font='bold 12px Cairo';ctx.fillText(fmt(p.production),x+barW/2,y-7);ctx.fillStyle=palette.text;ctx.font='bold 13px Cairo';ctx.fillText(p.code,x+barW/2,pad.t+ch+26);});
 }
 function drawProductionContributionDonut(plants){
-  const canvas=$('#productionContributionDonut'), legend=$('#productionContributionLegend'); if(!canvas) return; const ctx=canvas.getContext('2d'), w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
-  const entries=(plants||[]).filter(p=>Math.abs(p.production)>0).slice(0,8); const sum=entries.reduce((a,p)=>a+Math.abs(p.production),0); if(!sum){ctx.fillStyle='#d6ead1';ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2); if(legend) legend.innerHTML=''; return;}
+  const canvas=$('#productionContributionDonut'), legend=$('#productionContributionLegend'); if(!canvas) return; const palette=reportsThemePalette(); const ctx=canvas.getContext('2d'), w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h);
+  const entries=(plants||[]).filter(p=>Math.abs(p.production)>0).slice(0,8); const sum=entries.reduce((a,p)=>a+Math.abs(p.production),0); if(!sum){ctx.fillStyle=palette.muted;ctx.font='bold 18px Cairo';ctx.textAlign='center';ctx.fillText('لا توجد بيانات',w/2,h/2); if(legend) legend.innerHTML=''; return;}
   const cx=w*.34,cy=h*.5,r=Math.min(w,h)*.32,ir=r*.55; let a=-Math.PI/2;
   entries.forEach((p,i)=>{const ang=Math.abs(p.production)/sum*Math.PI*2; ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+ang);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();a+=ang;});
-  ctx.beginPath();ctx.arc(cx,cy,ir,0,Math.PI*2);ctx.fillStyle='#00251f';ctx.fill();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='bold 18px Cairo';ctx.fillText(fmt(sum),cx,cy-2);ctx.font='bold 12px Cairo';ctx.fillStyle='#d8ffd1';ctx.fillText('طن',cx,cy+20);
+  ctx.beginPath();ctx.arc(cx,cy,ir,0,Math.PI*2);ctx.fillStyle=palette.donutHole;ctx.fill();ctx.fillStyle=palette.donutValue;ctx.textAlign='center';ctx.font='bold 18px Cairo';ctx.fillText(fmt(sum),cx,cy-2);ctx.font='bold 12px Cairo';ctx.fillStyle=palette.donutUnit;ctx.fillText('طن',cx,cy+20);
   if(legend) legend.innerHTML=entries.map((p,i)=>`<div><span style="background:${colors[i%colors.length]}"></span><b>${escapeHtml(p.code)}</b> ${fmt(p.pct)}% - ${fmt(p.production)} طن</div>`).join('');
 }
 function heatClass(value,min,max){
@@ -10104,10 +10116,14 @@ async function renderActiveReportCanvas(){
   copyCanvasPixelsToClone(source,clone);
   clone.style.display='block';
   clone.removeAttribute('hidden');
+  const exportPalette=reportsThemePalette();
   clone.classList.add('report-exporting');
+  clone.dataset.reportTheme=exportPalette.theme;
 
   const layer=document.createElement('div');
   layer.className='report-capture-layer';
+  layer.dataset.reportTheme=exportPalette.theme;
+  layer.style.background=exportPalette.canvasBackground;
   layer.dir='rtl';
   layer.lang='ar';
   layer.appendChild(clone);
@@ -10124,7 +10140,7 @@ async function renderActiveReportCanvas(){
       scale:2,
       useCORS:true,
       allowTaint:true,
-      backgroundColor:'#001f18',
+      backgroundColor:exportPalette.canvasBackground,
       logging:false,
       scrollX:0,
       scrollY:0,
@@ -10166,10 +10182,10 @@ function currentReportExportPeriodText(){
     function whWidth(element){if(!element)return 900;if(element.id==='warehousesReportKpis')return 940;if(element.classList.contains('warehouse-chart-card-wide'))return 1240;if(element.classList.contains('warehouse-donut-card'))return 980;if(element.classList.contains('warehouse-report-main-card'))return 1500;if(element.classList.contains('warehouse-mini-table-card'))return 760;if(element.closest('#warehousesQuickTiles'))return 620;return 920;}
     function whCleanup(node){if(!node)return;node.querySelectorAll('.warehouse-widget-png-btn,.widget-png-btn,.mobile-kpi-group-png-btn,.mobile-period-png-btn,.mobile-only,.export-btn').forEach(function(el){el.remove();});node.querySelectorAll('[id]').forEach(function(el){el.removeAttribute('id');});node.querySelectorAll('.warehouse-rank-bars,.warehouse-mini-table,.warehouse-report-table-wrap,.rank-table-wrap,.table-wrap').forEach(function(el){el.style.overflow='visible';el.style.maxHeight='none';el.style.height='auto';});node.querySelectorAll('.warehouse-rank-bars').forEach(function(el){el.style.display='flex';el.style.flexDirection='column';});node.querySelectorAll('table').forEach(function(table){table.style.width='100%';table.style.minWidth='0';});}
     async function whWaitImages(root){const images=[].slice.call(root.querySelectorAll('img'));await Promise.all(images.map(function(img){if(img.complete&&img.naturalWidth)return Promise.resolve();return new Promise(function(resolve){img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true});});}));}
-    function whBox(title,width){const box=document.createElement('section');box.className='warehouse-performance-export-box';box.dir='rtl';box.lang='ar';box.setAttribute('aria-hidden','true');box.style.cssText=['position:fixed','top:0','left:-10000px','z-index:0','width:'+width+'px','min-height:420px','padding:28px','box-sizing:border-box','background:radial-gradient(circle at 50% 0%,rgba(94,180,71,.16),transparent 36%),linear-gradient(180deg,#00291f,#001611)','color:#fff','direction:rtl','font-family:Cairo,Arial,sans-serif','overflow:visible','pointer-events:none'].join(';');const header=document.createElement('header');header.className='warehouse-performance-export-header';header.innerHTML='<h2>'+escapeHtml(title)+'</h2><p>'+escapeHtml(currentReportExportPeriodText())+'</p>';box.appendChild(header);return box;}
+    function whBox(title,width){const exportPalette=reportsThemePalette();const box=document.createElement('section');box.className='warehouse-performance-export-box';box.dataset.reportTheme=exportPalette.theme;box.dir='rtl';box.lang='ar';box.setAttribute('aria-hidden','true');box.style.cssText=['position:fixed','top:0','left:-10000px','z-index:0','width:'+width+'px','min-height:420px','padding:28px','box-sizing:border-box','background:'+exportPalette.pageBackground,'color:'+exportPalette.text,'direction:rtl','font-family:Cairo,Arial,sans-serif','overflow:visible','pointer-events:none'].join(';');const header=document.createElement('header');header.className='warehouse-performance-export-header';header.innerHTML='<h2>'+escapeHtml(title)+'</h2><p>'+escapeHtml(currentReportExportPeriodText())+'</p>';box.appendChild(header);return box;}
     function whCanvasPlaceholder(sourceCanvas){const ph=document.createElement('div');ph.className='warehouse-export-chart-placeholder';const parent=sourceCanvas?.parentElement;const title=parent?.querySelector('h3')?.textContent||sourceCanvas?.getAttribute('aria-label')||sourceCanvas?.id||'الرسم البياني';ph.textContent=title;ph.style.cssText='min-height:220px;width:100%;display:grid;place-items:center;border:1px dashed rgba(141,220,89,.35);border-radius:16px;color:#d4ebd5;background:rgba(0,35,28,.55);font-weight:800;text-align:center;padding:18px;box-sizing:border-box;';return ph;}function whPrepareCloneCanvases(sourceRoot,cloneRoot){const sourceCanvases=[].slice.call(sourceRoot.querySelectorAll('canvas'));const cloneCanvases=[].slice.call(cloneRoot.querySelectorAll('canvas'));sourceCanvases.forEach(function(sourceCanvas,idx){const cloneCanvas=cloneCanvases[idx];if(!cloneCanvas)return;const rect=sourceCanvas.getBoundingClientRect();const valid=sourceCanvas.width>0&&sourceCanvas.height>0&&rect.width>0&&rect.height>0;const wrapper=cloneCanvas.parentElement;if(wrapper){wrapper.style.width='100%';wrapper.style.minHeight=Math.max(260,Math.ceil(rect.height||sourceCanvas.height||320))+'px';wrapper.style.display='block';wrapper.style.overflow='visible';}if(!valid){cloneCanvas.replaceWith(whCanvasPlaceholder(sourceCanvas));return;}try{const img=new Image();img.src=sourceCanvas.toDataURL('image/png',1);img.alt=sourceCanvas.getAttribute('aria-label')||sourceCanvas.id||'chart';img.width=Math.ceil(rect.width);img.height=Math.ceil(rect.height);img.style.cssText='display:block;max-width:100%;height:auto;object-fit:contain;margin:0 auto;';cloneCanvas.replaceWith(img);}catch(_){cloneCanvas.replaceWith(whCanvasPlaceholder(sourceCanvas));}});}function whRemoveInvalidCanvases(root){const invalid=[].slice.call(root.querySelectorAll('canvas')).filter(function(c){const rect=c.getBoundingClientRect();return c.width<=0||c.height<=0||rect.width<=0||rect.height<=0;});invalid.forEach(function(c){c.replaceWith(whCanvasPlaceholder(c));});return invalid.length;}function whInvalidBackgroundElements(root){return [].slice.call(root.querySelectorAll('*')).filter(function(el){const style=getComputedStyle(el);const rect=el.getBoundingClientRect();return style.backgroundImage!=='none'&&(rect.width<=0||el.clientWidth<=0||el.offsetWidth<=0);});}function whSanitizeInvalidBackgrounds(root){const before=whInvalidBackgroundElements(root);before.forEach(function(el){el.style.backgroundImage='none';el.style.backgroundRepeat='no-repeat';});const after=whInvalidBackgroundElements(root);root.dataset.invalidBackgroundElementsBeforeCapture=String(before.length);root.dataset.invalidBackgroundElementsAfterCapture=String(after.length);return {before:before.length,after:after.length};}function whExportSelector(el){if(!el)return '';if(el===document.body)return 'body';if(el.id)return '#'+el.id;const parts=[];let node=el;while(node&&node.nodeType===1&&node!==document.body&&parts.length<7){let part=node.tagName.toLowerCase();if(node.id){part+='#'+node.id;parts.unshift(part);break;}const classes=String(node.className||'').trim().split(/\s+/).filter(Boolean).slice(0,3);if(classes.length)part+='.'+classes.join('.');const parent=node.parentElement;if(parent){const same=[].slice.call(parent.children).filter(function(child){return child.tagName===node.tagName;});if(same.length>1)part+=':nth-of-type('+(same.indexOf(node)+1)+')';}parts.unshift(part);node=parent;}return parts.join(' > ');}function whIsPaintColor(color){return !!color&&color!=='transparent'&&color!=='rgba(0, 0, 0, 0)';}function whStyleHasPaintSource(style){if(!style)return false;const bgRepeat=String(style.backgroundRepeat||'');return style.backgroundImage!=='none'||style.borderImageSource!=='none'||style.maskImage!=='none'||style.webkitMaskImage!=='none'||style.filter!=='none'||(whIsPaintColor(style.backgroundColor)&&bgRepeat&&bgRepeat!=='no-repeat');}function whPseudoHasPaint(style){return !!style&&(style.content!=='none'||style.backgroundImage!=='none'||style.borderImageSource!=='none'||style.maskImage!=='none'||style.webkitMaskImage!=='none');}function whZeroSizeElement(el){const rect=el.getBoundingClientRect();return rect.width<=0||rect.height<=0;}function whEnsureExportPseudoStyle(root){if(root.querySelector(':scope > style[data-warehouse-export-pseudo-guard]'))return;const style=document.createElement('style');style.setAttribute('data-warehouse-export-pseudo-guard','true');style.textContent='.warehouse-performance-export-node .warehouse-export-disable-before::before{content:none!important;background:none!important;background-image:none!important;border-image:none!important;mask:none!important;-webkit-mask:none!important}.warehouse-performance-export-node .warehouse-export-disable-after::after{content:none!important;background:none!important;background-image:none!important;border-image:none!important;mask:none!important;-webkit-mask:none!important}';root.prepend(style);}function whSanitizeZeroSizePaintSources(root){whEnsureExportPseudoStyle(root);const elements=[root].concat([].slice.call(root.querySelectorAll('*')));let firstSelector='';function scan(){const invalid=[];const pseudo=[];elements.forEach(function(el){if(!(el instanceof HTMLElement||el instanceof SVGElement))return;const zero=whZeroSizeElement(el);const style=getComputedStyle(el);if(zero&&whStyleHasPaintSource(style)){invalid.push(el);}['::before','::after'].forEach(function(type){const ps=getComputedStyle(el,type);if(zero&&whPseudoHasPaint(ps)){pseudo.push({el,type});}});});return {invalid,pseudo};}const before=scan();before.invalid.forEach(function(el){if(!firstSelector)firstSelector=whExportSelector(el);el.style.setProperty('background-image','none','important');el.style.setProperty('background-repeat','no-repeat','important');el.style.setProperty('border-image-source','none','important');el.style.setProperty('mask-image','none','important');el.style.setProperty('-webkit-mask-image','none','important');if(el instanceof SVGElement)el.style.setProperty('filter','none','important');});before.pseudo.forEach(function(item){if(!firstSelector)firstSelector=whExportSelector(item.el)+(item.type||'');item.el.classList.add(item.type==='::before'?'warehouse-export-disable-before':'warehouse-export-disable-after');});const after=scan();root.dataset.zeroSizePaintSourcesBefore=String(before.invalid.length);root.dataset.zeroSizePaintSourcesAfter=String(after.invalid.length);root.dataset.zeroSizePseudoBefore=String(before.pseudo.length);root.dataset.zeroSizePseudoAfter=String(after.pseudo.length);root.dataset.firstZeroSizePaintSelector=firstSelector;return {before:before.invalid.length,after:after.invalid.length,pseudoBefore:before.pseudo.length,pseudoAfter:after.pseudo.length,firstSelector};}function whClone(source){const clone=source.cloneNode(true);whPrepareCloneCanvases(source,clone);whCleanup(clone);clone.classList.add('warehouse-performance-export-node');clone.style.display='block';clone.style.width='100%';clone.style.maxWidth='100%';clone.style.overflow='visible';return clone;}
     function whScale(width,height){const maxSide=30000;const maxArea=90000000;const sideScale=Math.min(maxSide/Math.max(width,height,1),2);const areaScale=Math.sqrt(maxArea/Math.max(width*height,1));return Math.max(1,Math.min(2,sideScale,areaScale));}
-    async function whCapture(box){const Html2Canvas=window.html2canvas;if(!Html2Canvas)throw new Error('html2canvas is not loaded');document.body.appendChild(box);if(document.fonts&&document.fonts.ready)await document.fonts.ready;await new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(resolve);});});await whWaitImages(box);const invalidCanvasesBeforeCapture=whRemoveInvalidCanvases(box);box.dataset.invalidCanvasesBeforeCapture=String(invalidCanvasesBeforeCapture);const invalidBackgrounds=whSanitizeInvalidBackgrounds(box);box.dataset.invalidBackgroundElementsBeforeCapture=String(invalidBackgrounds.before);box.dataset.invalidBackgroundElementsAfterCapture=String(invalidBackgrounds.after);whSanitizeZeroSizePaintSources(box);await new Promise(function(resolve){requestAnimationFrame(resolve);});await new Promise(function(resolve){requestAnimationFrame(resolve);});const rect=box.getBoundingClientRect();const width=Math.ceil(box.scrollWidth);const height=Math.ceil(box.scrollHeight);if(!rect.width||!rect.height||!width||!height)throw new Error('Invalid warehouse export dimensions: '+width+'x'+height);return Html2Canvas(box,{scale:whScale(width,height),useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width:width,height:height,windowWidth:width,windowHeight:height});}
+    async function whCapture(box){const Html2Canvas=window.html2canvas;if(!Html2Canvas)throw new Error('html2canvas is not loaded');document.body.appendChild(box);if(document.fonts&&document.fonts.ready)await document.fonts.ready;await new Promise(function(resolve){requestAnimationFrame(function(){requestAnimationFrame(resolve);});});await whWaitImages(box);const invalidCanvasesBeforeCapture=whRemoveInvalidCanvases(box);box.dataset.invalidCanvasesBeforeCapture=String(invalidCanvasesBeforeCapture);const invalidBackgrounds=whSanitizeInvalidBackgrounds(box);box.dataset.invalidBackgroundElementsBeforeCapture=String(invalidBackgrounds.before);box.dataset.invalidBackgroundElementsAfterCapture=String(invalidBackgrounds.after);whSanitizeZeroSizePaintSources(box);await new Promise(function(resolve){requestAnimationFrame(resolve);});await new Promise(function(resolve){requestAnimationFrame(resolve);});const rect=box.getBoundingClientRect();const width=Math.ceil(box.scrollWidth);const height=Math.ceil(box.scrollHeight);if(!rect.width||!rect.height||!width||!height)throw new Error('Invalid warehouse export dimensions: '+width+'x'+height);return Html2Canvas(box,{scale:whScale(width,height),useCORS:true,allowTaint:true,backgroundColor:reportsThemePalette().canvasBackground,logging:false,scrollX:0,scrollY:0,width:width,height:height,windowWidth:width,windowHeight:height});}
     async function whSavePng(canvas,title){return new Promise(function(resolve){canvas.toBlob(async function(blob){if(!blob){alert('تعذر إنشاء صورة PNG.');resolve(false);return;}await saveBlobWithPicker(blob,whFileSlug(title)+'-'+whDateToken()+'.png','image/png');resolve(true);},'image/png',1);});}
     async function exportWarehousePerformanceWidgetPng(element,title){if(!element)return;const box=whBox(title||whTitle(element),whWidth(element));box.appendChild(whClone(element));try{const canvas=await whCapture(box);await whSavePng(canvas,title||whTitle(element));}catch(err){console.error('Warehouse widget PNG export failed',err);alert('تعذر تصدير هذا البوكس. حاول مرة أخرى.');}finally{try{box.remove();}catch(_){}}}
     function whTargets(){const content=document.querySelector('#warehousesReportContent');if(!content)return [];const targets=[];const kpis=document.querySelector('#warehousesReportKpis');if(kpis)targets.push({element:kpis,title:'إجماليات أداء المخازن'});const ranking=content.querySelector('.warehouse-ranking-card');if(ranking)targets.push({element:ranking,title:'ترتيب المخازن حسب إجمالي التحميل'});content.querySelectorAll('#warehousesQuickTiles article').forEach(function(card){targets.push({element:card,title:whTitle(card)});});const chart=content.querySelector('.warehouse-chart-card-wide');if(chart)targets.push({element:chart,title:'مقارنة مخازن المنتج التام'});const donut=content.querySelector('.warehouse-donut-card');if(donut)targets.push({element:donut,title:'توزيع إجمالي التحميل على المخازن'});content.querySelectorAll('.warehouse-mini-table-card').forEach(function(card){targets.push({element:card,title:whTitle(card)});});const table=content.querySelector('.warehouse-report-main-card');if(table)targets.push({element:table,title:'جدول أداء المخازن المجمع'});return targets;}
@@ -10177,6 +10193,8 @@ function currentReportExportPeriodText(){
     async function exportWarehousePerformanceReportPng(){const source=document.querySelector('#warehousesReportContent');if(!source){alert('لم يتم العثور على تقرير أداء المخازن.');return;}const box=whBox('تقرير أداء المخازن',1800);const clone=whClone(source);clone.querySelector('.executive-title-card')?.remove();clone.querySelector('.hidden-export-table')?.remove();clone.classList.add('warehouse-performance-full-export');box.appendChild(clone);try{const canvas=await whCapture(box);await whSavePng(canvas,'warehouse-performance');}catch(err){console.error('Warehouse performance PNG export failed',err);alert('تعذر تجهيز التقرير للتصدير. حاول مرة أخرى.');}finally{try{box.remove();}catch(_){}}}
     async function exportWarehousePerformanceReportPdf(){const source=document.querySelector('#warehousesReportContent');if(!source){alert('لم يتم العثور على تقرير أداء المخازن.');return;}const JsPDF=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;if(!JsPDF){alert('مكتبة PDF غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.');return;}const box=whBox('تقرير أداء المخازن',1800);const clone=whClone(source);clone.querySelector('.executive-title-card')?.remove();clone.querySelector('.hidden-export-table')?.remove();clone.classList.add('warehouse-performance-full-export');box.appendChild(clone);try{const canvas=await whCapture(box);const pdf=new JsPDF({orientation:'landscape',unit:'mm',format:'a3',compress:true});const pageWidth=pdf.internal.pageSize.getWidth();const pageHeight=pdf.internal.pageSize.getHeight();const margin=8;const imgWidth=pageWidth-(margin*2);const imgHeight=(canvas.height*imgWidth)/canvas.width;const pageContentHeight=pageHeight-(margin*2);const imgData=canvas.toDataURL('image/jpeg',0.92);let offset=0;let page=0;while(offset<imgHeight){if(page>0)pdf.addPage('a3','landscape');pdf.addImage(imgData,'JPEG',margin,margin-offset,imgWidth,imgHeight,undefined,'FAST');offset+=pageContentHeight;page+=1;}const blob=pdf.output('blob');await saveBlobWithPicker(blob,'warehouse-performance-'+whDateToken()+'.pdf','application/pdf');await logSystemActivity(activityExportSection('تقرير أداء المخازن'),'تصدير PDF','تصدير تقرير أداء المخازن PDF');}catch(err){console.error('Warehouse performance PDF export failed',err);alert('تعذر تصدير PDF. حاول مرة أخرى.');}finally{try{box.remove();}catch(_){}}}
 function styleSalesTotalsExportCard(card){
+  const exportPalette=reportsThemePalette();
+  card.dataset.reportTheme=exportPalette.theme;
   card.classList.add('sales-totals-png-main-card');
   card.style.cssText=[
     'box-sizing:border-box',
@@ -10184,19 +10202,19 @@ function styleSalesTotalsExportCard(card){
     'min-height:390px',
     'padding:16px',
     'border-radius:20px',
-    'border:1px solid rgba(141,220,89,.32)',
-    'background:linear-gradient(150deg,rgba(0,58,43,.88),rgba(0,24,20,.96))',
-    'box-shadow:0 18px 42px rgba(0,0,0,.26)',
+    `border:1px solid ${exportPalette.border}`,
+    `background:${exportPalette.surface}`,
+    exportPalette.light?'box-shadow:0 10px 26px rgba(35,66,53,.08)':'box-shadow:0 18px 42px rgba(0,0,0,.26)',
     'overflow:hidden'
   ].join(';');
   card.querySelectorAll('.widget-png-btn,.mobile-kpi-group-png-btn,.mobile-period-png-btn,.export-btn').forEach(el=>el.remove());
   const head=card.querySelector('.sales-totals-row-head');
   if(head){
-    head.style.cssText='display:flex;flex-direction:column;align-items:flex-start;gap:7px;margin:0 0 14px;padding-bottom:12px;border-bottom:1px solid rgba(141,220,89,.22);text-align:right;';
+    head.style.cssText=`display:flex;flex-direction:column;align-items:flex-start;gap:7px;margin:0 0 14px;padding-bottom:12px;border-bottom:1px solid ${exportPalette.divider};text-align:right;`;
     const title=head.querySelector('h3');
-    if(title) title.style.cssText='margin:0;color:#fff;font-size:20px;line-height:1.35;font-weight:900;';
+    if(title) title.style.cssText=`margin:0;color:${exportPalette.heading};font-size:20px;line-height:1.35;font-weight:900;`;
     const codes=head.querySelector('span');
-    if(codes) codes.style.cssText='display:block;max-width:100%;color:#a7ee73;font-size:13px;line-height:1.45;font-weight:800;direction:ltr;text-align:left;overflow-wrap:anywhere;';
+    if(codes) codes.style.cssText=`display:block;max-width:100%;color:${exportPalette.meta};font-size:13px;line-height:1.45;font-weight:800;direction:ltr;text-align:left;overflow-wrap:anywhere;`;
   }
   const grid=card.querySelector('.sales-totals-kpis');
   if(grid){
@@ -10209,18 +10227,18 @@ function styleSalesTotalsExportCard(card){
       `min-height:${idx===4?'92':'116'}px`,
       'padding:14px 12px',
       'border-radius:16px',
-      'border:1px solid rgba(141,220,89,.36)',
-      'background:linear-gradient(145deg,rgba(0,62,43,.52),rgba(0,28,23,.78))',
+      `border:1px solid ${exportPalette.border}`,
+      `background:${exportPalette.soft}`,
       'position:relative',
       'overflow:hidden',
       idx===4?'grid-column:1/-1':''
     ].filter(Boolean).join(';');
     const h=kpi.querySelector('h3');
-    if(h) h.style.cssText='margin:0 0 8px;color:#f4fff5;font-size:12px;line-height:1.45;font-weight:800;text-align:right;';
+    if(h) h.style.cssText=`margin:0 0 8px;color:${exportPalette.text};font-size:12px;line-height:1.45;font-weight:800;text-align:right;`;
     const num=kpi.querySelector('.num');
-    if(num) num.style.cssText='color:#fff;font-size:23px;line-height:1.1;font-weight:900;';
+    if(num) num.style.cssText=`color:${exportPalette.strong};font-size:23px;line-height:1.1;font-weight:900;`;
     const unit=kpi.querySelector('small');
-    if(unit) unit.style.cssText='color:#d4ebd5;font-size:11px;';
+    if(unit) unit.style.cssText=`color:${exportPalette.muted};font-size:11px;`;
     const icon=kpi.querySelector('.icon');
     if(icon) icon.style.cssText='position:absolute;left:10px;bottom:10px;width:38px;height:38px;border-radius:13px;display:grid;place-items:center;background:rgba(141,220,89,.12);border:1px solid rgba(141,220,89,.18);font-size:22px;opacity:.95;color:#9be650;';
   });
@@ -10232,18 +10250,20 @@ async function exportSalesTotalsReportPng(){
   const Html2Canvas=window.html2canvas;
   if(!Html2Canvas){ alert('مكتبة تصدير الصور غير محملة. تأكد من الاتصال بالإنترنت ثم حاول مرة أخرى.'); return; }
   const exportBox=document.createElement('section');
+  const exportPalette=reportsThemePalette();
   exportBox.className='sales-totals-png-export-box';
+  exportBox.dataset.reportTheme=exportPalette.theme;
   exportBox.dir='rtl';
   exportBox.lang='ar';
   exportBox.setAttribute('aria-hidden','true');
   exportBox.style.cssText=[
     'position:fixed','top:0','left:0','z-index:-1','width:1800px','min-height:400px','padding:28px','box-sizing:border-box',
-    'background:radial-gradient(circle at 50% 0%,rgba(94,180,71,.14),transparent 36%),linear-gradient(180deg,#00291f,#001611)',
-    'color:#fff','direction:rtl','font-family:Cairo,Arial,sans-serif','overflow:visible','pointer-events:none'
+    `background:${exportPalette.pageBackground}`,
+    `color:${exportPalette.text}`,'direction:rtl','font-family:Cairo,Arial,sans-serif','overflow:visible','pointer-events:none'
   ].join(';');
   const header=document.createElement('header');
-  header.style.cssText='display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid rgba(141,220,89,.28);';
-  header.innerHTML=`<h2 style="margin:0;color:#fff;font-size:32px;line-height:1.25;font-weight:900;">ملخص مبيعات المخازن</h2><p style="margin:0;color:#bdf2a0;font-size:17px;line-height:1.4;font-weight:800;">${escapeHtml(currentReportExportPeriodText())}</p>`;
+  header.style.cssText=`display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid ${exportPalette.divider};`;
+  header.innerHTML=`<h2 style="margin:0;color:${exportPalette.heading};font-size:32px;line-height:1.25;font-weight:900;">ملخص مبيعات المخازن</h2><p style="margin:0;color:${exportPalette.meta};font-size:17px;line-height:1.4;font-weight:800;">${escapeHtml(currentReportExportPeriodText())}</p>`;
   const grid=document.createElement('div');
   grid.className='sales-totals-png-export-grid';
   grid.style.cssText='display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;width:100%;align-items:stretch;';
@@ -10261,7 +10281,7 @@ async function exportSalesTotalsReportPng(){
     const width=Math.ceil(exportBox.scrollWidth);
     const height=Math.ceil(exportBox.scrollHeight);
     if(!rect.width || !rect.height || !width || !height) throw new Error('Invalid sales totals export dimensions');
-    const canvas=await Html2Canvas(exportBox,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+    const canvas=await Html2Canvas(exportBox,{scale:2,useCORS:true,allowTaint:true,backgroundColor:exportPalette.canvasBackground,logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
     canvas.toBlob(async blob=>{
       if(!blob){ alert('تعذر إنشاء صورة PNG.'); return; }
       await saveBlobWithPicker(blob,`${safeFileName('ملخص مبيعات المخازن')}.png`,'image/png');
@@ -10325,22 +10345,25 @@ function normalizeItemsReportPngClone(root){
 }
 function createItemsReportPngBox(className,width){
   const box=document.createElement('section');
+  const exportPalette=reportsThemePalette();
   box.className=`items-report-png-export-box ${className||''}`.trim();
+  box.dataset.reportTheme=exportPalette.theme;
   box.dir='rtl';
   box.lang='ar';
   box.setAttribute('aria-hidden','true');
   box.style.cssText=[
     'position:fixed','top:0','left:0','z-index:-1',`width:${width||1600}px`,'min-height:300px','padding:28px','box-sizing:border-box',
-    'background:radial-gradient(circle at 50% 0%,rgba(94,180,71,.14),transparent 36%),linear-gradient(180deg,#00291f,#001611)',
-    'color:#fff','direction:rtl','font-family:Cairo,Arial,sans-serif','overflow:visible','pointer-events:none'
+    `background:${exportPalette.pageBackground}`,
+    `color:${exportPalette.text}`,'direction:rtl','font-family:Cairo,Arial,sans-serif','overflow:visible','pointer-events:none'
   ].join(';');
   return box;
 }
 function itemsReportPngHeader(title){
+  const exportPalette=reportsThemePalette();
   const header=document.createElement('header');
   header.className='items-report-png-header';
-  header.style.cssText='display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid rgba(141,220,89,.28);';
-  header.innerHTML=`<h2 style="margin:0;color:#fff;font-size:32px;line-height:1.25;font-weight:900;">${escapeHtml(title)}</h2><p style="margin:0;color:#bdf2a0;font-size:17px;line-height:1.4;font-weight:800;text-align:left;">${escapeHtml(itemsReportPngFilterLine())}</p>`;
+  header.style.cssText=`display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid ${exportPalette.divider};`;
+  header.innerHTML=`<h2 style="margin:0;color:${exportPalette.heading};font-size:32px;line-height:1.25;font-weight:900;">${escapeHtml(title)}</h2><p style="margin:0;color:${exportPalette.meta};font-size:17px;line-height:1.4;font-weight:800;text-align:left;">${escapeHtml(itemsReportPngFilterLine())}</p>`;
   return header;
 }
 async function captureItemsReportPngBox(box,fileName){
@@ -10354,7 +10377,7 @@ async function captureItemsReportPngBox(box,fileName){
     const width=Math.ceil(Math.max(box.scrollWidth, rect.width, 1));
     const height=Math.ceil(Math.max(box.scrollHeight, rect.height, 1));
     if(width<=1 || height<=1) throw new Error(`Invalid items PNG dimensions: ${width}x${height}`);
-    const canvas=await Html2Canvas(box,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001611',logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
+    const canvas=await Html2Canvas(box,{scale:2,useCORS:true,allowTaint:true,backgroundColor:reportsThemePalette().canvasBackground,logging:false,scrollX:0,scrollY:0,width,height,windowWidth:width,windowHeight:height});
     return await new Promise(resolve=>{
       canvas.toBlob(async blob=>{
         if(!blob){ alert('تعذر إنشاء صورة PNG.'); resolve(false); return; }
@@ -10479,7 +10502,7 @@ async function loadExecutiveReport(options={}){
   const stats={salesQty:0,productionQty:0,outgoingTransferQty:0,incomingTransferQty:0,totalLoadingQty:0}; const daily={}, productMap={}, whMap={}, whSalesMap={}, plantStats={}; getPlantsCatalog().forEach(p=>plantStats[p.code]={sales:0,production:0,outgoing:0,incoming:0,loading:0});
   rows.forEach(r=>{const d=dashboardDateKey(r.report_date); daily[d]=daily[d]||{sales:0,production:0,outgoing:0,incoming:0}; const wh=String(r.warehouse_code||'').toUpperCase(); const meta=dashboardWhMeta(wh); const plant=r.plant_code||meta.plant||'غير محدد'; if(!plantStats[plant]) plantStats[plant]={sales:0,production:0,outgoing:0,incoming:0,loading:0}; const sales=toNumber(r.sales_quantity), prod=toNumber(r.production_quantity), out=toNumber(r.outgoing_transfer_quantity), inc=toNumber(r.incoming_transfer_quantity), load=toNumber(r.total_loading_quantity); stats.salesQty+=sales;stats.productionQty+=prod;stats.outgoingTransferQty+=out;stats.incomingTransferQty+=inc;stats.totalLoadingQty+=load; daily[d].sales+=Math.abs(sales);daily[d].production+=Math.abs(prod);daily[d].outgoing+=Math.abs(out);daily[d].incoming+=Math.abs(inc); plantStats[plant].sales+=sales;plantStats[plant].production+=prod;plantStats[plant].outgoing+=out;plantStats[plant].incoming+=inc;plantStats[plant].loading+=load; if(sales) whSalesMap[wh]=(whSalesMap[wh]||0)+Math.abs(sales); const pk=String(r.material_code||r.material_name||'غير محدد'); if(!productMap[pk]) productMap[pk]={code:r.material_code||'-',name:r.material_name||'-',sales:0,production:0,outgoing:0,incoming:0,loading:0}; productMap[pk].sales+=sales;productMap[pk].production+=prod;productMap[pk].outgoing+=out;productMap[pk].incoming+=inc;productMap[pk].loading+=load; if(!whMap[wh]) whMap[wh]={code:wh,name:meta.name||r.warehouse_name||'-',plant:plant,sales:0,production:0,outgoing:0,incoming:0,loading:0,totalActivity:0}; whMap[wh].sales+=sales;whMap[wh].production+=prod;whMap[wh].outgoing+=out;whMap[wh].incoming+=inc;whMap[wh].loading+=load;whMap[wh].totalActivity+=Math.abs(sales)+Math.abs(prod)+Math.abs(out)+Math.abs(inc)+Math.abs(load);});
   const products=Object.values(productMap).sort((a,b)=>Math.abs(b.sales)-Math.abs(a.sales)); const warehouses=Object.values(whMap).sort((a,b)=>b.totalActivity-a.totalActivity);
-  EXECUTIVE_REPORT_STATE={rows,stats,filters}; if($('#executiveReportMeta')) $('#executiveReportMeta').textContent=reportFilterLabel(filters); renderExecutiveKPIs(stats); drawReportLine(daily); drawReportPlantBar(plantStats); drawReportDonut(whSalesMap); renderRankTable('#executiveTopProductsTable',['#','كود الصنف','اسم الصنف','البيع','الإنتاج','التحميل'],products.slice(0,10).map((p,i)=>[i+1,escapeHtml(p.code),escapeHtml(p.name),fmt(p.sales),fmt(p.production),fmt(p.loading)])); renderRankTable('#executiveTopWarehousesTable',['#','كود المخزن','اسم المخزن','المصنع','البيع','التحميل'],warehouses.slice(0,10).map((w,i)=>[i+1,escapeHtml(w.code),escapeHtml(w.name),escapeHtml(w.plant),fmt(w.sales),fmt(w.loading)])); renderExecutiveInsights(products,warehouses,plantStats,stats); renderExecutiveExportTable(stats,products,warehouses,plantStats);
+  EXECUTIVE_REPORT_STATE={rows,stats,filters,daily,plantStats,whSalesMap}; if($('#executiveReportMeta')) $('#executiveReportMeta').textContent=reportFilterLabel(filters); renderExecutiveKPIs(stats); drawReportLine(daily); drawReportPlantBar(plantStats); drawReportDonut(whSalesMap); renderRankTable('#executiveTopProductsTable',['#','كود الصنف','اسم الصنف','البيع','الإنتاج','التحميل'],products.slice(0,10).map((p,i)=>[i+1,escapeHtml(p.code),escapeHtml(p.name),fmt(p.sales),fmt(p.production),fmt(p.loading)])); renderRankTable('#executiveTopWarehousesTable',['#','كود المخزن','اسم المخزن','المصنع','البيع','التحميل'],warehouses.slice(0,10).map((w,i)=>[i+1,escapeHtml(w.code),escapeHtml(w.name),escapeHtml(w.plant),fmt(w.sales),fmt(w.loading)])); renderExecutiveInsights(products,warehouses,plantStats,stats); renderExecutiveExportTable(stats,products,warehouses,plantStats);
   },{scope:'#reports',controls:'#reports button,#reports input,#reports select'});
 }
 
@@ -10567,6 +10590,36 @@ async function exportDashboardElementAsPng(element,title){
     try{ previousActive && previousActive.focus && previousActive.focus(); }catch(_){ }
   }
 }
+
+function redrawReportsForTheme(){
+  if(!document.querySelector('#reports.active-section')) return;
+  if(ACTIVE_REPORT_TAB==='executive'){
+    const state=EXECUTIVE_REPORT_STATE||{};
+    if(state.daily) drawReportLine(state.daily);
+    if(state.plantStats) drawReportPlantBar(state.plantStats);
+    if(state.whSalesMap) drawReportDonut(state.whSalesMap);
+    return;
+  }
+  if(ACTIVE_REPORT_TAB==='warehouses'){
+    drawWarehousesReportChart(WAREHOUSES_REPORT_STATE?.warehouses||[]);
+    drawWarehousesLoadingDonut(WAREHOUSES_REPORT_STATE?.warehouses||[],WAREHOUSES_REPORT_STATE?.summary||{});
+    return;
+  }
+  if(ACTIVE_REPORT_TAB==='exceptions'){
+    if(EXCEPTIONS_REPORT_STATE?.summary) drawExceptionsChart(EXCEPTIONS_REPORT_STATE.summary);
+    return;
+  }
+  if(ACTIVE_REPORT_TAB==='smart'){
+    drawSmartMixChart(SMART_ANALYTICS_STATE||{});
+    drawSmartPlantScoreChart(SMART_ANALYTICS_STATE||{});
+    return;
+  }
+  if(ACTIVE_REPORT_TAB==='production'){
+    drawProductionPlantBar(PRODUCTION_ANALYTICS_STATE?.plants||[]);
+    drawProductionContributionDonut(PRODUCTION_ANALYTICS_STATE?.plants||[]);
+  }
+}
+document.addEventListener('audit-theme-change',()=>requestAnimationFrame(redrawReportsForTheme));
 
 function initExecutiveReports(){
   fillReportFilters();
