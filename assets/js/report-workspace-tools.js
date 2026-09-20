@@ -192,7 +192,15 @@
     const headers=[...fixed,...Array.from(dataset?.dates||[]).map(day=>day.label+' — '+exportDateDmy(day.date))];
     const sourceRows=Array.from(dataset?.rows||[]);
     const rows=dataset?.kind==='statuses'?sortWeeklyRowsByPrimaryShift(sourceRows):sourceRows;
-    table.innerHTML='<thead><tr>'+headers.map(label=>'<th data-export-label="'+escapeHtml(label)+'">'+escapeHtml(label)+'</th>').join('')+'</tr></thead><tbody></tbody>';
+    const fixedWidths=dataset?.kind==='statuses'?[116,240,148,110]:[116,244,148];
+    const dayWidth=dataset?.kind==='statuses'?164:152;
+    const colWidths=[...fixedWidths,...Array.from(dataset?.dates||[]).map(()=>dayWidth)];
+    const minWidth=colWidths.reduce((sum,width)=>sum+width,0);
+    table.style.width=minWidth+'px';
+    table.style.minWidth=minWidth+'px';
+    table.style.maxWidth='none';
+    table.style.tableLayout='fixed';
+    table.innerHTML='<colgroup>'+colWidths.map(width=>'<col style="width:'+width+'px;min-width:'+width+'px">').join('')+'</colgroup><thead><tr>'+headers.map(label=>'<th data-export-label="'+escapeHtml(label)+'">'+escapeHtml(label)+'</th>').join('')+'</tr></thead><tbody></tbody>';
     const tbody=table.tBodies[0];
     if(!rows.length){
       tbody.innerHTML='<tr><td class="empty-row" colspan="'+headers.length+'">لا توجد بيانات</td></tr>';
@@ -228,6 +236,9 @@
     const table=document.createElement('table');
     table.className='weekend-export-table report-export-table';
     table.dir='rtl';
+    table.style.width='1365px';
+    table.style.minWidth='1365px';
+    table.style.maxWidth='none';
     table.innerHTML='<thead><tr>'+['اليوم','الوظيفة','الوردية الأولى','الوردية الثانية','الوردية الثالثة'].map(label=>'<th data-export-label="'+label+'">'+label+'</th>').join('')+'</tr></thead><tbody></tbody>';
     let html='';
     Array.from(dataset?.dates||[]).slice(0,2).forEach(dayInfo=>{
@@ -252,7 +263,8 @@
       jobs.forEach((job,jobIndex)=>{
         const shifts=groups.get(job),rowCount=sizes[jobIndex];
         for(let rowIndex=0;rowIndex<rowCount;rowIndex++){
-          html+='<tr>';
+          const startClass=(firstDayRow&&html)?' class="day-start"':'';
+          html+='<tr'+startClass+'>';
           if(firstDayRow){
             html+='<td class="weekend-export-day" rowspan="'+dayRows+'"><strong>'+escapeHtml(dayInfo.label)+'</strong><span>'+escapeHtml(exportDateDmy(dayInfo.date))+'</span></td>';
             firstDayRow=false;
@@ -704,8 +716,17 @@
     const stage=buildExportDocument(descriptor);
     try{
       await readyForCapture(stage);
-      const desired=Math.max(960,...Array.from(stage.querySelectorAll('table')).map(table=>table.scrollWidth+64));
+      const measurable=[stage,...Array.from(stage.querySelectorAll('.report-export-content,.report-export-weekly-dataset,.weekend-export-root,table'))];
+      const desired=Math.max(960,...measurable.map(node=>Math.ceil((node?.scrollWidth||0)+(node!==stage?48:0))));
       stage.style.width=desired+'px';
+      stage.style.minWidth=desired+'px';
+      const content=stage.querySelector('.report-export-content');
+      if(content){
+        content.style.width='fit-content';
+        content.style.minWidth='100%';
+        content.style.maxWidth='none';
+        content.style.margin='0';
+      }
       await new Promise(resolve=>requestAnimationFrame(resolve));
       const canvas=await captureElement(stage,2,descriptor.colorAudit);
       return canvasBlob(canvas);
@@ -722,7 +743,12 @@
     const content=document.createElement('div');content.className='report-pdf-page-content';page.appendChild(content);
     return {page,content};
   }
-  function pageOverflow(page){return page.scrollHeight>page.clientHeight+1;}
+  function pageOverflow(page){
+    const content=page.querySelector('.report-pdf-page-content');
+    if(!content) return page.scrollHeight>page.clientHeight-16;
+    const reserve=28;
+    return content.scrollHeight>content.clientHeight-reserve;
+  }
   function appendIntro(pageInfo,descriptor){
     descriptor.intro.forEach(node=>pageInfo.content.appendChild(sanitizeClone(node)));
   }
