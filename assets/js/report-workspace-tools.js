@@ -41,6 +41,7 @@
   const displayDate=value=>window.CustomDatePicker?.formatDisplayDate?.(value,value)||value||'—';
   const safeFilename=value=>text(value).normalize('NFKD').replace(/[^A-Za-z0-9_-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,160)||'report';
   const formatMeta=items=>items.filter(Boolean).map(item=>text(item)).filter(Boolean);
+  const currentExportTheme=()=>document.documentElement.getAttribute('data-theme')==='light'?'light':'dark';
   const rowHasData=row=>Boolean(row && !row.querySelector('.empty-row') && text(row.textContent));
   const tableHasData=table=>Array.from(table?.tBodies?.[0]?.rows||[]).some(rowHasData);
   const tableColumnCount=table=>Math.max(0,...Array.from(table?.rows||[]).map(row=>Array.from(row.cells).reduce((n,cell)=>n+(Number(cell.colSpan)||1),0)));
@@ -105,7 +106,7 @@
       intro:Array.from(panel?.querySelectorAll('.inventory-production-summary')||[]),
       fileBase:safeFilename(`production-tracking-${state.plantCode||'WF01'}-${state.reportDate||todayIso()}`),
       landscape:true,freezeColumns:2,loading:Boolean(state.loading),hasUnsaved:false,
-      exportTheme:document.documentElement.getAttribute('data-theme')==='light'?'light':'dark'
+      exportTheme:currentExportTheme()
     };
   }
   function selectedTextFrom(node){return text(node?.selectedOptions?.[0]?.textContent||node?.value||'الكل')||'الكل';}
@@ -123,7 +124,7 @@
       ]),
       root:table?.closest('.department-operational-table-wrap'),tables:table?[table]:[],intro:[],
       fileBase:safeFilename(`department-storekeepers-${todayIso()}`),landscape:true,freezeColumns:2,
-      loading:Boolean(state.loading),hasUnsaved:false
+      loading:Boolean(state.loading),hasUnsaved:false,exportTheme:currentExportTheme()
     };
   }
   function exportDateAdd(value,days){
@@ -304,7 +305,7 @@
       root:exportRoot,tables:table?[table]:[],intro:[],dataset,
       fileBase:safeFilename(`${slug}-${state.activeTab||state.plantCode||'report'}-${state.weekStart||todayIso()}`),
       landscape:true,freezeColumns:kind==='statuses'?4:3,loading:Boolean(state.loading||state.saving),
-      hasUnsaved:Boolean(state.hasUnsaved),draftKind:kind
+      hasUnsaved:Boolean(state.hasUnsaved),draftKind:kind,exportTheme:currentExportTheme()
     };
   }
   function hrDescriptor(config){
@@ -326,7 +327,7 @@
       ]),
       root:panel,tables,intro:Array.from(panel?.querySelectorAll('.department-hr-summary,.department-hr-person-card,.department-hr-note')||[]),
       fileBase:safeFilename(`hr-${HR_SLUGS[active]||'report'}-${inputValue('departmentHrFromDate')||todayIso()}-to-${inputValue('departmentHrToDate')||todayIso()}`),
-      landscape:maxColumns>7,freezeColumns:1,loading:Boolean(state.loading),hasUnsaved:false
+      landscape:maxColumns>7,freezeColumns:1,loading:Boolean(state.loading),hasUnsaved:false,exportTheme:currentExportTheme()
     };
   }
   function loadingErrorsDescriptor(config){
@@ -346,7 +347,7 @@
       ]),
       root,tables:table?[table]:[],intro:[],
       fileBase:safeFilename(`loading-errors-${state.view||'completed'}-${state.activePlant||'plant'}-${state.registrationDate||todayIso()}`),
-      landscape:true,freezeColumns:1,loading:Boolean(state.loading),hasUnsaved:false
+      landscape:true,freezeColumns:1,loading:Boolean(state.loading),hasUnsaved:false,exportTheme:currentExportTheme()
     };
   }
   function describe(sectionId){

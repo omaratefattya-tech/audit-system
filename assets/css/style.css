@@ -7488,6 +7488,61 @@ body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLi
   to { transform: rotate(360deg); }
 }
 
+/* L10 Light Mode owner: Department HR reports */
+html[data-theme="light"] .app-shell:has(#department_hr_reports.active-section){background:#eef4f1}
+html[data-theme="light"] .app-shell:has(#department_hr_reports.active-section) .main{background:radial-gradient(circle at 18% 4%,rgba(54,139,79,.08),transparent 30%),linear-gradient(180deg,#f7faf8 0%,#eef4f1 100%)}
+html[data-theme="light"] #department_hr_reports{color:#17352a}
+html[data-theme="light"] #department_hr_reports>.panel.glass{background:linear-gradient(145deg,#ffffff,#f6faf7);border-color:#bdcec5;box-shadow:0 12px 30px rgba(34,64,52,.10)}
+html[data-theme="light"] #department_hr_reports .department-screen-head h2{color:#123d2a}
+html[data-theme="light"] #department_hr_reports .hint{color:#526c5f}
+html[data-theme="light"] #department_hr_reports .department-hr-report-controls{background:#f5f9f6;border-color:#b9cdc2;scrollbar-color:#7fa28f #e7efeb}
+html[data-theme="light"] #department_hr_reports .department-hr-report-controls label,
+html[data-theme="light"] #department_hr_reports .department-hr-inline-controls label{color:#294d3c}
+html[data-theme="light"] #department_hr_reports :is(input,select){background:#ffffff;color:#17382a;border-color:#b7cbc0;box-shadow:none}
+html[data-theme="light"] #department_hr_reports :is(input,select):focus{border-color:#3e9660;outline:2px solid rgba(48,137,78,.16)}
+html[data-theme="light"] #department_hr_reports input::placeholder{color:#71897c}
+html[data-theme="light"] #department_hr_reports select option{background:#fff;color:#17382a}
+html[data-theme="light"] #department_hr_reports .department-hr-report-status{color:#4c685a}
+html[data-theme="light"] #department_hr_reports .department-hr-report-status.success{color:#176b37;font-weight:800}
+html[data-theme="light"] #department_hr_reports .department-hr-report-status.error{color:#9a322c;font-weight:800}
+html[data-theme="light"] #department_hr_reports .department-hr-report-tab{background:#f7faf8;border-color:#b8ccc1;color:#24483a;box-shadow:none}
+html[data-theme="light"] #department_hr_reports .department-hr-report-tab:hover{background:#e9f4ec;border-color:#75a986;color:#155f34}
+html[data-theme="light"] #department_hr_reports .department-hr-report-tab.active,
+html[data-theme="light"] #department_hr_reports .department-hr-report-tab[aria-selected="true"]{background:linear-gradient(135deg,#2f9a50,#20763f);border-color:#20763f;color:#fff;box-shadow:0 7px 18px rgba(31,118,62,.16)}
+html[data-theme="light"] #department_hr_reports .department-hr-report-panel{background:#ffffff;border-color:#bfd0c7;color:#17352a;box-shadow:0 8px 22px rgba(36,70,56,.06)}
+html[data-theme="light"] #department_hr_reports .department-hr-summary-card{background:#f7faf8;border-color:#b9cec2;box-shadow:none}
+html[data-theme="light"] #department_hr_reports .department-hr-summary-card span,
+html[data-theme="light"] #department_hr_reports .department-hr-summary-card small{color:#4f6a5d}
+html[data-theme="light"] #department_hr_reports .department-hr-summary-card b{color:#102f23}
+html[data-theme="light"] #department_hr_reports .department-hr-summary-enhanced .department-hr-summary-card{background:linear-gradient(145deg,#ffffff,#eef6f0);border-color:#a7c8b2;box-shadow:0 7px 18px rgba(31,80,55,.07)}
+html[data-theme="light"] #department_hr_reports .department-hr-summary-enhanced .department-hr-summary-card::before{background:linear-gradient(90deg,#248a43,#b17a00)}
+html[data-theme="light"] #department_hr_reports .department-hr-person-card>div{background:#f7faf8;border-color:#bdcec5;color:#17352a}
+html[data-theme="light"] #department_hr_reports .department-hr-person-card span,
+html[data-theme="light"] #department_hr_reports .department-hr-status-counts small{color:#536e61}
+html[data-theme="light"] #department_hr_reports .department-hr-subtitle{color:#174d32}
+html[data-theme="light"] #department_hr_reports .department-hr-status-counts article{background:#f8fbf9;border-color:#c4d4cc;color:#17352a}
+html[data-theme="light"] #department_hr_reports .department-hr-note{background:#eaf4ed;color:#365747;border:1px solid #c9dbd1}
+html[data-theme="light"] #department_hr_reports .department-hr-table-wrap{background:#fff;border-color:#b9cdc2;scrollbar-color:#7fa28f #edf3f0}
+html[data-theme="light"] #department_hr_reports .department-hr-table{background:#fff;color:#17352a}
+html[data-theme="light"] #department_hr_reports .department-hr-table th{background:#d2e8d9;color:#174f30;border-bottom-color:#adc6b8;font-weight:900}
+html[data-theme="light"] #department_hr_reports .department-hr-table td{color:#203e32;border-bottom-color:#dbe5e0;background:#fff}
+html[data-theme="light"] #department_hr_reports .department-hr-table tbody tr:nth-child(even) td{background:#f4f8f6}
+html[data-theme="light"] #department_hr_reports .department-hr-table tbody tr:hover td{background:#e9f4ec}
+html[data-theme="light"] #department_hr_reports [data-hr-cumulative-level="department"]>td{background:#e4f0e7;border-bottom-color:#b9d0c1;color:#17382a}
+html[data-theme="light"] #department_hr_reports [data-hr-cumulative-level="department"]>td:first-child{box-shadow:inset -4px 0 0 #b17a00}
+html[data-theme="light"] #department_hr_reports [data-hr-cumulative-level="employee"]>td{background:#fff}
+html[data-theme="light"] #department_hr_reports [data-hr-cumulative-level="department"]:hover>td{background:#dcecdf}
+html[data-theme="light"] #department_hr_reports [data-hr-cumulative-level="employee"]:hover>td{background:#eef6f1}
+html[data-theme="light"] #department_hr_reports .department-hr-sort{color:#174f30}
+html[data-theme="light"] #department_hr_reports .department-sort-indicator{color:#8a5b00}
+html[data-theme="light"] #department_hr_reports :is(.department-hr-code-value,.department-hr-status-label){color:#1f4736}
+html[data-theme="light"] #department_hr_reports :is(.department-hr-lock-badge,.department-hr-period-note){background:#e9f2ec;border-color:#b9cec2;color:#335a47}
+html[data-theme="light"] #department_hr_reports .department-hr-table .positive{color:#176b37;font-weight:900}
+html[data-theme="light"] #department_hr_reports .department-hr-table .negative{color:#a2302a;font-weight:900}
+html[data-theme="light"] #department_hr_reports .department-hr-table .neutral{color:#526c5f}
+html[data-theme="light"] #department_hr_reports .department-hr-state{background:#f5f9f6;border-color:#c4d5cc;color:#365647}
+html[data-theme="light"] #department_hr_reports .department-hr-state.error{background:#fff0ee;border-color:#df9a93;color:#952f29}
+
 @media (max-width: 850px) {
   #department_hr_reports.active-section {
     overflow-x: hidden;
@@ -8784,6 +8839,73 @@ html[data-theme="light"] #icBatchViewTable .ic-batch-view-null{color:#9aacA3}
 .department-loading-error-modal-footer{padding:13px 18px}
 .department-loading-error-modal-footer button{min-width:125px;min-height:44px}
 
+/* L10 Light Mode owner: Department loading errors */
+html[data-theme="light"] .app-shell:has(#department_loading_errors.active-section){background:#eef4f1}
+html[data-theme="light"] .app-shell:has(#department_loading_errors.active-section) .main{background:radial-gradient(circle at 18% 4%,rgba(54,139,79,.08),transparent 30%),linear-gradient(180deg,#f7faf8 0%,#eef4f1 100%)}
+html[data-theme="light"] #department_loading_errors{color:#17352a}
+html[data-theme="light"] #department_loading_errors>.panel.glass{background:linear-gradient(145deg,#ffffff,#f6faf7);border-color:#bdcec5;box-shadow:0 12px 30px rgba(34,64,52,.10)}
+html[data-theme="light"] #department_loading_errors .department-screen-head h2{color:#123d2a}
+html[data-theme="light"] #department_loading_errors .hint{color:#526c5f}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-tab{background:#f7faf8;border-color:#b8ccc1;color:#294b3d}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-tab:hover{background:#e9f4ec;border-color:#74a986;color:#155f34}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-tab.active{background:linear-gradient(135deg,#2f9a50,#20763f);border-color:#20763f;color:#fff;box-shadow:0 7px 18px rgba(31,118,62,.16)}
+html[data-theme="light"] #department_loading_errors :is(.department-loading-errors-toolbar,.department-loading-errors-table-filters){background:#f5f9f6;border:1px solid #c2d3ca;color:#17352a;box-shadow:none}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-context span{color:#536e61}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-context strong{color:#17352a}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-date-filter{color:#294d3c}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-column-manager{background:linear-gradient(150deg,#ffffff,#eef6f0);border-color:#b8ccc1;box-shadow:0 8px 22px rgba(36,70,56,.07)}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-column-manager-head strong{color:#17352a}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-column-manager-head small{color:#536e61}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-column-close{background:#fff;border-color:#b8ccc1;color:#315347}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-column-list label{background:#f8fbf9;border-color:#c4d5cc;color:#27483a}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-column-list label.is-required{border-color:#c99728;background:#fff9e8;color:#684900}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-status{color:#466355}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-status.ok{color:#176b37;font-weight:900}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-status.err{color:#9a322c;font-weight:900}
+html[data-theme="light"] #department_loading_errors .department-loading-errors-table-wrap{background:#fff;border-color:#b9cdc2;box-shadow:none;scrollbar-color:#7fa28f #edf3f0}
+html[data-theme="light"] #departmentLoadingErrorsTable{background:#fff;color:#17352a}
+html[data-theme="light"] #departmentLoadingErrorsTable thead tr:first-child th{background:#236b43;color:#fff;border-bottom-color:#174f30}
+html[data-theme="light"] #departmentLoadingErrorsTable .department-loading-errors-filter-row th{background:#e7f1ea;border-bottom-color:#b8ccc1}
+html[data-theme="light"] #departmentLoadingErrorsTable .department-loading-errors-column-filter{background:#fff;color:#203e32;border-color:#b8ccc1}
+html[data-theme="light"] #departmentLoadingErrorsTable .department-loading-errors-column-filter::placeholder{color:#71897c}
+html[data-theme="light"] #departmentLoadingErrorsTable td{background:#fff;color:#203e32;border-bottom-color:#dce6e1}
+html[data-theme="light"] #departmentLoadingErrorsTable tbody tr:nth-child(even) td{background:#f4f8f6}
+html[data-theme="light"] #departmentLoadingErrorsTable tbody tr:hover td{background:#eaf4ed}
+html[data-theme="light"] #department_loading_errors .department-loading-error-review-cell{background:#f3f7f5}
+html[data-theme="light"] #department_loading_errors .department-loading-error-type.surplus{color:#145f32;background:#dff0e3;border-color:#68a97a}
+html[data-theme="light"] #department_loading_errors .department-loading-error-type.shortage{color:#8e2d28;background:#ffe5e2;border-color:#d47c75}
+
+html[data-theme="light"] .department-loading-error-modal{background:rgba(35,55,47,.34)}
+html[data-theme="light"] .department-loading-error-dialog.app-liquid-modal{background:linear-gradient(145deg,#ffffff,#f4f8f6);border-color:#b9cdc2;color:#17352a;box-shadow:0 28px 72px rgba(32,61,49,.22)}
+html[data-theme="light"] .department-loading-error-modal-head,
+html[data-theme="light"] .department-loading-error-modal-footer{background:#f3f8f5;border-color:#c8d8d0}
+html[data-theme="light"] .department-loading-error-modal-head .app-liquid-modal__title{color:#123d2a}
+html[data-theme="light"] .department-loading-error-modal-head>div>span{color:#526c5f}
+html[data-theme="light"] .department-loading-error-modal-head .app-liquid-modal__close{background:#fff;border-color:#9fbbaa;color:#24483a;box-shadow:0 5px 14px rgba(34,64,52,.08)}
+html[data-theme="light"] .department-loading-error-modal-head .app-liquid-modal__close:hover{background:#eaf4ed;border-color:#438a5c;color:#155f34;box-shadow:0 7px 18px rgba(34,64,52,.10)}
+html[data-theme="light"] .department-loading-error-modal-body{background:#fff;color:#17352a;scrollbar-color:#7fa28f #edf3f0}
+html[data-theme="light"] .department-loading-error-modal :is(.department-loading-error-header-grid,.department-loading-error-lines-section,.department-loading-error-review-meta){background:#f7faf8;border-color:#c2d3ca;color:#17352a}
+html[data-theme="light"] .department-loading-error-modal :is(.department-loading-error-header-grid label,.department-loading-error-action-field){color:#294d3c}
+html[data-theme="light"] .department-loading-error-modal :is(input,select,textarea){background:#fff;color:#17382a;border-color:#b8ccc1;box-shadow:none}
+html[data-theme="light"] .department-loading-error-modal :is(input,select,textarea)::placeholder{color:#71897c}
+html[data-theme="light"] .department-loading-error-modal :is(input[readonly],textarea[readonly]){background:#eef3f0;color:#4d695b}
+html[data-theme="light"] .department-loading-error-modal .department-loading-error-lines-head h3{color:#123d2a}
+html[data-theme="light"] .department-loading-error-modal .department-loading-error-lines-head p,
+html[data-theme="light"] .department-loading-error-modal .department-loading-error-action-field small{color:#526c5f}
+html[data-theme="light"] .department-loading-error-modal .department-loading-error-lines-wrap{background:#fff;border-color:#b9cdc2}
+html[data-theme="light"] .department-loading-error-modal .department-loading-error-lines-table th{background:#236b43;color:#fff;border-bottom-color:#174f30}
+html[data-theme="light"] .department-loading-error-modal .department-loading-error-lines-table td{background:#fff;color:#203e32;border-bottom-color:#dce6e1}
+html[data-theme="light"] .department-loading-error-modal .department-loading-error-lines-table tbody tr:nth-child(even) td{background:#f4f8f6}
+html[data-theme="light"] .department-loading-error-modal .department-loading-error-review-meta>div{background:#fff;border-color:#c4d5cc}
+html[data-theme="light"] .department-loading-error-modal .department-loading-error-review-meta span{color:#536e61}
+html[data-theme="light"] .department-loading-error-modal .department-loading-error-review-meta strong,
+html[data-theme="light"] .department-loading-error-modal .department-loading-error-review-lines td{color:#17352a}
+html[data-theme="light"] .department-loading-error-modal .department-loading-error-modal-status{background:#eef4f1;color:#365747;border:1px solid #c6d8ce}
+html[data-theme="light"] .department-loading-error-modal .department-loading-error-modal-status.err{background:#fff0ee;border-color:#dc958e;color:#952f29}
+html[data-theme="light"] .department-loading-error-modal input.invalid,
+html[data-theme="light"] .department-loading-error-modal select.invalid,
+html[data-theme="light"] .department-loading-error-modal textarea.invalid{border-color:#c94e47;box-shadow:0 0 0 2px rgba(177,47,40,.12)}
+
 @media(max-width:1100px){
   .department-loading-error-header-grid,.department-loading-error-header-grid.is-review{grid-template-columns:repeat(2,minmax(0,1fr))}
   .department-loading-error-header-grid label:last-child{grid-column:1/-1}
@@ -8823,6 +8945,9 @@ html[data-theme="light"] #icBatchViewTable .ic-batch-view-null{color:#9aacA3}
 .app-liquid-modal__body::-webkit-scrollbar{width:9px;height:9px}
 .app-liquid-modal__body::-webkit-scrollbar-track{background:rgba(0,24,20,.5);border-radius:999px}
 .app-liquid-modal__body::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(133,200,66,.85),rgba(30,116,50,.92));border:2px solid rgba(0,24,20,.5);border-radius:999px}
+html[data-theme="light"] .department-loading-error-modal .app-liquid-modal__body{scrollbar-color:#7fa28f #edf3f0}
+html[data-theme="light"] .department-loading-error-modal .app-liquid-modal__body::-webkit-scrollbar-track{background:#edf3f0}
+html[data-theme="light"] .department-loading-error-modal .app-liquid-modal__body::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#7da98b,#438a5c);border-color:#edf3f0}
 
 .inventory-review-card.app-liquid-modal,
 .inventory-settlement-dialog.app-liquid-modal{
@@ -9777,6 +9902,92 @@ body.focus-mode-active .inventory-count-post-close-modal{
 .department-evaluation-reason-label textarea[readonly]{background:rgba(0,25,20,.72);color:#fff;cursor:default}
 .department-evaluation-modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:14px}
 .department-evaluation-modal-actions button{min-width:130px}
+
+/* L10 Light Mode owner: Department personnel operations (storekeepers, weekly schedule, evaluations) */
+html[data-theme="light"] .app-shell:has(#department_storekeepers.active-section),
+html[data-theme="light"] .app-shell:has(#department_weekly_leave_schedule.active-section),
+html[data-theme="light"] .app-shell:has(#department_evaluations.active-section){background:#eef4f1}
+html[data-theme="light"] .app-shell:has(#department_storekeepers.active-section) .main,
+html[data-theme="light"] .app-shell:has(#department_weekly_leave_schedule.active-section) .main,
+html[data-theme="light"] .app-shell:has(#department_evaluations.active-section) .main{background:radial-gradient(circle at 18% 4%,rgba(54,139,79,.08),transparent 30%),linear-gradient(180deg,#f7faf8 0%,#eef4f1 100%)}
+html[data-theme="light"] :is(#department_storekeepers,#department_weekly_leave_schedule,#department_evaluations){color:#17352a}
+html[data-theme="light"] :is(#department_storekeepers,#department_weekly_leave_schedule,#department_evaluations)>.panel.glass{background:linear-gradient(145deg,#ffffff,#f6faf7);border-color:#bdcec5;box-shadow:0 12px 30px rgba(34,64,52,.10)}
+html[data-theme="light"] :is(#department_storekeepers,#department_weekly_leave_schedule,#department_evaluations) .department-screen-head h2{color:#123d2a}
+html[data-theme="light"] :is(#department_storekeepers,#department_weekly_leave_schedule,#department_evaluations) .hint{color:#526c5f}
+html[data-theme="light"] .department-admin-alert{background:#fff7df;border-color:#c9962d;color:#674900}
+html[data-theme="light"] #department_storekeepers .department-storekeepers-toolbar,
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-period{background:#f5f9f6;border:1px solid #c2d3ca;box-shadow:none}
+html[data-theme="light"] #department_storekeepers .department-storekeepers-toolbar label,
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-period label{color:#294d3c}
+html[data-theme="light"] :is(#department_storekeepers,#department_weekly_leave_schedule,#department_evaluations) :is(input,select){background:#fff;color:#17382a;border-color:#b7cbc0;box-shadow:none}
+html[data-theme="light"] :is(#department_storekeepers,#department_weekly_leave_schedule,#department_evaluations) :is(input,select):focus{border-color:#3e9660;outline:2px solid rgba(48,137,78,.16)}
+html[data-theme="light"] :is(#department_storekeepers,#department_weekly_leave_schedule,#department_evaluations) input::placeholder{color:#71897c}
+html[data-theme="light"] :is(#department_storekeepers,#department_weekly_leave_schedule,#department_evaluations) select option{background:#fff;color:#17382a}
+html[data-theme="light"] #department_storekeepers .department-storekeepers-summary{scrollbar-color:#7fa28f #edf3f0}
+html[data-theme="light"] #department_storekeepers .department-storekeepers-summary-card{background:linear-gradient(145deg,#ffffff,#eef6f0);border-color:#b5ccbf;box-shadow:0 8px 20px rgba(32,70,51,.08)}
+html[data-theme="light"] #department_storekeepers .department-storekeepers-summary-card span{color:#355849;font-weight:900}
+html[data-theme="light"] #department_storekeepers .department-storekeepers-summary-card strong{color:#102f23;text-shadow:none}
+html[data-theme="light"] #department_storekeepers .department-operational-table-wrap{background:#fff;border-color:#b9cdc2;box-shadow:none;scrollbar-color:#7fa28f #edf3f0}
+html[data-theme="light"] #departmentStorekeepersTable{background:#fff;color:#17352a}
+html[data-theme="light"] #departmentStorekeepersTable thead th{background:#236b43;color:#fff;border-bottom-color:#174f30}
+html[data-theme="light"] #departmentStorekeepersTable tbody td{background:#fff;color:#203e32;border-bottom-color:#dce6e1}
+html[data-theme="light"] #departmentStorekeepersTable tbody tr:nth-child(even) td{background:#f4f8f6}
+html[data-theme="light"] #departmentStorekeepersTable tbody tr:hover td{background:#eaf4ed}
+html[data-theme="light"] #departmentStorekeepersTable .department-current-shift b{color:#176b37}
+html[data-theme="light"] #departmentStorekeepersTable .department-current-shift small{color:#536e61}
+
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-tabs{scrollbar-color:#7fa28f #edf3f0}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-tab{background:#f7faf8;border-color:#b8ccc1;color:#294b3d;box-shadow:none}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-tab:hover{background:#e9f4ec;border-color:#74a986;color:#155f34}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-tab.active,
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-tab[aria-selected="true"]{background:linear-gradient(135deg,#2f9a50,#20763f);border-color:#20763f;color:#fff;box-shadow:0 7px 18px rgba(31,118,62,.16)}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-label{color:#174d32}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-table-wrap{background:#fff;border-color:#b9cdc2;box-shadow:none;scrollbar-color:#7fa28f #edf3f0}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-table thead th{background:linear-gradient(180deg,#2d8054,#1e6542);color:#fff;border-color:#a9c6b7;box-shadow:none}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-table tbody td{background:#fff;color:#203e32;border-color:#dce6e1}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-table tbody tr:nth-child(even) td{background:#f4f8f6}
+html[data-theme="light"] #departmentWeeklyScheduleApp .department-weekly-table tbody td:nth-child(-n+4),
+html[data-theme="light"] #departmentEvaluationsApp .department-weekly-table tbody td:nth-child(-n+3){background:#eef5f1;color:#17352a;box-shadow:-1px 0 0 #c8d8d0}
+html[data-theme="light"] #departmentWeeklyScheduleApp .department-weekly-table tbody tr:nth-child(even) td:nth-child(-n+4),
+html[data-theme="light"] #departmentEvaluationsApp .department-weekly-table tbody tr:nth-child(even) td:nth-child(-n+3){background:#e6f0ea}
+html[data-theme="light"] #departmentWeeklyScheduleApp .department-weekly-table thead th:nth-child(-n+4),
+html[data-theme="light"] #departmentEvaluationsApp .department-weekly-table thead th:nth-child(-n+3){background:linear-gradient(180deg,#347f58,#206743);color:#fff;box-shadow:-1px 0 0 #a9c6b7}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-day-heading small{color:#d9eee0}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-input{background:#fff;color:#17382a;border-color:#b6cbc0}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-input:focus{border-color:#318955;outline-color:rgba(49,137,85,.28)}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-cell.dirty::after{border-color:#fff;background:#b27400;box-shadow:0 0 0 2px rgba(178,116,0,.14)}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-input.dirty{border-color:#b27400;box-shadow:inset 0 0 0 1px rgba(178,116,0,.12)}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-cell.invalid{background:#fff0ee}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-input.invalid{border-color:#c34b45;color:#8f2f29;background:#fff7f6}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-table .outside-range{background:repeating-linear-gradient(135deg,#f1f4f2,#f1f4f2 7px,#e5ebe7 7px,#e5ebe7 14px);color:#71877b}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-input:disabled{background:#eef2f0;color:#71877b;opacity:1}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-sort-button:hover,
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-sort-button:focus-visible{background:#dcecdf;color:#155f34}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-sort-indicator{color:#b27400}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-status-invalid-value{background:#ffe4e1;border-color:#c44c46;color:#8f2f29}
+html[data-theme="light"] :is(#department_weekly_leave_schedule,#department_evaluations) .department-weekly-cell.locked{background:#e1f0e5}
+html[data-theme="light"] #department_evaluations .department-locked-evaluation{background:linear-gradient(145deg,#dcefe2,#c7e5cf);border-color:#66a779;color:#153e28;box-shadow:none}
+html[data-theme="light"] #department_evaluations .department-locked-evaluation small{color:#356247}
+html[data-theme="light"] #department_evaluations .department-weekly-cell.blocked{background:#edf1ef}
+html[data-theme="light"] #department_evaluations .department-evaluation-blocked-note{color:#51695d}
+
+html[data-theme="light"] .department-evaluation-modal{background:rgba(35,55,47,.34)}
+html[data-theme="light"] .department-evaluation-dialog{background:linear-gradient(145deg,#ffffff,#f4f8f6);border-color:#b9cdc2;color:#17352a;box-shadow:0 28px 72px rgba(32,61,49,.22)}
+html[data-theme="light"] .department-evaluation-modal-head h3{color:#123d2a}
+html[data-theme="light"] .department-evaluation-close{background:#fff;border-color:#a9beb3;color:#315347}
+html[data-theme="light"] .department-evaluation-details div{background:#f6faf7;border-color:#c4d5cc}
+html[data-theme="light"] .department-evaluation-details dt{color:#356247}
+html[data-theme="light"] .department-evaluation-details dd{color:#17352a}
+html[data-theme="light"] .department-evaluation-score-edit{background:#fff;color:#17382a;border-color:#b8ccc1}
+html[data-theme="light"] .department-evaluation-delete-warning{background:#fff0ee;border-color:#d47b74;color:#922f29}
+html[data-theme="light"] .department-weekly-conflict-card{background:#fff8e8;border-color:#d0a448;color:#5f4600}
+html[data-theme="light"] .department-weekly-conflict-card p{color:#674900}
+html[data-theme="light"] .department-weekly-conflict-question{background:#eaf4ed;color:#174d32;border:1px solid #c4d8ca}
+html[data-theme="light"] .department-evaluation-reason-label{color:#24483a}
+html[data-theme="light"] .department-evaluation-reason-label textarea{background:#fff;color:#17382a;border-color:#b8ccc1;caret-color:#176b37;box-shadow:none}
+html[data-theme="light"] .department-evaluation-reason-label textarea::placeholder{color:#71897c}
+html[data-theme="light"] .department-evaluation-reason-label textarea:hover:not(:disabled):not([readonly]){background:#fff;border-color:#438a5c}
+html[data-theme="light"] .department-evaluation-reason-label textarea[readonly]{background:#eef3f0;color:#4d695b}
 @media(max-width:768px){
   .login-logo-refresh{
     margin:0 0 10px;
@@ -9838,6 +10049,85 @@ body.focus-mode-active .inventory-count-post-close-modal{
   .department-status-visual{min-height:46px}
 
 }
+/* L10 Light Mode owner: report workspace chrome for Department Personnel screens */
+html[data-theme="light"] body:has(#department_storekeepers.active-section) .report-workspace-toolbar,
+html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .report-workspace-toolbar,
+html[data-theme="light"] body:has(#department_hr_reports.active-section) .report-workspace-toolbar,
+html[data-theme="light"] body:has(#department_evaluations.active-section) .report-workspace-toolbar,
+html[data-theme="light"] body:has(#department_loading_errors.active-section) .report-workspace-toolbar{color:#17352a}
+html[data-theme="light"] body.focus-mode-active:has(#department_storekeepers.active-section) .report-workspace-toolbar,
+html[data-theme="light"] body.focus-mode-active:has(#department_weekly_leave_schedule.active-section) .report-workspace-toolbar,
+html[data-theme="light"] body.focus-mode-active:has(#department_hr_reports.active-section) .report-workspace-toolbar,
+html[data-theme="light"] body.focus-mode-active:has(#department_evaluations.active-section) .report-workspace-toolbar,
+html[data-theme="light"] body.focus-mode-active:has(#department_loading_errors.active-section) .report-workspace-toolbar{background:rgba(255,255,255,.96);border-color:#b9cdc2;box-shadow:0 8px 20px rgba(34,64,52,.10)}
+html[data-theme="light"] body:has(#department_storekeepers.active-section) .report-workspace-tool,
+html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .report-workspace-tool,
+html[data-theme="light"] body:has(#department_hr_reports.active-section) .report-workspace-tool,
+html[data-theme="light"] body:has(#department_evaluations.active-section) .report-workspace-tool,
+html[data-theme="light"] body:has(#department_loading_errors.active-section) .report-workspace-tool{background:#f7faf8;color:#24483a;border-color:#a9c2b5;box-shadow:none}
+html[data-theme="light"] body:has(#department_storekeepers.active-section) .report-workspace-tool:hover,
+html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .report-workspace-tool:hover,
+html[data-theme="light"] body:has(#department_hr_reports.active-section) .report-workspace-tool:hover,
+html[data-theme="light"] body:has(#department_evaluations.active-section) .report-workspace-tool:hover,
+html[data-theme="light"] body:has(#department_loading_errors.active-section) .report-workspace-tool:hover{background:#e6f2e9;color:#155f34;border-color:#6da27f}
+html[data-theme="light"] body:has(#department_storekeepers.active-section) .report-workspace-tools-status,
+html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .report-workspace-tools-status,
+html[data-theme="light"] body:has(#department_hr_reports.active-section) .report-workspace-tools-status,
+html[data-theme="light"] body:has(#department_evaluations.active-section) .report-workspace-tools-status,
+html[data-theme="light"] body:has(#department_loading_errors.active-section) .report-workspace-tools-status{color:#3f6251}
+html[data-theme="light"] body:has(#department_storekeepers.active-section) .report-workspace-tools-status[data-type="error"],
+html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .report-workspace-tools-status[data-type="error"],
+html[data-theme="light"] body:has(#department_hr_reports.active-section) .report-workspace-tools-status[data-type="error"],
+html[data-theme="light"] body:has(#department_evaluations.active-section) .report-workspace-tools-status[data-type="error"],
+html[data-theme="light"] body:has(#department_loading_errors.active-section) .report-workspace-tools-status[data-type="error"]{color:#982f29;font-weight:900}
+html[data-theme="light"] body:has(#department_storekeepers.active-section) .report-workspace-tools-status[data-type="warning"],
+html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .report-workspace-tools-status[data-type="warning"],
+html[data-theme="light"] body:has(#department_hr_reports.active-section) .report-workspace-tools-status[data-type="warning"],
+html[data-theme="light"] body:has(#department_evaluations.active-section) .report-workspace-tools-status[data-type="warning"],
+html[data-theme="light"] body:has(#department_loading_errors.active-section) .report-workspace-tools-status[data-type="warning"]{color:#785700;font-weight:900}
+html[data-theme="light"] body:has(#department_storekeepers.active-section) .report-workspace-tools-status[data-type="success"],
+html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .report-workspace-tools-status[data-type="success"],
+html[data-theme="light"] body:has(#department_hr_reports.active-section) .report-workspace-tools-status[data-type="success"],
+html[data-theme="light"] body:has(#department_evaluations.active-section) .report-workspace-tools-status[data-type="success"],
+html[data-theme="light"] body:has(#department_loading_errors.active-section) .report-workspace-tools-status[data-type="success"]{color:#176b37;font-weight:900}
+
+html[data-theme="light"] body:has(#department_storekeepers.active-section) .upload-status,
+html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .upload-status,
+html[data-theme="light"] body:has(#department_hr_reports.active-section) .upload-status,
+html[data-theme="light"] body:has(#department_evaluations.active-section) .upload-status,
+html[data-theme="light"] body:has(#department_loading_errors.active-section) .upload-status{background:#f2f7f4;border:1px solid #c2d4ca;color:#365747}
+html[data-theme="light"] body:has(#department_storekeepers.active-section) .upload-status.ok,
+html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .upload-status.ok,
+html[data-theme="light"] body:has(#department_hr_reports.active-section) .upload-status.ok,
+html[data-theme="light"] body:has(#department_evaluations.active-section) .upload-status.ok,
+html[data-theme="light"] body:has(#department_loading_errors.active-section) .upload-status.ok{background:#def0e3;border-color:#72ad82;color:#145f32;font-weight:900}
+html[data-theme="light"] body:has(#department_storekeepers.active-section) .upload-status.err,
+html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .upload-status.err,
+html[data-theme="light"] body:has(#department_hr_reports.active-section) .upload-status.err,
+html[data-theme="light"] body:has(#department_evaluations.active-section) .upload-status.err,
+html[data-theme="light"] body:has(#department_loading_errors.active-section) .upload-status.err{background:#ffe6e3;border-color:#d47770;color:#862f29;font-weight:900}
+
+html[data-theme="light"] body:has(#department_storekeepers.active-section) .dashboard-png-toast,
+html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .dashboard-png-toast,
+html[data-theme="light"] body:has(#department_hr_reports.active-section) .dashboard-png-toast,
+html[data-theme="light"] body:has(#department_evaluations.active-section) .dashboard-png-toast,
+html[data-theme="light"] body:has(#department_loading_errors.active-section) .dashboard-png-toast{background:linear-gradient(145deg,#ffffff,#f2f7f4);color:#17352a;border-color:#9fbaa9;box-shadow:0 16px 36px rgba(36,69,55,.16),inset 0 1px 0 #fff}
+html[data-theme="light"] body:has(#department_storekeepers.active-section) .dashboard-png-toast-success,
+html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .dashboard-png-toast-success,
+html[data-theme="light"] body:has(#department_hr_reports.active-section) .dashboard-png-toast-success,
+html[data-theme="light"] body:has(#department_evaluations.active-section) .dashboard-png-toast-success,
+html[data-theme="light"] body:has(#department_loading_errors.active-section) .dashboard-png-toast-success{border-color:#65a878}
+html[data-theme="light"] body:has(#department_storekeepers.active-section) .dashboard-png-toast-error,
+html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .dashboard-png-toast-error,
+html[data-theme="light"] body:has(#department_hr_reports.active-section) .dashboard-png-toast-error,
+html[data-theme="light"] body:has(#department_evaluations.active-section) .dashboard-png-toast-error,
+html[data-theme="light"] body:has(#department_loading_errors.active-section) .dashboard-png-toast-error{border-color:#d47770;color:#812b26}
+html[data-theme="light"] body:has(#department_storekeepers.active-section) .dashboard-png-toast-close,
+html[data-theme="light"] body:has(#department_weekly_leave_schedule.active-section) .dashboard-png-toast-close,
+html[data-theme="light"] body:has(#department_hr_reports.active-section) .dashboard-png-toast-close,
+html[data-theme="light"] body:has(#department_evaluations.active-section) .dashboard-png-toast-close,
+html[data-theme="light"] body:has(#department_loading_errors.active-section) .dashboard-png-toast-close{background:#eef4f1;border-color:#c8d8d0;color:inherit}
+
 /* Central report workspace toolbar and export surfaces */
 .report-workspace-toolbar{display:flex;align-items:center;justify-content:flex-end;gap:7px;min-width:0;max-width:100%;font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;direction:rtl}
 .report-workspace-tool{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;min-width:0;min-height:40px;padding:8px 11px;white-space:nowrap;touch-action:manipulation}
@@ -9945,6 +10235,65 @@ body.focus-mode-active .report-workspace-toolbar{position:sticky;top:0;z-index:3
 .report-export-document .weekend-export-table tbody tr>td.weekend-export-job.operations,.report-pdf-page .weekend-export-table tbody tr>td.weekend-export-job.operations{background:#f39a3d;color:#17110a}
 .report-export-document .weekend-export-table tbody tr>td.weekend-export-job.neutral,.report-pdf-page .weekend-export-table tbody tr>td.weekend-export-job.neutral{background:#d8dee2;color:#172026}
 .report-export-document .weekend-export-table tbody tr>td.weekend-export-empty-day,.report-pdf-page .weekend-export-table tbody tr>td.weekend-export-empty-day{height:70px;background:#fff;color:#52615a;font-weight:900}
+
+/* L10 Department Personnel export theme owner: UI theme is preserved in PNG/PDF. */
+.report-export-document:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="light"],
+.report-pdf-page:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="light"]{background:#f2f7f4;color:#17352a}
+.report-export-document:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="light"] .report-export-header,
+.report-pdf-page:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="light"] .report-export-header{background:linear-gradient(135deg,#1e6a43,#134d32);color:#fff;box-shadow:none}
+.report-export-document:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="light"] .report-export-header h2,
+.report-pdf-page:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="light"] .report-export-header h2{color:#e0f2e6}
+.report-export-document:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="light"] .report-export-meta span,
+.report-pdf-page:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="light"] .report-export-meta span{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.34);color:#fff}
+.report-export-document:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="light"] .report-export-table th,
+.report-pdf-page:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="light"] .report-export-table th{background:#236b43;color:#fff;border-color:#174f30}
+.report-export-document:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="light"] .report-export-table td,
+.report-pdf-page:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="light"] .report-export-table td{background:#fff;color:#17352a;border-color:#b7cbbf}
+.report-export-document:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="light"] .report-export-table tbody tr:nth-child(even)>td,
+.report-pdf-page:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="light"] .report-export-table tbody tr:nth-child(even)>td{background:#edf5f0}
+.report-export-document[data-report-owner="department_hr_reports"][data-report-theme="light"] :is(.department-hr-summary-card,.department-hr-person-card>div,.department-hr-status-counts article),
+.report-pdf-page[data-report-owner="department_hr_reports"][data-report-theme="light"] :is(.department-hr-summary-card,.department-hr-person-card>div,.department-hr-status-counts article){background:#fff;border-color:#abc5b6;color:#17352a}
+.report-export-document[data-report-owner="department_hr_reports"][data-report-theme="light"] :is(.department-hr-summary-card span,.department-hr-summary-card small,.department-hr-person-card span,.department-hr-status-counts small),
+.report-pdf-page[data-report-owner="department_hr_reports"][data-report-theme="light"] :is(.department-hr-summary-card span,.department-hr-summary-card small,.department-hr-person-card span,.department-hr-status-counts small){color:#466355}
+.report-export-document[data-report-owner="department_hr_reports"][data-report-theme="light"] :is(.department-hr-summary-card b,.department-hr-person-card strong,.department-hr-status-counts strong),
+.report-pdf-page[data-report-owner="department_hr_reports"][data-report-theme="light"] :is(.department-hr-summary-card b,.department-hr-person-card strong,.department-hr-status-counts strong){color:#102f23}
+.report-export-document[data-report-owner="department_hr_reports"][data-report-theme="light"] .department-hr-note,
+.report-pdf-page[data-report-owner="department_hr_reports"][data-report-theme="light"] .department-hr-note{background:#e6f1e9;color:#294d3c;border:1px solid #b9cdc2}
+
+.report-export-document:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="dark"],
+.report-pdf-page:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="dark"]{background:#001a15;color:#f4fff5}
+.report-export-document:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="dark"] .report-export-header,
+.report-pdf-page:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="dark"] .report-export-header{background:linear-gradient(135deg,#07543e,#00372b);color:#fff;box-shadow:none}
+.report-export-document:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="dark"] .report-export-header h2,
+.report-pdf-page:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="dark"] .report-export-header h2{color:#bde9c7}
+.report-export-document:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="dark"] .report-export-table,
+.report-pdf-page:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="dark"] .report-export-table{background:#00241c;color:#f4fff5}
+.report-export-document:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="dark"] .report-export-table th,
+.report-pdf-page:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="dark"] .report-export-table th{background:#07513d;color:#fff;border-color:#2b7458}
+.report-export-document:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="dark"] .report-export-table td,
+.report-pdf-page:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="dark"] .report-export-table td{background:#052d24;color:#f2fff6;border-color:#2b6752}
+.report-export-document:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="dark"] .report-export-table tbody tr:nth-child(even)>td,
+.report-pdf-page:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"])[data-report-theme="dark"] .report-export-table tbody tr:nth-child(even)>td{background:#06382c}
+.report-export-document[data-report-owner="department_hr_reports"][data-report-theme="dark"] :is(.department-hr-summary-card,.department-hr-person-card>div,.department-hr-status-counts article),
+.report-pdf-page[data-report-owner="department_hr_reports"][data-report-theme="dark"] :is(.department-hr-summary-card,.department-hr-person-card>div,.department-hr-status-counts article){background:#063328;border-color:#2b6752;color:#f4fff5}
+.report-export-document[data-report-owner="department_hr_reports"][data-report-theme="dark"] :is(.department-hr-summary-card span,.department-hr-summary-card small,.department-hr-person-card span,.department-hr-status-counts small),
+.report-pdf-page[data-report-owner="department_hr_reports"][data-report-theme="dark"] :is(.department-hr-summary-card span,.department-hr-summary-card small,.department-hr-person-card span,.department-hr-status-counts small){color:#b8d7bc}
+.report-export-document[data-report-owner="department_hr_reports"][data-report-theme="dark"] :is(.department-hr-summary-card b,.department-hr-person-card strong,.department-hr-status-counts strong),
+.report-pdf-page[data-report-owner="department_hr_reports"][data-report-theme="dark"] :is(.department-hr-summary-card b,.department-hr-person-card strong,.department-hr-status-counts strong){color:#f4fff5}
+.report-export-document[data-report-owner="department_hr_reports"][data-report-theme="dark"] .department-hr-note,
+.report-pdf-page[data-report-owner="department_hr_reports"][data-report-theme="dark"] .department-hr-note{background:#07372c;color:#c9e2d0;border:1px solid #2b6752}
+.report-export-document[data-report-owner="department_weekly_leave_schedule"][data-report-theme="dark"] .weekend-export-root,
+.report-pdf-page[data-report-owner="department_weekly_leave_schedule"][data-report-theme="dark"] .weekend-export-root{background:#001a15}
+.report-export-document[data-report-owner="department_weekly_leave_schedule"][data-report-theme="dark"] .weekend-export-table,
+.report-pdf-page[data-report-owner="department_weekly_leave_schedule"][data-report-theme="dark"] .weekend-export-table{background:#00241c;border-color:#4d806b}
+.report-export-document[data-report-owner="department_weekly_leave_schedule"][data-report-theme="dark"] .weekend-export-table th,
+.report-export-document[data-report-owner="department_weekly_leave_schedule"][data-report-theme="dark"] .weekend-export-table td,
+.report-pdf-page[data-report-owner="department_weekly_leave_schedule"][data-report-theme="dark"] .weekend-export-table th,
+.report-pdf-page[data-report-owner="department_weekly_leave_schedule"][data-report-theme="dark"] .weekend-export-table td{background:#052d24;color:#f4fff5;border-color:#4d806b}
+.report-export-document[data-report-owner="department_weekly_leave_schedule"][data-report-theme="dark"] .weekend-export-table thead th,
+.report-pdf-page[data-report-owner="department_weekly_leave_schedule"][data-report-theme="dark"] .weekend-export-table thead th{background:#07513d;color:#fff}
+.report-export-document:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"]) :is(.department-hr-column-filters,.column-filter-row,.filter-row,[data-export-filter-row]),
+.report-pdf-page:is([data-report-owner="department_storekeepers"],[data-report-owner="department_weekly_leave_schedule"],[data-report-owner="department_hr_reports"],[data-report-owner="department_evaluations"],[data-report-owner="department_loading_errors"]) :is(.department-hr-column-filters,.column-filter-row,.filter-row,[data-export-filter-row]){display:none!important}
 
 /* IC-ADJ-01 — documented physical-balance adjustments and report. */
 .inventory-physical-adjustment-btn{width:100%;min-width:88px;padding:7px 10px;border:1px solid rgba(216,166,45,.68);border-radius:9px;background:linear-gradient(135deg,rgba(216,166,45,.15),rgba(28,113,81,.12));color:inherit;font:inherit;font-weight:900;cursor:pointer;font-variant-numeric:tabular-nums}
