@@ -10361,15 +10361,17 @@ html[data-theme="light"] #inventory_closing .inventory-count-settings-box{
 }
 html[data-theme="light"] #inventory_closing .inventory-count-settings-box label{color:#29483b}
 html[data-theme="light"] #inventory_closing .inventory-count-settings-box input,
-html[data-theme="light"] #inventory_closing .inventory-count-settings-box select,
+html[data-theme="light"] #inventory_closing .inventory-count-settings-box select{
+  background:#ffffff;color:#254236;border-color:#c9d8d1;box-shadow:none;
+}
 html[data-theme="light"] #inventoryCountLinesTable input,
 html[data-theme="light"] #inventoryCountLinesTable select{
-  background:#ffffff;color:#254236;border-color:#c9d8d1;box-shadow:none;
+  background:#ffffff;color:#0a0a0a;border-color:#c9d8d1;box-shadow:none;
 }
 html[data-theme="light"] #inventory_closing select option{background:#fff;color:#213c31}
 html[data-theme="light"] #inventory_closing #inventoryCountCurrentVersionMeta{color:#647d72}
 html[data-theme="light"] #inventory_closing .table-wrap{background:#fff;border-color:#d4dfda;box-shadow:none;scrollbar-color:#aabdb4 #edf2ef}
-html[data-theme="light"] #inventoryCountLinesTable{color:#263f35;background:#fff}
+html[data-theme="light"] #inventoryCountLinesTable{color:#0a0a0a;background:#fff}
 html[data-theme="light"] #inventoryCountLinesTable thead tr:first-child th{background:#e3f0e6;color:#236b3b;border-bottom-color:#cbdcd3}
 html[data-theme="light"] #inventoryCountLinesTable .inventory-count-sort-btn{color:#236b3b}
 html[data-theme="light"] #inventoryCountLinesTable .inventory-count-filter-row th{background:#f1f6f3;border-bottom-color:#d7e3dd}
@@ -10379,19 +10381,23 @@ html[data-theme="light"] #inventoryCountLinesTable .inventory-count-column-filte
 html[data-theme="light"] #inventoryCountLinesTable tbody tr:nth-child(odd),
 html[data-theme="light"] #inventoryCountLinesTable tbody tr:nth-child(even){background:#fff}
 html[data-theme="light"] #inventoryCountLinesTable tbody tr:nth-child(even) td{background:#f8fbf9}
-html[data-theme="light"] #inventoryCountLinesTable tbody td{color:#293f36;border-bottom-color:#e1e8e4}
+html[data-theme="light"] #inventoryCountLinesTable tbody td{color:#0a0a0a;border-bottom-color:#e1e8e4}
+html[data-theme="light"] #inventoryCountLinesTable tbody td :is(span,strong,small,a,button):not(.inventory-settlement-btn){color:#0a0a0a}
+html[data-theme="light"] #inventoryCountLinesTable tbody input,
+html[data-theme="light"] #inventoryCountLinesTable tbody select,
+html[data-theme="light"] #inventoryCountLinesTable tbody textarea{color:#0a0a0a!important}
 html[data-theme="light"] #inventoryCountLinesTable tbody tr:hover td{background:#edf7f0}
 html[data-theme="light"] #inventoryCountLinesTable tfoot td{background:#dfeee3;border-top-color:#b9d3c0;color:#216b39}
 html[data-theme="light"] #inventoryCountLinesTable .inventory-count-total-row td:first-child{color:#184e2e}
 html[data-theme="light"] #inventory_closing .inventory-count-reviewer-footer{color:#315347;border-top-color:#d6e1dc}
 html[data-theme="light"] #inventoryCountLinesTable{
-  --ic-variance-shortage-color:#9a3e38;
+  --ic-variance-shortage-color:#0a0a0a;
   --ic-variance-shortage-bg:#fff1ef;
   --ic-variance-shortage-shadow:inset 0 0 0 1px #ebc1bc;
-  --ic-variance-surplus-color:#246f3d;
+  --ic-variance-surplus-color:#0a0a0a;
   --ic-variance-surplus-bg:#edf8ef;
   --ic-variance-surplus-shadow:inset 0 0 0 1px #b8d9c0;
-  --ic-variance-match-color:#385247;
+  --ic-variance-match-color:#0a0a0a;
   --ic-variance-match-bg:#f5f8f6;
 }
 html[data-theme="light"] #inventoryCountLinesTable [data-inventory-settlement-phase-locked="1"]{color:#71877c;background:#eef3f0;border-color:#d4dfda}
