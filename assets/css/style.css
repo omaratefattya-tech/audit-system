@@ -10814,3 +10814,29 @@ html[data-theme="light"] #inventoryCountLinesTable td:has(> .inventory-count-zer
   font-weight:800;
   line-height:1;
 }
+
+/* INVENTORY-COUNT-FOCUS-LIGHT-FIX-01: keep frozen columns light in Light Focus Mode */
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable tbody td:nth-child(-n+3){
+  background:#f8fbf9!important;
+  color:#080808!important;
+  font-weight:800!important;
+}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable tbody tr:nth-child(even) td:nth-child(-n+3){
+  background:#eef5f1!important;
+}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable tbody tr:hover td:nth-child(-n+3){
+  background:#e3efe8!important;
+}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable tbody td:nth-child(-n+3) :is(span,button,input,a){
+  color:#080808!important;
+  font-weight:800!important;
+}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"] #inventoryCountLinesTable tfoot td:nth-child(-n+3){
+  background:#dcece2!important;
+  color:#080808!important;
+  font-weight:800!important;
+}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_closing"] #inventory_closing .table-wrap{
+  background:#fff!important;
+  border-color:#cbdad3!important;
+}
