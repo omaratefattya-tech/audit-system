@@ -11240,6 +11240,31 @@ function formatInventoryCountThreeDecimalQuantity(value){
   const n=Number(value);
   return Number.isFinite(n) ? n.toFixed(3) : '0.000';
 }
+function inventoryCountIsVisualZero(value){
+  if(value===null || value===undefined || value==='') return false;
+  const n=Number(value);
+  return Number.isFinite(n) && Math.abs(n)<0.0005;
+}
+function formatInventoryCountTableQuantity(value){
+  return inventoryCountIsVisualZero(value) ? '-' : formatInventoryCountThreeDecimalQuantity(value);
+}
+function formatInventoryCountTableMovement(value){
+  return inventoryCountIsVisualZero(value) ? '-' : formatInventoryCountMovementQuantity(value);
+}
+function formatInventoryCountTableOpeningBalance(value){
+  return inventoryCountIsVisualZero(value) ? '-' : formatInventoryOpeningBalance(value);
+}
+function formatInventoryCountTableManual(value){
+  if(value===null || value===undefined || value==='') return '';
+  return inventoryCountIsVisualZero(value) ? '-' : formatInventoryCountManualQuantity(value);
+}
+function inventoryCountZeroVisualClass(value){
+  return inventoryCountIsVisualZero(value) ? ' inventory-count-zero-visual' : '';
+}
+function syncInventoryCountZeroVisualInput(input){
+  if(!input) return;
+  input.classList.toggle('inventory-count-zero-visual',inventoryCountIsVisualZero(input.value));
+}
 function normalizeInventoryReviewNumber(value){
   if(value===null || value===undefined || value==='') return 0;
   const number=Number(value);
@@ -11676,7 +11701,7 @@ function inventoryCountVarianceTitle(value){
 }
 function renderInventoryVarianceCell(value){
   const state=inventoryCountVarianceState(value);
-  return `<td class="inventory-variance-cell inventory-variance-${state}" title="${escapeHtml(inventoryCountVarianceTitle(value))}">${formatInventoryCountThreeDecimalQuantity(value)}</td>`;
+  return `<td class="inventory-variance-cell inventory-variance-${state}" title="${escapeHtml(inventoryCountVarianceTitle(value))}">${formatInventoryCountTableQuantity(value)}</td>`;
 }
 function inventoryCountTotalNumber(value){
   if(value===null || value===undefined || value==='') return 0;
@@ -11709,19 +11734,19 @@ function renderInventoryCountTotals(rows=[]){
     <td>الإجمالي</td>
     <td></td>
     <td></td>
-    <td>${formatInventoryOpeningBalance(total('opening_balance'))}</td>
-    <td>${formatInventoryCountMovementQuantity(total('production_quantity'))}</td>
-    <td>${formatInventoryCountThreeDecimalQuantity(total('incoming_transfers'))}</td>
-    <td>${formatInventoryCountThreeDecimalQuantity(total('actual_returns'))}</td>
-    <td>${formatInventoryCountThreeDecimalQuantity(total('adjustment_increase_z22'))}</td>
-    <td>${formatInventoryCountThreeDecimalQuantity(total('adjustment_shortage_z21'))}</td>
-    <td>${formatInventoryCountThreeDecimalQuantity(total('sales_quantity'))}</td>
-    <td>${formatInventoryCountThreeDecimalQuantity(total('outgoing_transfers'))}</td>
-    <td>${formatInventoryCountThreeDecimalQuantity(total('rework_311'))}</td>
-    <td>${formatInventoryCountThreeDecimalQuantity(total('book_balance'))}</td>
-    <td>${formatInventoryCountMovementQuantity(total('physical_balance'))}</td>
+    <td>${formatInventoryCountTableOpeningBalance(total('opening_balance'))}</td>
+    <td>${formatInventoryCountTableMovement(total('production_quantity'))}</td>
+    <td>${formatInventoryCountTableQuantity(total('incoming_transfers'))}</td>
+    <td>${formatInventoryCountTableQuantity(total('actual_returns'))}</td>
+    <td>${formatInventoryCountTableQuantity(total('adjustment_increase_z22'))}</td>
+    <td>${formatInventoryCountTableQuantity(total('adjustment_shortage_z21'))}</td>
+    <td>${formatInventoryCountTableQuantity(total('sales_quantity'))}</td>
+    <td>${formatInventoryCountTableQuantity(total('outgoing_transfers'))}</td>
+    <td>${formatInventoryCountTableQuantity(total('rework_311'))}</td>
+    <td>${formatInventoryCountTableQuantity(total('book_balance'))}</td>
+    <td>${formatInventoryCountTableMovement(total('physical_balance'))}</td>
     ${renderInventoryVarianceCell(total('inventory_variance'))}
-    <td>${formatInventoryCountMovementQuantity(total('oldest_quantity'))}</td>
+    <td>${formatInventoryCountTableMovement(total('oldest_quantity'))}</td>
     <td></td>
     <td></td>
     <td></td>
@@ -13028,16 +13053,16 @@ function updateInventoryOpeningBalanceInputsWidth(root=document){
 function renderInventoryOpeningBalanceCell(row){
   const mode=INVENTORY_COUNT_STATE.openingBalanceMode || 'manual_first_day';
   if(mode==='carried_forward'){
-    return `<td class="inventory-opening-balance-cell" title="مرحّل من اليوم السابق المعتمد">${formatInventoryCountManualQuantity(row.opening_balance)}</td>`;
+    return `<td class="inventory-opening-balance-cell" title="مرحّل من اليوم السابق المعتمد">${formatInventoryCountTableManual(row.opening_balance)}</td>`;
   }
   const value=inventoryCountOpeningBalanceInputValue(row.opening_balance);
   const lockAttrs=inventoryCountManualControlLockAttributes();
-  return `<td class="inventory-opening-balance-cell"><input class="inventory-opening-balance-input" type="number" step="0.001" inputmode="decimal" aria-label="رصيد أول" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
+  return `<td class="inventory-opening-balance-cell"><input class="inventory-opening-balance-input${inventoryCountZeroVisualClass(value)}" type="number" step="0.001" inputmode="decimal" aria-label="رصيد أول" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
 }
 function renderInventoryProductionQuantityCell(row){
   const value=inventoryCountProductionInputValue(row.production_quantity);
   const lockAttrs=inventoryCountManualControlLockAttributes();
-  return `<td class="inventory-production-quantity-cell"><input class="inventory-production-quantity-input" type="number" min="0" step="0.001" inputmode="decimal" aria-label="الإنتاج" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
+  return `<td class="inventory-production-quantity-cell"><input class="inventory-production-quantity-input${inventoryCountZeroVisualClass(value)}" type="number" min="0" step="0.001" inputmode="decimal" aria-label="الإنتاج" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
 }
 function inventoryCountLineHasActiveSettlement(rowOrLineId){
   const lineId=typeof rowOrLineId==='object' ? rowOrLineId?.id : rowOrLineId;
@@ -13049,30 +13074,31 @@ function inventoryCountActiveSettlementAdjustmentMessage(balanceLabel='الرص�
   return `لا يمكن تعديل ${balanceLabel} لهذا الصنف لأن لديه تسوية جرد فعالة. تراجع عن التسوية أولًا من زر «تراجع» في عمود «تسوية الجرد»، ثم أعد تعديل ${balanceLabel}. بعد التراجع سيظل التعديل خاضعًا لتسجيل السبب وحفظه في «ملاحظات تعديل الجرد».`;
 }
 function renderInventoryBookBalanceCell(row){
-  const value=formatInventoryCountThreeDecimalQuantity(row?.book_balance);
+  const value=formatInventoryCountTableQuantity(row?.book_balance);
   return `<td class="inventory-book-balance-cell"><span class="inventory-book-balance-readonly" title="الرصيد الدفتري حقل محسوب للقراءة فقط">${escapeHtml(value)}</span></td>`;
 }
 function renderInventoryPhysicalBalanceCell(row){
   const value=formatInventoryManualThreeDecimal(row.physical_balance);
+  const displayValue=value && inventoryCountIsVisualZero(value) ? '-' : (value || '—');
   if(inventoryCountIsFinalized()){
-    return `<td class="inventory-physical-balance-cell"><span class="inventory-physical-balance-readonly" title="${escapeHtml(inventoryCountFinalizedMessage())}">${escapeHtml(value || '—')}</span></td>`;
+    return `<td class="inventory-physical-balance-cell"><span class="inventory-physical-balance-readonly" title="${escapeHtml(inventoryCountFinalizedMessage())}">${escapeHtml(displayValue)}</span></td>`;
   }
   if(inventoryCountSettlementPhaseStarted()){
     if(hasCanonicalPermission('inventory.count.line.adjust_after_settlement')){
       const activeSettlement=inventoryCountLineHasActiveSettlement(row);
       const title=activeSettlement ? inventoryCountActiveSettlementAdjustmentMessage('الرصيد الفعلي') : 'تعديل الرصيد الفعلي مع تسجيل السبب';
       const blockedAttr=activeSettlement ? ' data-active-settlement-blocked="1"' : '';
-      return `<td class="inventory-physical-balance-cell"><button class="inventory-physical-adjustment-btn${activeSettlement?' is-settled':''}" type="button" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}"${blockedAttr} title="${escapeHtml(title)}">${escapeHtml(value || '—')}</button></td>`;
+      return `<td class="inventory-physical-balance-cell"><button class="inventory-physical-adjustment-btn${activeSettlement?' is-settled':''}" type="button" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}"${blockedAttr} title="${escapeHtml(title)}">${escapeHtml(displayValue)}</button></td>`;
     }
-    return `<td class="inventory-physical-balance-cell"><span class="inventory-physical-balance-readonly" title="بدأت مرحلة التسويات ولا تملك صلاحية التعديل الموثق">${escapeHtml(value || '—')}</span></td>`;
+    return `<td class="inventory-physical-balance-cell"><span class="inventory-physical-balance-readonly" title="بدأت مرحلة التسويات ولا تملك صلاحية التعديل الموثق">${escapeHtml(displayValue)}</span></td>`;
   }
   const lockAttrs=inventoryCountManualControlLockAttributes();
-  return `<td class="inventory-physical-balance-cell"><input class="inventory-physical-balance-input" type="number" min="0" step="0.001" inputmode="decimal" aria-label="الرصيد الفعلي" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
+  return `<td class="inventory-physical-balance-cell"><input class="inventory-physical-balance-input${inventoryCountZeroVisualClass(value)}" type="number" min="0" step="0.001" inputmode="decimal" aria-label="الرصيد الفعلي" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
 }
 function renderInventoryOldestQuantityCell(row){
   const value=formatInventoryManualThreeDecimal(row.oldest_quantity);
   const lockAttrs=inventoryCountManualControlLockAttributes();
-  return `<td class="inventory-oldest-quantity-cell"><input class="inventory-oldest-quantity-input" type="number" min="0" step="0.001" inputmode="decimal" aria-label="كمية أقدم تاريخ" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
+  return `<td class="inventory-oldest-quantity-cell"><input class="inventory-oldest-quantity-input${inventoryCountZeroVisualClass(value)}" type="number" min="0" step="0.001" inputmode="decimal" aria-label="كمية أقدم تاريخ" data-line-id="${escapeHtml(row.id||'')}" data-row-version="${escapeHtml(row.row_version ?? '')}" data-last-saved="${escapeHtml(value)}" value="${escapeHtml(value)}"${lockAttrs} /></td>`;
 }
 function renderInventoryOldestDateCell(row){
   const value=formatInventoryDateInputValue(row.oldest_date);
@@ -14441,13 +14467,13 @@ function renderInventoryCountLines(rows=[]){
     <td>${formatInventoryCountText(row.uom)}</td>
     ${renderInventoryOpeningBalanceCell(row)}
     ${renderInventoryProductionQuantityCell(row)}
-    <td>${formatInventoryCountThreeDecimalQuantity(row.incoming_transfers)}</td>
-    <td>${formatInventoryCountThreeDecimalQuantity(row.actual_returns)}</td>
-    <td>${formatInventoryCountThreeDecimalQuantity(row.adjustment_increase_z22)}</td>
-    <td>${formatInventoryCountThreeDecimalQuantity(row.adjustment_shortage_z21)}</td>
-    <td>${formatInventoryCountThreeDecimalQuantity(row.sales_quantity)}</td>
-    <td>${formatInventoryCountThreeDecimalQuantity(row.outgoing_transfers)}</td>
-    <td>${formatInventoryCountThreeDecimalQuantity(row.rework_311)}</td>
+    <td>${formatInventoryCountTableQuantity(row.incoming_transfers)}</td>
+    <td>${formatInventoryCountTableQuantity(row.actual_returns)}</td>
+    <td>${formatInventoryCountTableQuantity(row.adjustment_increase_z22)}</td>
+    <td>${formatInventoryCountTableQuantity(row.adjustment_shortage_z21)}</td>
+    <td>${formatInventoryCountTableQuantity(row.sales_quantity)}</td>
+    <td>${formatInventoryCountTableQuantity(row.outgoing_transfers)}</td>
+    <td>${formatInventoryCountTableQuantity(row.rework_311)}</td>
     ${renderInventoryBookBalanceCell(row)}
     ${renderInventoryPhysicalBalanceCell(row)}
     ${renderInventoryVarianceCell(row.inventory_variance)}
@@ -15823,13 +15849,13 @@ function bindInventoryOpeningBalanceEvents(){
   });
   table.addEventListener('input',event=>{
     const openingInput=event.target.closest('.inventory-opening-balance-input');
-    if(openingInput && table.contains(openingInput)) updateInventoryOpeningBalanceInputWidth(openingInput);
+    if(openingInput && table.contains(openingInput)){ syncInventoryCountZeroVisualInput(openingInput); updateInventoryOpeningBalanceInputWidth(openingInput); }
     const productionInput=event.target.closest('.inventory-production-quantity-input');
-    if(productionInput && table.contains(productionInput)) updateInventoryProductionQuantityInputWidth(productionInput);
+    if(productionInput && table.contains(productionInput)){ syncInventoryCountZeroVisualInput(productionInput); updateInventoryProductionQuantityInputWidth(productionInput); }
     const physicalInput=event.target.closest('.inventory-physical-balance-input');
-    if(physicalInput && table.contains(physicalInput)) updateInventoryPhysicalBalanceInputWidth(physicalInput);
+    if(physicalInput && table.contains(physicalInput)){ syncInventoryCountZeroVisualInput(physicalInput); updateInventoryPhysicalBalanceInputWidth(physicalInput); }
     const oldestQuantityInput=event.target.closest('.inventory-oldest-quantity-input');
-    if(oldestQuantityInput && table.contains(oldestQuantityInput)) updateInventoryOldestQuantityInputWidth(oldestQuantityInput);
+    if(oldestQuantityInput && table.contains(oldestQuantityInput)){ syncInventoryCountZeroVisualInput(oldestQuantityInput); updateInventoryOldestQuantityInputWidth(oldestQuantityInput); }
   });
   table.addEventListener('click',event=>{
     const physicalAdjustmentBtn=event.target.closest('.inventory-physical-adjustment-btn');

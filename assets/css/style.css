@@ -10786,3 +10786,31 @@ html[data-theme="light"] #department_hr_reports .department-hr-sort{color:#0b482
 html[data-theme="light"] #department_hr_reports .department-hr-sort-label{color:#0b482c!important;font-weight:900!important;opacity:1!important}
 .report-export-document[data-report-owner="department_evaluations"][data-report-theme="dark"] .report-export-content{direction:rtl!important;width:100%!important;max-width:none!important;overflow:visible!important}
 .report-export-document[data-report-owner="department_evaluations"][data-report-theme="dark"] table[data-weekly-export-kind="evaluations"]{direction:rtl!important;margin-right:0!important;margin-left:auto!important;float:none!important;transform:none!important}
+
+
+/* INVENTORY-COUNT-LIGHT-TEXT-02: bold dark text + visual zero dash */
+html[data-theme="light"] #inventoryCountLinesTable tbody td,
+html[data-theme="light"] #inventoryCountLinesTable tfoot td,
+html[data-theme="light"] #inventoryCountLinesTable tbody td :is(span,button,input),
+html[data-theme="light"] #inventoryCountLinesTable tfoot td :is(span,button,input){
+  color:#080808!important;
+  font-weight:800!important;
+}
+html[data-theme="light"] #inventoryCountLinesTable .inventory-count-zero-visual:not(:focus){
+  color:transparent!important;
+  caret-color:#080808!important;
+}
+html[data-theme="light"] #inventoryCountLinesTable td:has(> .inventory-count-zero-visual:not(:focus)){
+  position:relative;
+}
+html[data-theme="light"] #inventoryCountLinesTable td:has(> .inventory-count-zero-visual:not(:focus))::after{
+  content:'-';
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  pointer-events:none;
+  color:#080808;
+  font-weight:800;
+  line-height:1;
+}
