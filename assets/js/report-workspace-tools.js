@@ -716,17 +716,8 @@
     const stage=buildExportDocument(descriptor);
     try{
       await readyForCapture(stage);
-      const measurable=[stage,...Array.from(stage.querySelectorAll('.report-export-content,.report-export-weekly-dataset,.weekend-export-root,table'))];
-      const desired=Math.max(960,...measurable.map(node=>Math.ceil((node?.scrollWidth||0)+(node!==stage?48:0))));
+      const desired=Math.max(960,...Array.from(stage.querySelectorAll('table')).map(table=>table.scrollWidth+64));
       stage.style.width=desired+'px';
-      stage.style.minWidth=desired+'px';
-      const content=stage.querySelector('.report-export-content');
-      if(content){
-        content.style.width='fit-content';
-        content.style.minWidth='100%';
-        content.style.maxWidth='none';
-        content.style.margin='0';
-      }
       await new Promise(resolve=>requestAnimationFrame(resolve));
       const canvas=await captureElement(stage,2,descriptor.colorAudit);
       return canvasBlob(canvas);
@@ -743,12 +734,7 @@
     const content=document.createElement('div');content.className='report-pdf-page-content';page.appendChild(content);
     return {page,content};
   }
-  function pageOverflow(page){
-    const content=page.querySelector('.report-pdf-page-content');
-    if(!content) return page.scrollHeight>page.clientHeight-16;
-    const reserve=28;
-    return content.scrollHeight>content.clientHeight-reserve;
-  }
+  function pageOverflow(page){return page.scrollHeight>page.clientHeight+1;}
   function appendIntro(pageInfo,descriptor){
     descriptor.intro.forEach(node=>pageInfo.content.appendChild(sanitizeClone(node)));
   }
