@@ -2409,6 +2409,183 @@ html[data-theme="light"] .users-active-check span{color:#163a28;font-weight:900}
 @media(max-width:760px){.permissions-bundle-grid{grid-template-columns:1fr;max-height:none}.permissions-kpi-grid,.permissions-toolbar{grid-template-columns:1fr}.permissions-management-panel{padding:16px}.permissions-hero h2{font-size:24px}.permissions-hero-actions button{flex:1}.permissions-role-summary div{grid-template-columns:1fr}}
 
 
+/* === L12 Permissions Management — canonical Light Mode owner === */
+html[data-theme="light"] .app-shell:has(#permissions.active-section) .main{
+  background:
+    radial-gradient(circle at 18% 0,rgba(115,185,132,.10),transparent 30%),
+    linear-gradient(180deg,#f7faf8 0%,#f1f6f3 100%);
+  color:#173426;
+}
+html[data-theme="light"] .app-shell:has(#permissions.active-section) .topbar{background:transparent}
+html[data-theme="light"] #permissions .permissions-management-panel{
+  background:linear-gradient(180deg,#ffffff 0%,#f7faf8 100%);
+  border-color:#c5d8cb;
+  box-shadow:0 18px 42px rgba(34,77,51,.10);
+  color:#173426;
+}
+html[data-theme="light"] #permissions .section-badge{
+  background:#e8f5eb;
+  color:#176d37;
+  border-color:#a9cfb3;
+}
+html[data-theme="light"] #permissions .permissions-hero h2{color:#123d2a;text-shadow:none}
+html[data-theme="light"] #permissions .permissions-hero .hint{color:#536b5d;font-weight:700}
+html[data-theme="light"] #permissions .permissions-hero .hero-icon{
+  background:linear-gradient(135deg,#e5f3e8,#eef6f3);
+  border:1px solid #b9d4c1;
+  color:#1b7440;
+  box-shadow:none;
+}
+html[data-theme="light"] #permissions .permissions-kpi-card{
+  border-color:#c6d9cc;
+  background:linear-gradient(145deg,#ffffff,#f2f7f4);
+  box-shadow:0 8px 22px rgba(31,77,47,.07),inset 0 1px 0 rgba(255,255,255,.9);
+}
+html[data-theme="light"] #permissions .permissions-kpi-card span{
+  background:#e6f3e9;
+  color:#1b7440;
+  border:1px solid #c2dcc8;
+}
+html[data-theme="light"] #permissions .permissions-kpi-card b{color:#102f22}
+html[data-theme="light"] #permissions .permissions-kpi-card small{color:#496455;font-weight:900}
+html[data-theme="light"] #permissions .permissions-toolbar{
+  background:#f5f9f6;
+  border-color:#c4d8ca;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+}
+html[data-theme="light"] #permissions .permissions-toolbar label{color:#173e29}
+html[data-theme="light"] #permissions .permissions-toolbar select,
+html[data-theme="light"] #permissions .permissions-toolbar input{
+  background:#fff;
+  color:#142f22;
+  border-color:#b9d2c1;
+  box-shadow:0 1px 2px rgba(18,61,42,.03);
+  color-scheme:light;
+}
+html[data-theme="light"] #permissions .permissions-toolbar select option{background:#fff;color:#142f22}
+html[data-theme="light"] #permissions .permissions-toolbar input::placeholder{color:#788b81;opacity:1}
+html[data-theme="light"] #permissions .permissions-search-box span{color:#1d7040;opacity:1}
+html[data-theme="light"] #permissions .permissions-status-bar{color:#294c3a}
+html[data-theme="light"] #permissions .permissions-status-bar.ok{
+  background:#e9f6ec;
+  border:1px solid #b7d7bf;
+  color:#176d37;
+}
+html[data-theme="light"] #permissions .permissions-status-bar.err{
+  background:#fff0ee;
+  border:1px solid #e2aaa3;
+  color:#9d352e;
+}
+html[data-theme="light"] #permissions .permissions-status-bar.warn{
+  background:#fff7df;
+  border:1px solid #dfc46e;
+  color:#795600;
+}
+html[data-theme="light"] #permissions .permissions-bundles-card{
+  background:#ffffff;
+  border-color:#c4d8ca;
+  box-shadow:0 8px 22px rgba(31,77,47,.06);
+}
+html[data-theme="light"] #permissions .permissions-bundles-head h3{color:#153b28}
+html[data-theme="light"] #permissions .permissions-bundles-head .hint{color:#5b7064}
+html[data-theme="light"] #permissions .permissions-bundle-grid{
+  scrollbar-color:#9fb8a8 #eef4f0;
+}
+html[data-theme="light"] #permissions .permission-bundle-option{
+  border-color:#c5d8cb;
+  background:#f8fbf9;
+  box-shadow:0 4px 12px rgba(30,76,47,.04);
+}
+html[data-theme="light"] #permissions .permission-bundle-option:hover{
+  border-color:#79aa86;
+  background:#eef7f0;
+  box-shadow:0 8px 18px rgba(28,83,50,.08);
+}
+html[data-theme="light"] #permissions .permission-bundle-option.is-selected{
+  border-color:#4f9d63;
+  background:linear-gradient(145deg,#e7f5ea,#f7fbf8);
+  box-shadow:0 0 0 1px rgba(69,147,88,.08),0 9px 22px rgba(28,83,50,.10);
+}
+html[data-theme="light"] #permissions .permission-bundle-option.is-protected{
+  border-color:#d3b45c;
+  background:linear-gradient(145deg,#fff8e5,#fffdf7);
+}
+html[data-theme="light"] #permissions .permission-bundle-option.is-protected:hover{
+  border-color:#d3b45c;
+  background:linear-gradient(145deg,#fff8e5,#fffdf7);
+}
+html[data-theme="light"] #permissions .permission-bundle-option-mark{
+  border-color:#8db89a;
+  background:#fff;
+}
+html[data-theme="light"] #permissions .permission-bundle-option input:checked+.permission-bundle-option-mark{
+  border-color:#338652;
+  background:linear-gradient(135deg,#5fbc65,#8ed466);
+}
+html[data-theme="light"] #permissions .permission-bundle-option-body b{color:#132f21}
+html[data-theme="light"] #permissions .permission-bundle-option-body small{color:#5d7266;font-weight:700}
+html[data-theme="light"] #permissions .permission-bundle-option-meta em{
+  color:#1e5d37;
+  background:#e7f3ea;
+  border-color:#b9d5c0;
+}
+html[data-theme="light"] #permissions .permissions-empty-state{
+  border-color:#b8d1c0;
+  background:#f7faf8;
+  color:#52695d;
+}
+html[data-theme="light"] #permissions .permissions-side-card{
+  background:linear-gradient(180deg,#ffffff,#f4f8f5);
+  border-color:#c2d7c8;
+  box-shadow:0 8px 22px rgba(31,77,47,.07);
+}
+html[data-theme="light"] #permissions .permissions-side-card h3{color:#153b28}
+html[data-theme="light"] #permissions .permissions-role-summary div{border-bottom-color:#d8e5dc}
+html[data-theme="light"] #permissions .permissions-role-summary dt{color:#597064;font-weight:900}
+html[data-theme="light"] #permissions .permissions-role-summary dd{color:#102f22}
+html[data-theme="light"] #permissions .permissions-role-safety-note{
+  border-color:#dcc66f;
+  background:#fff8e3;
+  color:#6f5100;
+}
+html[data-theme="light"] #permissions .permissions-role-safety-note.is-dirty{
+  border-color:#d5a847;
+  background:#fff4d6;
+  color:#745000;
+}
+html[data-theme="light"] #permissions .permissions-role-safety-note.is-protected{
+  border-color:#86b9d3;
+  background:#eaf5fb;
+  color:#155c7b;
+}
+html[data-theme="light"] #permissions .permissions-role-safety-note.is-blocked{
+  border-color:#db8c84;
+  background:#fff0ee;
+  color:#97372f;
+}
+html[data-theme="light"] body:has(#permissions.active-section) .app-liquid-confirm{
+  background:rgba(29,52,41,.30);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+html[data-theme="light"] body:has(#permissions.active-section) .app-liquid-confirm__dialog.app-liquid-modal{
+  background:linear-gradient(145deg,#ffffff,#f5f9f6);
+  color:#173426;
+  border-color:#b9d2c1;
+  box-shadow:0 28px 72px rgba(28,61,43,.20),inset 0 1px 0 rgba(255,255,255,.95);
+}
+html[data-theme="light"] body:has(#permissions.active-section) .app-liquid-confirm__dialog .app-liquid-modal__header{border-bottom-color:#d9e5dd}
+html[data-theme="light"] body:has(#permissions.active-section) .app-liquid-confirm__dialog .app-liquid-modal__footer{border-top-color:#d9e5dd}
+html[data-theme="light"] body:has(#permissions.active-section) .app-liquid-confirm__dialog .app-liquid-modal__title{color:#123d2a}
+html[data-theme="light"] body:has(#permissions.active-section) .app-liquid-confirm__body p{color:#29483a;font-weight:700}
+html[data-theme="light"] body:has(#permissions.active-section) .app-liquid-confirm__dialog .app-liquid-modal__close{
+  background:#f3f7f4;color:#244638;border-color:#c7d7cd;box-shadow:0 5px 14px rgba(37,69,57,.08)
+}
+html[data-theme="light"] body:has(#permissions.active-section) .app-liquid-confirm__dialog [data-app-confirm-action="cancel"]:not(.app-liquid-modal__close){
+  background:#fff;color:#29483a;border-color:#b8cec0;box-shadow:none
+}
+
+
 /* Production Analytics Report */
 .production-analytics-content{display:flex;flex-direction:column;gap:18px}
 .production-title-card{display:flex;align-items:center;justify-content:space-between;gap:16px}
