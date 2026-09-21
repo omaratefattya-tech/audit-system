@@ -3091,18 +3091,234 @@ html[data-theme="light"] body:has(#permissions.active-section) .app-liquid-confi
 @media(max-width:1100px){.sales-totals-kpis{grid-template-columns:repeat(2,minmax(160px,1fr))}}
 @media(max-width:680px){.sales-totals-row-head{flex-direction:column;align-items:flex-start}.sales-totals-kpis{grid-template-columns:1fr}}
 
-#settings .activity-log-toolbar{border-radius:20px;padding:14px;display:grid;grid-template-columns:minmax(260px,1fr) auto auto auto;gap:10px;align-items:center;margin-bottom:12px}
-#settings .activity-log-search-box{min-height:42px}
-#settings .activity-log-table-wrap{border:1px solid rgba(141,220,89,.22);border-radius:14px;background:rgba(0,35,27,.3);max-height:590px;overflow:auto}
-#settings #activityLogTable{min-width:1120px;width:100%}
-#settings #activityLogTable th{position:sticky;top:0;z-index:3;cursor:pointer}
-#settings #activityLogTable thead tr.activity-log-filter-row th{top:39px;background:rgba(0,44,34,.94);z-index:2;padding:6px}
-#settings #activityLogTable .activity-log-col-filter{width:100%;min-width:90px;padding:7px 8px;font-size:12px;border-radius:8px}
-#settings #activityLogTable td.activity-log-details{text-align:right;white-space:normal;min-width:260px;max-width:520px;line-height:1.7}
-#settings .activity-log-pagination{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;color:#dfffd4;font-weight:800}
-#settings .activity-log-pagination button{border:1px solid rgba(141,220,89,.42);border-radius:10px;background:rgba(0,55,38,.82);color:#fff;padding:8px 14px;font-family:inherit;cursor:pointer}
-#settings .activity-log-pagination button:disabled{opacity:.45;cursor:not-allowed}
-@media(max-width:720px){#settings .activity-log-toolbar{grid-template-columns:1fr}#settings .activity-log-toolbar .secondary{width:100%}}
+/* L13-12 — Settings / Activity Log canonical visual owner */
+#settings .settings-activity-log-wrap{
+  --activity-log-border:rgba(141,220,89,.28);
+  --activity-log-toolbar-bg:linear-gradient(135deg,rgba(2,38,32,.76),rgba(0,72,52,.42));
+  --activity-log-search-bg:rgba(0,20,17,.58);
+  --activity-log-search-border:rgba(122,255,188,.22);
+  --activity-log-search-color:#fff;
+  --activity-log-placeholder:#9fc2b0;
+  --activity-log-search-icon:#83ffbe;
+  --activity-log-table-bg:rgba(0,35,27,.30);
+  --activity-log-th-bg:#07513d;
+  --activity-log-th-color:#f5fff0;
+  --activity-log-filter-bg:#043d30;
+  --activity-log-field-bg:rgba(0,31,25,.82);
+  --activity-log-field-color:#fff;
+  --activity-log-field-border:rgba(154,217,111,.32);
+  --activity-log-td-bg:rgba(0,35,27,.20);
+  --activity-log-td-alt:rgba(0,48,37,.34);
+  --activity-log-text:#e9f7eb;
+  --activity-log-muted:#a9c2b4;
+  --activity-log-sort:#f1bb30;
+  --activity-log-pager-bg:rgba(0,55,38,.82);
+  --activity-log-pager-color:#fff;
+  --activity-log-pager-border:rgba(141,220,89,.42);
+  --activity-log-ok:#9be650;
+  --activity-log-error:#ffc2c2;
+  --activity-log-warning:#ffd878;
+  display:grid;
+  gap:0;
+  min-width:0;
+  color:var(--activity-log-text)
+}
+html[data-theme="light"] #settings .settings-activity-log-wrap{
+  --activity-log-border:#b9d0c1;
+  --activity-log-toolbar-bg:linear-gradient(145deg,#ffffff,#f4f9f6);
+  --activity-log-search-bg:#ffffff;
+  --activity-log-search-border:#bdd2c5;
+  --activity-log-search-color:#17352a;
+  --activity-log-placeholder:#7d9287;
+  --activity-log-search-icon:#247447;
+  --activity-log-table-bg:#ffffff;
+  --activity-log-th-bg:#d7eadc;
+  --activity-log-th-color:#145d31;
+  --activity-log-filter-bg:#edf5f0;
+  --activity-log-field-bg:#ffffff;
+  --activity-log-field-color:#17352a;
+  --activity-log-field-border:#bdd2c5;
+  --activity-log-td-bg:#ffffff;
+  --activity-log-td-alt:#f3f8f5;
+  --activity-log-text:#17352a;
+  --activity-log-muted:#60766b;
+  --activity-log-sort:#8a6400;
+  --activity-log-pager-bg:#f8fbf9;
+  --activity-log-pager-color:#28503d;
+  --activity-log-pager-border:#b9d0c1;
+  --activity-log-ok:#176f35;
+  --activity-log-error:#982f29;
+  --activity-log-warning:#9a6b06
+}
+#settings .activity-log-toolbar{
+  border:1px solid var(--activity-log-border);
+  border-radius:16px;
+  padding:14px;
+  display:grid;
+  grid-template-columns:minmax(260px,1fr) auto auto auto;
+  gap:10px;
+  align-items:center;
+  margin-bottom:12px;
+  background:var(--activity-log-toolbar-bg);
+  box-shadow:0 8px 22px rgba(39,74,56,.05)
+}
+#settings .activity-log-search-box{
+  min-width:0;
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0 12px;
+  border:1px solid var(--activity-log-search-border);
+  border-radius:12px;
+  background:var(--activity-log-search-bg);
+  transition:border-color .16s ease,box-shadow .16s ease,background .16s ease
+}
+#settings .activity-log-search-box:focus-within{
+  border-color:#64a576;
+  box-shadow:0 0 0 3px rgba(65,154,85,.12)
+}
+#settings .activity-log-search-box .ui-svg-icon{color:var(--activity-log-search-icon);flex:0 0 auto}
+#settings .activity-log-search-box input{
+  width:100%;
+  min-width:0;
+  height:40px;
+  padding:0;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:var(--activity-log-search-color);
+  font-family:inherit;
+  font-weight:700
+}
+#settings .activity-log-search-box input::placeholder{color:var(--activity-log-placeholder);opacity:1}
+#settings .activity-log-toolbar .secondary{
+  min-height:42px;
+  white-space:nowrap
+}
+html[data-theme="light"] #settings .activity-log-toolbar .secondary{
+  background:#f7faf8;
+  color:#29513e;
+  border-color:#b9d0c1;
+  box-shadow:none
+}
+html[data-theme="light"] #settings .activity-log-toolbar .secondary:hover{background:#edf6f0;border-color:#8fb79c}
+html[data-theme="light"] #settings #activityLogExportExcelBtn{background:#eef8f1;color:#176f35;border-color:#a8cfb3}
+html[data-theme="light"] #settings #activityLogExportPdfBtn{background:#fff4f3;color:#963a33;border-color:#dfaaa5}
+#settings #activityLogStatus{
+  min-height:34px;
+  margin:0 0 12px;
+  color:var(--activity-log-muted);
+  background:transparent;
+  border-color:transparent
+}
+#settings #activityLogStatus.ok,
+#settings #activityLogStatus.success{color:var(--activity-log-ok);font-weight:900}
+#settings #activityLogStatus.err,
+#settings #activityLogStatus.error{color:var(--activity-log-error);font-weight:900}
+#settings #activityLogStatus.warning{color:var(--activity-log-warning);font-weight:900}
+#settings .activity-log-table-wrap{
+  width:100%;
+  max-width:100%;
+  max-height:590px;
+  overflow:auto;
+  border:1px solid var(--activity-log-border);
+  border-radius:14px;
+  background:var(--activity-log-table-bg);
+  box-shadow:0 8px 22px rgba(39,74,56,.035);
+  overscroll-behavior-inline:contain;
+  scrollbar-gutter:stable
+}
+#settings #activityLogTable{min-width:1120px;width:100%;color:var(--activity-log-text)}
+#settings #activityLogTable th{position:sticky;top:0;z-index:3;cursor:pointer;user-select:none}
+#settings #activityLogTable thead tr:first-child th{
+  background:var(--activity-log-th-bg);
+  color:var(--activity-log-th-color);
+  border-color:var(--activity-log-border);
+  font-weight:950
+}
+#settings #activityLogTable thead tr:first-child th:hover{filter:brightness(1.025)}
+#settings #activityLogTable thead tr:first-child th span{color:var(--activity-log-sort);font-weight:1000}
+#settings #activityLogTable thead tr.activity-log-filter-row th{
+  top:39px;
+  z-index:2;
+  padding:6px;
+  background:var(--activity-log-filter-bg);
+  border-color:var(--activity-log-border);
+  cursor:default
+}
+#settings #activityLogTable .activity-log-col-filter{
+  width:100%;
+  min-width:90px;
+  padding:7px 8px;
+  font-size:12px;
+  font-weight:700;
+  border:1px solid var(--activity-log-field-border);
+  border-radius:8px;
+  background:var(--activity-log-field-bg);
+  color:var(--activity-log-field-color);
+  outline:0
+}
+#settings #activityLogTable .activity-log-col-filter::placeholder{color:var(--activity-log-placeholder);opacity:1}
+#settings #activityLogTable .activity-log-col-filter:focus{
+  border-color:#64a576;
+  box-shadow:0 0 0 2px rgba(65,154,85,.11)
+}
+#settings #activityLogTable tbody td{
+  background:var(--activity-log-td-bg);
+  color:var(--activity-log-text);
+  border-color:var(--activity-log-border);
+  font-weight:700;
+  vertical-align:middle
+}
+#settings #activityLogTable tbody tr:nth-child(even)>td{background:var(--activity-log-td-alt)}
+#settings #activityLogTable tbody tr:hover>td{background:color-mix(in srgb,var(--activity-log-td-alt),#7fc78a 11%)}
+#settings #activityLogTable tbody td:first-child{font-weight:950;color:var(--activity-log-sort)}
+#settings #activityLogTable td.activity-log-details{
+  text-align:right;
+  white-space:normal;
+  min-width:260px;
+  max-width:520px;
+  line-height:1.75;
+  overflow-wrap:anywhere
+}
+#settings #activityLogTable .empty-row{color:var(--activity-log-muted);background:var(--activity-log-td-bg);font-weight:800}
+#settings .activity-log-pagination{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:12px;
+  color:var(--activity-log-text);
+  font-weight:900
+}
+#settings .activity-log-pagination span{padding:6px 4px;font-variant-numeric:tabular-nums}
+#settings .activity-log-pagination button{
+  min-width:84px;
+  min-height:40px;
+  padding:8px 14px;
+  border:1px solid var(--activity-log-pager-border);
+  border-radius:10px;
+  background:var(--activity-log-pager-bg);
+  color:var(--activity-log-pager-color);
+  font-family:inherit;
+  font-weight:900;
+  cursor:pointer;
+  transition:background .16s ease,border-color .16s ease,transform .16s ease
+}
+#settings .activity-log-pagination button:hover:not(:disabled){border-color:#76aa85;transform:translateY(-1px)}
+html[data-theme="light"] #settings .activity-log-pagination button:hover:not(:disabled){background:#edf6f0}
+#settings .activity-log-pagination button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+@media(max-width:720px){
+  #settings .activity-log-toolbar{grid-template-columns:1fr;padding:12px}
+  #settings .activity-log-toolbar .secondary{width:100%;min-height:46px}
+  #settings .activity-log-search-box{min-height:46px}
+  #settings .activity-log-table-wrap{border-radius:12px;max-height:65vh}
+  #settings .activity-log-pagination{gap:8px}
+  #settings .activity-log-pagination button{flex:1 1 120px;min-height:46px}
+  #settings .activity-log-pagination span{flex:1 0 100%;text-align:center;order:-1}
+}
 
 #settings .settings-table-controls{
   --settings-table-controls-bg:linear-gradient(135deg,rgba(2,38,32,.72),rgba(0,72,52,.40));
