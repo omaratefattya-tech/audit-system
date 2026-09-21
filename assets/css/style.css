@@ -131,10 +131,98 @@ html[data-theme="light"] .login-author{color:#178044}
 #settings .settings-tab-panels{min-width:0}
 #settings .settings-tab-panel{display:none}
 #settings .settings-tab-panel.active{display:block}
+/* Settings > General — canonical owner */
+#settings #settingsGeneralPanel{
+  --general-surface:rgba(0,35,27,.46);
+  --general-surface-strong:rgba(0,55,38,.72);
+  --general-border:rgba(141,220,89,.28);
+  --general-title:#f4fff5;
+  --general-text:#eaffdf;
+  --general-muted:#b8d7bc;
+  --general-field-bg:rgba(0,23,20,.94);
+  --general-field-color:#fff;
+  --general-field-border:rgba(132,207,80,.42);
+  --general-header-bg:rgba(0,70,45,.72);
+  --general-header-color:#d8ffd1;
+  --general-row-border:rgba(255,255,255,.08);
+  --general-row-hover:rgba(127,205,69,.08);
+  --general-shadow:none;
+  color:var(--general-text)
+}
+html[data-theme="light"] #settings #settingsGeneralPanel{
+  --general-surface:linear-gradient(145deg,#f8fbf9,#ffffff);
+  --general-surface-strong:#eef6f0;
+  --general-border:#bfd5c7;
+  --general-title:#143d2a;
+  --general-text:#173426;
+  --general-muted:#60766b;
+  --general-field-bg:#ffffff;
+  --general-field-color:#173426;
+  --general-field-border:#bdd2c5;
+  --general-header-bg:#d9ebdf;
+  --general-header-color:#124d2e;
+  --general-row-border:#dce7e1;
+  --general-row-hover:#eef7f1;
+  --general-shadow:0 8px 22px rgba(39,74,56,.06),inset 0 1px 0 rgba(255,255,255,.95)
+}
 #settings .settings-general-tabs{margin:0 0 18px}
+#settings .settings-general-tabs button{
+  min-width:170px;border:1px solid var(--general-border);border-radius:999px;
+  background:var(--general-surface-strong);color:var(--general-text);padding:9px 16px;
+  font-family:inherit;font-weight:900;cursor:pointer;transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,color .16s ease
+}
+#settings .settings-general-tabs button:hover{filter:brightness(1.03)}
+#settings .settings-general-tabs button.active,#settings .settings-general-tabs button[aria-selected="true"]{
+  background:linear-gradient(135deg,#68ba45,#1e7432);border-color:#8ddc59;color:#fff;
+  box-shadow:0 7px 18px rgba(53,143,68,.16),inset 0 1px 0 rgba(255,255,255,.2)
+}
 #settings .settings-general-panel{display:none;min-width:0}
 #settings .settings-general-panel.active{display:block}
-#settings .settings-general-panel>h3{margin:0 0 14px;text-align:center}
+#settings .settings-general-panel>h3{margin:0 0 14px;text-align:center;color:var(--general-title);font-weight:1000}
+#settings .settings-general-panel>.hint{color:var(--general-muted);font-weight:700}
+#settings #settingsGeneralPlantsPanel .plants-full{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+#settings #settingsGeneralPlantsPanel .plant-card{
+  border:1px solid var(--general-border);border-radius:14px;padding:16px;
+  background:var(--general-surface);box-shadow:var(--general-shadow);color:var(--general-text);min-width:0
+}
+#settings #settingsGeneralPlantsPanel .plant-card h3{color:var(--general-title);margin:8px 0 2px;font-weight:1000}
+#settings #settingsGeneralPlantsPanel .plant-icon img{
+  background:color-mix(in srgb,var(--general-surface-strong) 82%,transparent);
+  border:1px solid var(--general-border);box-shadow:0 7px 18px rgba(28,70,49,.08)
+}
+#settings #settingsGeneralPlantsPanel .plant-code{
+  background:linear-gradient(135deg,#3f9f4d,#21733a);color:#fff;border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 4px 12px rgba(38,117,56,.14)
+}
+#settings #settingsGeneralPlantsPanel .warehouse-list{gap:7px}
+#settings #settingsGeneralPlantsPanel .warehouse-list li{
+  background:var(--general-surface-strong);border:1px solid var(--general-border);
+  color:var(--general-text);font-weight:700;text-align:right
+}
+#settings #settingsGeneralPlantsPanel .warehouse-list li b{color:var(--general-title);font-weight:1000}
+#settings #settingsGeneralMovementsPanel .table-wrap{
+  border:1px solid var(--general-border);border-radius:13px;background:var(--general-surface);
+  box-shadow:var(--general-shadow);overflow:auto
+}
+#settings #movementsTable{color:var(--general-text);background:transparent}
+#settings #movementsTable thead tr:first-child th{
+  background:var(--general-header-bg);color:var(--general-header-color);border-bottom-color:var(--general-border)
+}
+#settings #movementsTable .sort-btn{color:var(--general-header-color);font-weight:1000}
+#settings #movementsTable .sort-btn:hover{background:color-mix(in srgb,var(--general-header-bg) 82%,#fff 18%)}
+#settings #movementsTable .sort-btn span{color:#99700b}
+#settings #movementsTable .column-filter-row th{background:var(--general-surface-strong);border-bottom-color:var(--general-border)}
+#settings #movementsTable .col-filter{
+  background:var(--general-field-bg);color:var(--general-field-color);border-color:var(--general-field-border);font-weight:700
+}
+#settings #movementsTable .col-filter::placeholder{color:var(--general-muted);opacity:1}
+#settings #movementsTable tbody td{color:var(--general-text);border-bottom-color:var(--general-row-border);font-weight:700}
+#settings #movementsTable tbody tr:hover td{background:var(--general-row-hover)}
+#settings #movementsTable .empty-row{color:var(--general-muted)}
+html[data-theme="light"] #settings #movementsTable tbody tr:nth-child(even) td{background:#f7faf8}
+html[data-theme="light"] #settings #movementsTable tbody tr:hover td{background:#eaf5ed}
+@media (max-width:1100px){#settings #settingsGeneralPlantsPanel .plants-full{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:720px){#settings #settingsGeneralPlantsPanel .plants-full{grid-template-columns:1fr}}
 #settings .profile-settings{margin-top:0}
 @media (max-width:650px){#settings .settings-tabs,#settings .settings-general-tabs{display:grid;grid-template-columns:1fr}#settings .settings-tab,#settings .settings-general-tabs button{width:100%}}
 #settings .settings-account-grid{display:grid;grid-template-columns:minmax(240px,.85fr) minmax(320px,1.15fr);gap:18px;align-items:start}
