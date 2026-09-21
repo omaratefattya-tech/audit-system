@@ -24,7 +24,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=l13-settings-storekeepers-light-20260921-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=l13-settings-department-personnel-light-20260921-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=l10-department-light-20260920-1" />
   <link rel="stylesheet" href="assets/css/operation-progress.css?v=global-loading-progress-20260920-1" />
 </head>
@@ -2052,8 +2052,8 @@
               </div>
             </section>
             <section class="settings-tab-panel" id="settingsDepartmentPersonnelPanel" role="tabpanel" aria-labelledby="settingsDepartmentPersonnelTab" data-settings-panel="department-personnel">
-              <div class="settings-sales-products-wrap">
-                <form id="departmentPersonnelForm" class="sales-product-settings-form">
+              <div class="settings-department-personnel-wrap">
+                <form id="departmentPersonnelForm" class="department-personnel-settings-form">
                   <input type="hidden" id="departmentPersonnelIdInput" />
                   <label>الكود الوظيفي
                     <input type="text" id="departmentPersonnelCodeInput" required autocomplete="off" />
@@ -2094,12 +2094,12 @@
                   </label>
                   <label>تاريخ التعيين
                     <input type="date" id="departmentPersonnelHireDateInput" name="hire_date" data-custom-date-picker data-custom-date-picker-label="تاريخ التعيين" data-custom-date-picker-commit-on-double-click="true" aria-label="تاريخ التعيين" />
-                  </label>                  <label class="settings-check sales-product-flag-check"><input type="checkbox" id="departmentPersonnelActiveInput" checked /> <span>نشط</span></label>
+                  </label>                  <label class="settings-check department-personnel-flag-check"><input type="checkbox" id="departmentPersonnelActiveInput" checked /> <span>نشط</span></label>
                   <button class="primary" id="saveDepartmentPersonnelBtn" type="submit">حفظ الموظف</button>
                   <button class="secondary" id="cancelDepartmentPersonnelBtn" type="button" hidden>إلغاء</button>
                 </form>
                 <div class="upload-status" id="departmentPersonnelStatus" aria-live="polite"></div>
-                <div class="table-wrap sales-products-settings-table-wrap">
+                <div class="table-wrap department-personnel-settings-table-wrap">
                   <table id="departmentPersonnelTable" data-no-universal-table="1">
                     <thead><tr><th>الكود الوظيفي</th><th>الاسم</th><th>الوظيفة</th><th>الموقع الوظيفي</th><th>القسم</th><th>رقم التليفون</th><th>تاريخ التعيين</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
                     <tbody><tr><td colspan="9" class="empty-row">يتم تحميل البيانات عند فتح التبويب.</td></tr></tbody>
