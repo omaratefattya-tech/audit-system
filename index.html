@@ -2108,8 +2108,8 @@
               </div>
             </section>
             <section class="settings-tab-panel" id="settingsDepartmentStatusCodesPanel" role="tabpanel" aria-labelledby="settingsDepartmentStatusCodesTab" data-settings-panel="department-status-codes">
-              <div class="settings-plants-wrap">
-                <form id="departmentStatusCodeForm" class="plant-settings-form">
+              <div class="settings-department-status-wrap">
+                <form id="departmentStatusCodeForm" class="department-status-settings-form">
                   <input type="hidden" id="departmentStatusCodeIdInput" />
                   <label>كود الوردية
                     <input type="text" id="departmentStatusCodeInput" required autocomplete="off" />
@@ -2153,13 +2153,13 @@
                       </div>
                     </div>
                   </div>
-                  <label class="settings-check plant-active-check"><input type="checkbox" id="departmentStatusBlocksEvaluationInput" /> <span>يمنع التقييم</span></label>
-                  <label class="settings-check plant-active-check"><input type="checkbox" id="departmentStatusActiveInput" checked /> <span>نشط</span></label>
+                  <label class="settings-check department-status-flag-check"><input type="checkbox" id="departmentStatusBlocksEvaluationInput" /> <span>يمنع التقييم</span></label>
+                  <label class="settings-check department-status-flag-check"><input type="checkbox" id="departmentStatusActiveInput" checked /> <span>نشط</span></label>
                   <button class="primary" id="saveDepartmentStatusCodeBtn" type="submit">حفظ الكود</button>
                   <button class="secondary" id="cancelDepartmentStatusCodeBtn" type="button" hidden>إلغاء</button>
                 </form>
                 <div class="upload-status" id="departmentStatusCodesStatus" aria-live="polite"></div>
-                <div class="table-wrap plants-settings-table-wrap">
+                <div class="table-wrap department-status-settings-table-wrap">
                   <table id="departmentStatusCodesTable" data-no-universal-table="1">
                     <thead><tr><th>كود الوردية</th><th>وصف الوردية</th><th>لون العرض</th><th>يمنع التقييم</th><th>الحالة</th><th>الموقف من التقييم</th><th>الإجراءات</th></tr></thead>
                     <tbody><tr><td colspan="7" class="empty-row">يتم تحميل البيانات عند فتح التبويب.</td></tr></tbody>

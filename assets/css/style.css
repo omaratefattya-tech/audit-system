@@ -10326,40 +10326,196 @@ body.focus-mode-active .inventory-count-post-close-modal{
 .login-logo-refresh .login-logo{display:block;margin:0}
 .mobile-dashboard-session-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}
 .mobile-dashboard-refresh,.mobile-dashboard-theme-toggle{display:none}
-#settings #departmentStatusCodeForm{grid-template-columns:minmax(120px,.9fr) minmax(190px,1.35fr) minmax(118px,.62fr) auto auto auto auto}
+/* L13-11 — Settings / Department shift-status codes canonical visual owner */
+#settings .settings-department-status-wrap{
+  --department-status-border:rgba(141,220,89,.28);
+  --department-status-panel-bg:rgba(0,35,27,.46);
+  --department-status-input-bg:rgba(0,31,25,.72);
+  --department-status-input-color:#fff;
+  --department-status-input-border:rgba(154,217,111,.28);
+  --department-status-placeholder:#9fb8a9;
+  --department-status-label:#f5fff1;
+  --department-status-th-bg:#07513d;
+  --department-status-th-color:#fff;
+  --department-status-td-bg:rgba(0,35,27,.20);
+  --department-status-td-alt:rgba(0,48,37,.34);
+  --department-status-text:#e9f7eb;
+  --department-status-muted:#a9c2b4;
+  --department-status-active:#9be650;
+  --department-status-inactive:#ffc2c2;
+  --department-status-warning:#f1bf35;
+  --department-status-picker-bg:linear-gradient(145deg,rgba(0,65,47,.99),rgba(0,24,20,.995));
+  --department-status-picker-card:rgba(0,28,22,.62);
+  --department-status-picker-close-bg:rgba(255,255,255,.055);
+  --department-status-picker-close-color:#fff;
+  --department-status-picker-small:#cfe7d6;
+  display:grid;
+  gap:15px;
+  min-width:0;
+  text-align:right
+}
+html[data-theme="light"] #settings .settings-department-status-wrap{
+  --department-status-border:#b9d0c1;
+  --department-status-panel-bg:linear-gradient(145deg,#ffffff,#f5faf7);
+  --department-status-input-bg:#ffffff;
+  --department-status-input-color:#102c20;
+  --department-status-input-border:#b9d0c1;
+  --department-status-placeholder:#72877c;
+  --department-status-label:#173c2a;
+  --department-status-th-bg:#d7eadc;
+  --department-status-th-color:#145d31;
+  --department-status-td-bg:#ffffff;
+  --department-status-td-alt:#f3f8f5;
+  --department-status-text:#17352a;
+  --department-status-muted:#5f766a;
+  --department-status-active:#176f35;
+  --department-status-inactive:#982f29;
+  --department-status-warning:#8a6710;
+  --department-status-picker-bg:linear-gradient(145deg,#ffffff,#f3f8f5);
+  --department-status-picker-card:#f5faf7;
+  --department-status-picker-close-bg:#f7faf8;
+  --department-status-picker-close-color:#234a38;
+  --department-status-picker-small:#5f766a
+}
+#settings .department-status-settings-form{
+  display:grid;
+  grid-template-columns:minmax(120px,.9fr) minmax(190px,1.35fr) minmax(118px,.62fr) auto auto auto auto;
+  gap:12px;
+  align-items:end;
+  border:1px solid var(--department-status-border);
+  border-radius:14px;
+  background:var(--department-status-panel-bg);
+  padding:18px;
+  box-shadow:0 8px 22px rgba(39,74,56,.04)
+}
+#settings .department-status-settings-form>label:not(.settings-check){
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  min-width:0;
+  color:var(--department-status-label);
+  font-weight:800
+}
+#settings .department-status-settings-form input:not([type="checkbox"]){
+  width:100%;
+  min-width:0;
+  min-height:43px;
+  background:var(--department-status-input-bg);
+  color:var(--department-status-input-color);
+  border:1px solid var(--department-status-input-border)
+}
+#settings .department-status-settings-form input::placeholder{color:var(--department-status-placeholder);opacity:1}
+#settings .department-status-settings-form input:focus{
+  border-color:#64a576;
+  box-shadow:0 0 0 3px rgba(65,154,85,.12);
+  outline:none
+}
+#settings .department-status-settings-form input:disabled{opacity:.72;cursor:not-allowed}
+html[data-theme="light"] #settings .department-status-settings-form input:disabled{
+  background:#eef3f0;
+  color:#61766b;
+  border-color:#c8d7ce
+}
+#settings .department-status-flag-check{
+  align-self:center;
+  margin-top:22px;
+  color:var(--department-status-label);
+  white-space:nowrap
+}
+#settings .department-status-flag-check input{accent-color:#2f9650}
+#settings #departmentStatusCodesStatus{color:var(--department-status-muted);background:transparent;border-color:transparent}
+#settings #departmentStatusCodesStatus.ok,
+#settings #departmentStatusCodesStatus.success{color:var(--department-status-active);font-weight:900}
+#settings #departmentStatusCodesStatus.err,
+#settings #departmentStatusCodesStatus.error{color:var(--department-status-inactive);font-weight:900}
+#settings #departmentStatusCodesStatus.warning{color:var(--department-status-warning);font-weight:900}
+#settings .department-status-settings-table-wrap{
+  border:1px solid var(--department-status-border);
+  border-radius:14px;
+  background:var(--department-status-panel-bg);
+  box-shadow:0 8px 22px rgba(39,74,56,.035);
+  overflow:auto
+}
+#settings #departmentStatusCodesTable{min-width:930px;color:var(--department-status-text)}
+#settings #departmentStatusCodesTable thead th{
+  background:var(--department-status-th-bg);
+  color:var(--department-status-th-color);
+  border-color:var(--department-status-border);
+  font-weight:900
+}
+#settings #departmentStatusCodesTable tbody td{
+  background:var(--department-status-td-bg);
+  color:var(--department-status-text);
+  border-color:var(--department-status-border);
+  font-weight:700
+}
+#settings #departmentStatusCodesTable tbody tr:nth-child(even)>td{background:var(--department-status-td-alt)}
+#settings #departmentStatusCodesTable tbody tr:hover>td{background:color-mix(in srgb,var(--department-status-td-alt),#7fc78a 10%)}
+#settings #departmentStatusCodesTable .empty-row{color:var(--department-status-muted);background:var(--department-status-td-bg)}
+#settings #departmentStatusCodesTable .status-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:66px;
+  padding:5px 10px;
+  border-radius:999px;
+  font-weight:900
+}
+#settings #departmentStatusCodesTable .status-active{
+  color:var(--department-status-active);
+  border:1px solid color-mix(in srgb,var(--department-status-active),transparent 55%);
+  background:color-mix(in srgb,var(--department-status-active),transparent 88%)
+}
+#settings #departmentStatusCodesTable .status-inactive{
+  color:var(--department-status-inactive);
+  border:1px solid color-mix(in srgb,var(--department-status-inactive),transparent 58%);
+  background:color-mix(in srgb,var(--department-status-inactive),transparent 90%)
+}
+#settings #departmentStatusCodesTable .actions-cell{display:flex;gap:7px;align-items:center;justify-content:center;flex-wrap:wrap}
+html[data-theme="light"] #settings #departmentStatusCodesTable .small-action{
+  background:#f8fbf9;
+  color:#315347;
+  border-color:#b8cec0;
+  box-shadow:none
+}
+html[data-theme="light"] #settings #departmentStatusCodesTable .small-action:hover{background:#eef6f1}
+html[data-theme="light"] #settings #departmentStatusCodesTable .small-action.edit{border-color:#9fc7aa;color:#22643a;background:#f2f9f4}
+html[data-theme="light"] #settings #departmentStatusCodesTable .small-action.delete{border-color:#e0a19b;color:#9c3d35;background:#fff4f3}
+html[data-theme="light"] #settings #departmentStatusCodesTable .small-action.view{border-color:#8ebee8;color:#245f91;background:#f1f7fd}
+html[data-theme="light"] #settings #departmentStatusCodesTable .small-action:disabled{background:#eef2ef;color:#83958b;border-color:#d0dbd4;opacity:.78}
 .department-status-color-field{
   position:relative;
   min-width:0;
   display:grid;
   align-self:end;
   gap:7px;
-  color:#f5fff1;
+  color:var(--department-status-label,#f5fff1);
   font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;
-  font-weight:700;
+  font-weight:700
 }
 .department-status-color-label{display:block}
 .department-status-color-trigger{
   width:100%;
   min-width:112px;
-  height:42px;
+  height:43px;
   display:flex;
   align-items:center;
   justify-content:center;
   gap:9px;
   padding:6px 10px;
-  border:1px solid rgba(141,220,89,.34);
+  border:1px solid var(--department-status-input-border,rgba(141,220,89,.34));
   border-radius:10px;
-  background:rgba(0,29,23,.86);
-  color:#f5fff1;
+  background:var(--department-status-input-bg,rgba(0,29,23,.86));
+  color:var(--department-status-input-color,#f5fff1);
   font:800 12px/1 "Cairo","Segoe UI",Tahoma,Arial,sans-serif;
   direction:ltr;
   cursor:pointer;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05)
 }
-.department-status-color-trigger:hover{border-color:rgba(155,230,80,.7);background:rgba(0,47,35,.92)}
-.department-status-color-trigger:focus-visible{outline:3px solid rgba(155,230,80,.72);outline-offset:2px}
+.department-status-color-trigger:hover{border-color:#64a576;background:color-mix(in srgb,var(--department-status-input-bg,#002f23),#64a576 7%)}
+.department-status-color-trigger:focus-visible{outline:3px solid rgba(69,151,89,.32);outline-offset:2px}
 .department-status-color-trigger:disabled{opacity:.55;cursor:not-allowed}
-.department-status-color-trigger-swatch{width:28px;height:24px;flex:0 0 auto;border:1px solid rgba(255,255,255,.42);border-radius:7px;background:var(--department-status-selected-color,#0F766E);box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
+.department-status-color-trigger-swatch{width:28px;height:24px;flex:0 0 auto;border:1px solid rgba(116,132,123,.42);border-radius:7px;background:var(--department-status-selected-color,#0F766E);box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
 .department-status-color-popover{
   position:fixed;
   box-sizing:border-box;
@@ -10371,16 +10527,16 @@ body.focus-mode-active .inventory-count-post-close-modal{
   display:grid;
   gap:12px;
   padding:15px;
-  border:1px solid rgba(155,230,80,.38);
+  border:1px solid var(--department-status-border,rgba(155,230,80,.38));
   border-radius:18px;
-  background:linear-gradient(145deg,rgba(0,65,47,.99),rgba(0,24,20,.995));
-  color:#f5fff1;
+  background:var(--department-status-picker-bg,linear-gradient(145deg,rgba(0,65,47,.99),rgba(0,24,20,.995)));
+  color:var(--department-status-input-color,#f5fff1);
   font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;
-  box-shadow:0 24px 70px rgba(0,0,0,.52);
+  box-shadow:0 24px 70px rgba(23,48,35,.24)
 }
 .department-status-color-popover[hidden]{display:none}
 .department-status-color-popover-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.department-status-color-popover-head strong{font-size:15px}
+.department-status-color-popover-head strong{font-size:15px;color:var(--department-status-label,#f5fff1)}
 .department-status-color-close{
   width:38px;
   min-width:38px;
@@ -10388,86 +10544,54 @@ body.focus-mode-active .inventory-count-post-close-modal{
   display:grid;
   place-items:center;
   padding:0;
-  border:1px solid rgba(141,220,89,.28);
+  border:1px solid var(--department-status-border,rgba(141,220,89,.28));
   border-radius:11px;
-  background:rgba(255,255,255,.055);
-  color:#fff;
+  background:var(--department-status-picker-close-bg,rgba(255,255,255,.055));
+  color:var(--department-status-picker-close-color,#fff);
   font:800 22px/1 "Cairo","Segoe UI",Tahoma,Arial,sans-serif;
-  cursor:pointer;
+  cursor:pointer
 }
-.department-status-color-close:hover,.department-status-color-close:focus-visible{border-color:#9be650;background:rgba(155,230,80,.13);outline:none}
+.department-status-color-close:hover,.department-status-color-close:focus-visible{border-color:#64a576;background:color-mix(in srgb,var(--department-status-picker-close-bg,#fff),#64a576 8%);outline:none}
 .department-status-color-previews{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
-.department-status-color-previews > span{min-width:0;display:grid;grid-template-columns:38px 1fr;grid-template-rows:auto auto;align-items:center;gap:1px 8px;padding:8px;border:1px solid rgba(141,220,89,.2);border-radius:11px;background:rgba(0,28,22,.62)}
-.department-status-color-previews i{grid-row:1/3;width:38px;height:38px;border:1px solid rgba(255,255,255,.4);border-radius:9px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
-.department-status-color-previews b{font-size:11px}
-.department-status-color-previews small{font-size:10px;color:#cfe7d6;direction:ltr;unicode-bidi:isolate}
-.department-status-color-spectrum{
-  position:relative;
-  width:100%;
-  height:170px;
-  overflow:hidden;
-  border:1px solid rgba(255,255,255,.34);
-  border-radius:13px;
-  background:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,var(--department-picker-hue,#00FFF0));
-  cursor:crosshair;
-  touch-action:none;
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.13);
-}
-.department-status-color-spectrum:focus-visible{outline:3px solid rgba(155,230,80,.72);outline-offset:2px}
+.department-status-color-previews>span{min-width:0;display:grid;grid-template-columns:38px 1fr;grid-template-rows:auto auto;align-items:center;gap:1px 8px;padding:8px;border:1px solid var(--department-status-border,rgba(141,220,89,.2));border-radius:11px;background:var(--department-status-picker-card,rgba(0,28,22,.62))}
+.department-status-color-previews i{grid-row:1/3;width:38px;height:38px;border:1px solid rgba(116,132,123,.42);border-radius:9px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+.department-status-color-previews b{font-size:11px;color:var(--department-status-label,#f5fff1)}
+.department-status-color-previews small{font-size:10px;color:var(--department-status-picker-small,#cfe7d6);direction:ltr;unicode-bidi:isolate}
+.department-status-color-spectrum{position:relative;width:100%;height:170px;overflow:hidden;border:1px solid rgba(116,132,123,.42);border-radius:13px;background:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,var(--department-picker-hue,#00FFF0));cursor:crosshair;touch-action:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.13)}
+.department-status-color-spectrum:focus-visible{outline:3px solid rgba(69,151,89,.32);outline-offset:2px}
 .department-status-color-spectrum-thumb{position:absolute;width:18px;height:18px;border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 1px rgba(0,0,0,.8),0 2px 7px rgba(0,0,0,.45);pointer-events:none}
-.department-status-color-hue-label{display:grid;gap:6px;font-size:11px}
-#settings #departmentStatusColorHueInput{
-  width:100%;
-  height:20px;
-  padding:0;
-  border:0;
-  border-radius:999px;
-  background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);
-  direction:ltr;
-  appearance:none;
-  cursor:pointer;
-}
-#departmentStatusColorHueInput::-webkit-slider-runnable-track{height:12px;border:1px solid rgba(255,255,255,.38);border-radius:999px;background:transparent}
-#departmentStatusColorHueInput::-webkit-slider-thumb{width:20px;height:20px;margin-top:-5px;border:2px solid #fff;border-radius:50%;background:#073c2e;appearance:none;box-shadow:0 1px 5px rgba(0,0,0,.55)}
-#departmentStatusColorHueInput::-moz-range-track{height:12px;border:1px solid rgba(255,255,255,.38);border-radius:999px;background:transparent}
-#departmentStatusColorHueInput::-moz-range-thumb{width:18px;height:18px;border:2px solid #fff;border-radius:50%;background:#073c2e;box-shadow:0 1px 5px rgba(0,0,0,.55)}
+.department-status-color-hue-label{display:grid;gap:6px;color:var(--department-status-label,#f5fff1);font-size:11px}
+#settings #departmentStatusColorHueInput{width:100%;height:20px;padding:0;border:0;border-radius:999px;background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);direction:ltr;appearance:none;cursor:pointer}
+#departmentStatusColorHueInput::-webkit-slider-runnable-track{height:12px;border:1px solid rgba(116,132,123,.42);border-radius:999px;background:transparent}
+#departmentStatusColorHueInput::-webkit-slider-thumb{width:20px;height:20px;margin-top:-5px;border:2px solid #fff;border-radius:50%;background:#073c2e;appearance:none;box-shadow:0 1px 5px rgba(0,0,0,.38)}
+#departmentStatusColorHueInput::-moz-range-track{height:12px;border:1px solid rgba(116,132,123,.42);border-radius:999px;background:transparent}
+#departmentStatusColorHueInput::-moz-range-thumb{width:18px;height:18px;border:2px solid #fff;border-radius:50%;background:#073c2e;box-shadow:0 1px 5px rgba(0,0,0,.38)}
 .department-status-color-values{display:grid;grid-template-columns:repeat(3,minmax(54px,.7fr)) minmax(104px,1.4fr);gap:8px;direction:ltr}
-#settings .department-status-color-values label{min-width:0;display:grid;gap:5px;color:#dfffd5;font-size:10px;text-align:left}
-#settings .department-status-color-values input{height:39px;min-width:0;padding:7px 8px;text-align:center;font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;direction:ltr}
-.department-status-color-validation{min-height:20px;color:#ffd0d0;font-size:11px;font-weight:800;line-height:1.6}
+#settings .department-status-color-values label{min-width:0;display:grid;gap:5px;color:var(--department-status-label,#dfffd5);font-size:10px;text-align:left}
+#settings .department-status-color-values input{height:39px;min-width:0;padding:7px 8px;text-align:center;font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif;direction:ltr;background:var(--department-status-input-bg,#001f19);color:var(--department-status-input-color,#fff);border-color:var(--department-status-input-border,rgba(154,217,111,.28))}
+.department-status-color-validation{min-height:20px;color:var(--department-status-inactive,#ffd0d0);font-size:11px;font-weight:800;line-height:1.6}
 .department-status-color-common{display:flex;align-items:center;gap:8px;padding:2px;overflow-x:auto;overscroll-behavior-inline:contain}
-.department-status-color-shortcut{
-  width:32px;
-  min-width:32px;
-  height:32px;
-  padding:0;
-  border:2px solid rgba(255,255,255,.42);
-  border-radius:9px;
-  background:var(--shortcut-color);
-  cursor:pointer;
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.16);
-}
-.department-status-color-shortcut:hover,.department-status-color-shortcut:focus-visible{border-color:#fff;outline:3px solid rgba(155,230,80,.62);outline-offset:1px}
+.department-status-color-shortcut{width:32px;min-width:32px;height:32px;padding:0;border:2px solid rgba(116,132,123,.42);border-radius:9px;background:var(--shortcut-color);cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.16)}
+.department-status-color-shortcut:hover,.department-status-color-shortcut:focus-visible{border-color:#fff;outline:3px solid rgba(69,151,89,.32);outline-offset:1px}
 .department-status-color-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
 .department-status-color-actions button{min-height:42px;font-family:"Cairo","Segoe UI",Tahoma,Arial,sans-serif}
+.department-status-color-badge{display:inline-flex;align-items:center;gap:7px;direction:ltr;unicode-bidi:isolate}
+.department-status-color-badge i{width:30px;height:22px;border:1px solid rgba(116,132,123,.42);border-radius:7px;background:var(--status-color);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
 @media(max-width:1050px){
-  #settings #departmentStatusCodeForm{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #settings .department-status-settings-form{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:650px){
-  #settings #departmentStatusCodeForm{grid-template-columns:1fr}
-  .department-status-color-popover{
-    inset:auto 10px calc(10px + env(safe-area-inset-bottom));
-    width:auto;
-    max-height:calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-    border-radius:20px;
-  }
+  #settings .department-status-settings-form{grid-template-columns:1fr;padding:14px}
+  #settings .department-status-flag-check{margin-top:0}
+  #settings .department-status-settings-form .primary,
+  #settings .department-status-settings-form .secondary{width:100%}
+  #settings .department-status-settings-table-wrap{border-radius:12px}
+  .department-status-color-popover{inset:auto 10px calc(10px + env(safe-area-inset-bottom));width:auto;max-height:calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom));border-radius:20px}
   .department-status-color-spectrum{height:150px}
   .department-status-color-values{grid-template-columns:repeat(3,minmax(0,1fr))}
   .department-status-color-hex-label{grid-column:1/-1}
   .department-status-color-actions button{min-height:48px}
 }
-.department-status-color-badge{display:inline-flex;align-items:center;gap:7px;direction:ltr;unicode-bidi:isolate}
-.department-status-color-badge i{width:30px;height:22px;border:1px solid rgba(255,255,255,.32);border-radius:7px;background:var(--status-color);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
 #departmentStorekeepersTable{min-width:2030px}
 #departmentStorekeepersTable .department-work-duration-heading,
 #departmentStorekeepersTable .department-work-duration-cell{min-width:170px;white-space:normal;line-height:1.65}
