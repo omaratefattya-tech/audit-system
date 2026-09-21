@@ -11385,6 +11385,90 @@ html[data-theme="light"] #settings .profile-form input[type=file]::file-selector
 html[data-theme="light"] #settings .profile-form .upload-status{color:#365949}
 html[data-theme="light"] #settings .profile-form .upload-status.error{color:#9f342f}
 html[data-theme="light"] #settings .profile-form .upload-status.success{color:#1f7a3c}
+
+/* L13-SETTINGS-ACCOUNT-LIGHT-01 — Account & password tab */
+html[data-theme="light"] #settings .settings-account-grid{
+  color:#173426;
+}
+html[data-theme="light"] #settings .settings-readonly-card,
+html[data-theme="light"] #settings .settings-password-card{
+  background:linear-gradient(145deg,#f8fbf9,#ffffff);
+  border-color:#bfd5c7;
+  box-shadow:0 8px 22px rgba(39,74,56,.065),inset 0 1px 0 rgba(255,255,255,.95);
+}
+html[data-theme="light"] #settings .settings-readonly-card h3,
+html[data-theme="light"] #settings .settings-password-card h3{
+  color:#163d2a;
+}
+html[data-theme="light"] #settings .settings-readonly-fields label,
+html[data-theme="light"] #settings .settings-password-form label{
+  color:#183c2b;
+}
+html[data-theme="light"] #settings .settings-readonly-fields input,
+html[data-theme="light"] #settings .settings-password-form input{
+  background:#ffffff;
+  color:#102c20;
+  border-color:#b9d0c1;
+  box-shadow:inset 0 1px 2px rgba(39,74,56,.035);
+}
+html[data-theme="light"] #settings .settings-readonly-fields input::placeholder,
+html[data-theme="light"] #settings .settings-password-form input::placeholder{
+  color:#7d9287;
+}
+html[data-theme="light"] #settings .settings-readonly-fields input[readonly]{
+  background:#eef3f0;
+  color:#455f53;
+  border-color:#c7d6ce;
+  box-shadow:none;
+}
+html[data-theme="light"] #settings .settings-password-form input:focus{
+  border-color:#64a576;
+  box-shadow:0 0 0 3px rgba(65,154,85,.12);
+}
+html[data-theme="light"] #settings .password-input-wrap{
+  color:#173426;
+}
+html[data-theme="light"] #settings .password-toggle-btn{
+  background:#edf6ef;
+  color:#185f34;
+  border-color:#afcdb7;
+  box-shadow:none;
+}
+html[data-theme="light"] #settings .password-toggle-btn:hover{
+  background:#dfeee3;
+  color:#104927;
+  border-color:#79aa87;
+}
+html[data-theme="light"] #settings .settings-password-form .primary{
+  background:linear-gradient(135deg,#61b747,#2d9148);
+  color:#ffffff;
+  border-color:#4e9d42;
+  box-shadow:0 7px 16px rgba(49,137,66,.16);
+}
+html[data-theme="light"] #settings .settings-password-form .primary:hover{
+  background:linear-gradient(135deg,#58aa40,#267f3e);
+  border-color:#438c39;
+}
+html[data-theme="light"] #settings #passwordChangeStatus{
+  color:#35594a;
+  background:#f2f7f3;
+  border-color:#c5d8cc;
+}
+html[data-theme="light"] #settings #passwordChangeStatus.success{
+  color:#176f35;
+  background:#eaf6ed;
+  border-color:#add0b6;
+}
+html[data-theme="light"] #settings #passwordChangeStatus.error{
+  color:#9a312d;
+  background:#fff0ee;
+  border-color:#e0aaa6;
+}
+html[data-theme="light"] #settings #passwordChangeStatus.warning{
+  color:#805f0c;
+  background:#fff8df;
+  border-color:#dfc96d;
+}
 @media(max-width:650px){
   html[data-theme="light"] #settings .settings-mobile-tab-select label{color:#244a38}
   html[data-theme="light"] #settings #settingsMobileTabSelect{
