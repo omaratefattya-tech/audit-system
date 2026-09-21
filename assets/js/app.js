@@ -7376,15 +7376,103 @@ async function deleteManagedUserForever(userId){
     setUsersStatus('تعذر الحذف النهائي: '+(err.message||err),'err');
   }
 }
-async function exportUsersPanelPng(){
+function usersExportTheme(){
+  return document.documentElement.dataset.theme==='light'?'light':'dark';
+}
+function buildUsersExportStage(){
   const source=$('#usersManagementCapture');
+  if(!source) return null;
+  const theme=usersExportTheme();
+  const stage=document.createElement('div');
+  stage.className='users-export-stage';
+  stage.dataset.exportTheme=theme;
+  const clone=source.cloneNode(true);
+  clone.id='usersManagementExportClone';
+  clone.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
+  clone.querySelectorAll('.users-hero-actions,.users-toolbar,.users-status-bar').forEach(el=>el.remove());
+  clone.querySelectorAll('table tr').forEach(row=>{ if(row.cells?.length>=10) row.cells[row.cells.length-1]?.remove(); });
+  clone.querySelectorAll('.users-row-actions').forEach(el=>el.remove());
+  const wrap=clone.querySelector('.enterprise-users-table .table-wrap');
+  if(wrap){ wrap.style.height='auto'; wrap.style.maxHeight='none'; wrap.style.overflow='visible'; }
+  const table=clone.querySelector('.enterprise-users-table-el');
+  if(table){ table.style.minWidth='0'; table.style.width='100%'; }
+  stage.appendChild(clone);
+  document.body.appendChild(stage);
+  const tableWidth=Math.ceil(table?.scrollWidth||0);
+  const panelWidth=Math.ceil(clone.scrollWidth||0);
+  stage.style.width=Math.max(1180,tableWidth+72,panelWidth+20)+'px';
+  return {stage,theme};
+}
+async function captureUsersExport(){
   const Html2Canvas=window.html2canvas;
-  if(!source || !Html2Canvas){ alert('مكتبة تصدير الصور غير محملة.'); return; }
+  if(!Html2Canvas) throw new Error('مكتبة تصدير الصور غير محملة.');
+  const built=buildUsersExportStage();
+  if(!built) throw new Error('تعذر تجهيز شاشة إدارة المستخدمين للتصدير.');
+  const {stage,theme}=built;
   try{
     if(document.fonts?.ready) await document.fonts.ready;
-    const canvas=await Html2Canvas(source,{scale:2,useCORS:true,allowTaint:true,backgroundColor:'#001f18',logging:false});
-    canvas.toBlob(async blob=>{ if(blob) await saveBlobWithPicker(blob,`${safeFileName('إدارة المستخدمين')}.png`,'image/png'); },'image/png',1);
-  }catch(err){ alert('تعذر تصدير صورة إدارة المستخدمين.'); }
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    const stageRect=stage.getBoundingClientRect();
+    const rowBottoms=Array.from(stage.querySelectorAll('.enterprise-users-table-el tbody tr')).map(row=>row.getBoundingClientRect().bottom-stageRect.top).filter(v=>Number.isFinite(v)&&v>0);
+    const canvas=await Html2Canvas(stage,{scale:1.8,useCORS:true,allowTaint:true,backgroundColor:theme==='light'?'#f4f8f5':'#001f18',logging:false,windowWidth:stage.scrollWidth,scrollX:0,scrollY:0});
+    const ratio=canvas.height/Math.max(1,stage.scrollHeight);
+    return {canvas,theme,stageWidth:stage.scrollWidth,stageHeight:stage.scrollHeight,rowBreaks:rowBottoms.map(v=>Math.round(v*ratio))};
+  }finally{ stage.remove(); }
+}
+async function exportUsersPanelPng(){
+  try{
+    setUsersStatus('جاري إعداد PNG...');
+    const {canvas}=await captureUsersExport();
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png',1));
+    if(!blob) throw new Error('تعذر إنشاء ملف PNG.');
+    await saveBlobWithPicker(blob,`${safeFileName('إدارة المستخدمين')}.png`,'image/png');
+    setUsersStatus('تم تصدير إدارة المستخدمين PNG.','ok');
+    try{ await logSystemActivity('المستخدمين','تصدير PNG','تصدير إدارة المستخدمين PNG'); }catch(_){ }
+  }catch(err){ setUsersStatus('تعذر تصدير PNG: '+(err.message||err),'err'); }
+}
+async function exportUsersPanelPdf(){
+  const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+  if(!JsPDF){ setUsersStatus('مكتبة PDF غير محملة.','err'); return; }
+  try{
+    setUsersStatus('جاري إعداد PDF...');
+    const {canvas,theme,rowBreaks=[]}=await captureUsersExport();
+    const pdf=new JsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
+    const pageWidth=pdf.internal.pageSize.getWidth();
+    const pageHeight=pdf.internal.pageSize.getHeight();
+    const margin=5;
+    const drawWidth=pageWidth-margin*2;
+    const pxPerMm=canvas.width/drawWidth;
+    const maxSlicePx=Math.max(400,Math.floor((pageHeight-margin*2)*pxPerMm));
+    let offset=0,pageIndex=0;
+    while(offset<canvas.height){
+      let sliceHeight=Math.min(maxSlicePx,canvas.height-offset);
+      const proposedEnd=offset+sliceHeight;
+      if(proposedEnd<canvas.height){
+        const safeBreak=rowBreaks.filter(point=>point>offset+240 && point<=proposedEnd-18).pop();
+        if(safeBreak) sliceHeight=safeBreak-offset;
+      }
+      const slice=document.createElement('canvas');
+      slice.width=canvas.width; slice.height=sliceHeight;
+      const ctx=slice.getContext('2d');
+      ctx.fillStyle=theme==='light'?'#f4f8f5':'#001f18'; ctx.fillRect(0,0,slice.width,slice.height);
+      ctx.drawImage(canvas,0,offset,canvas.width,sliceHeight,0,0,canvas.width,sliceHeight);
+      if(pageIndex>0) pdf.addPage('a4','landscape');
+      const drawHeight=sliceHeight/pxPerMm;
+      pdf.addImage(slice.toDataURL('image/jpeg',0.94),'JPEG',margin,margin,drawWidth,drawHeight,undefined,'FAST');
+      offset+=sliceHeight; pageIndex++;
+    }
+    const blob=pdf.output('blob');
+    await saveBlobWithPicker(blob,`${safeFileName('إدارة المستخدمين')}.pdf`,'application/pdf');
+    setUsersStatus('تم تصدير إدارة المستخدمين PDF.','ok');
+    try{ await logSystemActivity('المستخدمين','تصدير PDF','تصدير إدارة المستخدمين PDF'); }catch(_){ }
+  }catch(err){ setUsersStatus('تعذر تصدير PDF: '+(err.message||err),'err'); }
+}
+async function exportUsersPanelExcel(){
+  try{
+    setUsersStatus('جاري إعداد Excel...');
+    await exportTableToExcel('usersManagementTable','إدارة المستخدمين');
+    setUsersStatus('تم تصدير إدارة المستخدمين Excel.','ok');
+  }catch(err){ setUsersStatus('تعذر تصدير Excel: '+(err.message||err),'err'); }
 }
 function initUsersManagement(){
   $('#managedUserPermissionRole')?.addEventListener('change',handleManagedRoleChange);
@@ -7406,8 +7494,8 @@ function initUsersManagement(){
   $('#usersQuickSearch')?.addEventListener('input',applyUsersFilters);
   $('#usersRoleFilter')?.addEventListener('change',applyUsersFilters);
   $('#usersStatusFilter')?.addEventListener('change',applyUsersFilters);
-  $('#usersExportExcelBtn')?.addEventListener('click',()=>exportTableToExcel('usersManagementTable','إدارة المستخدمين'));
-  $('#usersExportPdfBtn')?.addEventListener('click',()=>exportTableToPdf('usersManagementTable','إدارة المستخدمين'));
+  $('#usersExportExcelBtn')?.addEventListener('click',exportUsersPanelExcel);
+  $('#usersExportPdfBtn')?.addEventListener('click',exportUsersPanelPdf);
   $('#usersExportPngBtn')?.addEventListener('click',exportUsersPanelPng);
   $('#usersManagementTable')?.addEventListener('click',e=>{
     const view=e.target.closest('.view-user-btn');
