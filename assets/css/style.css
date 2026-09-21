@@ -432,18 +432,69 @@ html[data-theme="dark"] #settings #systemSettingsStatus.warning{background:rgba(
   .permission-settings-tree-children{padding-right:12px}
 }
 
-#settings .settings-plants-wrap{display:grid;gap:16px;text-align:right}
-#settings .plant-settings-form{display:grid;grid-template-columns:1fr 1.4fr .75fr auto auto;gap:12px;align-items:end;border:1px solid rgba(141,220,89,.28);border-radius:14px;background:rgba(0,35,27,.46);padding:18px}
-#settings .plant-settings-form label{display:flex;flex-direction:column;gap:7px;color:#f5fff1;font-weight:700}
-#settings .plant-settings-form input{width:100%}
-#settings .plant-active-check{align-self:center;margin-top:22px}
-#settings .plants-settings-table-wrap{border:1px solid rgba(141,220,89,.22);border-radius:14px;background:rgba(0,35,27,.3)}
-#settings #plantsSettingsTable input,#settings #plantsSettingsTable select{min-width:120px;width:100%;padding:8px 10px}
-#settings #plantsSettingsTable .plant-code-readonly{font-weight:900;color:#d8ffd1;direction:ltr}
+#settings .settings-plants-wrap{
+  --settings-plants-border:rgba(141,220,89,.28);
+  --settings-plants-form-bg:rgba(0,35,27,.46);
+  --settings-plants-table-bg:rgba(0,35,27,.3);
+  --settings-plants-label:#f5fff1;
+  --settings-plants-input-bg:rgba(0,31,25,.72);
+  --settings-plants-input-color:#fff;
+  --settings-plants-input-border:rgba(154,217,111,.28);
+  --settings-plants-input-placeholder:#9fb8a9;
+  --settings-plants-th-bg:#07513d;
+  --settings-plants-th-color:#fff;
+  --settings-plants-td-bg:rgba(0,35,27,.2);
+  --settings-plants-td-alt:rgba(0,48,37,.34);
+  --settings-plants-text:#e9f7eb;
+  --settings-plants-code:#d8ffd1;
+  --settings-plants-active:#9be650;
+  --settings-plants-inactive:#ffc2c2;
+  --settings-plants-muted:#a9c2b4;
+  display:grid;gap:16px;text-align:right
+}
+html[data-theme="light"] #settings .settings-plants-wrap{
+  --settings-plants-border:#b9d0c1;
+  --settings-plants-form-bg:linear-gradient(145deg,#ffffff,#f5faf7);
+  --settings-plants-table-bg:#ffffff;
+  --settings-plants-label:#173c2a;
+  --settings-plants-input-bg:#ffffff;
+  --settings-plants-input-color:#102c20;
+  --settings-plants-input-border:#b9d0c1;
+  --settings-plants-input-placeholder:#7d9287;
+  --settings-plants-th-bg:#d7eadc;
+  --settings-plants-th-color:#145d31;
+  --settings-plants-td-bg:#ffffff;
+  --settings-plants-td-alt:#f3f8f5;
+  --settings-plants-text:#17352a;
+  --settings-plants-code:#123d2a;
+  --settings-plants-active:#176f35;
+  --settings-plants-inactive:#982f29;
+  --settings-plants-muted:#5f766a
+}
+#settings .plant-settings-form{display:grid;grid-template-columns:1fr 1.4fr .75fr auto auto;gap:12px;align-items:end;border:1px solid var(--settings-plants-border);border-radius:14px;background:var(--settings-plants-form-bg);padding:18px;box-shadow:0 8px 22px rgba(39,74,56,.04)}
+#settings .plant-settings-form label{display:flex;flex-direction:column;gap:7px;color:var(--settings-plants-label);font-weight:800}
+#settings .plant-settings-form input{width:100%;background:var(--settings-plants-input-bg);color:var(--settings-plants-input-color);border-color:var(--settings-plants-input-border)}
+#settings .plant-settings-form input::placeholder{color:var(--settings-plants-input-placeholder);opacity:1}
+#settings .plant-settings-form input:focus{border-color:#64a576;box-shadow:0 0 0 3px rgba(65,154,85,.12);outline:none}
+#settings .plant-active-check{align-self:center;margin-top:22px;color:var(--settings-plants-label)}
+#settings .plant-active-check input{accent-color:#2f9650}
+#settings .plants-settings-table-wrap{border:1px solid var(--settings-plants-border);border-radius:14px;background:var(--settings-plants-table-bg);box-shadow:0 8px 22px rgba(39,74,56,.035);overflow:auto}
+#settings #plantsSettingsTable{color:var(--settings-plants-text)}
+#settings #plantsSettingsTable thead th{background:var(--settings-plants-th-bg);color:var(--settings-plants-th-color);border-color:var(--settings-plants-border);font-weight:900}
+#settings #plantsSettingsTable tbody td{background:var(--settings-plants-td-bg);color:var(--settings-plants-text);border-color:var(--settings-plants-border)}
+#settings #plantsSettingsTable tbody tr:nth-child(even)>td{background:var(--settings-plants-td-alt)}
+#settings #plantsSettingsTable tbody tr:hover>td{background:color-mix(in srgb,var(--settings-plants-td-alt),#7fc78a 10%)}
+#settings #plantsSettingsTable input,#settings #plantsSettingsTable select{min-width:120px;width:100%;padding:8px 10px;background:var(--settings-plants-input-bg);color:var(--settings-plants-input-color);border-color:var(--settings-plants-input-border)}
+#settings #plantsSettingsTable input::placeholder{color:var(--settings-plants-input-placeholder);opacity:1}
+#settings #plantsSettingsTable .plant-code-readonly{font-weight:900;color:var(--settings-plants-code);direction:ltr}
 #settings #plantsSettingsTable .plant-row-actions{display:flex;gap:8px;justify-content:center;align-items:center}
 #settings #plantsSettingsTable .plant-row-actions button{padding:8px 14px;white-space:nowrap}
-#settings .plant-status-active{color:#9be650;font-weight:900}
-#settings .plant-status-inactive{color:#ffc2c2;font-weight:900}
+#settings #plantsSettingsTable .empty-row{color:var(--settings-plants-muted);background:var(--settings-plants-td-bg)}
+#settings .plant-status-active{color:var(--settings-plants-active);font-weight:900}
+#settings .plant-status-inactive{color:var(--settings-plants-inactive);font-weight:900}
+#settings #plantsSettingsStatus{color:var(--settings-plants-muted);background:transparent;border-color:transparent}
+#settings #plantsSettingsStatus.ok,#settings #plantsSettingsStatus.success{color:var(--settings-plants-active);font-weight:900}
+#settings #plantsSettingsStatus.err,#settings #plantsSettingsStatus.error{color:var(--settings-plants-inactive);font-weight:900}
 @media (max-width:1050px){#settings .plant-settings-form{grid-template-columns:1fr 1fr}#settings .plant-settings-form .primary{grid-column:1/-1}}
 @media (max-width:650px){#settings .plant-settings-form{grid-template-columns:1fr}#settings .plant-active-check{margin-top:0}}
 #settings .settings-warehouses-wrap{display:grid;gap:16px;text-align:right}
