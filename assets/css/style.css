@@ -131,6 +131,7 @@ html[data-theme="light"] .login-author{color:#178044}
 #settings .settings-tab-panels{min-width:0}
 #settings .settings-tab-panel{display:none}
 #settings .settings-tab-panel.active{display:block}
+html[data-theme="light"] #settings select option{background:#ffffff;color:#17352a}
 /* Settings > General — canonical owner */
 #settings #settingsGeneralPanel{
   --general-surface:rgba(0,35,27,.46);
@@ -497,18 +498,69 @@ html[data-theme="light"] #settings .settings-plants-wrap{
 #settings #plantsSettingsStatus.err,#settings #plantsSettingsStatus.error{color:var(--settings-plants-inactive);font-weight:900}
 @media (max-width:1050px){#settings .plant-settings-form{grid-template-columns:1fr 1fr}#settings .plant-settings-form .primary{grid-column:1/-1}}
 @media (max-width:650px){#settings .plant-settings-form{grid-template-columns:1fr}#settings .plant-active-check{margin-top:0}}
-#settings .settings-warehouses-wrap{display:grid;gap:16px;text-align:right}
-#settings .warehouse-settings-form{display:grid;grid-template-columns:.85fr 1.3fr .95fr .95fr .7fr auto auto auto auto;gap:12px;align-items:end;border:1px solid rgba(141,220,89,.28);border-radius:14px;background:rgba(0,35,27,.46);padding:18px}
-#settings .warehouse-settings-form label{display:flex;flex-direction:column;gap:7px;color:#f5fff1;font-weight:700}
-#settings .warehouse-settings-form input,#settings .warehouse-settings-form select{width:100%}
-#settings .warehouse-flag-check{align-self:center;margin-top:22px}
-#settings .warehouses-settings-table-wrap{border:1px solid rgba(141,220,89,.22);border-radius:14px;background:rgba(0,35,27,.3)}
-#settings #warehousesSettingsTable input,#settings #warehousesSettingsTable select{min-width:110px;width:100%;padding:8px 10px}
-#settings #warehousesSettingsTable .warehouse-code-readonly{font-weight:900;color:#d8ffd1;direction:ltr}
+#settings .settings-warehouses-wrap{
+  --settings-warehouses-border:rgba(141,220,89,.28);
+  --settings-warehouses-form-bg:rgba(0,35,27,.46);
+  --settings-warehouses-table-bg:rgba(0,35,27,.3);
+  --settings-warehouses-label:#f5fff1;
+  --settings-warehouses-input-bg:rgba(0,31,25,.72);
+  --settings-warehouses-input-color:#fff;
+  --settings-warehouses-input-border:rgba(154,217,111,.28);
+  --settings-warehouses-input-placeholder:#9fb8a9;
+  --settings-warehouses-th-bg:#07513d;
+  --settings-warehouses-th-color:#fff;
+  --settings-warehouses-td-bg:rgba(0,35,27,.2);
+  --settings-warehouses-td-alt:rgba(0,48,37,.34);
+  --settings-warehouses-text:#e9f7eb;
+  --settings-warehouses-code:#d8ffd1;
+  --settings-warehouses-active:#9be650;
+  --settings-warehouses-inactive:#ffc2c2;
+  --settings-warehouses-muted:#a9c2b4;
+  display:grid;gap:16px;text-align:right
+}
+html[data-theme="light"] #settings .settings-warehouses-wrap{
+  --settings-warehouses-border:#b9d0c1;
+  --settings-warehouses-form-bg:linear-gradient(145deg,#ffffff,#f5faf7);
+  --settings-warehouses-table-bg:#ffffff;
+  --settings-warehouses-label:#173c2a;
+  --settings-warehouses-input-bg:#ffffff;
+  --settings-warehouses-input-color:#102c20;
+  --settings-warehouses-input-border:#b9d0c1;
+  --settings-warehouses-input-placeholder:#7d9287;
+  --settings-warehouses-th-bg:#d7eadc;
+  --settings-warehouses-th-color:#145d31;
+  --settings-warehouses-td-bg:#ffffff;
+  --settings-warehouses-td-alt:#f3f8f5;
+  --settings-warehouses-text:#17352a;
+  --settings-warehouses-code:#123d2a;
+  --settings-warehouses-active:#176f35;
+  --settings-warehouses-inactive:#982f29;
+  --settings-warehouses-muted:#5f766a
+}
+#settings .warehouse-settings-form{display:grid;grid-template-columns:.85fr 1.3fr .95fr .95fr .7fr auto auto auto auto;gap:12px;align-items:end;border:1px solid var(--settings-warehouses-border);border-radius:14px;background:var(--settings-warehouses-form-bg);padding:18px;box-shadow:0 8px 22px rgba(39,74,56,.04)}
+#settings .warehouse-settings-form label{display:flex;flex-direction:column;gap:7px;color:var(--settings-warehouses-label);font-weight:800}
+#settings .warehouse-settings-form input,#settings .warehouse-settings-form select{width:100%;background:var(--settings-warehouses-input-bg);color:var(--settings-warehouses-input-color);border-color:var(--settings-warehouses-input-border)}
+#settings .warehouse-settings-form input::placeholder{color:var(--settings-warehouses-input-placeholder);opacity:1}
+#settings .warehouse-settings-form input:focus,#settings .warehouse-settings-form select:focus{border-color:#64a576;box-shadow:0 0 0 3px rgba(65,154,85,.12);outline:none}
+#settings .warehouse-flag-check{align-self:center;margin-top:22px;color:var(--settings-warehouses-label)}
+#settings .warehouse-flag-check input{accent-color:#2f9650}
+#settings .warehouses-settings-table-wrap{border:1px solid var(--settings-warehouses-border);border-radius:14px;background:var(--settings-warehouses-table-bg);box-shadow:0 8px 22px rgba(39,74,56,.035);overflow:auto}
+#settings #warehousesSettingsTable{min-width:1380px;color:var(--settings-warehouses-text)}
+#settings #warehousesSettingsTable thead th{background:var(--settings-warehouses-th-bg);color:var(--settings-warehouses-th-color);border-color:var(--settings-warehouses-border);font-weight:900}
+#settings #warehousesSettingsTable tbody td{background:var(--settings-warehouses-td-bg);color:var(--settings-warehouses-text);border-color:var(--settings-warehouses-border)}
+#settings #warehousesSettingsTable tbody tr:nth-child(even)>td{background:var(--settings-warehouses-td-alt)}
+#settings #warehousesSettingsTable tbody tr:hover>td{background:color-mix(in srgb,var(--settings-warehouses-td-alt),#7fc78a 10%)}
+#settings #warehousesSettingsTable input,#settings #warehousesSettingsTable select{min-width:110px;width:100%;padding:8px 10px;background:var(--settings-warehouses-input-bg);color:var(--settings-warehouses-input-color);border-color:var(--settings-warehouses-input-border)}
+#settings #warehousesSettingsTable input::placeholder{color:var(--settings-warehouses-input-placeholder);opacity:1}
+#settings #warehousesSettingsTable .warehouse-code-readonly{font-weight:900;color:var(--settings-warehouses-code);direction:ltr}
 #settings #warehousesSettingsTable .warehouse-row-actions{display:flex;gap:8px;justify-content:center;align-items:center}
 #settings #warehousesSettingsTable .warehouse-row-actions button{padding:8px 14px;white-space:nowrap}
-#settings .warehouse-status-active{color:#9be650;font-weight:900}
-#settings .warehouse-status-inactive{color:#ffc2c2;font-weight:900}
+#settings #warehousesSettingsTable .empty-row{color:var(--settings-warehouses-muted);background:var(--settings-warehouses-td-bg)}
+#settings .warehouse-status-active{color:var(--settings-warehouses-active);font-weight:900}
+#settings .warehouse-status-inactive{color:var(--settings-warehouses-inactive);font-weight:900}
+#settings #warehousesSettingsStatus{color:var(--settings-warehouses-muted);background:transparent;border-color:transparent}
+#settings #warehousesSettingsStatus.ok,#settings #warehousesSettingsStatus.success{color:var(--settings-warehouses-active);font-weight:900}
+#settings #warehousesSettingsStatus.err,#settings #warehousesSettingsStatus.error{color:var(--settings-warehouses-inactive);font-weight:900}
 @media (max-width:1250px){#settings .warehouse-settings-form{grid-template-columns:1fr 1fr 1fr}#settings .warehouse-settings-form .primary{grid-column:1/-1}}
 @media (max-width:700px){#settings .warehouse-settings-form{grid-template-columns:1fr}#settings .warehouse-flag-check{margin-top:0}}
 
@@ -2886,11 +2938,43 @@ html[data-theme="light"] body:has(#permissions.active-section) .app-liquid-confi
 #settings .activity-log-pagination button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:720px){#settings .activity-log-toolbar{grid-template-columns:1fr}#settings .activity-log-toolbar .secondary{width:100%}}
 
-#settings .settings-table-controls{border-radius:16px;padding:10px 12px;margin:10px 0;display:flex;align-items:center;gap:10px;justify-content:flex-start}
-#settings .settings-table-search-box{min-height:40px;min-width:min(100%,320px);max-width:520px;width:100%}
-#settings .settings-table-search-box input{border:0;background:transparent;outline:none;width:100%;min-width:0}
-#settings .settings-table-filter-row th{top:39px;background:rgba(0,44,34,.94);z-index:2;padding:6px}
-#settings .settings-table-col-filter{width:100%;min-width:88px;padding:7px 8px;font-size:12px;border-radius:8px}
+#settings .settings-table-controls{
+  --settings-table-controls-bg:linear-gradient(135deg,rgba(2,38,32,.72),rgba(0,72,52,.40));
+  --settings-table-controls-border:rgba(131,255,190,.14);
+  --settings-table-search-bg:rgba(0,20,17,.54);
+  --settings-table-search-border:rgba(122,255,188,.22);
+  --settings-table-search-color:#fff;
+  --settings-table-search-placeholder:#9fc2b0;
+  --settings-table-search-icon:#83ffbe;
+  --settings-table-filter-bg:rgba(0,44,34,.94);
+  --settings-table-filter-field-bg:rgba(0,31,25,.72);
+  --settings-table-filter-field-color:#fff;
+  --settings-table-filter-field-border:rgba(154,217,111,.28);
+  border:1px solid var(--settings-table-controls-border);border-radius:16px;padding:10px 12px;margin:10px 0;
+  display:flex;align-items:center;gap:10px;justify-content:flex-start;background:var(--settings-table-controls-bg);
+  box-shadow:0 6px 18px rgba(0,0,0,.08)
+}
+html[data-theme="light"] #settings .settings-table-controls{
+  --settings-table-controls-bg:linear-gradient(135deg,#f8fbf9,#edf5f0);
+  --settings-table-controls-border:#bdd2c5;
+  --settings-table-search-bg:#ffffff;
+  --settings-table-search-border:#b9d0c1;
+  --settings-table-search-color:#17352a;
+  --settings-table-search-placeholder:#72877c;
+  --settings-table-search-icon:#1c7040;
+  --settings-table-filter-bg:#eef5f1;
+  --settings-table-filter-field-bg:#ffffff;
+  --settings-table-filter-field-color:#17352a;
+  --settings-table-filter-field-border:#bfd3c6;
+  box-shadow:0 8px 22px rgba(39,74,56,.05),inset 0 1px 0 rgba(255,255,255,.9)
+}
+#settings .settings-table-search-box{min-height:40px;min-width:min(100%,320px);max-width:520px;width:100%;background:var(--settings-table-search-bg);border-color:var(--settings-table-search-border)}
+#settings .settings-table-search-box .settings-search-icon{color:var(--settings-table-search-icon)}
+#settings .settings-table-search-box input{border:0;background:transparent;color:var(--settings-table-search-color);outline:none;width:100%;min-width:0}
+#settings .settings-table-search-box input::placeholder{color:var(--settings-table-search-placeholder);opacity:1}
+#settings .settings-table-filter-row th{top:39px;background:var(--settings-table-filter-bg);z-index:2;padding:6px}
+#settings .settings-table-col-filter{width:100%;min-width:88px;padding:7px 8px;font-size:12px;border-radius:8px;background:var(--settings-table-filter-field-bg);color:var(--settings-table-filter-field-color);border-color:var(--settings-table-filter-field-border)}
+#settings .settings-table-col-filter::placeholder{color:var(--settings-table-search-placeholder);opacity:1}
 #settings table[data-no-universal-table="1"] thead tr:first-child th{cursor:pointer;user-select:none}
 #settings table[data-no-universal-table="1"] thead tr:first-child th.settings-sort-active{color:#fff;background:linear-gradient(135deg,rgba(104,186,69,.92),rgba(30,116,50,.92))}
 #settings table[data-no-universal-table="1"] thead tr:first-child th.settings-sort-active::after{content:attr(data-sort-dir);display:inline-block;margin-inline-start:6px;color:#f1bb30;font-size:11px;text-transform:uppercase}
