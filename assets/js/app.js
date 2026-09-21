@@ -3389,7 +3389,7 @@ function initAuthPanel(){
     updateAuthStatus();
     if(!error) await logSystemActivity('المستخدمين','تسجيل دخول',`تسجيل دخول: ${email}`);
   };
-  logoutBtn.onclick=async()=>{ await logSystemActivity('المستخدمين','تسجيل خروج',`تسجيل خروج: ${CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'المستخدم الحالي'}`); await WarehouseDB.signOut(); updateAuthStatus(); };
+  logoutBtn.onclick=async()=>{ await logSystemActivity('المستخدمين','تسجيل خروج',`تسجيل خروج: ${CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'المستخدم الحالي'}`); await window.AppSessionControl?.endCurrent?.('manual_logout').catch(()=>{}); await WarehouseDB.signOut('local'); updateAuthStatus(); };
   updateAuthStatus();
 }
 const EXCEL_UPLOAD_WORKER_URL='assets/js/excel-parser-worker.js?v=p10-f05-20260916-1';
@@ -6386,6 +6386,7 @@ function showLoginScreen(){
   resetAppModalScrollLocks();
   window.PermissionSettings?.resetSession?.();
   window.PermissionRuntime?.reset();
+  window.AppSessionControl?.resetLocalState?.();
   $('#loginScreen')?.classList.remove('login-hidden');
   $('#appShell')?.classList.add('app-hidden');
   document.body.classList.remove('mobile-app-shell-active','mobile-dashboard-active','mobile-inbound-active','mobile-upload-reports-active','mobile-reports-active','mobile-dashboard-filter-open','mobile-dashboard-drawer-open','mobile-inbound-filter-open','mobile-reports-filter-open');
@@ -6398,6 +6399,11 @@ async function showApplication(user,options={}){
   if(CURRENT_AUTH_USER?.id && CURRENT_AUTH_USER.id!==user.id){APPLICATION_RELOAD_REQUIRED=true;window.PermissionRuntime?.reset('account-changed');$('#appShell')?.classList.add('app-hidden');window.location.reload();return false;}
   if(APPLICATION_AUTH_PENDING?.userId===user.id) return APPLICATION_AUTH_PENDING.promise;
   if(APPLICATION_READY_USER_ID===user.id && window.PermissionRuntime?.isReady()) return true;
+  const sessionGate=await window.AppSessionControl?.ensureAccess?.(user);
+  if(sessionGate && sessionGate.allowed===false){
+    setMainAuthMessage(sessionGate.message || 'تم إلغاء تسجيل الدخول الحالي.','');
+    return false;
+  }
   const generation=++APPLICATION_AUTH_GENERATION;
   const controller=new AbortController();
   const current=()=>generation===APPLICATION_AUTH_GENERATION;
@@ -6449,6 +6455,7 @@ async function showApplication(user,options={}){
       if(current()){
         APPLICATION_READY_USER_ID='';
         APPLICATION_AUTH_FAILED_USER_ID=user.id;
+        window.AppSessionControl?.endCurrent?.('login_gate_failed').catch(()=>{});
         window.PermissionRuntime?.reset('login-failed');
         console.warn('[login-gate]',{code:error.code || '',message:error.message || 'LOGIN_FAILED'});
         $('#appShell')?.classList.add('app-hidden');
@@ -7522,7 +7529,8 @@ function initMainLoginGate(){
       try{
         // The JWT and captured actor must still exist when the audit insert starts.
         await logSystemActivity('المستخدمين','تسجيل خروج',`تسجيل خروج: ${actor.user_name}`,{user:actor,signal:controller.signal,skipRefresh:true});
-        const {error}=await WarehouseDB.signOut();
+        await window.AppSessionControl?.endCurrent?.('manual_logout').catch(()=>{});
+        const {error}=await WarehouseDB.signOut('local');
         if(error) throw error;
         showLoginScreen();
         setMainAuthMessage('تم تسجيل الخروج.','ok');

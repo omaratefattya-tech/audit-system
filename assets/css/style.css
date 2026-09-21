@@ -10840,3 +10840,82 @@ html[data-theme="light"] body.focus-mode-active[data-focus-section="inventory_cl
   background:#fff!important;
   border-color:#cbdad3!important;
 }
+
+/* AUTH-SESSION-CONTROL-01 — canonical session conflict / forced logout UI */
+:root{
+  --session-overlay:rgba(0,22,16,.72);
+  --session-card-bg:#003b2f;
+  --session-card-border:#2c8b59;
+  --session-text:#f7fff9;
+  --session-muted:#c9e4d5;
+  --session-choice-bg:#003127;
+  --session-choice-border:#286f4c;
+  --session-choice-active:#0f5f3f;
+  --session-danger:#c63b35;
+  --session-danger-hover:#a92e2a;
+  --session-success:#2e9f49;
+  --session-success-hover:#24853d;
+  --session-device-bg:#00271f;
+}
+html[data-theme="light"]{
+  --session-overlay:rgba(20,45,34,.32);
+  --session-card-bg:#ffffff;
+  --session-card-border:#a9cdb8;
+  --session-text:#10241b;
+  --session-muted:#52675d;
+  --session-choice-bg:#f5faf7;
+  --session-choice-border:#c5dbcd;
+  --session-choice-active:#e0f2e6;
+  --session-danger:#c7352f;
+  --session-danger-hover:#a92824;
+  --session-success:#248d42;
+  --session-success-hover:#1d7136;
+  --session-device-bg:#edf7f1;
+}
+.session-conflict-overlay,.session-forced-logout-overlay{
+  position:fixed;inset:0;z-index:200000;display:flex;align-items:center;justify-content:center;
+  padding:24px;background:var(--session-overlay);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  direction:rtl;
+}
+.session-conflict-modal,.session-forced-logout-card{
+  width:min(720px,calc(100vw - 32px));max-height:calc(100vh - 40px);overflow:auto;
+  border:1px solid var(--session-card-border);border-radius:18px;background:var(--session-card-bg);
+  color:var(--session-text);box-shadow:0 24px 70px rgba(0,0,0,.28);padding:22px;
+}
+.session-conflict-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:14px}
+.session-conflict-head h2,.session-forced-logout-card h2{margin:0 0 6px;font-size:22px;font-weight:900;color:var(--session-text)}
+.session-conflict-head p,.session-forced-logout-card p{margin:0;color:var(--session-muted);font-weight:700;line-height:1.7}
+.session-conflict-icon,.session-forced-logout-mark{
+  flex:0 0 42px;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;
+  background:#fff1c7;color:#9a6800;border:1px solid #e0b54a;font-size:24px;font-weight:900;
+}
+.session-device-list{display:grid;gap:7px;margin:14px 0;padding:12px;border-radius:12px;background:var(--session-device-bg);border:1px solid var(--session-choice-border)}
+.session-device-list>div{font-weight:800;color:var(--session-text);line-height:1.55}
+.session-choice-list{display:grid;gap:10px;margin:16px 0}
+.session-choice-list label{
+  display:flex;align-items:flex-start;gap:12px;padding:13px 14px;border:1px solid var(--session-choice-border);
+  border-radius:12px;background:var(--session-choice-bg);cursor:pointer;transition:border-color .15s ease,background .15s ease,transform .15s ease;
+}
+.session-choice-list label:hover{transform:translateY(-1px);border-color:var(--session-success)}
+.session-choice-list label:has(input:checked){background:var(--session-choice-active);border-color:var(--session-success);box-shadow:0 0 0 2px color-mix(in srgb,var(--session-success) 18%,transparent)}
+.session-choice-list input{margin-top:4px;accent-color:var(--session-success);width:18px;height:18px;flex:0 0 auto}
+.session-choice-list span{display:grid;gap:3px}
+.session-choice-list b{color:var(--session-text);font-size:14px;line-height:1.55}
+.session-choice-list small{color:var(--session-muted);font-size:12px;line-height:1.55}
+.session-conflict-actions{display:flex;gap:10px;justify-content:flex-start;margin-top:18px}
+.session-conflict-actions button{min-width:130px;border:0;border-radius:10px;padding:11px 18px;font:inherit;font-weight:900;cursor:pointer;color:#fff}
+.session-continue-btn{background:var(--session-success)}
+.session-continue-btn:hover:not(:disabled){background:var(--session-success-hover)}
+.session-continue-btn:disabled{opacity:.46;cursor:not-allowed}
+.session-end-btn{background:var(--session-danger)}
+.session-end-btn:hover{background:var(--session-danger-hover)}
+.session-forced-logout-card{text-align:center;width:min(520px,calc(100vw - 32px));padding:28px}
+.session-forced-logout-mark{margin:0 auto 12px}
+.session-forced-logout-card small{display:block;margin-top:10px;color:var(--session-muted);font-weight:700}
+@media(max-width:640px){
+  .session-conflict-overlay,.session-forced-logout-overlay{padding:12px;align-items:flex-end}
+  .session-conflict-modal,.session-forced-logout-card{width:100%;max-height:88vh;border-radius:18px 18px 8px 8px;padding:17px}
+  .session-conflict-head h2,.session-forced-logout-card h2{font-size:19px}
+  .session-conflict-actions{display:grid;grid-template-columns:1fr 1fr}
+  .session-conflict-actions button{min-width:0;width:100%}
+}
