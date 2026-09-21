@@ -11630,3 +11630,305 @@ html[data-theme="light"] #settings #passwordChangeStatus.warning{
   html[data-theme="light"] #settings #settingsMobileTabSelect option{background:#ffffff;color:#173426}
   html[data-theme="light"] #settings .settings-mobile-select-arrow{color:#2d8c49;filter:none}
 }
+
+
+/* L13-SETTINGS-PERMISSIONS-LIGHT-01 — Permission settings tab + internal modals */
+html[data-theme="light"] #settings #settingsPermissionsPanel{
+  color:#173426;
+}
+html[data-theme="light"] #settings .permission-settings-intro{
+  background:linear-gradient(145deg,#f7fbf8,#edf6f0);
+  border-color:#bfd5c7;
+  box-shadow:0 8px 22px rgba(39,74,56,.06),inset 0 1px 0 rgba(255,255,255,.96);
+}
+html[data-theme="light"] #settings .permission-settings-intro h3{color:#143d2a}
+html[data-theme="light"] #settings .permission-settings-intro p{color:#5d7468}
+html[data-theme="light"] #settings .permission-settings-shadow-note{
+  background:#fff7df;
+  color:#6f530b;
+  border-color:#d9bc55;
+}
+html[data-theme="light"] #settings .permission-settings-shadow-note>[data-modern-icon]{color:#9b7312}
+html[data-theme="light"] #settings .permission-settings-tabs button{
+  background:#fff;
+  color:#244a38;
+  border-color:#bfd5c7;
+  box-shadow:0 2px 7px rgba(35,69,53,.04);
+}
+html[data-theme="light"] #settings .permission-settings-tabs button:hover{
+  background:#edf7ef;
+  color:#174d30;
+  border-color:#8fbc9b;
+}
+html[data-theme="light"] #settings .permission-settings-tabs button.active,
+html[data-theme="light"] #settings .permission-settings-tabs button[aria-selected="true"]{
+  background:linear-gradient(135deg,#67bd48,#2d9448);
+  color:#fff;
+  border-color:#56a43d;
+  box-shadow:0 7px 18px rgba(53,143,68,.16);
+}
+html[data-theme="light"] #settings .permission-settings-form,
+html[data-theme="light"] #settings .permission-settings-list-card{
+  background:linear-gradient(145deg,#ffffff,#f7faf8);
+  border-color:#bfd5c7;
+  box-shadow:0 8px 22px rgba(39,74,56,.06),inset 0 1px 0 rgba(255,255,255,.96);
+}
+html[data-theme="light"] #settings .permission-settings-card-head h4,
+html[data-theme="light"] #settings .permission-settings-list-head h4{color:#163d2a}
+html[data-theme="light"] #settings .permission-settings-card-head p,
+html[data-theme="light"] #settings .permission-settings-list-head p{color:#5d7468}
+html[data-theme="light"] #settings .permission-settings-card-icon{
+  background:#e8f5eb;
+  color:#1f7b3d;
+  border-color:#a9cdb2;
+}
+html[data-theme="light"] #settings .permission-settings-fields>label{color:#173c2a}
+html[data-theme="light"] #settings .permission-settings-fields input,
+html[data-theme="light"] #settings .permission-settings-fields textarea{
+  background:#fff;
+  background-color:#fff;
+  color:#102c20;
+  caret-color:#102c20;
+  border-color:#b9d0c1;
+  box-shadow:inset 0 1px 2px rgba(39,74,56,.035);
+  color-scheme:light;
+}
+html[data-theme="light"] #settings .permission-settings-fields input::placeholder,
+html[data-theme="light"] #settings .permission-settings-fields textarea::placeholder{color:#7d9287;opacity:1}
+html[data-theme="light"] #settings .permission-settings-fields input:focus,
+html[data-theme="light"] #settings .permission-settings-fields textarea:focus{
+  border-color:#64a576;
+  box-shadow:0 0 0 3px rgba(65,154,85,.12);
+  outline:none;
+}
+html[data-theme="light"] #settings .permission-settings-fields small{color:#62786c}
+html[data-theme="light"] #settings .permission-settings-fieldset{
+  background:#fbfdfb;
+  border-color:#bfd5c7;
+}
+html[data-theme="light"] #settings .permission-settings-fieldset legend{color:#174d30}
+html[data-theme="light"] #settings .permission-settings-all-plants,
+html[data-theme="light"] #settings .permission-settings-plant-option{color:#173426}
+html[data-theme="light"] #settings .permission-settings-all-plants small,
+html[data-theme="light"] #settings .permission-settings-plant-option small{color:#62786c}
+html[data-theme="light"] #settings .permission-settings-plant-option{
+  background:#f7faf8;
+  border-color:#c5d8cc;
+}
+html[data-theme="light"] #settings .permission-settings-plant-option:hover{
+  background:#edf7ef;
+  border-color:#91b99c;
+}
+html[data-theme="light"] #settings .permission-settings-plant-option.is-disabled{
+  background:#f0f3f1;
+  color:#77877f;
+  opacity:.78;
+}
+html[data-theme="light"] #settings .permission-settings-all-plants input,
+html[data-theme="light"] #settings .permission-settings-plant-option input{accent-color:#2f9650}
+html[data-theme="light"] #settings .permission-settings-builder-row{
+  background:#eef8f6;
+  border-color:#98c7bd;
+  color:#173426;
+}
+html[data-theme="light"] #settings .permission-settings-builder-row span{color:#5d7468}
+html[data-theme="light"] #settings .permission-settings-status{
+  background:#f2f7f3;
+  color:#365949;
+  border:1px solid #c5d8cc;
+}
+html[data-theme="light"] #settings .permission-settings-status.ok,
+html[data-theme="light"] #settings .permission-settings-status.success{
+  color:#176f35;
+  background:#eaf6ed;
+  border-color:#add0b6;
+}
+html[data-theme="light"] #settings .permission-settings-status.err,
+html[data-theme="light"] #settings .permission-settings-status.error{
+  color:#9a312d;
+  background:#fff0ee;
+  border-color:#e0aaa6;
+}
+html[data-theme="light"] #settings .permission-settings-status.warning{
+  color:#805f0c;
+  background:#fff8df;
+  border-color:#dfc96d;
+}
+html[data-theme="light"] #settings .permission-settings-table-wrap{
+  background:#fff;
+  border-color:#bfd5c7;
+  box-shadow:none;
+}
+html[data-theme="light"] #settings .permission-settings-table-wrap table{background:#fff;color:#173426}
+html[data-theme="light"] #settings .permission-settings-table-wrap thead th{
+  background:#d8eadc;
+  color:#0f5e31;
+  border-color:#b2cdb9;
+  font-weight:900;
+}
+html[data-theme="light"] #settings .permission-settings-table-wrap tbody td{
+  background:#fff;
+  color:#213f31;
+  border-color:#d3e0d7;
+}
+html[data-theme="light"] #settings .permission-settings-table-wrap tbody tr:nth-child(even) td{background:#f3f7f4}
+html[data-theme="light"] #settings .permission-settings-table-wrap tbody tr:hover td{background:#eaf4ed}
+html[data-theme="light"] #settings .permission-settings-table-wrap .empty-row{color:#687c71;background:#f7faf8}
+html[data-theme="light"] #settings .permission-settings-row-note{color:#61776b}
+html[data-theme="light"] #settings .permission-settings-kind-badge,
+html[data-theme="light"] #settings .permission-settings-scope-badge,
+html[data-theme="light"] #settings .permission-settings-count-badge{
+  background:#e5f3e8;
+  color:#155f31;
+  border-color:#9dc5a8;
+}
+html[data-theme="light"] #settings .permission-settings-kind-badge.is-super{
+  background:#fff3cf;
+  color:#78570a;
+  border-color:#d4b34a;
+}
+html[data-theme="light"] #settings .permission-settings-kind-badge.is-custom{
+  background:#e2f4f3;
+  color:#176365;
+  border-color:#8bbdbf;
+}
+html[data-theme="light"] #settings .permission-settings-count-badge.has-links{
+  background:#fff3cf;
+  color:#74540b;
+  border-color:#d3b24d;
+}
+html[data-theme="light"] #settings .permission-settings-protected{color:#5e7469}
+html[data-theme="light"] #settings .permission-settings-empty-inline{color:#687c71}
+html[data-theme="light"] #settings .permission-settings-form-actions .primary,
+html[data-theme="light"] #settings .permission-settings-builder-row .primary{
+  background:linear-gradient(135deg,#61b747,#2d9148);
+  color:#fff;
+  border-color:#4e9d42;
+}
+html[data-theme="light"] #settings .permission-settings-form-actions .secondary,
+html[data-theme="light"] #settings .permission-settings-builder-row .secondary,
+html[data-theme="light"] #settings .permission-settings-list-head .secondary{
+  background:#fff;
+  color:#244a38;
+  border-color:#b8cec0;
+}
+html[data-theme="light"] #settings .permission-settings-form-actions .secondary:hover,
+html[data-theme="light"] #settings .permission-settings-builder-row .secondary:hover,
+html[data-theme="light"] #settings .permission-settings-list-head .secondary:hover{
+  background:#eef6f0;
+  color:#174d30;
+  border-color:#86aa91;
+}
+
+html[data-theme="light"] .permission-settings-modal-backdrop{
+  background:rgba(34,57,46,.30);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+html[data-theme="light"] .permission-settings-modal.app-liquid-modal{
+  background:linear-gradient(145deg,#ffffff,#f6faf7);
+  color:#173426;
+  border-color:#b8d1c0;
+  box-shadow:0 28px 72px rgba(28,61,43,.20),inset 0 1px 0 rgba(255,255,255,.95);
+}
+html[data-theme="light"] .permission-settings-modal-head,
+html[data-theme="light"] .permission-settings-modal-footer{border-color:#d7e5dc}
+html[data-theme="light"] .permission-settings-modal-head p{color:#61776b}
+html[data-theme="light"] .permission-settings-modal-head .section-badge{
+  background:#e7f4ea;
+  color:#176235;
+  border-color:#a9cbb2;
+}
+html[data-theme="light"] .permission-settings-modal-head .app-liquid-modal__title{color:#143d2a}
+html[data-theme="light"] .permission-settings-modal-head .app-liquid-modal__close{
+  background:#f3f7f4;
+  color:#244638;
+  border-color:#c7d7cd;
+  box-shadow:0 5px 14px rgba(37,69,57,.08);
+}
+html[data-theme="light"] .permission-settings-modal-head .app-liquid-modal__close:hover{
+  background:#e7f1ea;
+  color:#174d30;
+  border-color:#8fb39a;
+}
+html[data-theme="light"] .permission-settings-modal-search{color:#173426}
+html[data-theme="light"] .permission-settings-modal-search>[data-modern-icon]{color:#237c43}
+html[data-theme="light"] .permission-settings-modal-search input{
+  background:#fff;
+  color:#102c20;
+  border-color:#b9d0c1;
+}
+html[data-theme="light"] .permission-settings-modal-search input::placeholder{color:#7d9287}
+html[data-theme="light"] .permission-settings-picker-summary{color:#405f50}
+html[data-theme="light"] .permission-settings-screen-card{
+  background:#fff;
+  color:#173426;
+  border-color:#bfd5c7;
+  box-shadow:0 3px 10px rgba(35,69,53,.04);
+}
+html[data-theme="light"] .permission-settings-screen-card:hover,
+html[data-theme="light"] .permission-settings-screen-card:focus-visible{
+  background:#edf7ef;
+  border-color:#79ad88;
+  outline-color:rgba(47,150,80,.20);
+}
+html[data-theme="light"] .permission-settings-screen-card.has-selection{
+  background:#eef8f6;
+  border-color:#6faea8;
+  box-shadow:inset 3px 0 0 #2d8d85;
+}
+html[data-theme="light"] .permission-settings-screen-icon{
+  background:#e7f4ea;
+  color:#1f7b3d;
+}
+html[data-theme="light"] .permission-settings-screen-copy small{color:#61776b}
+html[data-theme="light"] .permission-settings-screen-count{
+  background:#e4f2e7;
+  color:#176d37;
+  border:1px solid #b2d0bb;
+}
+html[data-theme="light"] .permission-settings-editor-toolbar{
+  background:#eef5f0;
+  border-bottom-color:#d6e3da;
+}
+html[data-theme="light"] .permission-settings-editor-toolbar span{color:#405f50}
+html[data-theme="light"] .permission-settings-tree-item>label{
+  background:#fff;
+  color:#173426;
+  border-color:#c2d6c8;
+}
+html[data-theme="light"] .permission-settings-tree-item>label:hover{
+  background:#edf7ef;
+  border-color:#8bb79a;
+}
+html[data-theme="light"] .permission-settings-tree-check{
+  background:#fff;
+  border-color:#6da77c;
+}
+html[data-theme="light"] .permission-settings-tree-item input:checked+.permission-settings-tree-check{
+  background:linear-gradient(135deg,#68ba45,#1e7432);
+  box-shadow:inset 0 0 0 4px rgba(255,255,255,.78);
+}
+html[data-theme="light"] .permission-settings-tree-copy small{color:#61776b}
+html[data-theme="light"] .permission-settings-tree-copy em{
+  background:#e1f2f1;
+  color:#176164;
+}
+html[data-theme="light"] .permission-settings-tree-copy code{color:#466557}
+html[data-theme="light"] .permission-settings-tree-children{border-right-color:#b7cfbf}
+html[data-theme="light"] .permission-settings-modal-footer .secondary{
+  background:#fff;
+  color:#244a38;
+  border-color:#b8cec0;
+}
+html[data-theme="light"] .permission-settings-modal-footer .primary{
+  background:linear-gradient(135deg,#61b747,#2d9148);
+  color:#fff;
+  border-color:#4e9d42;
+}
+@media(max-width:650px){
+  html[data-theme="light"] #settings .permission-settings-intro,
+  html[data-theme="light"] #settings .permission-settings-form,
+  html[data-theme="light"] #settings .permission-settings-list-card{box-shadow:none}
+  html[data-theme="light"] #settings .permission-settings-table-wrap{background:#fff}
+}
