@@ -11046,3 +11046,94 @@ html[data-theme="light"]{
   .session-conflict-actions{display:grid;grid-template-columns:1fr 1fr}
   .session-conflict-actions button{min-width:0;width:100%}
 }
+
+/* L11-FIX-01 — Users light shell, multiselect menus and confirmation modal */
+html[data-theme="light"] .app-shell:has(#users.active-section) .main{
+  background:
+    radial-gradient(circle at 18% 0,rgba(115,185,132,.10),transparent 30%),
+    linear-gradient(180deg,#f6faf7 0%,#f1f6f3 100%);
+  color:#173426;
+}
+html[data-theme="light"] .app-shell:has(#users.active-section) .topbar{background:transparent}
+
+html[data-theme="light"] #users .enterprise-ms-trigger{
+  background:#fff;
+  color:#173426;
+  border-color:#bfd5c6;
+  box-shadow:0 1px 2px rgba(18,61,42,.03);
+}
+html[data-theme="light"] #users .enterprise-ms-label{color:#173426}
+html[data-theme="light"] #users .enterprise-ms-count{
+  background:#e4f2e7;
+  color:#176d37;
+}
+html[data-theme="light"] #users .enterprise-ms-menu{
+  background:#fff;
+  border-color:#bfd5c6;
+  box-shadow:0 16px 34px rgba(30,70,49,.16);
+  scrollbar-color:#9fb9a9 #eef4f0;
+}
+html[data-theme="light"] #users .enterprise-ms-actions button{
+  background:#eef7f0;
+  color:#174d30;
+  border-color:#b9d4c1;
+}
+html[data-theme="light"] #users .enterprise-ms-actions button:hover{
+  background:#dff1e4;
+  border-color:#82b48f;
+}
+html[data-theme="light"] #users .enterprise-ms-option{
+  color:#173426;
+  background:#fff;
+}
+html[data-theme="light"] #users .enterprise-ms-option:hover{background:#edf7ef}
+html[data-theme="light"] #users .enterprise-ms-option input{accent-color:#2f9650}
+html[data-theme="light"] #users .enterprise-ms-empty{color:#6d8076}
+
+html[data-theme="light"] body:has(#users.active-section) .app-liquid-confirm{
+  background:rgba(29,52,41,.30);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+html[data-theme="light"] body:has(#users.active-section) .app-liquid-confirm__dialog.app-liquid-modal{
+  background:linear-gradient(145deg,#ffffff,#f5f9f6);
+  color:#173426;
+  border-color:#b9d2c1;
+  box-shadow:0 28px 72px rgba(28,61,43,.20),inset 0 1px 0 rgba(255,255,255,.95);
+}
+html[data-theme="light"] body:has(#users.active-section) .app-liquid-confirm__dialog .app-liquid-modal__header{
+  border-bottom-color:#d9e5dd;
+}
+html[data-theme="light"] body:has(#users.active-section) .app-liquid-confirm__dialog .app-liquid-modal__footer{
+  border-top-color:#d9e5dd;
+}
+html[data-theme="light"] body:has(#users.active-section) .app-liquid-confirm__dialog .app-liquid-modal__title{
+  color:#123d2a;
+}
+html[data-theme="light"] body:has(#users.active-section) .app-liquid-confirm__body p{
+  color:#29483a;
+  font-weight:700;
+}
+html[data-theme="light"] body:has(#users.active-section) .app-liquid-confirm__dialog .app-liquid-modal__close{
+  background:#f3f7f4;
+  color:#244638;
+  border-color:#c7d7cd;
+  box-shadow:0 5px 14px rgba(37,69,57,.08);
+}
+html[data-theme="light"] body:has(#users.active-section) .app-liquid-confirm__dialog .app-liquid-modal__close:hover{
+  background:#e7f1ea;
+  color:#174d30;
+  border-color:#8fb39a;
+  box-shadow:0 7px 18px rgba(37,69,57,.10);
+}
+html[data-theme="light"] body:has(#users.active-section) .app-liquid-confirm__dialog [data-app-confirm-action="cancel"]:not(.app-liquid-modal__close){
+  background:#ffffff;
+  color:#29483a;
+  border-color:#b8cec0;
+  box-shadow:none;
+}
+html[data-theme="light"] body:has(#users.active-section) .app-liquid-confirm__dialog [data-app-confirm-action="cancel"]:not(.app-liquid-modal__close):hover{
+  background:#eef6f0;
+  color:#174d30;
+  border-color:#86aa91;
+}
