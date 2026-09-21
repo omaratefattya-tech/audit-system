@@ -151,18 +151,76 @@ html[data-theme="light"] .login-author{color:#178044}
 @media (max-width:850px){#settings .settings-account-grid{grid-template-columns:1fr}}
 @media (max-width:520px){#settings .password-input-wrap{grid-template-columns:1fr}#settings .password-toggle-btn{width:100%}}
 
-#settings .system-settings-form{display:grid;gap:16px;text-align:right}
+#settings .system-settings-form{
+  --system-card-bg:rgba(0,35,27,.46);
+  --system-card-border:rgba(141,220,89,.28);
+  --system-card-shadow:none;
+  --system-title:#f4fff5;
+  --system-label:#f5fff1;
+  --system-muted:#bdd5c6;
+  --system-field-bg:rgba(0,35,27,.9);
+  --system-field-color:#fff;
+  --system-field-border:rgba(132,207,80,.52);
+  --system-field-focus:#9be650;
+  --system-check-bg:rgba(0,48,35,.42);
+  --system-check-border:rgba(141,220,89,.18);
+  --system-check-hover:rgba(36,108,61,.34);
+  --system-secondary-bg:rgba(0,55,38,.82);
+  --system-secondary-color:#fff;
+  --system-secondary-border:rgba(141,220,89,.42);
+  --system-status-bg:rgba(255,255,255,.06);
+  --system-status-color:#e9fff0;
+  --system-status-border:rgba(141,220,89,.22);
+  display:grid;gap:16px;text-align:right;color:var(--system-label)
+}
+html[data-theme="light"] #settings .system-settings-form{
+  --system-card-bg:linear-gradient(145deg,#f8fbf9,#ffffff);
+  --system-card-border:#bfd5c7;
+  --system-card-shadow:0 8px 22px rgba(39,74,56,.065),inset 0 1px 0 rgba(255,255,255,.95);
+  --system-title:#153d2a;
+  --system-label:#183c2b;
+  --system-muted:#62786c;
+  --system-field-bg:#ffffff;
+  --system-field-color:#102c20;
+  --system-field-border:#b9d0c1;
+  --system-field-focus:#5f9f70;
+  --system-check-bg:#f3f8f4;
+  --system-check-border:#d1e0d6;
+  --system-check-hover:#e8f4eb;
+  --system-secondary-bg:#eef6f0;
+  --system-secondary-color:#195c33;
+  --system-secondary-border:#aac9b4;
+  --system-status-bg:#f2f7f3;
+  --system-status-color:#35594a;
+  --system-status-border:#c5d8cc
+}
 #settings .system-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(260px,1fr));gap:18px;align-items:start}
-#settings .settings-system-card{border:1px solid rgba(141,220,89,.28);border-radius:14px;background:rgba(0,35,27,.46);padding:18px;min-width:0;display:grid;gap:13px}
-#settings .settings-system-card h3{margin:0 0 2px;text-align:right;color:#f4fff5}
-#settings .settings-system-card label{display:flex;flex-direction:column;gap:7px;color:#f5fff1;font-weight:700}
-#settings .settings-system-card select{width:100%}
-#settings .settings-check{display:grid!important;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;cursor:pointer}
-#settings .settings-check input{width:18px;height:18px;accent-color:#68ba45}
-#settings .settings-check span{min-width:0;line-height:1.5}
-#settings #clearSystemCacheBtn{width:max-content;min-width:150px}
-#settings #saveSystemSettingsBtn,#settings #systemSettingsStatus{justify-self:stretch}
+#settings .settings-system-card{position:relative;border:1px solid var(--system-card-border);border-radius:14px;background:var(--system-card-bg);box-shadow:var(--system-card-shadow);padding:18px;min-width:0;display:grid;gap:13px;overflow:hidden}
+#settings .settings-system-card::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,#54ad44,#87d258);opacity:.9}
+#settings .settings-system-card h3{margin:0 0 2px;text-align:right;color:var(--system-title);font-weight:1000}
+#settings .settings-system-card label{display:flex;flex-direction:column;gap:7px;color:var(--system-label);font-weight:800}
+#settings .settings-system-card select{width:100%;min-height:42px;border:1px solid var(--system-field-border);border-radius:9px;background:var(--system-field-bg);color:var(--system-field-color);padding:8px 11px;font-family:inherit;font-weight:800;outline:none;color-scheme:dark}
+html[data-theme="light"] #settings .settings-system-card select{color-scheme:light}
+#settings .settings-system-card select:focus{border-color:var(--system-field-focus);box-shadow:0 0 0 3px color-mix(in srgb,var(--system-field-focus) 18%,transparent)}
+#settings .settings-system-card select option{background:var(--system-field-bg);color:var(--system-field-color)}
+#settings .settings-check{display:grid!important;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;cursor:pointer;padding:10px 11px;border:1px solid var(--system-check-border);border-radius:10px;background:var(--system-check-bg);transition:background .16s ease,border-color .16s ease}
+#settings .settings-check:hover{background:var(--system-check-hover);border-color:var(--system-field-border)}
+#settings .settings-check input{width:18px;height:18px;accent-color:#3f9c4c;cursor:pointer}
+#settings .settings-check span{min-width:0;line-height:1.55;color:var(--system-label);font-weight:800}
+#settings #clearSystemCacheBtn{width:max-content;min-width:150px;background:var(--system-secondary-bg);color:var(--system-secondary-color);border-color:var(--system-secondary-border);font-weight:900}
+#settings #clearSystemCacheBtn:hover{filter:brightness(.97);border-color:var(--system-field-focus)}
+#settings #saveSystemSettingsBtn{justify-self:stretch;background:linear-gradient(135deg,#61b747,#2d9148);color:#fff;border-color:#4e9d42;box-shadow:0 7px 16px rgba(49,137,66,.16);font-weight:1000}
+#settings #saveSystemSettingsBtn:hover{background:linear-gradient(135deg,#58aa40,#267f3e);border-color:#438c39}
+#settings #systemSettingsStatus{justify-self:stretch;background:var(--system-status-bg);color:var(--system-status-color);border:1px solid var(--system-status-border);font-weight:800}
+#settings #systemSettingsStatus:empty{display:none}
+#settings #systemSettingsStatus.ok,#settings #systemSettingsStatus.success{background:#dff0e3;border-color:#78b88a;color:#145f32}
+#settings #systemSettingsStatus.err,#settings #systemSettingsStatus.error{background:#ffe6e3;border-color:#d97972;color:#862f29}
+#settings #systemSettingsStatus.warning{background:#fff5d6;border-color:#d1aa42;color:#765500}
+html[data-theme="dark"] #settings #systemSettingsStatus.ok,html[data-theme="dark"] #settings #systemSettingsStatus.success{background:rgba(42,124,66,.22);border-color:rgba(104,207,117,.48);color:#caffc4}
+html[data-theme="dark"] #settings #systemSettingsStatus.err,html[data-theme="dark"] #settings #systemSettingsStatus.error{background:rgba(144,40,40,.24);border-color:rgba(235,105,105,.52);color:#ffd8d3}
+html[data-theme="dark"] #settings #systemSettingsStatus.warning{background:rgba(120,82,6,.26);border-color:rgba(229,184,63,.5);color:#ffe5a0}
 @media (max-width:850px){#settings .system-settings-grid{grid-template-columns:1fr}#settings #clearSystemCacheBtn{width:100%}}
+@media (max-width:520px){#settings .settings-system-card{padding:15px}#settings .settings-check{padding:10px}#settings #saveSystemSettingsBtn{width:100%}}
 
 /* P3 permission settings management (shadow model only) */
 #settings .permission-settings-shell{display:grid;gap:16px;min-width:0;text-align:right}
