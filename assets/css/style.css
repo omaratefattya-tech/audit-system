@@ -11314,3 +11314,89 @@ html[data-theme="light"] body:has(#users.active-section) .app-liquid-confirm__di
   color:#174d30;
   border-color:#86aa91;
 }
+
+
+/* L13-SETTINGS-PROFILE-LIGHT-01 — Settings shell + Profile tab only */
+html[data-theme="light"] .app-shell:has(#settings.active-section) .main{
+  background:
+    radial-gradient(circle at 18% 0,rgba(115,185,132,.10),transparent 30%),
+    linear-gradient(180deg,#f6faf7 0%,#f1f6f3 100%);
+  color:#173426;
+}
+html[data-theme="light"] .app-shell:has(#settings.active-section) .topbar{background:transparent}
+html[data-theme="light"] #settings>.panel.glass{
+  background:linear-gradient(145deg,#ffffff,#f7faf8);
+  border-color:#cbdcd3;
+  box-shadow:0 12px 30px rgba(38,72,56,.08),inset 0 1px 0 rgba(255,255,255,.95);
+  color:#173426;
+}
+html[data-theme="light"] #settings>.panel.glass>h2{color:#143d2a}
+html[data-theme="light"] #settings>.panel.glass>.hint{color:#62776d}
+html[data-theme="light"] #settings .settings-tab{
+  background:#ffffff;
+  color:#244a38;
+  border-color:#bfd5c7;
+  box-shadow:0 2px 7px rgba(35,69,53,.04);
+}
+html[data-theme="light"] #settings .settings-tab:hover{
+  background:#edf7ef;
+  color:#174d30;
+  border-color:#8fbc9b;
+}
+html[data-theme="light"] #settings .settings-tab.active,
+html[data-theme="light"] #settings .settings-tab[aria-selected="true"]{
+  background:linear-gradient(135deg,#67bd48,#2d9448);
+  color:#ffffff;
+  border-color:#56a43d;
+  box-shadow:0 7px 18px rgba(53,143,68,.18),inset 0 1px 0 rgba(255,255,255,.34);
+}
+html[data-theme="light"] #settings .profile-preview-card{
+  background:linear-gradient(145deg,#f1f8f3,#ffffff);
+  border-color:#bfd6c6;
+  box-shadow:0 8px 22px rgba(39,74,56,.07);
+}
+html[data-theme="light"] #settings .profile-preview-card strong{color:#173c2a}
+html[data-theme="light"] #settings .profile-preview-card small{color:#5e7469}
+html[data-theme="light"] #settings .profile-form label{color:#173c2a}
+html[data-theme="light"] #settings .profile-form input{
+  background:#ffffff;
+  color:#142f22;
+  border-color:#bfd4c7;
+  box-shadow:inset 0 1px 2px rgba(39,74,56,.035);
+}
+html[data-theme="light"] #settings .profile-form input::placeholder{color:#82958b}
+html[data-theme="light"] #settings .profile-form input:focus{
+  border-color:#68a878;
+  box-shadow:0 0 0 3px rgba(65,154,85,.12);
+}
+html[data-theme="light"] #settings .profile-form input[type=file]{
+  background:#f4f8f5;
+  color:#27483a;
+}
+html[data-theme="light"] #settings .profile-form input[type=file]::file-selector-button{
+  background:#e4f2e7;
+  color:#185c32;
+  border:1px solid #b8d2c0;
+  border-radius:8px;
+  padding:7px 10px;
+  font-weight:900;
+  cursor:pointer;
+}
+html[data-theme="light"] #settings .profile-form .upload-status{color:#365949}
+html[data-theme="light"] #settings .profile-form .upload-status.error{color:#9f342f}
+html[data-theme="light"] #settings .profile-form .upload-status.success{color:#1f7a3c}
+@media(max-width:650px){
+  html[data-theme="light"] #settings .settings-mobile-tab-select label{color:#244a38}
+  html[data-theme="light"] #settings #settingsMobileTabSelect{
+    background:#ffffff;
+    color:#173426;
+    border-color:#bfd5c7;
+    box-shadow:0 8px 18px rgba(38,72,56,.08);
+  }
+  html[data-theme="light"] #settings #settingsMobileTabSelect:focus{
+    border-color:#68a878;
+    box-shadow:0 0 0 3px rgba(65,154,85,.12),0 8px 18px rgba(38,72,56,.08);
+  }
+  html[data-theme="light"] #settings #settingsMobileTabSelect option{background:#ffffff;color:#173426}
+  html[data-theme="light"] #settings .settings-mobile-select-arrow{color:#2d8c49;filter:none}
+}
