@@ -24,7 +24,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=l13-settings-sales-products-light-20260921-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=l13-settings-storekeepers-light-20260921-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=l10-department-light-20260920-1" />
   <link rel="stylesheet" href="assets/css/operation-progress.css?v=global-loading-progress-20260920-1" />
 </head>
@@ -2005,8 +2005,8 @@
             </section>
             <section class="settings-tab-panel" id="settingsStorekeepersPanel" role="tabpanel" aria-labelledby="settingsStorekeepersTab" data-settings-panel="storekeepers">
               <div class="settings-storekeepers-wrap">
-                <div class="activity-log-toolbar glass-soft" style="margin-bottom: 15px;">
-                  <div class="users-search-box">
+                <div class="storekeepers-settings-toolbar" style="margin-bottom: 15px;">
+                  <div class="storekeepers-search-box">
                     <span class="ui-svg-icon" data-modern-icon="search" aria-hidden="true"></span>
                     <input id="storekeepersSearchInput" type="search" placeholder="بحث بالاسم..." />
                   </div>
@@ -2023,7 +2023,7 @@
                   </select>
                 </div>
                 
-                <form id="storekeeperSettingsForm" class="sales-product-settings-form" style="margin-bottom: 15px;">
+                <form id="storekeeperSettingsForm" class="storekeeper-settings-form" style="margin-bottom: 15px;">
                   <input type="hidden" id="storekeeperIdInput" />
                   <label>الاسم
                     <input type="text" id="storekeeperNameInput" required placeholder="الاسم الكامل" autocomplete="off" />
@@ -2038,12 +2038,12 @@
                       <option value="EL02">EL02 — مصنع العامرية</option>
                     </select>
                   </label>
-                  <label class="settings-check sales-product-flag-check"><input type="checkbox" id="storekeeperActiveInput" checked /> <span>نشط</span></label>
+                  <label class="settings-check storekeeper-flag-check"><input type="checkbox" id="storekeeperActiveInput" checked /> <span>نشط</span></label>
                   <button class="primary" id="saveStorekeeperBtn" type="submit">حفظ أمين المخزن</button>
                   <button class="secondary" id="cancelStorekeeperBtn" type="button" style="display:none">إلغاء</button>
                 </form>
                 
-                <div class="table-wrap">
+                <div class="table-wrap storekeepers-settings-table-wrap">
                   <table id="storekeepersSettingsTable" data-no-universal-table="1">
                     <thead><tr><th>الاسم</th><th>الوظيفة</th><th>المصنع</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
                     <tbody></tbody>

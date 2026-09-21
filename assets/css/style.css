@@ -12233,3 +12233,183 @@ html[data-theme="light"] .permission-settings-modal-footer .primary{
   html[data-theme="light"] #settings .permission-settings-list-card{box-shadow:none}
   html[data-theme="light"] #settings .permission-settings-table-wrap{background:#fff}
 }
+
+/* L13-09 — Settings / Storekeepers canonical visual owner */
+#settings .settings-storekeepers-wrap{
+  --storekeepers-border:rgba(141,220,89,.28);
+  --storekeepers-panel-bg:rgba(0,35,27,.46);
+  --storekeepers-toolbar-bg:linear-gradient(135deg,rgba(2,38,32,.72),rgba(0,72,52,.40));
+  --storekeepers-input-bg:rgba(0,31,25,.72);
+  --storekeepers-input-color:#fff;
+  --storekeepers-input-border:rgba(154,217,111,.28);
+  --storekeepers-placeholder:#9fb8a9;
+  --storekeepers-label:#f5fff1;
+  --storekeepers-th-bg:#07513d;
+  --storekeepers-th-color:#fff;
+  --storekeepers-td-bg:rgba(0,35,27,.20);
+  --storekeepers-td-alt:rgba(0,48,37,.34);
+  --storekeepers-text:#e9f7eb;
+  --storekeepers-muted:#a9c2b4;
+  --storekeepers-active:#9be650;
+  --storekeepers-inactive:#ffc2c2;
+  display:grid;
+  gap:15px;
+  text-align:right
+}
+html[data-theme="light"] #settings .settings-storekeepers-wrap{
+  --storekeepers-border:#b9d0c1;
+  --storekeepers-panel-bg:linear-gradient(145deg,#ffffff,#f5faf7);
+  --storekeepers-toolbar-bg:linear-gradient(135deg,#f8fbf9,#edf5f0);
+  --storekeepers-input-bg:#ffffff;
+  --storekeepers-input-color:#102c20;
+  --storekeepers-input-border:#b9d0c1;
+  --storekeepers-placeholder:#72877c;
+  --storekeepers-label:#173c2a;
+  --storekeepers-th-bg:#d7eadc;
+  --storekeepers-th-color:#145d31;
+  --storekeepers-td-bg:#ffffff;
+  --storekeepers-td-alt:#f3f8f5;
+  --storekeepers-text:#17352a;
+  --storekeepers-muted:#5f766a;
+  --storekeepers-active:#176f35;
+  --storekeepers-inactive:#982f29
+}
+#settings .storekeepers-settings-toolbar{
+  border:1px solid var(--storekeepers-border);
+  border-radius:16px;
+  padding:12px 14px;
+  display:grid;
+  grid-template-columns:minmax(260px,1fr) minmax(180px,240px) minmax(160px,210px);
+  gap:10px;
+  align-items:center;
+  background:var(--storekeepers-toolbar-bg);
+  box-shadow:0 8px 22px rgba(39,74,56,.04)
+}
+#settings .storekeepers-search-box{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:44px;
+  border:1px solid var(--storekeepers-input-border);
+  background:var(--storekeepers-input-bg);
+  border-radius:12px;
+  padding:0 12px
+}
+#settings .storekeepers-search-box .ui-svg-icon{color:#6fbd7e;flex:0 0 auto}
+#settings .storekeepers-search-box input{
+  width:100%;
+  min-width:0;
+  border:0;
+  outline:0;
+  box-shadow:none;
+  background:transparent;
+  color:var(--storekeepers-input-color);
+  padding:9px 2px
+}
+#settings .storekeepers-search-box input::placeholder{color:var(--storekeepers-placeholder);opacity:1}
+#settings .storekeepers-settings-toolbar select{
+  width:100%;
+  min-height:44px;
+  border:1px solid var(--storekeepers-input-border);
+  border-radius:12px;
+  background:var(--storekeepers-input-bg);
+  color:var(--storekeepers-input-color);
+  padding:9px 11px;
+  font-family:inherit
+}
+#settings .storekeepers-settings-toolbar select:focus,
+#settings .storekeepers-search-box:focus-within{
+  border-color:#64a576;
+  box-shadow:0 0 0 3px rgba(65,154,85,.12);
+  outline:none
+}
+html[data-theme="light"] #settings .storekeepers-settings-toolbar select{color-scheme:light}
+html[data-theme="light"] #settings .storekeepers-settings-toolbar option{background:#fff;color:#17352a}
+#settings .storekeeper-settings-form{
+  display:grid;
+  grid-template-columns:1.25fr 1.1fr 1fr auto auto auto;
+  gap:12px;
+  align-items:end;
+  border:1px solid var(--storekeepers-border);
+  border-radius:14px;
+  background:var(--storekeepers-panel-bg);
+  padding:18px;
+  box-shadow:0 8px 22px rgba(39,74,56,.04)
+}
+#settings .storekeeper-settings-form>label:not(.settings-check){
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  color:var(--storekeepers-label);
+  font-weight:800
+}
+#settings .storekeeper-settings-form input:not([type="checkbox"]),
+#settings .storekeeper-settings-form select{
+  width:100%;
+  min-height:43px;
+  background:var(--storekeepers-input-bg);
+  color:var(--storekeepers-input-color);
+  border:1px solid var(--storekeepers-input-border)
+}
+#settings .storekeeper-settings-form input::placeholder{color:var(--storekeepers-placeholder);opacity:1}
+#settings .storekeeper-settings-form input:focus,
+#settings .storekeeper-settings-form select:focus{
+  border-color:#64a576;
+  box-shadow:0 0 0 3px rgba(65,154,85,.12);
+  outline:none
+}
+html[data-theme="light"] #settings .storekeeper-settings-form select{color-scheme:light}
+html[data-theme="light"] #settings .storekeeper-settings-form option{background:#fff;color:#17352a}
+#settings .storekeeper-flag-check{align-self:center;margin-top:22px;color:var(--storekeepers-label)}
+#settings .storekeeper-flag-check input{accent-color:#2f9650}
+#settings .storekeepers-settings-table-wrap{
+  border:1px solid var(--storekeepers-border);
+  border-radius:14px;
+  background:var(--storekeepers-panel-bg);
+  box-shadow:0 8px 22px rgba(39,74,56,.035);
+  overflow:auto
+}
+#settings #storekeepersSettingsTable{min-width:820px;color:var(--storekeepers-text)}
+#settings #storekeepersSettingsTable thead th{
+  background:var(--storekeepers-th-bg);
+  color:var(--storekeepers-th-color);
+  border-color:var(--storekeepers-border);
+  font-weight:900
+}
+#settings #storekeepersSettingsTable tbody td{
+  background:var(--storekeepers-td-bg);
+  color:var(--storekeepers-text);
+  border-color:var(--storekeepers-border);
+  font-weight:700
+}
+#settings #storekeepersSettingsTable tbody tr:nth-child(even)>td{background:var(--storekeepers-td-alt)}
+#settings #storekeepersSettingsTable tbody tr:hover>td{background:color-mix(in srgb,var(--storekeepers-td-alt),#7fc78a 10%)}
+#settings #storekeepersSettingsTable .empty-row{color:var(--storekeepers-muted);background:var(--storekeepers-td-bg)}
+#settings #storekeepersSettingsTable .status-badge{font-weight:900;border-radius:999px;padding:5px 10px;display:inline-flex;align-items:center;justify-content:center;min-width:66px}
+#settings #storekeepersSettingsTable .status-active{color:var(--storekeepers-active);border:1px solid color-mix(in srgb,var(--storekeepers-active),transparent 55%);background:color-mix(in srgb,var(--storekeepers-active),transparent 88%)}
+#settings #storekeepersSettingsTable .status-inactive{color:var(--storekeepers-inactive);border:1px solid color-mix(in srgb,var(--storekeepers-inactive),transparent 58%);background:color-mix(in srgb,var(--storekeepers-inactive),transparent 90%)}
+#settings #storekeepersSettingsTable .actions-cell{display:flex;gap:7px;align-items:center;justify-content:center;flex-wrap:wrap}
+html[data-theme="light"] #settings #storekeepersSettingsTable .small-action{
+  background:#f8fbf9;
+  color:#315347;
+  border-color:#b8cec0;
+  box-shadow:none
+}
+html[data-theme="light"] #settings #storekeepersSettingsTable .small-action:hover{background:#eef6f1}
+html[data-theme="light"] #settings #storekeepersSettingsTable .small-action.edit{border-color:#9fc7aa;color:#22643a;background:#f2f9f4}
+html[data-theme="light"] #settings #storekeepersSettingsTable .small-action.delete{border-color:#e0a19b;color:#9c3d35;background:#fff4f3}
+html[data-theme="light"] #settings #storekeepersSettingsTable .small-action.view{border-color:#8ebee8;color:#245f91;background:#f1f7fd}
+@media(max-width:980px){
+  #settings .storekeepers-settings-toolbar{grid-template-columns:1fr 1fr}
+  #settings .storekeepers-search-box{grid-column:1/-1}
+  #settings .storekeeper-settings-form{grid-template-columns:1fr 1fr 1fr}
+  #settings .storekeeper-settings-form .primary{grid-column:1/-1}
+}
+@media(max-width:700px){
+  #settings .storekeepers-settings-toolbar{grid-template-columns:1fr}
+  #settings .storekeepers-search-box{grid-column:auto}
+  #settings .storekeeper-settings-form{grid-template-columns:1fr}
+  #settings .storekeeper-flag-check{margin-top:0}
+  #settings .storekeeper-settings-form .primary,
+  #settings .storekeeper-settings-form .secondary{width:100%;grid-column:auto}
+}
