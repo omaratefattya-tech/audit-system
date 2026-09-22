@@ -24,7 +24,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=l13-settings-department-personnel-light-20260921-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=maintenance-mode-20260922-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=l10-department-light-20260920-1" />
   <link rel="stylesheet" href="assets/css/operation-progress.css?v=global-loading-progress-20260920-1" />
 </head>
@@ -1613,6 +1613,7 @@
             <button class="settings-tab" id="settingsDepartmentPersonnelTab" type="button" role="tab" aria-selected="false" aria-controls="settingsDepartmentPersonnelPanel" data-settings-tab="department-personnel">تكويد أفراد القسم</button>
             <button class="settings-tab" id="settingsDepartmentStatusCodesTab" type="button" role="tab" aria-selected="false" aria-controls="settingsDepartmentStatusCodesPanel" data-settings-tab="department-status-codes">حالة الوردية/ موقف الإجازات</button>
             <button class="settings-tab" id="settingsActivityLogTab" type="button" role="tab" aria-selected="false" aria-controls="settingsActivityLogPanel" data-settings-tab="activity-log">&#x0633;&#x062C;&#x0644; &#x0627;&#x0644;&#x062D;&#x0631;&#x0643;&#x0627;&#x062A;</button>
+            <button class="settings-tab" id="settingsMaintenanceTab" type="button" role="tab" aria-selected="false" aria-controls="settingsMaintenancePanel" data-settings-tab="maintenance">إعدادات الصيانة</button>
           </div>
           <div class="settings-mobile-tab-select" id="settingsMobileTabSelectWrap">
             <label for="settingsMobileTabSelect">تبويب الإعدادات</label>
@@ -1630,6 +1631,7 @@
                 <option value="department-personnel">تكويد أفراد القسم</option>
                 <option value="department-status-codes">حالة الوردية/ موقف الإجازات</option>
                 <option value="activity-log">سجل الحركات</option>
+                <option value="maintenance">إعدادات الصيانة</option>
               </select>
               <span class="settings-mobile-select-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m7 10 5 5 5-5"/></svg></span>
             </div>
@@ -2188,6 +2190,51 @@
                 <div class="activity-log-pagination" id="activityLogPagination"></div>
               </div>
             </section>
+            <section class="settings-tab-panel" id="settingsMaintenancePanel" role="tabpanel" aria-labelledby="settingsMaintenanceTab" data-settings-panel="maintenance">
+              <div class="maintenance-settings-wrap">
+                <div class="maintenance-settings-head">
+                  <div>
+                    <span class="maintenance-settings-badge">SUPER ADMIN ONLY</span>
+                    <h3>وضع الصيانة</h3>
+                    <p>يمنع جميع المستخدمين من الدخول أو الاستمرار في استخدام النظام أثناء التحديثات المهمة، مع إبقاء حساب السوبر أدمن متاحًا لإدارة الصيانة.</p>
+                  </div>
+                  <div class="maintenance-state-pill" id="maintenanceStatePill" data-state="loading">جاري التحقق...</div>
+                </div>
+
+                <div class="maintenance-settings-grid">
+                  <article class="maintenance-status-card">
+                    <span class="maintenance-status-icon" aria-hidden="true">⚙</span>
+                    <div>
+                      <small>حالة النظام الحالية</small>
+                      <strong id="maintenanceStatusTitle">جاري التحقق من الحالة...</strong>
+                      <p id="maintenanceStatusDescription">يتم تحميل حالة وضع الصيانة من الخادم.</p>
+                    </div>
+                  </article>
+
+                  <article class="maintenance-meta-card">
+                    <div><span>تم التفعيل بواسطة</span><b id="maintenanceEnabledBy">—</b></div>
+                    <div><span>وقت التفعيل</span><b id="maintenanceEnabledAt">—</b></div>
+                    <div><span>الجلسات التي سيتم إنهاؤها</span><b>كل الجلسات الأخرى</b></div>
+                  </article>
+                </div>
+
+                <label class="maintenance-message-field" for="maintenanceMessageInput">رسالة الصيانة للمستخدمين
+                  <textarea id="maintenanceMessageInput" rows="3" maxlength="300">النظام في وضع الصيانة. يرجى المحاولة مرة أخرى لاحقًا.</textarea>
+                </label>
+
+                <div class="maintenance-warning-box">
+                  <strong>مهم قبل التفعيل</strong>
+                  <p>سيتم إنهاء جلسات المستخدمين الأخرى فورًا. لن يستطيع أي مستخدم عادي تسجيل الدخول حتى يتم إنهاء وضع الصيانة.</p>
+                </div>
+
+                <div class="maintenance-settings-actions">
+                  <button class="danger maintenance-enable-btn" id="enableMaintenanceBtn" type="button">تفعيل وضع الصيانة</button>
+                  <button class="primary maintenance-disable-btn" id="disableMaintenanceBtn" type="button" hidden>إنهاء وضع الصيانة</button>
+                  <button class="secondary" id="refreshMaintenanceStatusBtn" type="button">تحديث الحالة</button>
+                </div>
+                <div class="upload-status maintenance-settings-status" id="maintenanceSettingsStatus" aria-live="polite"></div>
+              </div>
+            </section>
           </div>
         </article>
       </section>
@@ -2244,9 +2291,10 @@
   <script src="assets/js/theme.js?v=l1-mobile-theme-toggle-20260919-1"></script>
   <script src="assets/js/supabase-config.js?v=auth-session-control-20260920-1"></script>
   <script src="assets/js/session-control.js?v=auth-session-control-20260920-1"></script>
+  <script src="assets/js/maintenance-control.js?v=maintenance-mode-20260922-1"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/operation-progress.js?v=global-loading-progress-20260920-1"></script>
-  <script src="assets/js/app.js?v=l11-users-light-20260921-1"></script>
+  <script src="assets/js/app.js?v=maintenance-mode-20260922-1"></script>
   <script src="assets/js/permission-registry.js?v=ic-refresh-01b-20260913-1"></script>
   <script src="assets/js/permissions.js?v=ic-refresh-01b-20260913-1"></script>
   <script src="assets/js/permission-ui.js?v=p8-1-15-20260909-1"></script>

@@ -133,6 +133,25 @@
   async function rememberAccessToken(){
     try{const {data}=await WarehouseDB.client.auth.getSession();lastAccessToken=data?.session?.access_token||'';}catch(_){lastAccessToken='';}
   }
+  async function maintenanceStatus(){
+    const {data,error}=await rpc('app_maintenance_status',{});
+    if(error){
+      const message=String(error?.message||'');
+      if(/app_maintenance_status|schema cache|Could not find the function|does not exist/i.test(message)) return {enabled:false,feature_missing:true};
+      throw error;
+    }
+    return data||{enabled:false};
+  }
+  async function maintenanceGate(user){
+    const state=await maintenanceStatus();
+    if(state?.enabled && !state?.actor_is_super_admin){
+      const message=String(state?.message||'النظام في وضع الصيانة. يرجى المحاولة مرة أخرى لاحقًا.');
+      try{sessionStorage.setItem(FORCED_NOTICE_KEY,message);}catch(_){ }
+      try{await WarehouseDB.signOut('local');}catch(_){ }
+      return {allowed:false,maintenance:true,message};
+    }
+    return {allowed:true,state};
+  }
   async function beginServerSession(user){
     const info=await collectDeviceInfo();
     currentSessionId=getSessionId();
@@ -163,6 +182,8 @@
   }
   async function ensureAccess(user){
     if(!user?.id) return {allowed:false,message:'لا توجد جلسة مستخدم صالحة.'};
+    const maintenance=await maintenanceGate(user);
+    if(!maintenance.allowed) return maintenance;
     if(currentUserId===user.id && currentSessionId && monitorTimer){
       const status=await heartbeat();
       return {allowed:status!=='revoked'&&status!=='ended',resumed:true};
@@ -258,5 +279,5 @@
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&currentSessionId) heartbeat().catch(()=>{});});
   document.addEventListener('DOMContentLoaded',consumeForcedNotice);
 
-  window.AppSessionControl={ensureAccess,endCurrent,heartbeat,resetLocalState,bestEffortEnd};
+  window.AppSessionControl={ensureAccess,endCurrent,heartbeat,resetLocalState,bestEffortEnd,getCurrentSessionId:()=>currentSessionId||getSessionId(),maintenanceStatus};
 })();
