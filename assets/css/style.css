@@ -12920,44 +12920,85 @@ html[data-theme="light"] #settings #departmentPersonnelTable .small-action:disab
 }
 \n\n/* === MAINTENANCE SETTINGS / canonical owner === */
 #settings .maintenance-settings-wrap{
-  --maintenance-bg:rgba(2,43,33,.58);
-  --maintenance-card:rgba(2,50,39,.72);
-  --maintenance-border:rgba(98,191,116,.34);
+  --maintenance-shell:rgba(0,27,22,.48);
+  --maintenance-bg:#05352c;
+  --maintenance-card:#084238;
+  --maintenance-card-raised:#0c4c40;
+  --maintenance-field:#032f27;
+  --maintenance-border:rgba(114,211,135,.42);
+  --maintenance-border-strong:rgba(132,226,153,.66);
+  --maintenance-divider:rgba(159,223,174,.24);
   --maintenance-text:#f4fff7;
-  --maintenance-muted:#b8d0c3;
-  --maintenance-good:#63c979;
-  --maintenance-danger:#ff8b82;
-  --maintenance-warning:#e8bd59;
-  display:grid;gap:18px;padding:4px 0;color:var(--maintenance-text)
+  --maintenance-muted:#bdd7c8;
+  --maintenance-good:#70d487;
+  --maintenance-danger:#ff9188;
+  --maintenance-warning:#f0c75f;
+  --maintenance-shadow:0 16px 38px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.025);
+  display:grid;
+  gap:16px;
+  padding:18px;
+  color:var(--maintenance-text);
+  border:1px solid var(--maintenance-border);
+  border-radius:18px;
+  background:var(--maintenance-shell);
+  box-shadow:var(--maintenance-shadow)
 }
 html[data-theme="light"] #settings .maintenance-settings-wrap{
-  --maintenance-bg:#f7fbf8;--maintenance-card:#fff;--maintenance-border:#c6ddce;--maintenance-text:#17352a;--maintenance-muted:#687f75;--maintenance-good:#247a42;--maintenance-danger:#a93631;--maintenance-warning:#9a6812
+  --maintenance-shell:transparent;
+  --maintenance-bg:#f7fbf8;
+  --maintenance-card:#fff;
+  --maintenance-card-raised:#fff;
+  --maintenance-field:#fff;
+  --maintenance-border:#c6ddce;
+  --maintenance-border-strong:#abcdb7;
+  --maintenance-divider:#d6e6dc;
+  --maintenance-text:#17352a;
+  --maintenance-muted:#687f75;
+  --maintenance-good:#247a42;
+  --maintenance-danger:#a93631;
+  --maintenance-warning:#9a6812;
+  --maintenance-shadow:none;
+  padding:4px 0;
+  border-color:transparent;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none
 }
-#settings .maintenance-settings-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:20px;border:1px solid var(--maintenance-border);border-radius:18px;background:var(--maintenance-bg)}
+#settings .maintenance-settings-head{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:20px;
+  border:1px solid var(--maintenance-border-strong);border-radius:16px;background:var(--maintenance-bg);
+  box-shadow:0 10px 24px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.025)
+}
+html[data-theme="light"] #settings .maintenance-settings-head{border-color:var(--maintenance-border);box-shadow:none}
 #settings .maintenance-settings-head h3{margin:8px 0 6px;font-size:1.35rem;color:var(--maintenance-text)}
 #settings .maintenance-settings-head p{margin:0;max-width:820px;color:var(--maintenance-muted);line-height:1.9}
-#settings .maintenance-settings-badge{display:inline-flex;padding:4px 9px;border-radius:999px;border:1px solid var(--maintenance-warning);color:var(--maintenance-warning);font-size:.72rem;font-weight:900;letter-spacing:.04em}
-#settings .maintenance-state-pill{white-space:nowrap;padding:9px 13px;border-radius:999px;border:1px solid var(--maintenance-border);background:var(--maintenance-card);font-weight:900;color:var(--maintenance-muted)}
-#settings .maintenance-state-pill[data-state="active"]{color:var(--maintenance-danger);border-color:color-mix(in srgb,var(--maintenance-danger),transparent 38%);background:color-mix(in srgb,var(--maintenance-danger),transparent 90%)}
-#settings .maintenance-state-pill[data-state="inactive"]{color:var(--maintenance-good);border-color:color-mix(in srgb,var(--maintenance-good),transparent 38%);background:color-mix(in srgb,var(--maintenance-good),transparent 90%)}
+#settings .maintenance-settings-badge{display:inline-flex;padding:4px 9px;border-radius:999px;border:1px solid var(--maintenance-warning);background:color-mix(in srgb,var(--maintenance-warning),transparent 91%);color:var(--maintenance-warning);font-size:.72rem;font-weight:900;letter-spacing:.04em}
+#settings .maintenance-state-pill{white-space:nowrap;padding:9px 13px;border-radius:999px;border:1px solid var(--maintenance-border-strong);background:var(--maintenance-card-raised);font-weight:900;color:var(--maintenance-muted);box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}
+#settings .maintenance-state-pill[data-state="active"]{color:var(--maintenance-danger);border-color:color-mix(in srgb,var(--maintenance-danger),transparent 30%);background:color-mix(in srgb,var(--maintenance-danger),var(--maintenance-card-raised) 88%)}
+#settings .maintenance-state-pill[data-state="inactive"]{color:var(--maintenance-good);border-color:color-mix(in srgb,var(--maintenance-good),transparent 30%);background:color-mix(in srgb,var(--maintenance-good),var(--maintenance-card-raised) 88%)}
 #settings .maintenance-settings-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,.8fr);gap:16px}
-#settings .maintenance-status-card,#settings .maintenance-meta-card{border:1px solid var(--maintenance-border);border-radius:16px;background:var(--maintenance-card);padding:18px}
-#settings .maintenance-status-card{display:flex;gap:15px;align-items:flex-start}
-#settings .maintenance-status-icon{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:color-mix(in srgb,var(--maintenance-good),transparent 84%);color:var(--maintenance-good);font-size:1.25rem;font-weight:900}
+#settings .maintenance-status-card,#settings .maintenance-meta-card{border:1px solid var(--maintenance-border);border-radius:14px;background:var(--maintenance-card);padding:18px;box-shadow:0 8px 20px rgba(0,0,0,.10),inset 0 1px 0 rgba(255,255,255,.02)}
+html[data-theme="light"] #settings .maintenance-status-card,html[data-theme="light"] #settings .maintenance-meta-card{box-shadow:none}
+#settings .maintenance-status-card{display:flex;gap:15px;align-items:flex-start;border-inline-start:3px solid var(--maintenance-good)}
+#settings .maintenance-status-icon{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:color-mix(in srgb,var(--maintenance-good),var(--maintenance-card-raised) 82%);border:1px solid color-mix(in srgb,var(--maintenance-good),transparent 56%);color:var(--maintenance-good);font-size:1.25rem;font-weight:900}
 #settings .maintenance-status-card small,#settings .maintenance-meta-card span{display:block;color:var(--maintenance-muted);font-weight:700}
-#settings .maintenance-status-card strong{display:block;margin:3px 0 6px;color:var(--maintenance-text);font-size:1.12rem}
+#settings .maintenance-status-card strong{display:block;margin:4px 0 7px;color:var(--maintenance-text);font-size:1.12rem}
 #settings .maintenance-status-card p{margin:0;color:var(--maintenance-muted);line-height:1.8}
-#settings .maintenance-meta-card{display:grid;gap:13px}
-#settings .maintenance-meta-card>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px;border-bottom:1px dashed var(--maintenance-border)}
+#settings .maintenance-meta-card{display:grid;gap:0}
+#settings .maintenance-meta-card>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--maintenance-divider)}
+#settings .maintenance-meta-card>div:first-child{padding-top:0}
 #settings .maintenance-meta-card>div:last-child{border-bottom:0;padding-bottom:0}
 #settings .maintenance-meta-card b{color:var(--maintenance-text);text-align:left}
-#settings .maintenance-message-field{display:grid;gap:8px;font-weight:900;color:var(--maintenance-text)}
-#settings .maintenance-message-field textarea{width:100%;resize:vertical;min-height:86px;padding:12px 14px;border-radius:13px;border:1px solid var(--maintenance-border);background:var(--maintenance-card);color:var(--maintenance-text);font:inherit;line-height:1.8;outline:none}
-#settings .maintenance-message-field textarea:focus{border-color:var(--maintenance-good);box-shadow:0 0 0 3px color-mix(in srgb,var(--maintenance-good),transparent 84%)}
-#settings .maintenance-warning-box{border:1px solid color-mix(in srgb,var(--maintenance-warning),transparent 42%);background:color-mix(in srgb,var(--maintenance-warning),transparent 91%);border-radius:14px;padding:14px 16px}
+#settings .maintenance-message-field{display:grid;gap:10px;padding:16px;border:1px solid var(--maintenance-border);border-radius:14px;background:var(--maintenance-card);font-weight:900;color:var(--maintenance-text);box-shadow:inset 0 1px 0 rgba(255,255,255,.02)}
+html[data-theme="light"] #settings .maintenance-message-field{padding:0;border:0;background:transparent;box-shadow:none}
+#settings .maintenance-message-field textarea{width:100%;resize:vertical;min-height:92px;padding:13px 14px;border-radius:11px;border:1px solid var(--maintenance-border-strong);background:var(--maintenance-field);color:var(--maintenance-text);font:inherit;line-height:1.8;outline:none;box-shadow:inset 0 1px 8px rgba(0,0,0,.10)}
+html[data-theme="light"] #settings .maintenance-message-field textarea{box-shadow:none}
+#settings .maintenance-message-field textarea:focus{border-color:var(--maintenance-good);box-shadow:0 0 0 3px color-mix(in srgb,var(--maintenance-good),transparent 82%)}
+#settings .maintenance-warning-box{border:1px solid color-mix(in srgb,var(--maintenance-warning),transparent 30%);border-inline-start:4px solid var(--maintenance-warning);background:color-mix(in srgb,var(--maintenance-warning),var(--maintenance-card) 92%);border-radius:14px;padding:15px 17px;box-shadow:inset 0 1px 0 rgba(255,255,255,.02)}
 #settings .maintenance-warning-box strong{color:var(--maintenance-warning)}
 #settings .maintenance-warning-box p{margin:5px 0 0;color:var(--maintenance-muted);line-height:1.8}
-#settings .maintenance-settings-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+#settings .maintenance-settings-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px;border:1px solid var(--maintenance-border);border-radius:14px;background:var(--maintenance-bg)}
+html[data-theme="light"] #settings .maintenance-settings-actions{padding:0;border:0;background:transparent}
 #settings .maintenance-toggle-btn{min-width:190px;min-height:44px;padding:10px 20px;border-radius:11px;border:1px solid transparent;color:#fff;font-weight:900;font-family:inherit;cursor:pointer;transition:background-color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .18s ease;box-shadow:0 5px 14px rgba(0,0,0,.16)}
 #settings .maintenance-toggle-btn[data-mode="enable"]{background:#a9302b;border-color:#d86d66}
 #settings .maintenance-toggle-btn[data-mode="enable"]:hover:not(:disabled){background:#bd3933;border-color:#ed817a;box-shadow:0 7px 18px rgba(169,48,43,.28);transform:translateY(-1px)}
@@ -12965,12 +13006,16 @@ html[data-theme="light"] #settings .maintenance-settings-wrap{
 #settings .maintenance-toggle-btn[data-mode="disable"]:hover:not(:disabled){background:#2d8c4d;border-color:#67bd7d;box-shadow:0 7px 18px rgba(36,122,66,.28);transform:translateY(-1px)}
 #settings .maintenance-toggle-btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(103,189,125,.25),0 5px 14px rgba(0,0,0,.18)}
 #settings .maintenance-toggle-btn:disabled{opacity:.62;cursor:wait;transform:none;box-shadow:none}
-#settings .maintenance-settings-status{min-height:24px;color:var(--maintenance-muted)}
-#settings .maintenance-settings-status.ok,#settings .maintenance-settings-status.success{color:var(--maintenance-good);font-weight:900}
-#settings .maintenance-settings-status.err,#settings .maintenance-settings-status.error{color:var(--maintenance-danger);font-weight:900}
+#settings .maintenance-settings-status{min-height:24px;padding:12px 14px;border:1px solid var(--maintenance-border);border-radius:12px;background:var(--maintenance-card);color:var(--maintenance-muted)}
+#settings .maintenance-settings-status:empty{display:none}
+#settings .maintenance-settings-status.ok,#settings .maintenance-settings-status.success{border-color:color-mix(in srgb,var(--maintenance-good),transparent 40%);background:color-mix(in srgb,var(--maintenance-good),var(--maintenance-card) 92%);color:var(--maintenance-good);font-weight:900}
+#settings .maintenance-settings-status.err,#settings .maintenance-settings-status.error{border-color:color-mix(in srgb,var(--maintenance-danger),transparent 40%);background:color-mix(in srgb,var(--maintenance-danger),var(--maintenance-card) 92%);color:var(--maintenance-danger);font-weight:900}
+html[data-theme="light"] #settings .maintenance-settings-status{padding:0;border:0;border-radius:0;background:transparent}
+html[data-theme="light"] #settings .maintenance-settings-status.ok,html[data-theme="light"] #settings .maintenance-settings-status.success{background:transparent}
+html[data-theme="light"] #settings .maintenance-settings-status.err,html[data-theme="light"] #settings .maintenance-settings-status.error{background:transparent}
 html[data-theme="light"] #settings .maintenance-toggle-btn[data-mode="enable"]{background:#b3312c;border-color:#d96f69;color:#fff}
 html[data-theme="light"] #settings .maintenance-toggle-btn[data-mode="enable"]:hover:not(:disabled){background:#c43a34}
 html[data-theme="light"] #settings .maintenance-toggle-btn[data-mode="disable"]{background:#247a42;border-color:#4fa168;color:#fff}
 html[data-theme="light"] #settings .maintenance-toggle-btn[data-mode="disable"]:hover:not(:disabled){background:#2e8b4d}
-@media(max-width:900px){#settings .maintenance-settings-grid{grid-template-columns:1fr}#settings .maintenance-settings-head{flex-direction:column}.maintenance-state-pill{align-self:flex-start}}
-@media(max-width:640px){#settings .maintenance-settings-actions>*{width:100%}#settings .maintenance-meta-card>div{align-items:flex-start;flex-direction:column}.maintenance-settings-head{padding:15px}}
+@media(max-width:900px){#settings .maintenance-settings-grid{grid-template-columns:1fr}#settings .maintenance-settings-head{flex-direction:column}#settings .maintenance-state-pill{align-self:flex-start}}
+@media(max-width:640px){#settings .maintenance-settings-wrap{padding:12px}html[data-theme="light"] #settings .maintenance-settings-wrap{padding:4px 0}#settings .maintenance-settings-actions>*{width:100%}#settings .maintenance-meta-card>div{align-items:flex-start;flex-direction:column}#settings .maintenance-settings-head{padding:15px}}
