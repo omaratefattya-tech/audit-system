@@ -24,7 +24,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=maintenance-mode-20260922-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=maintenance-button-state-20260922-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=l10-department-light-20260920-1" />
   <link rel="stylesheet" href="assets/css/operation-progress.css?v=global-loading-progress-20260920-1" />
 </head>
@@ -2228,8 +2228,9 @@
                 </div>
 
                 <div class="maintenance-settings-actions">
-                  <button class="danger maintenance-enable-btn" id="enableMaintenanceBtn" type="button">تفعيل وضع الصيانة</button>
-                  <button class="primary maintenance-disable-btn" id="disableMaintenanceBtn" type="button" hidden>إنهاء وضع الصيانة</button>
+                  <button class="maintenance-toggle-btn" id="maintenanceToggleBtn" type="button" data-mode="enable" aria-pressed="false">
+                    <span id="maintenanceToggleText">تفعيل وضع الصيانة</span>
+                  </button>
                   <button class="secondary" id="refreshMaintenanceStatusBtn" type="button">تحديث الحالة</button>
                 </div>
                 <div class="upload-status maintenance-settings-status" id="maintenanceSettingsStatus" aria-live="polite"></div>
@@ -2291,7 +2292,7 @@
   <script src="assets/js/theme.js?v=l1-mobile-theme-toggle-20260919-1"></script>
   <script src="assets/js/supabase-config.js?v=auth-session-control-20260920-1"></script>
   <script src="assets/js/session-control.js?v=auth-session-control-20260920-1"></script>
-  <script src="assets/js/maintenance-control.js?v=maintenance-mode-20260922-1"></script>
+  <script src="assets/js/maintenance-control.js?v=maintenance-button-state-20260922-1"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/operation-progress.js?v=global-loading-progress-20260920-1"></script>
   <script src="assets/js/app.js?v=maintenance-mode-20260922-1"></script>

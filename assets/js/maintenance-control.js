@@ -28,8 +28,15 @@
     const by=$('#maintenanceEnabledBy'); if(by) by.textContent=enabled?(state?.enabled_by_name||state?.enabled_by||'سوبر أدمن'):'—';
     const at=$('#maintenanceEnabledAt'); if(at) at.textContent=enabled?formatDate(state?.enabled_at):'—';
     const input=$('#maintenanceMessageInput'); if(input && enabled && state?.message) input.value=state.message;
-    const enableBtn=$('#enableMaintenanceBtn'); if(enableBtn) enableBtn.hidden=enabled;
-    const disableBtn=$('#disableMaintenanceBtn'); if(disableBtn) disableBtn.hidden=!enabled;
+    const toggleBtn=$('#maintenanceToggleBtn');
+    const toggleText=$('#maintenanceToggleText');
+    if(toggleBtn){
+      toggleBtn.dataset.mode=enabled?'disable':'enable';
+      toggleBtn.setAttribute('aria-pressed',enabled?'true':'false');
+      toggleBtn.setAttribute('aria-label',enabled?'إغلاق وضع الصيانة':'تفعيل وضع الصيانة');
+      toggleBtn.title=enabled?'إغلاق وضع الصيانة والسماح للمستخدمين بالدخول':'تفعيل وضع الصيانة ومنع المستخدمين من الدخول';
+    }
+    if(toggleText) toggleText.textContent=enabled?'إغلاق وضع الصيانة':'تفعيل وضع الصيانة';
     if(input) input.disabled=enabled;
   }
   async function loadPanel(options={}){
@@ -61,8 +68,8 @@
       const ok=window.confirm('سيتم إنهاء وضع الصيانة والسماح للمستخدمين بتسجيل الدخول مرة أخرى. هل تريد المتابعة؟');
       if(!ok) return;
     }
-    const enableBtn=$('#enableMaintenanceBtn'),disableBtn=$('#disableMaintenanceBtn'),refreshBtn=$('#refreshMaintenanceStatusBtn');
-    [enableBtn,disableBtn,refreshBtn].forEach(b=>{if(b)b.disabled=true;});
+    const toggleBtn=$('#maintenanceToggleBtn'),refreshBtn=$('#refreshMaintenanceStatusBtn');
+    [toggleBtn,refreshBtn].forEach(b=>{if(b)b.disabled=true;});
     setStatus(enabled?'جاري تفعيل وضع الصيانة وإنهاء الجلسات الأخرى...':'جاري إنهاء وضع الصيانة...');
     try{
       const sessionId=window.AppSessionControl?.getCurrentSessionId?.()||null;
@@ -74,13 +81,12 @@
       console.error('[maintenance] update failed',error);
       setStatus(String(error?.message||'تعذر تحديث وضع الصيانة.'),'err');
       await loadPanel({silent:true});
-    }finally{[enableBtn,disableBtn,refreshBtn].forEach(b=>{if(b)b.disabled=false;});}
+    }finally{[toggleBtn,refreshBtn].forEach(b=>{if(b)b.disabled=false;});}
   }
   function bind(){
     if(bound) return; bound=true;
     document.addEventListener('click',e=>{
-      if(e.target.closest('#enableMaintenanceBtn')) setMaintenance(true);
-      if(e.target.closest('#disableMaintenanceBtn')) setMaintenance(false);
+      if(e.target.closest('#maintenanceToggleBtn')) setMaintenance(!(currentState?.enabled===true));
       if(e.target.closest('#refreshMaintenanceStatusBtn')) loadPanel();
     });
   }
