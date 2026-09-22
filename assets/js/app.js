@@ -3860,17 +3860,39 @@ async function upsertChunks(tableName, rows, chunkSize=500, onConflict=''){
     if(error) throw error;
   }
 }
+async function salesUploadFileSha256(file){
+  if(!globalThis.crypto?.subtle) throw new Error('المتصفح لا يدعم حساب SHA256 المطلوب لتوثيق ملف الرفع.');
+  const buffer=await file.arrayBuffer();
+  const digest=await globalThis.crypto.subtle.digest('SHA-256',buffer);
+  return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function abortProcessingSalesUpload(batchId,error){
+  if(!batchId || !WarehouseDB?.ready) return;
+  try{
+    const {error:abortError}=await WarehouseDB.client.rpc('app_p11_sales_abort_upload',{
+      p_batch_id:batchId,
+      p_error_message:String(error?.message || error || 'Upload aborted before finalize.')
+    });
+    if(abortError) throw abortError;
+  }catch(abortErr){
+    console.error('P11.4 sales upload cleanup failed',abortErr);
+  }
+}
 async function handleSalesFile(file){
   const status=$('#salesUploadStatus');
   const reportDate=normalizeDateISO($('#salesReportDateInput')?.value);
+  let processingBatchId='';
   status.className='upload-status';
-  status.textContent='جاري قراءة الملف...';
+  status.textContent='جاري قراءة الملف وحساب بصمة SHA256...';
   if(!reportDate){ status.textContent='اختار تاريخ التقرير أولاً.'; status.className='upload-status err'; return; }
   if(!WarehouseDB?.ready){ status.textContent='Supabase غير متصل. راجع ملف supabase-config.js'; status.className='upload-status err'; return; }
   const {data:userData}=await WarehouseDB.getUser();
   if(!userData?.user){ status.textContent='سجل الدخول أولًا قبل رفع الملف.'; status.className='upload-status err'; return; }
   try{
-    const {rows:sourceRows}=await readExcelUpload(file,'rows');
+    const [{rows:sourceRows},sourceSha256]=await Promise.all([
+      readExcelUpload(file,'rows'),
+      salesUploadFileSha256(file)
+    ]);
     if(!sourceRows.length) throw new Error('الملف لا يحتوي على بيانات.');
     const payloadPreview=mapSalesRows(sourceRows,'00000000-0000-0000-0000-000000000000');
     if(!payloadPreview.length) throw new Error('لم يتم العثور على صفوف صالحة. راجع رؤوس الأعمدة.');
@@ -3883,41 +3905,49 @@ async function handleSalesFile(file){
       .eq('status','active');
     if(existingError) throw existingError;
     if(existing?.length){
-      const ok=await showAppLiquidConfirm({message:`يوجد تقرير مبيعات مرفوع بالفعل بتاريخ ${formatDisplayDate(reportDate,reportDate)}.
-هل تريد استبداله بالملف الجديد؟`});
-      if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
-      status.textContent='جاري حذف النسخة القديمة لنفس التاريخ...';
-      const ids=existing.map(x=>x.id);
-      const {error:deleteError}=await WarehouseDB.client.from('sales_upload_batches').delete().in('id',ids);
-      if(deleteError) throw deleteError;
-      clearUnifiedSalesRowsCache();
+      status.textContent=`يوجد تقرير مبيعات فعال بتاريخ ${formatDisplayDate(reportDate,reportDate)}. الاستبدال موقوف مؤقتًا للحماية لحين تفعيل الاستبدال الذري؛ لم يتم تغيير أي بيانات.`;
+      status.className='upload-status err';
+      return;
     }
 
-    status.textContent=`تم قراءة ${sourceRows.length} سطر. جاري إنشاء نسخة يومية بتاريخ ${formatDisplayDate(reportDate,reportDate)}...`;
-    const {data:batch,error:batchError}=await WarehouseDB.client.from('sales_upload_batches').insert({
-      file_name:file.name,
-      uploaded_by:userData.user.id,
-      uploaded_by_name:currentUploaderName(userData),
-      notes:'مراجعة مبيعات المنتج التام والتحويلات المخزنية',
-      report_type:'sales',
-      report_date:reportDate,
-      row_count:payloadPreview.length,
-      file_size_bytes:file.size || 0,
-      status:'active'
-    }).select('id').single();
-    if(batchError) throw batchError;
-    const payload=payloadPreview.map(r=>({...r,batch_id:batch.id}));
-    status.textContent=`جاري رفع ${payload.length} سطر إلى Supabase...`;
-    await insertChunks('sales_raw_transactions',payload,400);
+    status.textContent=`تم تجهيز ${payloadPreview.length} حركة. جاري بدء المعالجة المؤقتة بتاريخ ${formatDisplayDate(reportDate,reportDate)}...`;
+    const {data:batchId,error:beginError}=await WarehouseDB.client.rpc('app_p11_sales_begin_upload',{
+      p_report_date:reportDate,
+      p_file_name:file.name,
+      p_file_size_bytes:file.size || 0,
+      p_source_sha256:sourceSha256,
+      p_source_row_count:payloadPreview.length,
+      p_uploaded_by_name:currentUploaderName(userData)
+    });
+    if(beginError) throw beginError;
+    if(!batchId) throw new Error('تعذر إنشاء نسخة المعالجة المؤقتة.');
+    processingBatchId=String(batchId);
+
+    const payload=payloadPreview.map(r=>({...r,batch_id:processingBatchId}));
+    status.textContent=`جاري رفع ${payload.length} حركة إلى مساحة المعالجة المؤقتة...`;
+    await insertChunks('sales_raw_transactions_staging',payload,400);
+
+    status.textContent='تم رفع البيانات المؤقتة. جاري حساب وحفظ النتائج النهائية...';
+    const {data:finalizeResult,error:finalizeError}=await WarehouseDB.client.rpc('app_p11_sales_finalize_upload',{
+      p_batch_id:processingBatchId
+    });
+    if(finalizeError) throw finalizeError;
+    if(finalizeResult?.status!=='active' || Number(finalizeResult?.staging_rows_after_finalize||0)!==0){
+      throw new Error('لم يكتمل اعتماد النتائج النهائية أو تنظيف البيانات المؤقتة.');
+    }
+
+    const resultRowCount=Number(finalizeResult?.result_row_count||0);
+    processingBatchId='';
     clearUnifiedSalesRowsCache();
     activeSalesReportDate=reportDate;
-    status.textContent=`تم رفع ${payload.length} سطر بنجاح لتاريخ ${formatDisplayDate(reportDate,reportDate)}.`;
+    status.textContent=`تم رفع ${payload.length} حركة وحفظ ${resultRowCount.toLocaleString('en-US')} نتيجة مجمعة بنجاح لتاريخ ${formatDisplayDate(reportDate,reportDate)} بدون حفظ Raw تاريخية.`;
     status.className='upload-status ok';
-    await logSystemActivity('التقارير',existing?.length?'استبدال تقرير':'رفع تقرير',`${existing?.length?'استبدال':'رفع'} تقرير مراجعة البيع بتاريخ ${formatDisplayDate(reportDate,reportDate)} (${payload.length} حركة)`);
+    await logSystemActivity('التقارير','رفع تقرير',`رفع تقرير مراجعة البيع بتاريخ ${formatDisplayDate(reportDate,reportDate)} (${payload.length} حركة → ${resultRowCount} نتيجة مجمعة)`);
     await loadSalesBatches();
     await refreshSalesReportDates(reportDate);
     await loadSalesReport(activeSalesWarehouse);
   }catch(err){
+    if(processingBatchId) await abortProcessingSalesUpload(processingBatchId,err);
     status.textContent=`خطأ أثناء الرفع: ${err.message || err}`;
     status.className='upload-status err';
   }
@@ -3988,10 +4018,15 @@ async function handleSalesBatchAction(btn){
   }
   if(action==='replace'){
     if($('#salesReportDateInput')) $('#salesReportDateInput').value=date;
-    $('#salesExcelInput')?.click();
+    const status=$('#salesUploadStatus');
+    if(status){
+      status.className='upload-status err';
+      status.textContent=`استبدال تقرير ${formatDisplayDate(date,date)} موقوف مؤقتًا للحماية لحين تفعيل الاستبدال الذري. النسخة الحالية لم تتغير.`;
+    }
+    return;
   }
   if(action==='delete'){
-    if(!await showAppLiquidConfirm({message:`سيتم حذف تقرير المبيعات بتاريخ ${formatDisplayDate(date,date)} وكل بياناته الخام. هل أنت متأكد؟`})) return;
+    if(!await showAppLiquidConfirm({message:`سيتم حذف تقرير المبيعات بتاريخ ${formatDisplayDate(date,date)} وكل نتائجه المحفوظة. هل أنت متأكد؟`})) return;
     const {error:delError}=await WarehouseDB.client.from('sales_upload_batches').delete().eq('id',btn.dataset.id);
     if(delError){ alert('خطأ أثناء الحذف: '+delError.message); return; }
     clearUnifiedSalesRowsCache();
