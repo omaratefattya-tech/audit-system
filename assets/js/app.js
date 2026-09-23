@@ -3875,13 +3875,14 @@ async function abortProcessingSalesUpload(batchId,error){
     });
     if(abortError) throw abortError;
   }catch(abortErr){
-    console.error('P11.4 sales upload cleanup failed',abortErr);
+    console.error('P11.5 sales upload cleanup failed',abortErr);
   }
 }
 async function handleSalesFile(file){
   const status=$('#salesUploadStatus');
   const reportDate=normalizeDateISO($('#salesReportDateInput')?.value);
   let processingBatchId='';
+  let replacing=false;
   status.className='upload-status';
   status.textContent='جاري قراءة الملف وحساب بصمة SHA256...';
   if(!reportDate){ status.textContent='اختار تاريخ التقرير أولاً.'; status.className='upload-status err'; return; }
@@ -3904,13 +3905,13 @@ async function handleSalesFile(file){
       .eq('report_date',reportDate)
       .eq('status','active');
     if(existingError) throw existingError;
-    if(existing?.length){
-      status.textContent=`يوجد تقرير مبيعات فعال بتاريخ ${formatDisplayDate(reportDate,reportDate)}. الاستبدال موقوف مؤقتًا للحماية لحين تفعيل الاستبدال الذري؛ لم يتم تغيير أي بيانات.`;
-      status.className='upload-status err';
-      return;
+    replacing=Boolean(existing?.length);
+    if(replacing){
+      const ok=await showAppLiquidConfirm({message:`يوجد تقرير مبيعات حالي بتاريخ ${formatDisplayDate(reportDate,reportDate)}.\nسيتم حساب الملف الجديد والتحقق منه أولًا، ثم استبدال التقرير الحالي ذريًا بدون الاحتفاظ بأي نسخة قديمة.\nهل تريد المتابعة؟`});
+      if(!ok){ status.textContent='تم إلغاء الاستبدال بدون تغيير التقرير الحالي.'; return; }
     }
 
-    status.textContent=`تم تجهيز ${payloadPreview.length} حركة. جاري بدء المعالجة المؤقتة بتاريخ ${formatDisplayDate(reportDate,reportDate)}...`;
+    status.textContent=`تم تجهيز ${payloadPreview.length} حركة. جاري بدء ${replacing?'الاستبدال الذري':'المعالجة المؤقتة'} بتاريخ ${formatDisplayDate(reportDate,reportDate)}...`;
     const {data:batchId,error:beginError}=await WarehouseDB.client.rpc('app_p11_sales_begin_upload',{
       p_report_date:reportDate,
       p_file_name:file.name,
@@ -3920,14 +3921,16 @@ async function handleSalesFile(file){
       p_uploaded_by_name:currentUploaderName(userData)
     });
     if(beginError) throw beginError;
-    if(!batchId) throw new Error('تعذر إنشاء نسخة المعالجة المؤقتة.');
+    if(!batchId) throw new Error('تعذر إنشاء مساحة المعالجة المؤقتة.');
     processingBatchId=String(batchId);
 
     const payload=payloadPreview.map(r=>({...r,batch_id:processingBatchId}));
     status.textContent=`جاري رفع ${payload.length} حركة إلى مساحة المعالجة المؤقتة...`;
     await insertChunks('sales_raw_transactions_staging',payload,400);
 
-    status.textContent='تم رفع البيانات المؤقتة. جاري حساب وحفظ النتائج النهائية...';
+    status.textContent=replacing
+      ? 'تم رفع البيانات المؤقتة. جاري التحقق من النتائج ثم تنفيذ الاستبدال الذري...'
+      : 'تم رفع البيانات المؤقتة. جاري حساب وحفظ النتائج النهائية...';
     const {data:finalizeResult,error:finalizeError}=await WarehouseDB.client.rpc('app_p11_sales_finalize_upload',{
       p_batch_id:processingBatchId
     });
@@ -3937,18 +3940,21 @@ async function handleSalesFile(file){
     }
 
     const resultRowCount=Number(finalizeResult?.result_row_count||0);
+    const wasReplaced=Boolean(finalizeResult?.replaced);
     processingBatchId='';
     clearUnifiedSalesRowsCache();
     activeSalesReportDate=reportDate;
-    status.textContent=`تم رفع ${payload.length} حركة وحفظ ${resultRowCount.toLocaleString('en-US')} نتيجة مجمعة بنجاح لتاريخ ${formatDisplayDate(reportDate,reportDate)} بدون حفظ Raw تاريخية.`;
+    status.textContent=wasReplaced
+      ? `تم استبدال تقرير ${formatDisplayDate(reportDate,reportDate)} بنجاح: ${payload.length} حركة → ${resultRowCount.toLocaleString('en-US')} نتيجة مجمعة. لم يتم الاحتفاظ بالنسخة السابقة أو Raw جديدة.`
+      : `تم رفع ${payload.length} حركة وحفظ ${resultRowCount.toLocaleString('en-US')} نتيجة مجمعة بنجاح لتاريخ ${formatDisplayDate(reportDate,reportDate)} بدون حفظ Raw تاريخية.`;
     status.className='upload-status ok';
-    await logSystemActivity('التقارير','رفع تقرير',`رفع تقرير مراجعة البيع بتاريخ ${formatDisplayDate(reportDate,reportDate)} (${payload.length} حركة → ${resultRowCount} نتيجة مجمعة)`);
+    await logSystemActivity('التقارير',wasReplaced?'استبدال تقرير':'رفع تقرير',`${wasReplaced?'استبدال':'رفع'} تقرير مراجعة البيع بتاريخ ${formatDisplayDate(reportDate,reportDate)} (${payload.length} حركة → ${resultRowCount} نتيجة مجمعة)`);
     await loadSalesBatches();
     await refreshSalesReportDates(reportDate);
     await loadSalesReport(activeSalesWarehouse);
   }catch(err){
     if(processingBatchId) await abortProcessingSalesUpload(processingBatchId,err);
-    status.textContent=`خطأ أثناء الرفع: ${err.message || err}`;
+    status.textContent=`خطأ أثناء ${replacing?'الاستبدال':'الرفع'}: ${err.message || err}`;
     status.className='upload-status err';
   }
 }
@@ -3966,7 +3972,7 @@ async function refreshSalesReportDates(preferredDate=''){
   if(error){ console.error(error); return; }
   const dates=[...new Set((data||[]).map(x=>normalizeDateISO(x.report_date)).filter(Boolean))];
   const current=preferredDate || activeSalesReportDate || select.value || dates[0] || '';
-  select.innerHTML='<option value="">كل النسخ المتاحة</option>'+dates.map(d=>`<option value="${d}">${d}</option>`).join('');
+  select.innerHTML='<option value="">كل التواريخ المتاحة</option>'+dates.map(d=>`<option value="${d}">${d}</option>`).join('');
   if(current && dates.includes(current)) select.value=current;
   else select.value='';
   activeSalesReportDate=select.value;
@@ -4019,21 +4025,22 @@ async function handleSalesBatchAction(btn){
   if(action==='replace'){
     if($('#salesReportDateInput')) $('#salesReportDateInput').value=date;
     const status=$('#salesUploadStatus');
-    if(status){
-      status.className='upload-status err';
-      status.textContent=`استبدال تقرير ${formatDisplayDate(date,date)} موقوف مؤقتًا للحماية لحين تفعيل الاستبدال الذري. النسخة الحالية لم تتغير.`;
-    }
+    if(status){ status.className='upload-status'; status.textContent=`اختر الملف الجديد لاستبدال تقرير ${formatDisplayDate(date,date)} ذريًا. لن يتم الاحتفاظ بالنسخة السابقة بعد نجاح الاستبدال.`; }
+    $('#salesExcelInput')?.click();
     return;
   }
   if(action==='delete'){
-    if(!await showAppLiquidConfirm({message:`سيتم حذف تقرير المبيعات بتاريخ ${formatDisplayDate(date,date)} وكل نتائجه المحفوظة. هل أنت متأكد؟`})) return;
-    const {error:delError}=await WarehouseDB.client.from('sales_upload_batches').delete().eq('id',btn.dataset.id);
+    if(!await showAppLiquidConfirm({message:`سيتم حذف تقرير المبيعات الحالي بتاريخ ${formatDisplayDate(date,date)} ونتائجه نهائيًا بدون الاحتفاظ بنسخة قديمة. هل أنت متأكد؟`})) return;
+    const {data:deleteResult,error:delError}=await WarehouseDB.client.rpc('app_p11_sales_delete_current',{p_batch_id:btn.dataset.id});
     if(delError){ alert('خطأ أثناء الحذف: '+delError.message); return; }
     clearUnifiedSalesRowsCache();
-    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير مراجعة البيع بتاريخ ${formatDisplayDate(date,date)}`);
+    const status=$('#salesUploadStatus');
+    if(status){ status.className='upload-status ok'; status.textContent=`تم حذف تقرير ${formatDisplayDate(date,date)} نهائيًا بدون الاحتفاظ بنسخة قديمة.`; }
+    await logSystemActivity('التقارير','حذف تقرير',`حذف تقرير مراجعة البيع بتاريخ ${formatDisplayDate(date,date)} (Current-only)`);
     await loadSalesBatches();
     await refreshSalesReportDates();
     await loadSalesReport(activeSalesWarehouse);
+    return deleteResult;
   }
 }
 document.addEventListener('click',e=>{
@@ -4705,7 +4712,7 @@ async function exportSalesReviewAllVersions(format){
         if(operation.signal.aborted) return;
         const part=rows.slice(page*pageSize,(page+1)*pageSize);
         const body=page===pages-1?[...part,total]:part;
-        layer.innerHTML=`<h2 style="margin:0;text-align:center">مراجعة البيع والتحويلات — كل النسخ المتاحة</h2><p style="text-align:center">${escapeHtml(warehouse)} — صفحة ${page+1} من ${pages} — ${rows.length} صف مطابق</p><table data-no-universal-table="1" style="width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed;color:#111"><thead><tr>${header.map(h=>`<th style="padding:8px;border:1px solid #777;background:#dff1d8;color:#111;white-space:normal">${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${body.map(row=>`<tr>${header.map((_,i)=>`<td style="padding:7px;border:1px solid #777;background:#fff;color:#111;white-space:normal;overflow-wrap:anywhere">${escapeHtml(row[i]??'')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+        layer.innerHTML=`<h2 style="margin:0;text-align:center">مراجعة البيع والتحويلات — كل التواريخ المتاحة</h2><p style="text-align:center">${escapeHtml(warehouse)} — صفحة ${page+1} من ${pages} — ${rows.length} صف مطابق</p><table data-no-universal-table="1" style="width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed;color:#111"><thead><tr>${header.map(h=>`<th style="padding:8px;border:1px solid #777;background:#dff1d8;color:#111;white-space:normal">${escapeHtml(h)}</th>`).join('')}</tr></thead><tbody>${body.map(row=>`<tr>${header.map((_,i)=>`<td style="padding:7px;border:1px solid #777;background:#fff;color:#111;white-space:normal;overflow-wrap:anywhere">${escapeHtml(row[i]??'')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
         await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
         if(operation.signal.aborted) return;
         const canvas=await Html2Canvas(layer,{scale:1.5,useCORS:true,backgroundColor:'#fff',logging:false,scrollX:0,scrollY:0,width:layer.scrollWidth,height:layer.scrollHeight,windowWidth:layer.scrollWidth,windowHeight:layer.scrollHeight});
@@ -4726,7 +4733,7 @@ async function exportSalesReviewAllVersions(format){
       const blob=pdf?pdf.output('blob'):salesReviewPngZip(files);
       // The save helper uses the supplied Blob type for the fallback download.
       await saveBlobWithPicker(blob,`sales-${code}-all-${todayISO()}.${pdf?'pdf':'zip'}`,pdf?'application/pdf':'application/zip');
-      await logSystemActivity('مراجعة البيع',`تصدير ${format.toUpperCase()}`,`كل النسخ المتاحة: ${rows.length} صف، ${pages} صفحة`);
+      await logSystemActivity('مراجعة البيع',`تصدير ${format.toUpperCase()}`,`كل التواريخ المتاحة: ${rows.length} صف، ${pages} صفحة`);
     }catch(error){
       if(!operation.signal.aborted){operation.fail(error);console.error(error);alert('تعذر إكمال التصدير. حاول مرة أخرى.');}
     }finally{layer.remove();}
