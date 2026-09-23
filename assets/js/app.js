@@ -1824,34 +1824,30 @@ function salesReviewCurrentMonthFilters(base={}){
 }
 async function fetchSalesReviewVerificationSourceRows(filters={},options={}){
   if(!WarehouseDB?.ready) return [];
-  const pageSize=1000;
-  const maxPages=options.maxPages||200;
+  const scoped=salesReviewCurrentMonthFilters(filters||{});
+  const dates=salesAuditDateSlices(scoped);
   const ascending=options.ascending!==false;
   const all=[];
-  for(let page=0;page<maxPages;page++){
-    const from=page*pageSize;
-    const to=from+pageSize-1;
-    let query=WarehouseDB.client
-      .from('sales_raw_transactions')
-      .select(SALES_RAW_AUDIT_SELECT)
-      .eq('sales_upload_batches.status','active')
-      .in('movement_type',SALES_REVIEW_MOVEMENT_TYPES)
-      .order('id',{ascending})
-      .range(from,to);
-    if(filters.from) query=query.gte('sales_upload_batches.report_date',filters.from);
-    if(filters.to) query=query.lte('sales_upload_batches.report_date',filters.to);
-    query=enterpriseFilterApplyQuery(query,'plant_code',filters.plant);
-    query=enterpriseFilterApplyQuery(query,'warehouse_code',filters.warehouse,v=>String(v||'').toUpperCase());
-    const {data,error}=await query;
-    if(error) throw error;
-    const chunk=(data||[]).map(r=>({
-      ...r,
-      report_date:salesRowReportDate(r),
-      warehouse_name:r.warehouse_name || dashboardWhMeta(r.warehouse_code).name || '',
-      uom:r.uom || 'TO'
-    }));
-    all.push(...chunk);
-    if(chunk.length<pageSize) break;
+  if(!ascending) dates.reverse();
+  for(const date of dates){
+    for(let page=0;;page++){
+      let query=WarehouseDB.client
+        .from('sales_audit_report')
+        .select('batch_id,report_date,warehouse_code,warehouse_name,plant_code,plant_name,material_code,material_name,uom,sales_quantity,actual_return_quantity,production_quantity,outgoing_transfer_quantity,incoming_transfer_quantity,total_loading_quantity')
+        .eq('report_date',date)
+        .order('batch_id',{ascending:true})
+        .order('plant_code',{ascending:true})
+        .order('warehouse_code',{ascending:true})
+        .order('material_code',{ascending:true})
+        .range(page*1000,(page+1)*1000-1);
+      query=enterpriseFilterApplyQuery(query,'plant_code',scoped.plant);
+      query=enterpriseFilterApplyQuery(query,'warehouse_code',scoped.warehouse,v=>String(v||'').toUpperCase());
+      const {data,error}=await query;
+      if(error) throw error;
+      const chunk=data||[];
+      all.push(...chunk);
+      if(chunk.length<1000) break;
+    }
   }
   return all;
 }
@@ -2085,7 +2081,6 @@ async function fetchAllSalesAuditRows(filters={}, options={}){
   return window.AppOperationProgress.run(key,'تحميل بيانات الفترة',load);
 }
 
-const SALES_RAW_AUDIT_SELECT='id,material_code,material_name,quantity,uom,quantity_to,movement_type,movement_text,worker_group,warehouse_code,plant_code,plant_name,sales_upload_batches!inner(report_date,status)';
 function salesRowReportDate(row){
   const batch=Array.isArray(row?.sales_upload_batches)?row.sales_upload_batches[0]:row?.sales_upload_batches;
   return normalizeDateISO(row?.report_date || batch?.report_date || '');
@@ -2116,16 +2111,14 @@ async function debugActualReturnRows(filters={},options={}){
   const sourceRows=await fetchSalesReviewVerificationSourceRows(salesReviewCurrentMonthFilters(filters),options);
   const limit=options.limit || 50;
   const sample=sourceRows
-    .filter(row=>String(row?.movement_type||'').trim().toUpperCase()==='653')
+    .filter(row=>Math.abs(toNumber(row?.actual_return_quantity))>0)
     .slice(0,limit)
     .map(row=>({
       material_code:row.material_code,
       warehouse_code:row.warehouse_code,
-      movement_type:row.movement_type,
-      worker_group_raw:row.worker_group,
-      worker_group_normalized:normalizeWorkerGroup(row.worker_group),
-      quantity:salesRowQuantityTo(row),
-      classification:classifySalesReviewMovement(row)
+      report_date:row.report_date,
+      actual_return_quantity:toNumber(row.actual_return_quantity),
+      source:'sales_audit_report'
     }));
   console.table(sample);
   return sample;
@@ -2265,13 +2258,13 @@ function buildUnifiedSalesTotals(rows,options={}){
   console.time(perfLabel);
   const filters=options.filters||{};
   const sourceRows=rows||[];
-  const isAuditRows=options.source==='raw-debug' ? false : (options.source==='sales_audit_report' || sourceRows.length===0 || sourceRows.every(isSalesAuditReportRow));
+  const isAuditRows=sourceRows.length===0 || sourceRows.every(isSalesAuditReportRow);
   const model=isAuditRows
     ? aggregateSalesAuditReportRows(sourceRows,filters,options)
     : aggregateSalesRowsWithMetrics(sourceRows,filters,options,computeUnifiedSalesMetrics);
   console.timeEnd(perfLabel);
   salesPerfLog('buildUnifiedSalesTotals',perfStart,{
-    source:isAuditRows?'sales_audit_report':'raw-debug',
+    source:isAuditRows?'sales_audit_report':'legacy-row-shape',
     sourceRows:model.counts.sourceRows,
     afterMaterialFilter:model.counts.afterMaterialFilter,
     afterSalesWarehouseFilter:model.counts.afterSalesWarehouseFilter,
@@ -2420,77 +2413,14 @@ async function verifySalesAggregationAgainstSalesReviewTable(params={},options={
   console.log('[sales-aggregation-vs-sales-review-table]',report);
   return report;
 }
-async function fetchAllSalesRawRows(filters={},options={}){
-  if(!WarehouseDB?.ready) return [];
-  const catalog=options.catalog || await loadSalesReviewCatalog();
-  const perfLabel=`fetchAllSalesRawRows ${unifiedSalesRowsCacheKey(filters)} ${catalog.signature||''}`;
-  const perfStart=salesPerfNow();
-  console.time(perfLabel);
-  const pageSize=1000;
-  const maxPages=200;
-  const ascending=options.ascending===true;
-  const all=[];
-  const materialQueryCodes=[...new Set(catalog.fallback ? [...SALES_REVIEW_MATERIAL_CODES] : [...(catalog.materialCodes||[])])];
-  const warehouseQueryCodes=[...new Set(catalog.fallback ? [...SALES_WAREHOUSES] : [...(catalog.allAllowedWarehouseCodes||[])])];
-  const selectedWarehouseCodes=enterpriseFilterActiveValues(filters.warehouse).map(v=>String(v).toUpperCase());
-  if(!materialQueryCodes.length || (!selectedWarehouseCodes.length && !warehouseQueryCodes.length)){
-    salesPerfLog('fetchAllSalesRawRows-skipped-empty-dynamic-catalog',perfStart,{catalogSource:catalog.source,materialCodes:materialQueryCodes.length,warehouses:warehouseQueryCodes.length});
-    console.timeEnd(perfLabel);
-    return [];
-  }
-  const pageDurations=[];
-  try{
-    for(let page=0; page<maxPages; page++){
-      const pageStart=salesPerfNow();
-      const from=page*pageSize;
-      const to=from+pageSize-1;
-      let query=WarehouseDB.client
-        .from('sales_raw_transactions')
-        .select(SALES_RAW_AUDIT_SELECT)
-        .eq('sales_upload_batches.status','active')
-        .in('material_code',materialQueryCodes)
-        .in('movement_type',SALES_REVIEW_MOVEMENT_TYPES)
-        .order('id',{ascending})
-        .range(from,to);
-      if(filters.from) query=query.gte('sales_upload_batches.report_date',filters.from);
-      if(filters.to) query=query.lte('sales_upload_batches.report_date',filters.to);
-      query=enterpriseFilterApplyQuery(query,'plant_code',filters.plant);
-      if(selectedWarehouseCodes.length) query=query.in('warehouse_code',selectedWarehouseCodes);
-      else query=query.in('warehouse_code',warehouseQueryCodes);
-      const {data,error}=await query;
-      if(error) throw error;
-      const chunk=(data||[]).map(r=>({
-        ...r,
-        report_date:salesRowReportDate(r),
-        warehouse_name:r.warehouse_name || dashboardWhMeta(r.warehouse_code).name || '',
-        uom:r.uom || 'TO'
-      }));
-      all.push(...chunk);
-      pageDurations.push({page:page+1,rows:chunk.length,durationMs:salesPerfMs(pageStart)});
-      if(chunk.length<pageSize) break;
-    }
-    salesReviewEngineDebug(all,catalog,'sales_raw_transactions',filters);
-    return filterSalesReviewRows(all,catalog);
-  }finally{
-    console.timeEnd(perfLabel);
-    salesPerfLog('fetchAllSalesRawRows',perfStart,{
-      supabaseRows:all.length,
-      pages:pageDurations.length,
-      pageDurations,
-      dbFilters:{
-        materialCodes:materialQueryCodes.length,
-        catalogMaterialCodes:catalog.materialCodes?.size||0,
-        warehouses:selectedWarehouseCodes.length || warehouseQueryCodes.length,
-        catalogWarehouses:catalog.allAllowedWarehouseCodes?.size||0,
-        catalogSource:catalog.source,
-        movements:SALES_REVIEW_MOVEMENT_TYPES.length
-      }
-    });
-  }
+async function fetchAllSalesCompactRows(filters={},options={}){
+  return fetchAllSalesAuditRows(filters,options);
 }
 async function fetchUnifiedSalesRows(filters={},options={}){
   const catalog=await loadSalesReviewCatalog();
-  const source=options.rawDebug===true || options.source==='raw-debug' ? 'raw-debug' : 'sales_audit_report';
+  const rawDebugRequested=options.rawDebug===true || options.source==='raw-debug';
+  if(rawDebugRequested) console.warn('[sales-data] raw-debug retired in P11.6B; using sales_audit_report compact results.');
+  const source='sales_audit_report';
   const requestUserId=window.PermissionRuntime?.userId();
   const cacheGeneration=UNIFIED_SALES_CACHE_GENERATION;
   const key=requestUserId+'|'+unifiedSalesRowsCacheKey(filters)+'|'+(catalog.signature||'legacy')+'|'+source+'|'+(options.select||'default')+'|'+(options.orderBy||'report_date')+'|'+!!options.ascending;
@@ -2511,9 +2441,7 @@ async function fetchUnifiedSalesRows(filters={},options={}){
     salesPerfLog('fetchUnifiedSalesRows pending-hit',perfStart,{cacheKey:key,source,rows:rows.length});
     return rows;
   }
-  const request=source==='raw-debug'
-    ? fetchAllSalesRawRows(filters,{...options,catalog})
-    : fetchAllSalesAuditRows(filters,options);
+  const request=fetchAllSalesCompactRows(filters,options);
   UNIFIED_SALES_ROWS_PENDING.set(key,request);
   try{
     const rows=await request;
