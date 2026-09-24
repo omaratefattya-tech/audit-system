@@ -7938,14 +7938,14 @@ function rawMaterialsAddDays(dateKey,days){
   return date.toISOString().slice(0,10);
 }
 async function rawMaterialsLoadBranConsumptionRows(){
-  const base=q=>q.eq('material_group',RAW_MATERIALS_BRAN_GROUP).in('movement_type',['261','262']);
-  const latestQuery=base(WarehouseDB.client.from('consumption_rate_rows').select('transaction_date').order('transaction_date',{ascending:false}).limit(1));
+  const table='consumption_rate_bran_daily_compact';
+  const latestQuery=WarehouseDB.client.from(table).select('transaction_date').order('transaction_date',{ascending:false}).limit(1);
   const {data,error}=await latestQuery;
   if(error) throw error;
   const periodEnd=rawMaterialsDateKey(data?.[0]?.transaction_date);
   if(!periodEnd) return {rows:[],periodStart:'',periodEnd:''};
   const periodStart=rawMaterialsAddDays(periodEnd,-89);
-  const rows=await fetchAllRows('consumption_rate_rows','material_code,material_group,plant_code,movement_type,quantity,uom,transaction_date',q=>base(q).gte('transaction_date',periodStart).lte('transaction_date',periodEnd).order('transaction_date',{ascending:true}).order('id',{ascending:true}));
+  const rows=await fetchAllRows(table,'plant_code,transaction_date,issue_ton,return_ton',q=>q.gte('transaction_date',periodStart).lte('transaction_date',periodEnd).order('transaction_date',{ascending:true}).order('plant_code',{ascending:true}));
   return {rows:rows||[],periodStart,periodEnd};
 }
 function rawMaterialsNormalizeQuantity(value,uom){
@@ -8084,13 +8084,10 @@ function rawMaterialsBranGroupDailyConsumption(rows){
   (RAW_MATERIALS_SCREEN_STATE.branConsumptionRows||[]).forEach(row=>{
     const plant=rawMaterialsCode(row.plant_code);
     if(!plantScope.has(plant)) return;
-    const movement=String(row.movement_type||'').trim();
-    if(movement!=='261' && movement!=='262') return;
     const dateKey=rawMaterialsDateKey(row.transaction_date);
     if(dateKey) activeDates.add(dateKey);
-    const quantityTon=rawMaterialsNormalizeBranDailyConsumption(row.quantity,row.uom,row).value;
-    if(movement==='261') issue+=quantityTon;
-    if(movement==='262') returned+=quantityTon;
+    issue+=rawMaterialsNumber(row.issue_ton);
+    returned+=rawMaterialsNumber(row.return_ton);
   });
   const activeDays=activeDates.size;
   if(!activeDays) return 0;
