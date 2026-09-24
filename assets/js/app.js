@@ -3913,6 +3913,19 @@ function formatFileSize(bytes){
   if(n<1024*1024) return `${(n/1024).toFixed(1)} KB`;
   return `${(n/1024/1024).toFixed(2)} MB`;
 }
+async function loadCompactionBatchMetrics(kind, reportKey=null){
+  if(!WarehouseDB?.ready) return new Map();
+  const {data,error}=await WarehouseDB.client.rpc('app_compaction_batch_metrics',{
+    p_kind:kind,
+    p_report_key:reportKey
+  });
+  if(error) throw error;
+  return new Map((data||[]).map(row=>[String(row.batch_id),{
+    sourceRowCount:Number(row.source_row_count||0),
+    resultRowCount:Number(row.result_row_count||0),
+    compactPayloadBytes:Number(row.compact_payload_bytes||0)
+  }]));
+}
 async function loadSalesBatches(){
   if(!applicationBusinessDataReady()) return;
   if(!window.PermissionRuntime?.can('upload_reports.sales.view')) return;
@@ -3920,7 +3933,7 @@ async function loadSalesBatches(){
   if(!tbl || !WarehouseDB?.ready){ return; }
   const {data,error}=await WarehouseDB.client
     .from('sales_upload_batches')
-    .select('id,file_name,upload_date,uploaded_by,uploaded_by_name,report_date,row_count,file_size_bytes,status')
+    .select('id,file_name,upload_date,uploaded_by,uploaded_by_name,report_date,row_count,file_size_bytes,source_row_count,result_row_count,status')
     .eq('report_type','sales')
     .eq('status','active')
     .order('report_date',{ascending:false});
@@ -3928,18 +3941,31 @@ async function loadSalesBatches(){
     tbl.innerHTML=`<tbody><tr><td>خطأ تحميل السجل: ${escapeHtml(String(error.message))}</td></tr></tbody>`;
     return;
   }
-  const rows=(data||[]).map(b=>[
-    formatDisplayDate(b.report_date,'-'),
-    escapeHtml(b.file_name || '-'),
-    Number(b.row_count||0).toLocaleString('en-US'),
-    formatFileSize(b.file_size_bytes),
-    escapeHtml(b.uploaded_by_name || b.uploaded_by || '-'),
-    formatDisplayDateTime(b.upload_date,'-'),
-    `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض</button>
-     <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
-     <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">حذف</button>`
-  ]);
-  table('#salesBatchesTable',['تاريخ التقرير','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الإجراءات'],rows);
+  let metrics=new Map();
+  try{
+    metrics=await loadCompactionBatchMetrics('sales',null);
+  }catch(metricsError){
+    console.error('P12.7 sales compaction metrics load failed',metricsError);
+  }
+  const rows=(data||[]).map(b=>{
+    const metric=metrics.get(String(b.id))||{};
+    const sourceRows=Number(b.source_row_count ?? b.row_count ?? metric.sourceRowCount ?? 0);
+    const resultRows=Number(metric.resultRowCount ?? b.result_row_count ?? 0);
+    return [
+      formatDisplayDate(b.report_date,'-'),
+      escapeHtml(b.file_name || '-'),
+      sourceRows.toLocaleString('en-US'),
+      resultRows.toLocaleString('en-US'),
+      formatFileSize(b.file_size_bytes),
+      formatFileSize(metric.compactPayloadBytes),
+      escapeHtml(b.uploaded_by_name || b.uploaded_by || '-'),
+      formatDisplayDateTime(b.upload_date,'-'),
+      `<button class="small-action view" data-action="view" data-date="${normalizeDateISO(b.report_date)}">عرض</button>
+       <button class="small-action replace" data-action="replace" data-date="${normalizeDateISO(b.report_date)}">استبدال</button>
+       <button class="small-action delete" data-action="delete" data-id="${b.id}" data-date="${normalizeDateISO(b.report_date)}">حذف</button>`
+    ];
+  });
+  table('#salesBatchesTable',['تاريخ التقرير','اسم الملف','عدد السطور قبل','عدد السطور بعد','الحجم قبل','الحجم بعد','الرافع','تاريخ الرفع','الإجراءات'],rows);
 }
 async function handleSalesBatchAction(btn){
   const action=btn.dataset.action;
@@ -17481,17 +17507,27 @@ async function icLoadLastUploadBatch(tabKey) {
         .order('id', { ascending: false })
     );
     if (!data || data.length === 0) {
-      tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">لا توجد تقارير حالية مرفوعة</td></tr>';
+      tableEl.innerHTML = '<tr><td colspan="9" class="empty-state">لا توجد تقارير حالية مرفوعة</td></tr>';
       return;
+    }
+
+    let metrics=new Map();
+    try{
+      metrics=await loadCompactionBatchMetrics('inventory_closing',config.reportKey);
+    }catch(metricsError){
+      console.error('P12.7 inventory closing compaction metrics load failed',metricsError);
     }
 
     // Store metadata for each batch in an isolated Map (keyed by batch.id)
     data.forEach(batch => {
-      const rowCount = batch.row_count ?? batch.received_rows ?? batch.final_row_count ?? batch.expected_rows ?? null;
+      const metric=metrics.get(String(batch.id))||{};
+      const rowCount = metric.sourceRowCount || batch.row_count || batch.received_rows || batch.final_row_count || batch.expected_rows || null;
       inventoryClosingBatchMeta.set(String(batch.id), {
         fileName: batch.file_name || '--',
         reportDate: batch.report_date || '--',
         rowCount: rowCount !== null ? rowCount : '--',
+        resultRowCount: metric.resultRowCount || 0,
+        compactPayloadBytes: metric.compactPayloadBytes || 0,
         status: batch.status,
         reportKey: batch.report_key,
         tabKey: tabKey
@@ -17502,11 +17538,12 @@ async function icLoadLastUploadBatch(tabKey) {
       // Resolve upload timestamp — try known possible column names defensively
       const rawTs = batch.completed_at ?? batch.created_at ?? batch.upload_date ?? batch.uploaded_at ?? batch.inserted_at ?? null;
       const bDate = formatDisplayDateTime(rawTs,'--');
-      // Resolve row count — try known possible column names defensively
-      const rowCount = batch.row_count ?? batch.received_rows ?? batch.final_row_count ?? batch.expected_rows ?? '--';
-      
+      const metric=metrics.get(String(batch.id))||{};
+      const sourceRowCount = Number(metric.sourceRowCount || batch.row_count || batch.received_rows || batch.final_row_count || batch.expected_rows || 0);
+      const resultRowCount = Number(metric.resultRowCount || 0);
       const uploader = batch.uploaded_by_name || batch.uploaded_by || '--';
-      const fileSize = typeof formatFileSize === 'function' ? formatFileSize(batch.file_size_bytes) : '-';
+      const sourceFileSize = typeof formatFileSize === 'function' ? formatFileSize(batch.file_size_bytes) : '-';
+      const compactSize = typeof formatFileSize === 'function' ? formatFileSize(metric.compactPayloadBytes) : '-';
       const rDate = formatDisplayDate(batch.report_date,'--');
       
       // View button: carries ONLY data-action and data-batch-id (no file_name, report_date, row_count in DOM)
@@ -17519,8 +17556,10 @@ async function icLoadLastUploadBatch(tabKey) {
       return [
         (rDate || batch.report_date || '--'),
         batch.file_name || '--',
-        Number(rowCount || 0).toLocaleString('en-US'),
-        fileSize,
+        sourceRowCount.toLocaleString('en-US'),
+        resultRowCount.toLocaleString('en-US'),
+        sourceFileSize,
+        compactSize,
         uploader,
         bDate,
         actionsHtml
@@ -17528,11 +17567,11 @@ async function icLoadLastUploadBatch(tabKey) {
     });
 
     if (typeof table === 'function') {
-      table(tableSelector, ['تاريخ التقرير','اسم الملف','عدد السطور','الحجم','الرافع','تاريخ الرفع','الإجراءات'], rows);
+      table(tableSelector, ['تاريخ التقرير','اسم الملف','عدد السطور قبل','عدد السطور بعد','الحجم قبل','الحجم بعد','الرافع','تاريخ الرفع','الإجراءات'], rows);
     } else {
-      let html = '<thead><tr><th>تاريخ التقرير</th><th>اسم الملف</th><th>عدد السطور</th><th>الحجم</th><th>الرافع</th><th>تاريخ الرفع</th><th>الإجراءات</th></tr></thead><tbody>';
+      let html = '<thead><tr><th>تاريخ التقرير</th><th>اسم الملف</th><th>عدد السطور قبل</th><th>عدد السطور بعد</th><th>الحجم قبل</th><th>الحجم بعد</th><th>الرافع</th><th>تاريخ الرفع</th><th>الإجراءات</th></tr></thead><tbody>';
       rows.forEach(r => {
-        html += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td></tr>`;
+        html += `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td><td>${r[6]}</td><td>${r[7]}</td><td>${r[8]}</td></tr>`;
       });
       html += '</tbody>';
       tableEl.innerHTML = html;
@@ -17540,7 +17579,7 @@ async function icLoadLastUploadBatch(tabKey) {
 
   } catch (err) {
     console.error('IC: Failed to load current uploaded reports:', err);
-    tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">فشل جلب التقارير الحالية</td></tr>';
+    tableEl.innerHTML = '<tr><td colspan="9" class="empty-state">فشل جلب التقارير الحالية</td></tr>';
   }
 }
 
