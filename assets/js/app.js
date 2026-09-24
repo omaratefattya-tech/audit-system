@@ -17474,12 +17474,14 @@ async function icLoadLastUploadBatch(tabKey) {
       query => query
         .eq('report_key', config.reportKey)
         .eq('status', 'succeeded')
+        .is('replaced_at', null)
+        .is('deleted_at', null)
         .order('report_date', { ascending: false })
         .order('completed_at', { ascending: false, nullsFirst: false })
         .order('id', { ascending: false })
     );
     if (!data || data.length === 0) {
-      tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">لا يوجد عمليات رفع سابقة</td></tr>';
+      tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">لا توجد تقارير حالية مرفوعة</td></tr>';
       return;
     }
 
@@ -17510,10 +17512,9 @@ async function icLoadLastUploadBatch(tabKey) {
       // View button: carries ONLY data-action and data-batch-id (no file_name, report_date, row_count in DOM)
       const viewBtn = `<button type="button" class="ic-batch-view-btn" data-action="view-ic" data-batch-id="${escapeHtml(String(batch.id))}">عرض</button>`;
       
-      // P12.4: replacement is intentionally deferred until the atomic current-only
-      // workflow is installed in P12.5. Keep only the current report visible.
+      const replaceBtn = `<button type="button" class="small-action replace" data-action="replace-ic" data-batch-id="${escapeHtml(String(batch.id))}">استبدال</button>`;
       const deleteBtn = `<button type="button" class="small-action delete" data-action="delete-ic" data-batch-id="${escapeHtml(String(batch.id))}">حذف</button>`;
-      const actionsHtml = `<div style="display:flex;gap:4px;align-items:center;">${viewBtn}${deleteBtn}</div>`;
+      const actionsHtml = `<div style="display:flex;gap:4px;align-items:center;">${viewBtn}${replaceBtn}${deleteBtn}</div>`;
 
       return [
         (rDate || batch.report_date || '--'),
@@ -17538,8 +17539,8 @@ async function icLoadLastUploadBatch(tabKey) {
     }
 
   } catch (err) {
-    console.error('IC: Failed to load upload history:', err);
-    tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">فشل جلب سجل الرفع</td></tr>';
+    console.error('IC: Failed to load current uploaded reports:', err);
+    tableEl.innerHTML = '<tr><td colspan="7" class="empty-state">فشل جلب التقارير الحالية</td></tr>';
   }
 }
 
@@ -17724,8 +17725,8 @@ function initIcBatchViewModal() {
     
     const replaceBtn = e.target.closest('[data-action="replace-ic"]');
     if (replaceBtn) {
-      // Fail closed while P12.4 is active. P12.5 installs atomic current-only replace.
-      showInventoryCountToast('استبدال تقرير التقفيل غير متاح مؤقتًا حتى اكتمال مسار الاستبدال الآمن. التقرير الحالي لم يتأثر.','info',6500);
+      const batchId = replaceBtn.dataset.batchId;
+      if (batchId) handleReplaceIc(batchId);
       return;
     }
     
@@ -17739,25 +17740,27 @@ function initIcBatchViewModal() {
 }
 
 async function handleReplaceIc(batchId) {
-  // P12.4: no delete-first / replace-history workflow is allowed.
-  // Atomic current-only replacement is installed separately in P12.5.
   if (!batchId) return;
-  showInventoryCountToast('استبدال تقرير التقفيل غير متاح مؤقتًا حتى اكتمال مسار الاستبدال الآمن. التقرير الحالي لم يتأثر.','info',6500);
+  const meta = inventoryClosingBatchMeta.get(String(batchId));
+  if (!meta) return;
+  const prefix = meta.tabKey.replace(/_(.)/g, (_, c) => c.toUpperCase());
+  const dateInput = document.getElementById(prefix + 'DateInput');
+  const fileInput = document.getElementById(prefix + 'ExcelInput');
+  const statusEl = document.getElementById(prefix + 'UploadStatus');
+  if (dateInput) dateInput.value = normalizeDateISO(meta.reportDate);
+  if (statusEl) {
+    statusEl.className = 'upload-status';
+    statusEl.textContent = `اختر الملف الجديد لاستبدال تقرير ${formatDisplayDate(meta.reportDate, meta.reportDate)} ذريًا. لن يتم الاحتفاظ بالنسخة السابقة بعد نجاح الاستبدال.`;
+  }
+  fileInput?.click();
 }
 
 async function handleDeleteIc(batchId) {
   const meta = inventoryClosingBatchMeta.get(String(batchId));
   if (!meta) return;
   
-  let msg = '';
-  if (meta.status === 'succeeded') {
-     msg = "هذه هي النسخة النشطة لهذا التقرير والتاريخ. سيتم حذف ملف الـBatch وكل صفوف البيانات المرتبطة به نهائيًا من قاعدة البيانات، ولن يمكن استعادتها، ولن يتم تنشيط نسخة قديمة تلقائيًا. هل تريد المتابعة؟";
-  } else if (meta.status === 'replaced') {
-     msg = "سيتم حذف النسخة المستبدلة وكل صفوفها نهائيًا من قاعدة البيانات لتحرير المساحة. لا يمكن التراجع عن هذا الإجراء. هل تريد المتابعة؟";
-  } else {
-     return;
-  }
-  
+  if (meta.status !== 'succeeded') return;
+  const msg = `سيتم حذف تقرير التقفيل الحالي بتاريخ ${formatDisplayDate(meta.reportDate, meta.reportDate)} ونتيجته المجمعة نهائيًا، بدون الاحتفاظ بأي نسخة قديمة. إذا كان التقرير مصدرًا لجرد مغلق أو بدأت عليه التسوية فسيتم منع الحذف. هل تريد المتابعة؟`;
   if (!await showAppLiquidConfirm({message:msg})) return;
   
   try {
@@ -17767,9 +17770,9 @@ async function handleDeleteIc(batchId) {
      if (error) throw error;
      
      if (window.showToast) {
-       window.showToast('تم الحذف بنجاح.', 'success');
+       window.showToast('تم حذف التقرير الحالي نهائيًا بدون الاحتفاظ بنسخة قديمة.', 'success');
      } else {
-       alert('تم الحذف بنجاح.');
+       alert('تم حذف التقرير الحالي نهائيًا بدون الاحتفاظ بنسخة قديمة.');
      }
      
      inventoryClosingBatchMeta.delete(String(batchId));
@@ -17830,6 +17833,7 @@ async function handleInventoryClosingReportFile(tabKey, file) {
   setStatus('جاري قراءة الملف...');
 
   let batchId = null;
+  let replacing = false;
 
   try {
     if (!window.XLSX) throw new Error('مكتبة Excel غير متوفرة.');
@@ -17898,7 +17902,28 @@ async function handleInventoryClosingReportFile(tabKey, file) {
     if(parsedRows.length === 0) throw new Error('الملف لا يحتوي على بيانات فعلية.');
     const normalizedRows = normalizeInventoryClosingUploadRows(parsedRows);
 
-    setStatus('جاري رفع البيانات...');
+    const { data: currentRows, error: currentErr } = await WarehouseDB.client
+      .from('inventory_closing_upload_batches')
+      .select('id,file_name,report_date')
+      .eq('report_key', config.reportKey)
+      .eq('report_date', reportDate)
+      .eq('status', 'succeeded')
+      .is('replaced_at', null)
+      .is('deleted_at', null)
+      .limit(1);
+    if (currentErr) throw currentErr;
+    replacing = Boolean(currentRows?.length);
+    if (replacing) {
+      const ok = await showAppLiquidConfirm({message:`يوجد تقرير تقفيل حالي بتاريخ ${formatDisplayDate(reportDate, reportDate)}.
+سيتم حساب الملف الجديد والتحقق منه أولًا، ثم استبدال التقرير الحالي ذريًا بدون الاحتفاظ بأي نسخة قديمة.
+هل تريد المتابعة؟`});
+      if (!ok) {
+        setStatus('تم إلغاء الاستبدال بدون تغيير التقرير الحالي.');
+        return;
+      }
+    }
+
+    setStatus(replacing ? 'جاري بدء الاستبدال الذري...' : 'جاري رفع البيانات...');
 
     const { data: userData } = await WarehouseDB.getUser();
     const uploaderName = userData?.user?.user_metadata?.full_name || userData?.user?.email || null;
@@ -17909,7 +17934,8 @@ async function handleInventoryClosingReportFile(tabKey, file) {
       p_file_name: file.name,
       p_uploaded_by_name: uploaderName,
       p_expected_rows: normalizedRows.length,
-      p_file_size_bytes: file.size || 0
+      p_file_size_bytes: file.size || 0,
+      p_allow_replace: replacing
     });
     
     if (beginErr) throw beginErr;
@@ -17918,7 +17944,10 @@ async function handleInventoryClosingReportFile(tabKey, file) {
       ? (_beginResult.batch_id || _beginResult.id || _beginResult)
       : _beginResult;
     if(!batchId) throw new Error('لم يتم إرجاع batch_id من الخادم.');
+    const serverReplacing = Boolean(_beginResult && typeof _beginResult === 'object' && _beginResult.replacing);
+    if (serverReplacing !== replacing) throw new Error('تغيرت النسخة الحالية أثناء بدء الرفع؛ أعد المحاولة.');
 
+    setStatus(replacing ? 'جاري رفع النسخة الجديدة إلى مساحة المعالجة المؤقتة...' : 'جاري رفع البيانات إلى مساحة المعالجة المؤقتة...');
     const CHUNK_SIZE = 250;
     for (let i = 0; i < normalizedRows.length; i += CHUNK_SIZE) {
       const chunk = normalizedRows.slice(i, i + CHUNK_SIZE);
@@ -17932,7 +17961,7 @@ async function handleInventoryClosingReportFile(tabKey, file) {
       setStatus('جاري رفع البيانات... (' + percent + '%)');
     }
 
-    setStatus('جاري اعتماد التقرير...');
+    setStatus(replacing ? 'جاري التحقق من النتائج وتنفيذ الاستبدال الذري...' : 'جاري اعتماد التقرير...');
     const { data: finData, error: finErr } = await WarehouseDB.client.rpc('finalize_inventory_closing_upload', {
       p_batch_id: batchId
     });
@@ -17949,14 +17978,14 @@ async function handleInventoryClosingReportFile(tabKey, file) {
     const compactResultRows = (_finResult !== null && typeof _finResult === 'object')
       ? Number(_finResult.result_rows || _finResult.compact_rows || 0)
       : 0;
+    const wasReplaced = Boolean(_finResult && typeof _finResult === 'object' && _finResult.replaced);
     const compactSummary = compactResultRows > 0
       ? ' → ' + compactResultRows.toLocaleString('en-US') + ' نتيجة مجمعة'
       : '';
     setStatus(
-      'تم رفع التقرير بنجاح. ' +
-      normalizedRows.length.toLocaleString('en-US') + ' حركة مصدر' +
-      compactSummary +
-      '، بدون حفظ Raw للأرشفة.',
+      wasReplaced
+        ? 'تم استبدال تقرير ' + formatDisplayDate(reportDate, reportDate) + ' بنجاح. ' + normalizedRows.length.toLocaleString('en-US') + ' حركة مصدر' + compactSummary + '، ولم يتم الاحتفاظ بالنسخة السابقة أو Raw جديدة.'
+        : 'تم رفع التقرير بنجاح. ' + normalizedRows.length.toLocaleString('en-US') + ' حركة مصدر' + compactSummary + '، بدون حفظ Raw للأرشفة.',
       'ok'
     );
     fileInput.value = '';
@@ -17977,10 +18006,15 @@ async function handleInventoryClosingReportFile(tabKey, file) {
     }
     console.error('IC Upload Error:', err);
     const rawMessage = String(err?.message || 'خطأ غير معروف');
-    const friendlyMessage = rawMessage.includes('P12_4_REPLACE_DEFERRED_TO_P12_5')
-      ? 'يوجد تقرير حالي لنفس التاريخ. لم يتم تغيير التقرير الحالي؛ الاستبدال الآمن سيتم تفعيله في الترقية التالية.'
-      : rawMessage;
-    setStatus('فشل رفع التقرير: ' + friendlyMessage, 'err');
+    let friendlyMessage = rawMessage;
+    if (rawMessage.includes('P12_5_REPLACE_CONFIRM_REQUIRED')) {
+      friendlyMessage = 'يوجد تقرير حالي لنفس التاريخ ويجب تأكيد الاستبدال أولًا.';
+    } else if (rawMessage.includes('inventory_closing_batch_is_used_by_locked_or_settled_inventory_count')) {
+      friendlyMessage = 'لا يمكن استبدال التقرير الحالي لأنه مستخدم في جرد مغلق أو بدأت عليه التسوية.';
+    } else if (rawMessage.includes('P12_5_CONCURRENT_UPLOAD_BLOCKED') || rawMessage.includes('P12_5_UPLOAD_ALREADY_PROCESSING')) {
+      friendlyMessage = 'توجد عملية رفع أو استبدال أخرى لنفس التقرير والتاريخ. انتظر اكتمالها ثم أعد المحاولة.';
+    }
+    setStatus('فشل ' + (replacing ? 'استبدال' : 'رفع') + ' التقرير: ' + friendlyMessage, 'err');
   } finally {
     btn.disabled = false;
     dateInput.disabled = false;
