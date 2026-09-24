@@ -17473,7 +17473,7 @@ async function icLoadLastUploadBatch(tabKey) {
       '*',
       query => query
         .eq('report_key', config.reportKey)
-        .in('status', ['succeeded', 'replaced'])
+        .eq('status', 'succeeded')
         .order('report_date', { ascending: false })
         .order('completed_at', { ascending: false, nullsFirst: false })
         .order('id', { ascending: false })
@@ -17510,18 +17510,13 @@ async function icLoadLastUploadBatch(tabKey) {
       // View button: carries ONLY data-action and data-batch-id (no file_name, report_date, row_count in DOM)
       const viewBtn = `<button type="button" class="ic-batch-view-btn" data-action="view-ic" data-batch-id="${escapeHtml(String(batch.id))}">عرض</button>`;
       
-      let replaceBtn = '';
-      if (batch.status === 'succeeded') {
-        replaceBtn = `<button type="button" class="small-action replace" data-action="replace-ic" data-batch-id="${escapeHtml(String(batch.id))}">استبدال</button>`;
-      }
+      // P12.4: replacement is intentionally deferred until the atomic current-only
+      // workflow is installed in P12.5. Keep only the current report visible.
       const deleteBtn = `<button type="button" class="small-action delete" data-action="delete-ic" data-batch-id="${escapeHtml(String(batch.id))}">حذف</button>`;
-      
-      const actionsHtml = `<div style="display:flex;gap:4px;align-items:center;">${viewBtn}${replaceBtn}${deleteBtn}</div>`;
-      
-      let statusIndicator = batch.status === 'replaced' ? ' <span style="font-size:10px;color:#f1bf35;background:rgba(241,191,53,0.15);padding:2px 4px;border-radius:4px;">(مستبدل)</span>' : '';
+      const actionsHtml = `<div style="display:flex;gap:4px;align-items:center;">${viewBtn}${deleteBtn}</div>`;
 
       return [
-        (rDate || batch.report_date || '--') + statusIndicator,
+        (rDate || batch.report_date || '--'),
         batch.file_name || '--',
         Number(rowCount || 0).toLocaleString('en-US'),
         fileSize,
@@ -17581,7 +17576,8 @@ async function openIcBatchViewModal(batchId, triggerBtn) {
   const closeBtn = document.getElementById('icBatchViewCloseBtn');
   if (!overlay || !modal || !tbody) return;
 
-  // Populate metadata from Map (not from DOM attributes)
+  // Metadata is batch evidence only. The table below displays the stored
+  // compact calculation result, never the original Raw movement rows.
   const meta = inventoryClosingBatchMeta.get(String(batchId)) || {};
   const fnEl = document.getElementById('icBatchViewFileName');
   const rdEl = document.getElementById('icBatchViewReportDate');
@@ -17590,26 +17586,18 @@ async function openIcBatchViewModal(batchId, triggerBtn) {
   if (rdEl) rdEl.textContent = formatDisplayDate(meta.reportDate,'--');
   if (rcEl) rcEl.textContent = meta.rowCount !== undefined && meta.rowCount !== null ? String(meta.rowCount) : '--';
 
-  // Clear old data
   tbody.innerHTML = '';
-  _icSetStatus('جاري تحميل البيانات...', '');
+  _icSetStatus('جاري تحميل النتائج المجمعة...', '');
 
-  // Open modal
   overlay._appModalClose=closeIcBatchViewModal;
   overlay.classList.add('ic-batch-view-open');
   lockAppModalScroll('icBatchViewOverlay',overlay);
-
-  // Focus close button for accessibility
   requestAnimationFrame(() => { closeBtn && closeBtn.focus(); });
 
-  // Issue a new request token — any previous request becomes stale
   const token = Symbol('ic-view-' + batchId);
   _icViewRequestToken = token;
-
-  // Store trigger button for focus-restore on close
   overlay._icTriggerBtn = triggerBtn || null;
 
-  // Paginated sequential fetch
   const PAGE_SIZE = 1000;
   let from = 0;
   let allRows = [];
@@ -17618,74 +17606,70 @@ async function openIcBatchViewModal(batchId, triggerBtn) {
     if (!window.WarehouseDB?.ready) throw new Error('قاعدة البيانات غير متصلة.');
 
     while (true) {
-      // Race condition check before each page fetch
       if (_icViewRequestToken !== token) return;
 
       const to = from + PAGE_SIZE - 1;
       const { data, error } = await WarehouseDB.client
-        .from('inventory_closing_transactions')
-        .select('source_row_number,material_code,material_name,quantity_raw,uom_raw,quantity_to,uom,movement_type,movement_text,plant_code,warehouse_code,plant_name,transaction_date,worker_group')
+        .from('inventory_closing_compact_results')
+        .select('plant_code,warehouse_code,material_code,material_name,source_row_count,closing_quantity,incoming_transfers,actual_returns,adjustment_increase_z22,adjustment_shortage_z21,sales_quantity,outgoing_transfers,rework_311')
         .eq('batch_id', batchId)
-        .order('source_row_number', { ascending: true })
+        .order('material_code', { ascending: true })
         .range(from, to);
 
       if (error) throw error;
-
-      // Race condition check after fetch returns
       if (_icViewRequestToken !== token) return;
 
-      if (data && data.length > 0) {
-        allRows = allRows.concat(data);
-      }
+      if (data && data.length > 0) allRows = allRows.concat(data);
 
       const fetched = data ? data.length : 0;
-      _icSetStatus('جاري تحميل البيانات: ' + allRows.length.toLocaleString('en-US') + ' صف', '');
+      _icSetStatus('جاري تحميل النتائج: ' + allRows.length.toLocaleString('en-US') + ' نتيجة مجمعة', '');
 
-      if (fetched < PAGE_SIZE) break; // Last page
+      if (fetched < PAGE_SIZE) break;
       from += PAGE_SIZE;
     }
 
-    // Final race condition check before rendering
     if (_icViewRequestToken !== token) return;
 
     if (allRows.length === 0) {
-      _icSetStatus('لا توجد بيانات لهذه الدفعة.', 'empty');
+      _icSetStatus('لا توجد نتائج مجمعة لهذه الدفعة.', 'empty');
       return;
     }
 
-    // Render all rows
     const fragment = document.createDocumentFragment();
     allRows.forEach(row => {
       const tr = document.createElement('tr');
       tr.innerHTML = [
-        `<td class="ic-batch-view-row-num">${escapeHtml(String(row.source_row_number ?? ''))}</td>`,
         `<td class="ic-batch-view-code">${escapeHtml(String(row.material_code ?? ''))}</td>`,
         `<td class="ic-batch-view-name">${escapeHtml(String(row.material_name ?? ''))}</td>`,
-        `<td class="ic-batch-view-qty">${_icFormatQty(row.quantity_raw)}</td>`,
-        `<td>${escapeHtml(String(row.uom_raw ?? ''))}</td>`,
-        `<td class="ic-batch-view-qty">${_icFormatQty(row.quantity_to)}</td>`,
-        `<td>${escapeHtml(String(row.uom ?? ''))}</td>`,
-        `<td>${escapeHtml(String(row.movement_type ?? ''))}</td>`,
-        `<td>${escapeHtml(String(row.movement_text ?? ''))}</td>`,
-        `<td>${escapeHtml(String(row.plant_code ?? ''))}</td>`,
-        `<td>${escapeHtml(String(row.warehouse_code ?? ''))}</td>`,
-        `<td>${escapeHtml(String(row.plant_name ?? ''))}</td>`,
-        `<td>${escapeHtml(formatDisplayDate(row.transaction_date,''))}</td>`,
-        `<td>${escapeHtml(String(row.worker_group ?? ''))}</td>`
+        `<td>TO</td>`,
+        `<td class="ic-batch-view-row-num">${escapeHtml(Number(row.source_row_count || 0).toLocaleString('en-US'))}</td>`,
+        `<td class="ic-batch-view-qty">${_icFormatQty(row.closing_quantity)}</td>`,
+        `<td class="ic-batch-view-qty">${_icFormatQty(row.incoming_transfers)}</td>`,
+        `<td class="ic-batch-view-qty">${_icFormatQty(row.actual_returns)}</td>`,
+        `<td class="ic-batch-view-qty">${_icFormatQty(row.adjustment_increase_z22)}</td>`,
+        `<td class="ic-batch-view-qty">${_icFormatQty(row.adjustment_shortage_z21)}</td>`,
+        `<td class="ic-batch-view-qty">${_icFormatQty(row.sales_quantity)}</td>`,
+        `<td class="ic-batch-view-qty">${_icFormatQty(row.outgoing_transfers)}</td>`,
+        `<td class="ic-batch-view-qty">${_icFormatQty(row.rework_311)}</td>`
       ].join('');
       fragment.appendChild(tr);
     });
     tbody.appendChild(fragment);
 
-    _icSetStatus('تم تحميل ' + allRows.length.toLocaleString('en-US') + ' صف', '');
+    const sourceRows = allRows.reduce((sum, row) => sum + Number(row.source_row_count || 0), 0);
+    _icSetStatus(
+      'تم تحميل ' + allRows.length.toLocaleString('en-US') +
+      ' نتيجة مجمعة من ' + sourceRows.toLocaleString('en-US') + ' حركة مصدر.',
+      ''
+    );
     if (rcEl && (meta.rowCount === '--' || meta.rowCount === null || meta.rowCount === undefined)) {
-      rcEl.textContent = allRows.length.toLocaleString('en-US');
+      rcEl.textContent = sourceRows.toLocaleString('en-US');
     }
 
   } catch (err) {
     if (_icViewRequestToken !== token) return;
-    console.error('IC Batch View: fetch error', err);
-    _icSetStatus('فشل تحميل البيانات: ' + (err.message || 'خطأ غير معروف'), 'error');
+    console.error('IC Compact Batch View: fetch error', err);
+    _icSetStatus('فشل تحميل النتائج المجمعة: ' + (err.message || 'خطأ غير معروف'), 'error');
   }
 }
 
@@ -17740,8 +17724,8 @@ function initIcBatchViewModal() {
     
     const replaceBtn = e.target.closest('[data-action="replace-ic"]');
     if (replaceBtn) {
-      const batchId = replaceBtn.dataset.batchId;
-      if (batchId) handleReplaceIc(batchId);
+      // Fail closed while P12.4 is active. P12.5 installs atomic current-only replace.
+      showInventoryCountToast('استبدال تقرير التقفيل غير متاح مؤقتًا حتى اكتمال مسار الاستبدال الآمن. التقرير الحالي لم يتأثر.','info',6500);
       return;
     }
     
@@ -17755,31 +17739,10 @@ function initIcBatchViewModal() {
 }
 
 async function handleReplaceIc(batchId) {
-  const meta = inventoryClosingBatchMeta.get(String(batchId));
-  if (!meta) return;
-  
-  const titles = {
-    'closing_wf01': 'تقفيل الواحة',
-    'closing_el01': 'تقفيل المصنع الرئيسي',
-    'closing_el02': 'تقفيل مصنع العامرية'
-  };
-  const reportName = titles[meta.reportKey] || meta.reportKey;
-  
-  const msg = `سيتم استبدال النسخة الحالية بملف جديد.\nالملف الحالي: ${meta.fileName}\nتاريخ التقرير: ${formatDisplayDate(meta.reportDate,meta.reportDate)}\nالتقرير: ${reportName}\n\nهل تريد المتابعة؟`;
-
-  if (!await showAppLiquidConfirm({message:msg})) return;
-  
-  const tab = document.querySelector(`.subtabs [data-inventory-closing-tab="${meta.tabKey}"]`);
-  if (tab) tab.click();
-  
-  const prefix = meta.tabKey.replace(/_(.)/g, (_, c) => c.toUpperCase());
-  const dateInput = document.getElementById(prefix + 'DateInput');
-  if (dateInput) {
-     dateInput.value = meta.reportDate;
-  }
-  
-  const btn = document.getElementById('pick' + prefix.charAt(0).toUpperCase() + prefix.slice(1) + 'FileBtn');
-  if (btn) btn.click();
+  // P12.4: no delete-first / replace-history workflow is allowed.
+  // Atomic current-only replacement is installed separately in P12.5.
+  if (!batchId) return;
+  showInventoryCountToast('استبدال تقرير التقفيل غير متاح مؤقتًا حتى اكتمال مسار الاستبدال الآمن. التقرير الحالي لم يتأثر.','info',6500);
 }
 
 async function handleDeleteIc(batchId) {
@@ -17983,7 +17946,19 @@ async function handleInventoryClosingReportFile(tabKey, file) {
       throw new Error('فشل اعتماد التقرير: الحالة ليست succeeded (الحالة المُرجَعة: ' + JSON.stringify(_finResult) + ')');
     }
 
-    setStatus('تم رفع التقرير بنجاح. (' + normalizedRows.length + ' صف)', 'ok');
+    const compactResultRows = (_finResult !== null && typeof _finResult === 'object')
+      ? Number(_finResult.result_rows || _finResult.compact_rows || 0)
+      : 0;
+    const compactSummary = compactResultRows > 0
+      ? ' → ' + compactResultRows.toLocaleString('en-US') + ' نتيجة مجمعة'
+      : '';
+    setStatus(
+      'تم رفع التقرير بنجاح. ' +
+      normalizedRows.length.toLocaleString('en-US') + ' حركة مصدر' +
+      compactSummary +
+      '، بدون حفظ Raw للأرشفة.',
+      'ok'
+    );
     fileInput.value = '';
     
     await icLoadLastUploadBatch(tabKey);
@@ -18001,7 +17976,11 @@ async function handleInventoryClosingReportFile(tabKey, file) {
       }
     }
     console.error('IC Upload Error:', err);
-    setStatus('فشل رفع التقرير: ' + (err.message || 'خطأ غير معروف'), 'err');
+    const rawMessage = String(err?.message || 'خطأ غير معروف');
+    const friendlyMessage = rawMessage.includes('P12_4_REPLACE_DEFERRED_TO_P12_5')
+      ? 'يوجد تقرير حالي لنفس التاريخ. لم يتم تغيير التقرير الحالي؛ الاستبدال الآمن سيتم تفعيله في الترقية التالية.'
+      : rawMessage;
+    setStatus('فشل رفع التقرير: ' + friendlyMessage, 'err');
   } finally {
     btn.disabled = false;
     dateInput.disabled = false;
