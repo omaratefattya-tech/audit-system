@@ -397,12 +397,12 @@
             <div class="drop-zone" id="currentPlantStockDropZone">
               اختر ملف Excel لرصيد المصنع الحالي أو اسحبه هنا
               <br>
-              <small>سيتم التحقق من ورقة Data ورؤوس الأعمدة قبل استبدال النسخة الحالية في قاعدة البيانات.</small>
+              <small>سيتم التحقق من ورقة Data ورؤوس الأعمدة، ثم حفظ النتائج المجمعة فقط بدون أرشفة Raw للحركات.</small>
             </div>
             <div class="upload-status" id="currentPlantStockUploadStatus">لم يتم رفع رصيد المصنع الحالي بعد.</div>
             <div class="history-panel">
               <h3>آخر رفع لرصيد المصنع الحالي</h3>
-              <p class="hint">يعرض النسخة الحالية فقط بعد نجاح الحفظ الفعلي.</p>
+              <p class="hint">يعرض النسخة الحالية فقط مع عدد الصفوف والحجم قبل الضغط وبعده.</p>
               <div class="table-wrap"><table id="currentPlantStockBatchesTable"></table></div>
             </div>
           </div>
@@ -416,12 +416,12 @@
             <div class="drop-zone" id="consumptionRateDropZone">
               اختر ملف Excel لمعدل الاستهلاك أو اسحبه هنا
               <br>
-              <small>سيتم التحقق من ورقة Data ورؤوس الأعمدة قبل استبدال النسخة الحالية في قاعدة البيانات.</small>
+              <small>سيتم التحقق من ورقة Data ورؤوس الأعمدة، ثم حفظ النتائج المجمعة فقط بدون أرشفة Raw للحركات.</small>
             </div>
             <div class="upload-status" id="consumptionRateUploadStatus">لم يتم رفع معدل الاستهلاك بعد.</div>
             <div class="history-panel">
               <h3>آخر رفع لمعدل الاستهلاك</h3>
-              <p class="hint">يعرض النسخة الحالية فقط بعد نجاح الحفظ الفعلي.</p>
+              <p class="hint">يعرض النسخة الحالية فقط مع عدد الصفوف والحجم قبل الضغط وبعده.</p>
               <div class="table-wrap"><table id="consumptionRateBatchesTable"></table></div>
             </div>
           </div>
@@ -2295,7 +2295,7 @@
   <script src="assets/js/maintenance-control.js?v=maintenance-button-state-20260922-1"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/operation-progress.js?v=global-loading-progress-20260920-1"></script>
-  <script src="assets/js/app.js?v=p13-3-consumption-read-cutover-20260924-1"></script>
+  <script src="assets/js/app.js?v=p13-4-consumption-compact-upload-metrics-20260924-1"></script>
   <script src="assets/js/permission-registry.js?v=ic-refresh-01b-20260913-1"></script>
   <script src="assets/js/permissions.js?v=ic-refresh-01b-20260913-1"></script>
   <script src="assets/js/permission-ui.js?v=p8-1-15-20260909-1"></script>
