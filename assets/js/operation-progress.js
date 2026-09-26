@@ -70,14 +70,26 @@
     '.permissions-empty-state','.empty-row','.empty-state'
   ].join(',');
   const INLINE_LOADING_RE=/(?:جاري|جارٍ)\s+(?:إعداد|تحميل|تجهيز|إنشاء|تصدير|قراءة|معالجة|حفظ|تحديث|استيراد)|(?:loading|preparing|processing|exporting|importing)\b/i;
+  function clearInlineProgressDecoration(node){
+    if(!node||node.nodeType!==1) return;
+    node.removeAttribute('data-inline-operation-progress');
+    node.removeAttribute('data-inline-progress-known');
+    node.style.removeProperty('--inline-operation-percent');
+  }
   function decorateInlineProgress(node){
     if(!node||node.nodeType!==1||!node.matches?.(INLINE_PROGRESS_SELECTOR)) return;
+    // Explicit visibility ownership always wins over the generic loading decorator.
+    // A number of screens reuse the same status/empty-state node: they set a
+    // loading message, then hide that node once real content is rendered. The
+    // decorator must never resurrect a node carrying the HTML `hidden` flag.
+    if(node.hidden||node.hasAttribute('hidden')){
+      clearInlineProgressDecoration(node);
+      return;
+    }
     const message=String(node.textContent||'').replace(/\s+/g,' ').trim();
     const loading=INLINE_LOADING_RE.test(message)||node.classList.contains('loading')||node.dataset.type==='busy'||node.getAttribute('aria-busy')==='true';
     if(!loading){
-      node.removeAttribute('data-inline-operation-progress');
-      node.removeAttribute('data-inline-progress-known');
-      node.style.removeProperty('--inline-operation-percent');
+      clearInlineProgressDecoration(node);
       return;
     }
     node.setAttribute('data-inline-operation-progress','1');

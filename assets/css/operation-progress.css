@@ -29,6 +29,10 @@ html[data-theme="light"] .application-operation-progress small{color:#5e756a}
 html[data-theme="light"] .application-operation-progress[data-state="error"]{border-color:#dea39d;background:#fff8f7;color:#8c3a33}
 
 /* Inline loading progress under visible status text across the application. */
+/* Explicit hidden state is authoritative. Never let the generic inline
+   progress decorator resurrect a status node after its screen has finished. */
+[data-inline-operation-progress="1"][hidden]{display:none!important}
+
 [data-inline-operation-progress="1"]{
   --inline-progress-track:#0b2a21;
   --inline-progress-start:#3d963d;
