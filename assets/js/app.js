@@ -7788,7 +7788,9 @@ async function replaceRawMaterialsReport(key,file,rows,userData,onProgress){
     finalizeStarted=true;
     return await finalizeRawMaterialsUpload(key,batchId);
   }catch(err){
-    if(batchId && !finalizeStarted) await failRawMaterialsUpload(batchId,err.message || err);
+    // P13.5: consumption-rate failed candidates are removed entirely (no failed history).
+    // For the other raw-material report keep the established pre-finalize behavior unchanged.
+    if(batchId && (key==='consumption_rate' || !finalizeStarted)) await failRawMaterialsUpload(batchId,err.message || err);
     throw err;
   }
 }
@@ -7822,14 +7824,13 @@ async function handleRawMaterialsReportFile(key,file){
       setRawMaterialsUploadStatus(key,`تم رفع ${uploaded.toLocaleString('en-US')} من ${total.toLocaleString('en-US')} صف إلى Staging (${percent}%).`);
     });
     const savedRows=Number(result?.row_count || rows.length);
-    if(key==='consumption_rate'){
-      const resultRows=Number(result?.result_row_count ?? (Number(result?.metrics_count||0)+Number(result?.bran_daily_count||0)));
-      setRawMaterialsUploadStatus(key,`تم حفظ تقرير ${config.title} بنجاح: ${savedRows.toLocaleString('en-US')} صف قبل → ${resultRows.toLocaleString('en-US')} صف بعد، بدون حفظ Raw جديدة.`,'ok');
-      await logSystemActivity('التقارير','رفع تقرير',`رفع تقرير ${config.title} (${savedRows} صف قبل → ${resultRows} صف بعد، Compact-only)`);
+    const compactRows=Number(result?.result_row_count || 0);
+    if(key==='consumption_rate' && compactRows>0){
+      setRawMaterialsUploadStatus(key,`تم حفظ تقرير ${config.title} بنجاح: ${savedRows.toLocaleString('en-US')} صف قبل → ${compactRows.toLocaleString('en-US')} صف بعد، بدون حفظ Raw جديدة.`,'ok');
     }else{
       setRawMaterialsUploadStatus(key,`تم حفظ تقرير ${config.title} بنجاح بعدد ${savedRows.toLocaleString('en-US')} صف.`,'ok');
-      await logSystemActivity('التقارير','رفع تقرير',`رفع تقرير ${config.title} (${savedRows} صف)`);
     }
+    await logSystemActivity('التقارير','رفع تقرير',`رفع تقرير ${config.title} (${savedRows} صف)`);
     await loadRawMaterialsUploadBatch(key);
   }catch(err){
     setRawMaterialsUploadStatus(key,`خطأ أثناء رفع ${config.title}: ${err.message || err}`,'err');
@@ -7849,35 +7850,39 @@ async function loadRawMaterialsUploadBatch(key){
     .select('id,report_key,file_name,upload_date,uploaded_by,uploaded_by_name,row_count,file_size_bytes,status,replaced_at,deleted_at,notes')
     .eq('report_key',key)
     .eq('status','succeeded')
+    .is('replaced_at',null)
     .is('deleted_at',null)
     .order('upload_date',{ascending:false})
     .limit(1);
   if(error){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل آخر رفع: ${escapeHtml(String(error.message))}</td></tr></tbody>`; return; }
+
   if(key==='consumption_rate'){
-    let metrics=new Map();
-    try{
-      metrics=await loadCompactionBatchMetrics('consumption_rate',null);
-    }catch(metricsError){
-      console.error('P13.4 consumption rate compaction metrics load failed',metricsError);
-    }
+    let metricByBatch=new Map();
+    const {data:metricData,error:metricError}=await WarehouseDB.client.rpc('app_compaction_batch_metrics',{
+      p_kind:'consumption_rate',p_report_key:null
+    });
+    if(metricError){ tbl.innerHTML=`<tbody><tr><td>خطأ تحميل مؤشرات الضغط: ${escapeHtml(String(metricError.message))}</td></tr></tbody>`; return; }
+    (metricData||[]).forEach(m=>metricByBatch.set(String(m.batch_id),m));
     const rows=(data||[]).map(b=>{
-      const metric=metrics.get(String(b.id))||{};
-      const sourceRows=Number(b.row_count ?? metric.sourceRowCount ?? 0);
-      const resultRows=Number(metric.resultRowCount ?? 0);
+      const m=metricByBatch.get(String(b.id)) || {};
+      const sourceCount=Number(m.source_row_count ?? b.row_count ?? 0);
+      const resultCount=Number(m.result_row_count ?? 0);
+      const compactBytes=Number(m.compact_payload_bytes ?? 0);
       return [
         escapeHtml(b.file_name || '-'),
-        sourceRows.toLocaleString('en-US'),
-        resultRows.toLocaleString('en-US'),
+        sourceCount.toLocaleString('en-US'),
+        resultCount.toLocaleString('en-US'),
         formatFileSize(b.file_size_bytes),
-        formatFileSize(metric.compactPayloadBytes),
+        formatFileSize(compactBytes),
         escapeHtml(b.uploaded_by_name || b.uploaded_by || '-'),
         formatDisplayDateTime(b.upload_date,'-'),
         escapeHtml(b.status || '-')
       ];
     });
-    table('#'+config.tableId,['اسم الملف','عدد الصفوف قبل','عدد الصفوف بعد','الحجم قبل','الحجم بعد','الرافع','تاريخ الرفع','الحالة'],rows);
+    table('#'+config.tableId,['اسم الملف','عدد السطور قبل','عدد السطور بعد','الحجم قبل','الحجم بعد','الرافع','تاريخ الرفع','الحالة'],rows);
     return;
   }
+
   const rows=(data||[]).map(b=>[
     escapeHtml(b.file_name || '-'),
     Number(b.row_count||0).toLocaleString('en-US'),
