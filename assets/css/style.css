@@ -3118,6 +3118,10 @@ html[data-theme="light"] body:has(#permissions.active-section) .app-liquid-confi
   --activity-log-ok:#9be650;
   --activity-log-error:#ffc2c2;
   --activity-log-warning:#ffd878;
+  --activity-log-danger-bg:linear-gradient(135deg,rgba(255,82,82,.22),rgba(138,20,20,.30));
+  --activity-log-danger-color:#ffd7d7;
+  --activity-log-danger-border:rgba(255,82,82,.48);
+  --activity-log-danger-hover-bg:linear-gradient(135deg,rgba(255,82,82,.31),rgba(138,20,20,.38));
   display:grid;
   gap:0;
   min-width:0;
@@ -3148,7 +3152,11 @@ html[data-theme="light"] #settings .settings-activity-log-wrap{
   --activity-log-pager-border:#b9d0c1;
   --activity-log-ok:#176f35;
   --activity-log-error:#982f29;
-  --activity-log-warning:#9a6b06
+  --activity-log-warning:#9a6b06;
+  --activity-log-danger-bg:#fff5f4;
+  --activity-log-danger-color:#b12f2a;
+  --activity-log-danger-border:#e4a29d;
+  --activity-log-danger-hover-bg:#ffe9e7
 }
 #settings .activity-log-toolbar{
   border:1px solid var(--activity-log-border);
@@ -3283,6 +3291,40 @@ html[data-theme="light"] #settings #activityLogExportPdfBtn{background:#fff4f3;c
   overflow-wrap:anywhere
 }
 #settings #activityLogTable .empty-row{color:var(--activity-log-muted);background:var(--activity-log-td-bg);font-weight:800}
+#settings .activity-log-footer{
+  display:grid;
+  grid-template-columns:minmax(180px,1fr) auto minmax(180px,1fr);
+  align-items:center;
+  gap:12px;
+  margin-top:12px;
+  direction:ltr
+}
+#settings .activity-log-footer .activity-log-pagination{
+  grid-column:2;
+  margin-top:0;
+  direction:rtl
+}
+#settings .activity-log-footer-spacer{grid-column:3}
+#settings #activityLogClearBtn{
+  grid-column:1;
+  justify-self:start;
+  min-width:176px;
+  min-height:40px;
+  border:1px solid var(--activity-log-danger-border);
+  border-radius:10px;
+  background:var(--activity-log-danger-bg);
+  color:var(--activity-log-danger-color);
+  font-family:inherit;
+  font-weight:900;
+  cursor:pointer;
+  direction:rtl;
+  transition:background .16s ease,border-color .16s ease,transform .16s ease,opacity .16s ease
+}
+#settings #activityLogClearBtn:hover:not(:disabled){
+  background:var(--activity-log-danger-hover-bg);
+  transform:translateY(-1px)
+}
+#settings #activityLogClearBtn:disabled{opacity:.45;cursor:not-allowed;transform:none}
 #settings .activity-log-pagination{
   display:flex;
   justify-content:center;
@@ -3315,6 +3357,10 @@ html[data-theme="light"] #settings .activity-log-pagination button:hover:not(:di
   #settings .activity-log-toolbar .secondary{width:100%;min-height:46px}
   #settings .activity-log-search-box{min-height:46px}
   #settings .activity-log-table-wrap{border-radius:12px;max-height:65vh}
+  #settings .activity-log-footer{grid-template-columns:1fr;direction:rtl}
+  #settings #activityLogClearBtn{grid-column:1;grid-row:2;width:100%;min-height:46px;justify-self:stretch}
+  #settings .activity-log-footer .activity-log-pagination{grid-column:1;grid-row:1;width:100%}
+  #settings .activity-log-footer-spacer{display:none}
   #settings .activity-log-pagination{gap:8px}
   #settings .activity-log-pagination button{flex:1 1 120px;min-height:46px}
   #settings .activity-log-pagination span{flex:1 0 100%;text-align:center;order:-1}

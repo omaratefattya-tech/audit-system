@@ -5399,6 +5399,7 @@ function applySettingsSubPermissions(){
 
   setElementsDisabled('#activityLogExportExcelBtn',!hasPermission('settings_activity_log','export_excel'),true);
   setElementsDisabled('#activityLogExportPdfBtn',!hasPermission('settings_activity_log','export_pdf'),true);
+  setElementsDisabled('#activityLogClearBtn',!isSuperAdmin(),true);
 }
 function permissionAllowedPlantSet(permissionKey){
   return new Set((window.PermissionRuntime?.allowedPlants(permissionKey)||[])
@@ -6770,6 +6771,41 @@ async function loadActivityLog(options={}){
   }
 }
 function ensureActivityLogLoaded(){ if(!ACTIVITY_LOG_STATE.loaded) loadActivityLog(); }
+async function clearSystemActivityLog(){
+  if(!isSuperAdmin()){ alert('حذف سجل الحركات متاح للسوبر أدمن فقط.'); return; }
+  if(!WarehouseDB?.ready){ setActivityLogStatus('Supabase غير متصل.','err'); return; }
+  const accepted=await showAppLiquidConfirm({
+    title:'حذف سجل الحركات',
+    message:'سيتم حذف جميع سجلات الحركات الحالية نهائيًا من قاعدة البيانات وليس من العرض فقط. لا يمكن التراجع بعد الحذف، وأي حركات جديدة بعد ذلك ستظهر في السجل من جديد.',
+    confirmText:'حذف السجل نهائيًا',
+    cancelText:'إلغاء'
+  });
+  if(!accepted) return;
+  const button=$('#activityLogClearBtn');
+  if(button) button.disabled=true;
+  setActivityLogStatus('جاري حذف سجل الحركات من قاعدة البيانات...','warning');
+  try{
+    const {data,error}=await WarehouseDB.client.rpc('clear_system_activity_log');
+    if(error) throw error;
+    const result=Array.isArray(data) ? (data[0]||{}) : (data||{});
+    ACTIVITY_LOG_STATE.rows=[];
+    ACTIVITY_LOG_STATE.page=1;
+    ACTIVITY_LOG_STATE.globalSearch='';
+    ACTIVITY_LOG_STATE.filters={};
+    ACTIVITY_LOG_STATE.loaded=true;
+    const search=$('#activityLogSearchInput');
+    if(search) search.value='';
+    renderActivityLogTable();
+    const deletedRows=Number(result.deleted_rows||0);
+    setActivityLogStatus(`تم حذف ${deletedRows.toLocaleString('en-US')} حركة من قاعدة البيانات بنجاح.`,'ok');
+  }catch(err){
+    console.error('[activity-log] clear failed',err);
+    setActivityLogStatus('تعذر حذف سجل الحركات: '+(err.message||err),'err');
+  }finally{
+    if(button) button.disabled=false;
+    applySettingsSubPermissions();
+  }
+}
 function activityLogExportMatrix(){
   const rows=filteredActivityLogRows();
   return [ACTIVITY_LOG_COLUMNS.map(c=>c.label),...rows.map((row,idx)=>ACTIVITY_LOG_COLUMNS.map(col=>activityLogRowValue(row,col.key,idx)))];
@@ -6815,6 +6851,7 @@ function initActivityLogSettings(){
   $('#activityLogRefreshBtn')?.addEventListener('click',()=>loadActivityLog());
   $('#activityLogExportExcelBtn')?.addEventListener('click',exportActivityLogExcel);
   $('#activityLogExportPdfBtn')?.addEventListener('click',exportActivityLogPdf);
+  $('#activityLogClearBtn')?.addEventListener('click',clearSystemActivityLog);
   tableEl.addEventListener('click',e=>{
     const th=e.target.closest('[data-activity-sort]');
     if(!th) return;
