@@ -152,6 +152,30 @@
     }
     return {allowed:true,state};
   }
+  async function tryResumeServerSession(user){
+    // A browser refresh/hard-refresh must keep the same logical application session.
+    // sessionStorage survives reloads in the same tab, so first heartbeat the stored
+    // session_id. If it is still active, resume it without starting a new login gate
+    // and without re-showing conflicts that belong to other genuinely active devices.
+    currentSessionId=getSessionId();
+    currentUserId=user.id;
+    await rememberAccessToken();
+    const {data,error}=await rpc('app_session_heartbeat',{p_session_id:currentSessionId});
+    if(error){
+      console.warn('[session-control] refresh-resume heartbeat failed',error);
+      return {resumed:false,status:'error'};
+    }
+    const status=String(data?.status||'missing');
+    if(status==='active'){
+      startMonitoring();
+      return {resumed:true,status};
+    }
+    if(status==='revoked'){
+      forceRemoteLogout(data?.message||'تم تسجيل الدخول من مكان آخر وإنهاء جلستك.');
+      return {resumed:false,status,blocked:true};
+    }
+    return {resumed:false,status};
+  }
   async function beginServerSession(user){
     const info=await collectDeviceInfo();
     currentSessionId=getSessionId();
@@ -165,7 +189,7 @@
       p_browser_name:info.browser_name,
       p_device_model:info.device_model||null,
       p_user_agent:info.user_agent,
-      p_client_version:'AUTH-SESSION-CONTROL-01'
+      p_client_version:'P14.6-SESSION-REFRESH-RESUME'
     });
     if(error) throw sessionFeatureError(error);
     return data||{};
@@ -188,6 +212,11 @@
       const status=await heartbeat();
       return {allowed:status!=='revoked'&&status!=='ended',resumed:true};
     }
+    // P14.6: on reload/hard reload, resume the already-active server session first.
+    // Only enter the normal conflict/login flow when the stored session is not active.
+    const resume=await tryResumeServerSession(user);
+    if(resume.blocked) return {allowed:false,revoked:true,message:'تم إنهاء جلسة تسجيل الدخول الحالية.'};
+    if(resume.resumed) return {allowed:true,resumed:true,refreshResume:true};
     const begin=await beginServerSession(user);
     const conflicts=Array.isArray(begin?.conflicts)?begin.conflicts:[];
     if(conflicts.length){
@@ -275,7 +304,11 @@
   }
   function resetLocalState(){stopMonitoring();currentUserId='';currentSessionId='';lastAccessToken='';handlingRemoteLogout=false;}
 
-  window.addEventListener('pagehide',()=>bestEffortEnd('window_closed'));
+  // P14.6: do NOT end the application session on pagehide.
+  // Browsers fire pagehide for refresh/hard-refresh as well as real tab/window closes,
+  // and treating it as a logout made every refresh look like a new login. Real closes
+  // are safely retired by the existing 5-minute stale-session window on the server.
+  window.addEventListener('pagehide',()=>stopMonitoring());
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&currentSessionId) heartbeat().catch(()=>{});});
   document.addEventListener('DOMContentLoaded',consumeForcedNotice);
 
