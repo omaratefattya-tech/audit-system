@@ -132,6 +132,15 @@ html[data-theme="light"] .login-author{color:#178044}
 #settings .settings-tab-panel{display:none}
 #settings .settings-tab-panel.active{display:block}
 html[data-theme="light"] #settings select option{background:#ffffff;color:#17352a}
+/* Settings light-mode confirmation modal — canonical screen owner */
+html[data-theme="light"] body:has(#settings.active-section) .app-liquid-confirm{background:rgba(42,61,53,.28);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+html[data-theme="light"] body:has(#settings.active-section) .app-liquid-confirm__dialog.app-liquid-modal{background:linear-gradient(145deg,#ffffff,#f5f8f6);color:#243d33;border-color:#c7d9cf;box-shadow:0 28px 70px rgba(34,64,52,.20),inset 0 1px 0 rgba(255,255,255,.94)}
+html[data-theme="light"] body:has(#settings.active-section) .app-liquid-confirm__dialog .app-liquid-modal__header{border-bottom-color:#d9e5df}
+html[data-theme="light"] body:has(#settings.active-section) .app-liquid-confirm__dialog .app-liquid-modal__footer{border-top-color:#d9e5df}
+html[data-theme="light"] body:has(#settings.active-section) .app-liquid-confirm__dialog .app-liquid-modal__title{color:#143d2a}
+html[data-theme="light"] body:has(#settings.active-section) .app-liquid-confirm__body p{color:#29483a;font-weight:700}
+html[data-theme="light"] body:has(#settings.active-section) .app-liquid-confirm__dialog .app-liquid-modal__close{background:#f7faf8;color:#29483a;border-color:#c7d7cf;box-shadow:0 5px 14px rgba(37,69,57,.08)}
+html[data-theme="light"] body:has(#settings.active-section) .app-liquid-confirm__dialog [data-app-confirm-action="cancel"]:not(.app-liquid-modal__close){background:#ffffff;color:#29483a;border-color:#b8cec0;box-shadow:none}
 /* Settings > General — canonical owner */
 #settings #settingsGeneralPanel{
   --general-surface:rgba(0,35,27,.46);
@@ -1074,6 +1083,15 @@ html[data-theme="light"] .app-shell:has(#upload.active-section) .main{
   background:radial-gradient(circle at 32% 0,rgba(210,235,220,.38) 0,rgba(243,246,245,0) 32%),#f3f6f5;
 }
 html[data-theme="light"] .app-shell:has(#upload.active-section) .topbar{background:transparent}
+/* Upload light-mode confirmation modal — canonical screen owner */
+html[data-theme="light"] body:has(#upload.active-section) .app-liquid-confirm{background:rgba(42,61,53,.28);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+html[data-theme="light"] body:has(#upload.active-section) .app-liquid-confirm__dialog.app-liquid-modal{background:linear-gradient(145deg,#ffffff,#f5f8f6);color:#243d33;border-color:#c7d9cf;box-shadow:0 28px 70px rgba(34,64,52,.20),inset 0 1px 0 rgba(255,255,255,.94)}
+html[data-theme="light"] body:has(#upload.active-section) .app-liquid-confirm__dialog .app-liquid-modal__header{border-bottom-color:#d9e5df}
+html[data-theme="light"] body:has(#upload.active-section) .app-liquid-confirm__dialog .app-liquid-modal__footer{border-top-color:#d9e5df}
+html[data-theme="light"] body:has(#upload.active-section) .app-liquid-confirm__dialog .app-liquid-modal__title{color:#143d2a}
+html[data-theme="light"] body:has(#upload.active-section) .app-liquid-confirm__body p{color:#29483a;font-weight:700}
+html[data-theme="light"] body:has(#upload.active-section) .app-liquid-confirm__dialog .app-liquid-modal__close{background:#f7faf8;color:#29483a;border-color:#c7d7cf;box-shadow:0 5px 14px rgba(37,69,57,.08)}
+html[data-theme="light"] body:has(#upload.active-section) .app-liquid-confirm__dialog [data-app-confirm-action="cancel"]:not(.app-liquid-modal__close){background:#ffffff;color:#29483a;border-color:#b8cec0;box-shadow:none}
 html[data-theme="light"] #upload{color:var(--l3-text)}
 html[data-theme="light"] #upload.active-section > .panel.glass{
   background:linear-gradient(145deg,#ffffff 0%,#f7faf8 100%);
@@ -5566,7 +5584,10 @@ html[data-theme="light"] #raw_materials .raw-materials-table-head h3{color:#193c
 html[data-theme="light"] #raw_materials .raw-materials-table-head span{color:#26743f}
 html[data-theme="light"] #raw_materials .raw-materials-table-wrap{background:#fff;border-color:#d3dfda}
 html[data-theme="light"] #raw_materials .raw-materials-table-wrap table{background:#fff;color:#263b33}
-html[data-theme="light"] #raw_materials .raw-materials-table-wrap thead th{background:#e7f2ea;color:#22663a;border-bottom-color:#d0dfd7}
+html[data-theme="light"] #raw_materials .raw-materials-table-wrap thead th{background:#e7f2ea;color:#153f2a;border-bottom-color:#d0dfd7}
+html[data-theme="light"] #raw_materials .raw-materials-table-wrap thead th .sort-btn{color:#153f2a;background:transparent;font-weight:1000;text-shadow:none}
+html[data-theme="light"] #raw_materials .raw-materials-table-wrap thead th .sort-btn:hover{background:#dceee1;color:#103821}
+html[data-theme="light"] #raw_materials .raw-materials-table-wrap thead th .sort-btn span{color:#8a6500}
 html[data-theme="light"] #raw_materials .raw-materials-table-wrap tbody td{background:#fff;color:#263b33;border-bottom-color:#e1e8e5}
 html[data-theme="light"] #raw_materials .raw-materials-table-wrap tbody tr:nth-child(even) td{background:#f8faf9}
 html[data-theme="light"] #raw_materials .raw-materials-table-wrap tbody tr:hover td{background:#eef7f0}
@@ -5580,7 +5601,8 @@ html[data-theme="light"] #raw_materials .raw-status-no_consumption{background:#e
 html[data-theme="light"] body.focus-mode-active[data-focus-section="raw_materials"] .main{background:#f3f6f5}
 html[data-theme="light"] body.focus-mode-active[data-focus-section="raw_materials"] #raw_materials>.panel.glass{background:#fff;border-color:#d3dfda;box-shadow:none}
 html[data-theme="light"] body.focus-mode-active[data-focus-section="raw_materials"] #raw_materials .raw-materials-table-wrap{border-color:#d3dfda}
-html[data-theme="light"] body.focus-mode-active[data-focus-section="raw_materials"] #raw_materials table thead th{background:#e7f2ea!important;color:#22663a!important;box-shadow:0 1px 0 #d0dfd7,0 8px 16px rgba(40,73,59,.05)!important}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="raw_materials"] #raw_materials table thead th{background:#e7f2ea!important;color:#153f2a!important;box-shadow:0 1px 0 #d0dfd7,0 8px 16px rgba(40,73,59,.05)!important}
+html[data-theme="light"] body.focus-mode-active[data-focus-section="raw_materials"] #raw_materials table thead th .sort-btn{color:#153f2a!important;background:transparent!important;text-shadow:none!important}
 html[data-theme="light"] body.focus-mode-active[data-focus-section="raw_materials"] #raw_materials .focus-mode-close-btn{background:#fff8e8!important;color:#76570a!important;border-color:#dfc273!important}
 @media(max-width:768px){
   html[data-theme="light"] body.mobile-raw-materials-active #raw_materials>.panel.glass{background:#f6f9f7;border-color:#d5e0db}
