@@ -4790,20 +4790,95 @@ async function fetchCurrentAppProfile(user,signal){
   }
 }
 
+const AVATAR_STORAGE_BUCKET='user-avatars';
+const AVATAR_STORAGE_REF_PREFIX='storage:user-avatars/';
+const AVATAR_SIGNED_URL_TTL_SECONDS=3600;
+const AVATAR_SIGNED_URL_CACHE=new Map();
+
+function avatarStoragePath(value){
+  const raw=String(value||'').trim();
+  return raw.startsWith(AVATAR_STORAGE_REF_PREFIX) ? raw.slice(AVATAR_STORAGE_REF_PREFIX.length) : '';
+}
+function isStorageAvatarRef(value){ return !!avatarStoragePath(value); }
+function avatarInitial(profile){
+  const name=profile?.full_name || profile?.email || 'مستخدم';
+  return (String(name).trim()[0] || 'م').toUpperCase();
+}
+async function resolveAvatarDisplayUrl(value){
+  const raw=String(value||'').trim();
+  if(!raw) return '';
+  const path=avatarStoragePath(raw);
+  if(!path) return raw;
+  const cached=AVATAR_SIGNED_URL_CACHE.get(path);
+  if(cached && cached.expiresAt>Date.now()+60000) return cached.url;
+  if(!window.WarehouseDB?.ready) throw new Error('Supabase غير متصل');
+  const {data,error}=await WarehouseDB.client.storage.from(AVATAR_STORAGE_BUCKET).createSignedUrl(path,AVATAR_SIGNED_URL_TTL_SECONDS);
+  if(error) throw error;
+  const url=data?.signedUrl || '';
+  if(!url) throw new Error('تعذر إنشاء رابط الصورة الشخصية.');
+  AVATAR_SIGNED_URL_CACHE.set(path,{url,expiresAt:Date.now()+AVATAR_SIGNED_URL_TTL_SECONDS*1000});
+  return url;
+}
+function clearAvatarSignedUrlCache(value){
+  const path=avatarStoragePath(value);
+  if(path) AVATAR_SIGNED_URL_CACHE.delete(path);
+}
 function paintAvatar(el, profile){
   if(!el) return;
+  const ref=String(profile?.avatar_url||'').trim();
+  const renderToken=String((Number(el.dataset.avatarRenderToken||0)+1));
+  el.dataset.avatarRenderToken=renderToken;
   el.textContent='';
   el.style.backgroundImage='';
-  el.classList.toggle('has-image', !!profile?.avatar_url);
-  if(profile?.avatar_url){
+  el.classList.remove('has-image');
+  if(!ref){ el.textContent=avatarInitial(profile); return; }
+
+  if(!isStorageAvatarRef(ref)){
     const img=document.createElement('img');
-    img.src=profile.avatar_url;
+    img.src=ref;
     img.alt='الصورة الشخصية';
+    el.classList.add('has-image');
     el.appendChild(img);
     return;
   }
-  const name=profile?.full_name || profile?.email || 'مستخدم';
-  el.textContent=(name.trim()[0] || 'م').toUpperCase();
+
+  el.textContent=avatarInitial(profile);
+  resolveAvatarDisplayUrl(ref).then(url=>{
+    if(!url || el.dataset.avatarRenderToken!==renderToken) return;
+    el.textContent='';
+    const img=document.createElement('img');
+    img.src=url;
+    img.alt='الصورة الشخصية';
+    el.classList.add('has-image');
+    el.appendChild(img);
+  }).catch(error=>console.warn('[avatar-storage-read]',error?.message||error));
+}
+async function uploadProfileAvatarToStorage(file,userId){
+  if(!file || !userId) throw new Error('بيانات الصورة غير مكتملة.');
+  if(file.size > 600*1024) throw new Error('حجم الصورة كبير. استخدم صورة أقل من 600KB.');
+  if(!String(file.type||'').startsWith('image/')) throw new Error('الملف المختار ليس صورة صالحة.');
+  const path=`${userId}/avatar`;
+  const {error}=await WarehouseDB.client.storage.from(AVATAR_STORAGE_BUCKET).upload(path,file,{
+    upsert:true,
+    cacheControl:'3600',
+    contentType:file.type || 'application/octet-stream'
+  });
+  if(error) throw error;
+  const ref=AVATAR_STORAGE_REF_PREFIX+path;
+  clearAvatarSignedUrlCache(ref);
+  return ref;
+}
+async function hydrateStorageAvatarCells(root){
+  if(!root) return;
+  const cells=[...root.querySelectorAll('[data-avatar-storage-ref]')];
+  await Promise.all(cells.map(async cell=>{
+    const ref=cell.dataset.avatarStorageRef||'';
+    try{
+      const url=await resolveAvatarDisplayUrl(ref);
+      if(!url || cell.dataset.avatarStorageRef!==ref) return;
+      cell.innerHTML=`<img src="${escapeHtml(url)}" alt="" />`;
+    }catch(error){ console.warn('[avatar-storage-list]',error?.message||error); }
+  }));
 }
 function applyProfileToHeader(profile){
   const name=profile?.full_name || profile?.email || 'مستخدم';
@@ -6501,8 +6576,8 @@ async function saveCurrentProfile(){
     let avatarUrl=CURRENT_APP_PROFILE?.avatar_url || '';
     const file=$('#profileAvatarInput')?.files?.[0];
     if(file){
-      if(file.size > 600 * 1024) throw new Error('حجم الصورة كبير. استخدم صورة أقل من 600KB.');
-      avatarUrl=await fileToDataUrl(file);
+      if(!hasCanonicalPermission('settings.profile.avatar.upload')) throw new Error('غير متاح رفع الصورة للصلاحية الحالية.');
+      avatarUrl=await uploadProfileAvatarToStorage(file,CURRENT_AUTH_USER.id);
     }
     const payload={
       full_name: ($('#profileFullName')?.value || CURRENT_AUTH_USER.email || '').trim(),
@@ -7069,10 +7144,15 @@ function renderUsersManagementTableBody(rows){
     const roleClass=(u.role||'viewer').replace(/[^a-z_]/g,'');
     const canToggle=!isSuper && !u.is_current;
     const canEdit=!isSuper || u.is_current;
-    const avatar=u.avatar_url ? `<img src="${escapeHtml(u.avatar_url)}" alt="" />` : `<span>${escapeHtml(userInitial(u.full_name,u.email))}</span>`;
+    const avatar=u.avatar_url
+      ? (isStorageAvatarRef(u.avatar_url)
+          ? `<span>${escapeHtml(userInitial(u.full_name,u.email))}</span>`
+          : `<img src="${escapeHtml(u.avatar_url)}" alt="" />`)
+      : `<span>${escapeHtml(userInitial(u.full_name,u.email))}</span>`;
+    const avatarStorageAttr=isStorageAvatarRef(u.avatar_url) ? ` data-avatar-storage-ref="${escapeHtml(u.avatar_url)}"` : '';
     return `<tr data-user-id="${escapeHtml(u.id)}" class="${u.is_current?'current-user-row':''} ${u.is_fallback?'fallback-user-row':''}">
       <td class="users-row-index">${i+1}</td>
-      <td><div class="user-avatar-cell ${roleClass}">${avatar}</div></td>
+      <td><div class="user-avatar-cell ${roleClass}"${avatarStorageAttr}>${avatar}</div></td>
       <td><strong>${escapeHtml(u.full_name||'--')}</strong>${u.is_current?'<small class="you-badge">أنت</small>':''}${u.is_fallback?'<small class="sync-badge">Auth</small>':''}</td>
       <td>${escapeHtml(u.job_title||'--')}</td>
       <td class="ltr-cell">${escapeHtml(u.email||'غير مخزن')}</td>
@@ -7090,6 +7170,7 @@ function renderUsersManagementTableBody(rows){
       </td>
     </tr>`;
   }).join('');
+  hydrateStorageAvatarCells(tbody);
 }
 function renderUsersManagementTable(rows){
   USERS_MANAGEMENT_ROWS=(rows||[]).map(normalizeManagedUser);
