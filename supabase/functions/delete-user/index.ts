@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.117.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -74,7 +74,19 @@ serve(async (req) => {
     if (deleteAuthError) return json({ error: deleteAuthError.message }, 500);
 
     // In case the FK cascade is not configured, remove the profile safely as a fallback.
-    await adminClient.from("app_users").delete().eq("id", targetUserId);
+    let profileDeleteError: unknown;
+    try {
+      ({ error: profileDeleteError } = await adminClient.from("app_users").delete().eq("id", targetUserId));
+    } catch (error) {
+      profileDeleteError = error;
+    }
+    if (profileDeleteError) {
+      return json({
+        error: "تم حذف حساب الدخول، لكن تعذر تأكيد تنظيف الملف الشخصي. راجع مدير النظام قبل إعادة المحاولة.",
+        auth_deleted: true,
+        deleted_user_id: targetUserId,
+      }, 500);
+    }
 
     return json({ ok: true, deleted_user_id: targetUserId, deleted_email: targetProfile.email || null });
   } catch (err) {

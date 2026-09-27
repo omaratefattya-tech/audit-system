@@ -3679,7 +3679,8 @@ async function tryBuildIncomingAudit(reportDate, targetStatus){
     if(mt==='Z13') group.hasZ13=true;
   });
   const movementStatusIndex=buildMovementCellStatusIndex(incomingRows);
-  await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',reportDate);
+  const {error:resultsDeleteError}=await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',reportDate);
+  if(resultsDeleteError) throw resultsDeleteError;
   const results=incomingRows.map(r=>{
     const key=incomingAuditMatchKey(r);
     const matches=scaleIndex.get(key)||[];
@@ -4033,7 +4034,8 @@ async function handleIncomingFile(file){
       if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
       status.textContent='جاري حذف النسخة القديمة لنفس التاريخ...';
       const ids=existing.map(x=>x.id);
-      await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',reportDate);
+      const {error:resultsDeleteError}=await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',reportDate);
+      if(resultsDeleteError) throw resultsDeleteError;
       const {error:rawDeleteError}=await WarehouseDB.client.from('incoming_raw_transactions').delete().in('batch_id',ids);
       if(rawDeleteError) throw rawDeleteError;
       const {error:deleteError}=await WarehouseDB.client.from('incoming_upload_batches').delete().in('id',ids);
@@ -4110,7 +4112,8 @@ async function handleIncomingBatchAction(btn){
   }
   if(action==='delete'){
     if(!await showAppLiquidConfirm({message:`سيتم حذف تقرير الوارد بتاريخ ${formatDisplayDate(date,date)} وكل بياناته الخام. هل أنت متأكد؟`})) return;
-    await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',date);
+    const {error:resultsDeleteError}=await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',date);
+    if(resultsDeleteError){ alert('خطأ أثناء حذف نتائج مراجعة الوارد: '+resultsDeleteError.message); return; }
     const {error:rawDeleteError}=await WarehouseDB.client.from('incoming_raw_transactions').delete().eq('batch_id',btn.dataset.id);
     if(rawDeleteError){ alert('خطأ أثناء حذف بيانات الوارد: '+rawDeleteError.message); return; }
     const {error:delError}=await WarehouseDB.client.from('incoming_upload_batches').delete().eq('id',btn.dataset.id);
@@ -4147,7 +4150,8 @@ async function handleScaleFile(file){
       if(!ok){ status.textContent='تم إلغاء الرفع بدون تغيير البيانات.'; return; }
       status.textContent='جاري حذف نسخة الميزان القديمة لنفس التاريخ...';
       const ids=existing.map(x=>x.id);
-      await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',reportDate);
+      const {error:resultsDeleteError}=await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',reportDate);
+      if(resultsDeleteError) throw resultsDeleteError;
       const {error:rawDeleteError}=await WarehouseDB.client.from('scale_raw_transactions').delete().in('batch_id',ids);
       if(rawDeleteError) throw rawDeleteError;
       const {error:deleteError}=await WarehouseDB.client.from('scale_upload_batches').delete().in('id',ids);
@@ -4223,7 +4227,8 @@ async function handleScaleBatchAction(btn){
   }
   if(action==='delete'){
     if(!await showAppLiquidConfirm({message:`سيتم حذف تقرير الميزان بتاريخ ${formatDisplayDate(date,date)} وكل بياناته الخام ونتائج مراجعة الوارد المبنية عليه. هل أنت متأكد؟`})) return;
-    await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',date);
+    const {error:resultsDeleteError}=await WarehouseDB.client.from('incoming_audit_results').delete().eq('report_date',date);
+    if(resultsDeleteError){ alert('خطأ أثناء حذف نتائج مراجعة الوارد: '+resultsDeleteError.message); return; }
     const {error:rawDeleteError}=await WarehouseDB.client.from('scale_raw_transactions').delete().eq('batch_id',btn.dataset.id);
     if(rawDeleteError){ alert('خطأ أثناء حذف بيانات الميزان: '+rawDeleteError.message); return; }
     const {error:delError}=await WarehouseDB.client.from('scale_upload_batches').delete().eq('id',btn.dataset.id);
@@ -4953,18 +4958,15 @@ function summarizeAuthSessionResult(result){
     session:session ? 'present' : null,
     hasAccessToken:Boolean(session?.access_token),
     hasUser:Boolean(session?.user),
-    userId:session?.user?.id || null,
-    userEmail:session?.user?.email || null,
-    expiresAt:session?.expires_at || null,
-    error:result?.error?.message || null
+    errorCode:result?.error?.code || (result?.error ? 'AUTH_SESSION_ERROR' : null)
   };
 }
 async function getAuthSessionSummary(client){
-  if(!client?.auth?.getSession) return {session:null,hasAccessToken:false,hasUser:false,error:'Auth client is not ready'};
+  if(!client?.auth?.getSession) return {session:null,hasAccessToken:false,hasUser:false,errorCode:'AUTH_CLIENT_NOT_READY'};
   try{
     return summarizeAuthSessionResult(await client.auth.getSession());
   }catch(err){
-    return {session:null,hasAccessToken:false,hasUser:false,error:err?.message || String(err)};
+    return {session:null,hasAccessToken:false,hasUser:false,errorCode:err?.code || 'AUTH_SESSION_ERROR'};
   }
 }
 async function logPasswordAuthSessionComparison(label,tempClient){
@@ -18311,18 +18313,28 @@ async function loadStorekeepersTable() {
         </td>
         <td>
           <div class="actions-cell">
-            <button class="small-action edit" type="button" data-action="edit-storekeeper"
-              onclick="editStorekeeper('${st.id}', '${escapeHtml(st.full_name)}', '${escapeHtml(st.job_title)}', '${st.plant_code}', ${st.is_active})">
+            <button class="small-action edit" type="button" data-action="edit-storekeeper" data-id="${escapeHtml(st.id)}">
               تعديل
             </button>
-            <button class="small-action ${st.is_active ? 'delete' : 'view'}" type="button" data-action="toggle-storekeeper"
-              onclick="toggleStorekeeperStatus('${st.id}', ${!st.is_active}, '${escapeHtml(st.plant_code || '')}')">
+            <button class="small-action ${st.is_active ? 'delete' : 'view'}" type="button" data-action="toggle-storekeeper" data-id="${escapeHtml(st.id)}">
               ${st.is_active ? 'إيقاف' : 'تفعيل'}
             </button>
           </div>
         </td>
       </tr>
     `).join('');
+    // Keep database text out of executable attributes; delegation survives table redraws.
+    tbody.onclick = event => {
+      const button = event.target.closest('button[data-action]');
+      if (!button || !tbody.contains(button) || button.disabled) return;
+      const st = scopedData.find(item => String(item.id) === button.dataset.id);
+      if (!st) return;
+      if (button.dataset.action === 'edit-storekeeper') {
+        editStorekeeper(st.id, String(st.full_name ?? ''), String(st.job_title ?? ''), st.plant_code, st.is_active);
+      } else if (button.dataset.action === 'toggle-storekeeper') {
+        toggleStorekeeperStatus(st.id, !st.is_active, st.plant_code);
+      }
+    };
     refreshSettingsTableControls('storekeepersSettingsTable');
     applySettingsSubPermissions();
     
