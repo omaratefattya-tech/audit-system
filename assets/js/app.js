@@ -11251,6 +11251,7 @@ function updateInventoryDifferenceSnapshotButton(){
   const phaseLocked=inventoryCountSettlementPhaseStarted();
   const finalized=inventoryCountIsFinalized();
   btn.textContent=hasCurrentSnapshot ? 'استبدال مستند فروق الجرد' : 'إنشاء مستند فروق الجرد';
+  btn.hidden=phaseLocked || finalized;
   btn.disabled=busy || !canOperate || !ready || phaseLocked || finalized;
   btn.classList.toggle('permission-disabled',!canOperate || !ready || phaseLocked || finalized);
   btn.title=finalized
@@ -12904,6 +12905,12 @@ function inventoryCountPngCaptureScale(width,height){
   return Math.max(Number.EPSILON,Math.min(preferredScale,dimensionScale,pixelScale));
 }
 function inventorySettlementStatusMessage(status,reasonCode=''){
+  if(inventoryCountSettlementPhaseStarted()){
+    if(['snapshot_stale','post_reversal_snapshot_stale'].includes(String(status || ''))){
+      return 'تعذر تأكيد أهلية التسوية بعد التعديل الموثق. أعد تحميل بيانات الجرد؛ إذا استمرت المشكلة، يلزم فحص حالة التسوية. مستند الفروق ثابت بعد بدء التسويات.';
+    }
+    if(status==='row_version_conflict') return 'تم تعديل بيانات الصنف بواسطة عملية أخرى. أعد تحميل بيانات الجرد ثم حاول مرة أخرى.';
+  }
   const messages={
     not_authenticated:'يجب تسجيل الدخول قبل تنفيذ التسوية.',
     inactive_user:'الحساب الحالي غير نشط.',
@@ -13441,7 +13448,9 @@ function calculateInventorySettlementPreview(contextLine,reasonCode,Q){
   const reason=getInventorySettlementReason(reasonCode);
   if(!reason) return {valid:false,message:'اختر سبب التسوية لعرض الإجراء الذي سينفذه النظام.'};
   if(!contextLine || contextLine.physical_balance===null || contextLine.physical_balance===undefined){
-    return {valid:false,message:'يجب إدخال الرصيد الفعلي واستبدال مستند فروق الجرد قبل تنفيذ التسوية.'};
+    return {valid:false,message:inventoryCountSettlementPhaseStarted()
+      ? 'يجب تسجيل الرصيد الفعلي من نافذة التعديل الموثق قبل تنفيذ التسوية.'
+      : 'يجب إدخال الرصيد الفعلي واستبدال مستند فروق الجرد قبل تنفيذ التسوية.'};
   }
   const variance=roundInventorySettlementQuantity(
     normalizeInventorySettlementNumber(contextLine.physical_balance)-normalizeInventorySettlementNumber(contextLine.book_balance)
@@ -14571,6 +14580,9 @@ function renderInventorySettlementCell(row){
   }
 
   if(!inventorySettlementSnapshotMatchesLine(row,contextLine)){
+    if(inventoryCountSettlementPhaseStarted()){
+      return `<td class="inventory-settlement-cell"><button class="secondary inventory-settlement-btn" type="button" disabled title="${escapeHtml(inventorySettlementStatusMessage('snapshot_stale'))}">تسوية الجرد</button></td>`;
+    }
     const staleTitle=String(contextLine.current_state || '')==='reversed'
       ? 'تم تعديل بيانات الصنف بعد التراجع. استبدل مستند فروق الجرد قبل تنفيذ تسوية جديدة.'
       : 'تم تعديل بيانات الصنف بعد إعداد مستند فروق الجرد.';
@@ -17176,7 +17188,7 @@ function inventoryCountPostCloseSetProjection(entry,beforeValue=null,afterValue=
 function inventoryCountPostCloseCollectItems(modal){
   const items=[];
   const errors=[];
-  const previewLines=[];
+  const previewRows=[];
   const simulatedByMaterial=new Map();
   let activeCount=0;
   INVENTORY_COUNT_POST_CLOSE_SCOPE_ORDER.forEach(scope=>{
@@ -17218,10 +17230,11 @@ function inventoryCountPostCloseCollectItems(modal){
         expected_row_version:Number(row.row_version||0)
       });
       const actionLabel=config.actions.find(item=>item[0]===action)?.[1] || action;
-      previewLines.push(`${config.label} | ${row.material_code} — ${row.material_name} | ${actionLabel}: ${formatInventoryCountThreeDecimalQuantity(preview.beforeValue)} → ${formatInventoryCountThreeDecimalQuantity(preview.afterValue)} طن | الدفتري: ${formatInventoryCountThreeDecimalQuantity(preview.bookBefore)} → ${formatInventoryCountThreeDecimalQuantity(preview.bookAfter)} طن`);
+      previewRows.push({scopeLabel:config.label,materialCode:row.material_code,materialName:row.material_name,actionLabel,
+        beforeValue:preview.beforeValue,afterValue:preview.afterValue,bookBefore:preview.bookBefore,bookAfter:preview.bookAfter});
     });
   });
-  return {items,errors,previewLines,activeCount,valid:activeCount>0 && errors.length===0 && items.length===activeCount};
+  return {items,errors,previewRows,activeCount,valid:activeCount>0 && errors.length===0 && items.length===activeCount};
 }
 function syncInventoryCountPostCloseInvoiceModal(modal){
   if(!modal) return;
@@ -17235,7 +17248,14 @@ function syncInventoryCountPostCloseInvoiceModal(modal){
   if(previewEl){
     if(collection.activeCount===0) previewEl.textContent='أضف صنفًا واحدًا على الأقل في أحد التبويبات لعرض تأثير التعديل.';
     else if(collection.errors.length) previewEl.textContent=collection.errors.join('\n');
-    else previewEl.textContent=`سيتم اعتماد ${collection.items.length} تعديل:\n${collection.previewLines.join('\n')}\nبعد كل تعديل سيصبح الرصيد الفعلي مساويًا للرصيد الدفتري وفرق الجرد 0.000 طن، ثم يُرحّل الأثر تلقائيًا للأيام اللاحقة.`;
+    else previewEl.innerHTML=`<p class="inventory-count-post-close-impact-title">سيتم اعتماد ${collection.items.length} تعديل — القيم بالطن</p>
+      <div class="inventory-count-post-close-impact-scroll"><table class="inventory-count-post-close-impact-table" data-no-universal-table="1" aria-label="الأثر المتوقع للتعديلات قبل الاعتماد">
+        <thead><tr><th scope="col">نوع الحركة</th><th scope="col">كود المادة</th><th scope="col">وصف المادة</th><th scope="col">الإجراء</th><th scope="col">الكمية قبل</th><th scope="col">الكمية بعد</th><th scope="col">الدفتري قبل</th><th scope="col">الدفتري بعد</th></tr></thead>
+        <tbody>${collection.previewRows.map(row=>`<tr>
+          <td>${escapeHtml(row.scopeLabel)}</td><td>${escapeHtml(row.materialCode)}</td><td>${escapeHtml(row.materialName)}</td><td>${escapeHtml(row.actionLabel)}</td>
+          ${['beforeValue','afterValue','bookBefore','bookAfter'].map(key=>`<td class="inventory-count-post-close-impact-number">${escapeHtml(formatInventoryCountThreeDecimalQuantity(row[key]))}</td>`).join('')}
+        </tr>`).join('')}</tbody></table></div>
+      <p class="inventory-count-post-close-impact-note">بعد كل تعديل سيصبح الرصيد الفعلي مساويًا للرصيد الدفتري وفرق الجرد 0.000 طن، ثم يُرحّل الأثر تلقائيًا للأيام اللاحقة.</p>`;
   }
   const valid=inventoryCountIsFinalized() && collection.valid && reasonValid && !INVENTORY_COUNT_STATE.postCloseInvoiceSaving;
   if(submit){submit.disabled=!valid;submit.setAttribute('aria-disabled',valid?'false':'true');}
