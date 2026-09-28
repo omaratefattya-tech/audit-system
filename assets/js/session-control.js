@@ -1,11 +1,15 @@
 (function(){
   'use strict';
   const SESSION_ID_KEY='warehouse-audit-app-session-id-v1';
+  const AUTH_SESSION_ID_KEY='warehouse-audit-auth-session-id-v1';
   const DEVICE_ID_KEY='warehouse-audit-device-id-v1';
   const FORCED_NOTICE_KEY='warehouse-audit-forced-signout-notice-v1';
   const HEARTBEAT_MS=30000;
   let currentUserId='';
   let currentSessionId='';
+  let currentAuthSessionId='';
+  let accessPromise=null;
+  let accessUserId='';
   let monitorTimer=null;
   let realtimeChannel=null;
   let handlingRemoteLogout=false;
@@ -73,13 +77,37 @@
     };
     return currentDeviceInfo;
   }
-  function rpc(name,args){
+  const sessionErrors={
+    AUTH_REQUIRED:'انتهت جلسة تسجيل الدخول. سجل الدخول مرة أخرى.',
+    AUTH_SESSION_REQUIRED:'يلزم تسجيل الدخول من جديد لتفعيل حماية الجلسة.',
+    AUTH_SESSION_INVALID:'انتهت جلسة تسجيل الدخول. سجل الدخول مرة أخرى.',
+    AUTH_SESSION_EXPIRED:'انتهت صلاحية جلسة تسجيل الدخول. سجل الدخول مرة أخرى.',
+    SESSION_REAUTH_REQUIRED:'تم تحديث حماية الجلسات. سجل الدخول مرة واحدة من جديد.',
+    APP_SESSION_REVOKED:'تم إنهاء هذه الجلسة. سجل الدخول مرة أخرى.',
+    APP_SESSION_ENDED:'انتهت هذه الجلسة. سجل الدخول مرة أخرى.',
+    SESSION_BINDING_MISMATCH:'تغيرت جلسة تسجيل الدخول. سجل الدخول مرة أخرى.',
+    ACCOUNT_INACTIVE:'الحساب غير مفعل أو ليس له دور نشط. راجع مدير النظام.'
+  };
+  async function rpc(name,args){
     if(!window.WarehouseDB?.client) return Promise.resolve({data:null,error:new Error('Supabase client is not ready')});
-    return window.WarehouseDB.client.rpc(name,args||{});
+    const authId=currentAuthSessionId,sessionId=currentSessionId;
+    const result=await window.WarehouseDB.client.rpc(name,args||{});
+    if(authId!==currentAuthSessionId || sessionId!==currentSessionId){
+      const error=new Error('تغيرت جلسة الدخول أثناء الطلب. أعد المحاولة.');
+      error.code='SESSION_REQUEST_SUPERSEDED';return {data:null,error};
+    }
+    const reason=String(result?.error?.message||'');
+    if(result?.error?.code==='42501' && sessionErrors[reason]){
+      forceRemoteLogout(sessionErrors[reason]).catch(()=>{});
+    }
+    return result;
   }
   function sessionFeatureError(error){
     const message=String(error?.message||'');
-    if(/app_session_|Could not find the function|schema cache|does not exist/i.test(message)){
+    if(error?.code==='42501' && sessionErrors[message]){
+      const e=new Error(sessionErrors[message]);e.code=error.code;return e;
+    }
+    if(error?.code==='PGRST202' || error?.code==='42883' || /Could not find the function|schema cache|does not exist/i.test(message)){
       const e=new Error('ميزة إدارة الجلسات غير مثبتة على قاعدة البيانات. شغّل ملف AUTH-SESSION-CONTROL-01-install.sql أولاً.');
       e.code='SESSION_CONTROL_NOT_INSTALLED';return e;
     }
@@ -133,12 +161,38 @@
   async function rememberAccessToken(){
     try{const {data}=await WarehouseDB.client.auth.getSession();lastAccessToken=data?.session?.access_token||'';}catch(_){lastAccessToken='';}
   }
+  async function prepareSessionIdentity(){
+    const {data,error}=await WarehouseDB.client.auth.getSession();
+    if(error) throw error;
+    const token=data?.session?.access_token||'';
+    let authId='';
+    try{
+      const part=token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+      authId=String(JSON.parse(atob(part.padEnd(Math.ceil(part.length/4)*4,'=')))?.session_id||'');
+    }catch(_){ }
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(authId)){
+      throw new Error('تعذر تحديد جلسة الدخول. أعد تسجيل الدخول.');
+    }
+    // Client parsing selects a local ID only. The server validates and binds the signed Auth claim.
+    let previous=currentAuthSessionId;
+    try{previous=sessionStorage.getItem(AUTH_SESSION_ID_KEY)||previous;}catch(_){ }
+    if(previous!==authId){
+      stopMonitoring();
+      currentSessionId=uuid();
+      try{
+        sessionStorage.setItem(SESSION_ID_KEY,currentSessionId);
+        sessionStorage.setItem(AUTH_SESSION_ID_KEY,authId);
+      }catch(_){ }
+    }else currentSessionId=getSessionId();
+    currentAuthSessionId=authId;
+    lastAccessToken=token;
+  }
   async function maintenanceStatus(){
     const {data,error}=await rpc('app_maintenance_status',{});
     if(error){
       const message=String(error?.message||'');
       if(/app_maintenance_status|schema cache|Could not find the function|does not exist/i.test(message)) return {enabled:false,feature_missing:true};
-      throw error;
+      throw sessionFeatureError(error);
     }
     return data||{enabled:false};
   }
@@ -163,14 +217,14 @@
     const {data,error}=await rpc('app_session_heartbeat',{p_session_id:currentSessionId});
     if(error){
       console.warn('[session-control] refresh-resume heartbeat failed',error);
-      return {resumed:false,status:'error'};
+      throw sessionFeatureError(error);
     }
     const status=String(data?.status||'missing');
     if(status==='active'){
       startMonitoring();
       return {resumed:true,status};
     }
-    if(status==='revoked'){
+    if(status==='revoked' || status==='ended'){
       forceRemoteLogout(data?.message||'تم تسجيل الدخول من مكان آخر وإنهاء جلستك.');
       return {resumed:false,status,blocked:true};
     }
@@ -189,7 +243,7 @@
       p_browser_name:info.browser_name,
       p_device_model:info.device_model||null,
       p_user_agent:info.user_agent,
-      p_client_version:'P14.6-SESSION-REFRESH-RESUME'
+      p_client_version:'P15.2B-AUTH-SESSION-BINDING'
     });
     if(error) throw sessionFeatureError(error);
     return data||{};
@@ -204,13 +258,23 @@
     startMonitoring();
     return data||{};
   }
-  async function ensureAccess(user){
+  function ensureAccess(user){
+    if(accessPromise && accessUserId===user?.id) return accessPromise;
+    accessUserId=user?.id||'';
+    const pending=runAccessGate(user);
+    accessPromise=pending;
+    const clear=()=>{if(accessPromise===pending){accessPromise=null;accessUserId='';}};
+    pending.then(clear,clear);
+    return pending;
+  }
+  async function runAccessGate(user){
     if(!user?.id) return {allowed:false,message:'لا توجد جلسة مستخدم صالحة.'};
+    await prepareSessionIdentity();
     const maintenance=await maintenanceGate(user);
     if(!maintenance.allowed) return maintenance;
     if(currentUserId===user.id && currentSessionId && monitorTimer){
       const status=await heartbeat();
-      return {allowed:status!=='revoked'&&status!=='ended',resumed:true};
+      return {allowed:status==='active',resumed:status==='active',message:status==='error'?'تعذر التحقق من الجلسة. أعد المحاولة.':''};
     }
     // P14.6: on reload/hard reload, resume the already-active server session first.
     // Only enter the normal conflict/login flow when the stored session is not active.
@@ -302,7 +366,7 @@
       if(el){el.textContent=message;el.className='login-status err';}
     },0);
   }
-  function resetLocalState(){stopMonitoring();currentUserId='';currentSessionId='';lastAccessToken='';handlingRemoteLogout=false;}
+  function resetLocalState(){stopMonitoring();currentUserId='';currentSessionId='';currentAuthSessionId='';lastAccessToken='';handlingRemoteLogout=false;accessPromise=null;accessUserId='';}
 
   // P14.6: do NOT end the application session on pagehide.
   // Browsers fire pagehide for refresh/hard-refresh as well as real tab/window closes,
