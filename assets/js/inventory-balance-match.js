@@ -151,12 +151,12 @@
     finally{payload=null;if(isCurrent(seq))busy(false);}
   }
   async function template(){
-    if(!window.XLSX)return notice('مكتبة Excel غير محملة.',true);
+    const kind=state.kind;
     try{
-      const workbook=XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook,XLSX.utils.aoa_to_sheet([['كود الصنف','وحدة القياس',label()]]),'مطابقة الأرصدة');
-      const blob=new Blob([XLSX.write(workbook,{bookType:'xlsx',type:'array'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-      await saveBlobWithPicker(blob,`مطابقة-${state.kind}.xlsx`,blob.type);
+      const response=await fetch(`assets/templates/inventory-balance-match/${kind}.xlsx?v=p15-5-t1-20260929-1`);
+      if(!response.ok)throw new Error('تعذر تنزيل القالب. تأكد من رفع ملفَي قوالب المطابقة ثم أعد المحاولة.');
+      const blob=await response.blob();
+      await saveBlobWithPicker(blob,`مطابقة-${kind}.xlsx`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     }catch(error){if(error.name!=='AbortError')notice(errorMessage(error),true);}
   }
   function init(){
