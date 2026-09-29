@@ -7,10 +7,10 @@
   const label=()=>state.kind==='opening'?'الرصيد الإفتتاحي':'الرصيد الفعلي';
   const aliases={
     code:['كود الصنف','كود المادة','المادة','material','material code','material number'],
-    unit:['وحدة القياس','الوحدة','uom','base unit of measure','base unit','bun','meins'],
+    name:['وصف الصنف','وصف المادة','اسم الصنف','material description','description'],
     plant:['المصنع','كود المصنع','plant'],warehouse:['المخزن','كود المخزن','storage location','sloc'],
-    opening:['الرصيد الإفتتاحي','الرصيد الافتتاحي','رصيد أول','opening balance','الرصيد','الرصيد المرفوع','balance','quantity','unrestricted'],
-    physical:['الرصيد الفعلي','physical balance','الرصيد','الرصيد المرفوع','balance','quantity','unrestricted']
+    opening:['رصيد SAP','SAP balance','الرصيد الإفتتاحي','الرصيد الافتتاحي','رصيد أول','opening balance','الرصيد','الرصيد المرفوع','balance','quantity','unrestricted'],
+    physical:['رصيد SAP','SAP balance','الرصيد الفعلي','physical balance','الرصيد','الرصيد المرفوع','balance','quantity','unrestricted']
   };
   const headerKey=value=>String(value??'').trim().toLowerCase().replace(/[أإآ]/g,'ا').replace(/\s+/g,' ');
   const esc=value=>escapeHtml(String(value??''));
@@ -82,7 +82,7 @@
     const headers=state.matrix?.[index]||[];
     if(!headers.some(x=>String(x).trim())){notice('اختر صفًا يحتوي على أسماء الأعمدة.',true);field('compare').disabled=true;return;}
     const options=headers.map((value,index)=>`<option value="${index}">${esc(XLSX.utils.encode_col(index))} — ${esc(String(value||'عمود بلا عنوان').slice(0,120))}</option>`).join('');
-    for(const key of ['code','unit','balance','plant','warehouse']){
+    for(const key of ['code','name','balance','plant','warehouse']){
       const select=field(key);select.innerHTML='<option value="">'+(['plant','warehouse'].includes(key)?'غير موجود — الملف للمخزن الحالي فقط':'اختر العمود')+'</option>'+options;
       const names=(aliases[key==='balance'?state.kind:key]||[]).map(headerKey);
       const found=headers.findIndex(x=>names.includes(headerKey(x)));select.value=found>=0?String(found):'';
@@ -119,8 +119,8 @@
   }
   function collect(){
     if(!state.context || !state.matrix)throw new Error('أعد فتح المطابقة وارفع الملف.');
-    const map=Object.fromEntries(['code','unit','balance','plant','warehouse'].map(key=>[key,field(key).value===''?null:Number(field(key).value)]));
-    if(['code','unit','balance'].some(key=>map[key]===null))throw new Error('اختر أعمدة كود الصنف ووحدة القياس والرصيد.');
+    const map=Object.fromEntries(['code','name','balance','plant','warehouse'].map(key=>[key,field(key).value===''?null:Number(field(key).value)]));
+    if(['code','name','balance'].some(key=>map[key]===null))throw new Error('اختر أعمدة كود الصنف ووصف الصنف ورصيد SAP.');
     const chosen=Object.values(map).filter(x=>x!==null);if(new Set(chosen).size!==chosen.length)throw new Error('يجب اختيار عمود مختلف لكل حقل.');
     const start=Number(field('header').value);
     if(!Number.isInteger(start)||start<1||start>=state.matrix.length||start>100)throw new Error('رقم صف العناوين غير صالح أو لا توجد بيانات بعده.');
@@ -128,10 +128,10 @@
     for(let i=start;i<state.matrix.length;i++){
       const row=state.matrix[i];if(!row.some(value=>String(value??'').trim()!==''))continue;
       if((map.plant!==null&&String(row[map.plant]??'').trim().toUpperCase()!==state.context.plant_code)||(map.warehouse!==null&&String(row[map.warehouse]??'').trim().toUpperCase()!==state.context.warehouse_code)){filtered++;continue;}
-      const code=String(row[map.code]??'').trim(),unit=String(row[map.unit]??'').trim();
-      if(!code||code.length>80||!unit||unit.length>30)throw new Error(`كود الصنف أو وحدة القياس غير صالح في صف ${i+1}. احذف صفوف الإجمالي إن وجدت.`);
+      const code=String(row[map.code]??'').trim(),name=String(row[map.name]??'').trim();
+      if(!code||code.length>80||name.length>500)throw new Error(`كود الصنف غير صالح أو الوصف أطول من 500 حرف في صف ${i+1}. احذف صفوف الإجمالي إن وجدت.`);
       if(seen.has(code))throw new Error(`الصنف ${code} مكرر في صف ${i+1}. ارفع إجماليًا واحدًا لكل صنف في المخزن الحالي.`);
-      seen.add(code);rows.push({material_code:code,uom:unit,balance:numeric(row[map.balance],i+1)});
+      seen.add(code);rows.push({material_code:code,material_name:name,balance:numeric(row[map.balance],i+1)});
     }
     if(!rows.length)throw new Error('لا توجد أصناف تخص المصنع والمخزن الحاليين في البيانات المحددة.');
     return {rows,filtered};
@@ -153,7 +153,7 @@
   async function template(){
     const kind=state.kind;
     try{
-      const response=await fetch(`assets/templates/inventory-balance-match/${kind}.xlsx?v=p15-5-t1-20260929-1`);
+      const response=await fetch(`assets/templates/inventory-balance-match/${kind}.xlsx?v=p15-5-t2-20260929-1`);
       if(!response.ok)throw new Error('تعذر تنزيل القالب. تأكد من رفع ملفَي قوالب المطابقة ثم أعد المحاولة.');
       const blob=await response.blob();
       await saveBlobWithPicker(blob,`مطابقة-${kind}.xlsx`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -164,11 +164,11 @@
     const page=document.createElement('article');page.id='inventoryBalanceMatchPage';page.className='panel';page.hidden=true;
     page.innerHTML=`<header class="bm-head"><div><h2 id="balanceMatch_title" tabindex="-1">مطابقة الأرصدة</h2><p id="balanceMatch_context"></p></div><button type="button" data-bm-back>الرجوع إلى الجرد</button></header>
       <div class="bm-tabs" role="tablist" aria-label="نوع مطابقة الأرصدة"><button type="button" role="tab" id="balanceMatch_tab_opening" data-bm-tab="opening" aria-controls="balanceMatch_panel" aria-selected="true">مطابقة الرصيد الإفتتاحي</button><button type="button" role="tab" id="balanceMatch_tab_physical" data-bm-tab="physical" aria-controls="balanceMatch_panel" aria-selected="false" tabindex="-1">مطابقة الرصيد الفعلي</button></div>
-      <section id="balanceMatch_panel" role="tabpanel" aria-labelledby="balanceMatch_tab_opening"><div class="bm-upload"><label>تقرير Excel<input type="file" id="balanceMatch_file" accept=".xlsx,.xls" /></label><button type="button" id="balanceMatch_template">تنزيل قالب Excel</button><p>ارفع رصيدًا إجماليًا واحدًا لكل صنف. الملف للمخزن والتاريخ الموضّحين أعلاه. إذا تضمن مخازن أخرى، حدّد أعمدة المصنع والمخزن. تُحوّل KG وTO إلى وحدة الصنف عند الحاجة.</p></div>
-      <div id="balanceMatch_mapping" class="bm-mapping" hidden><label>ورقة العمل<select id="balanceMatch_sheet"></select></label><label>رقم صف العناوين<input id="balanceMatch_header" type="number" min="1" max="100" value="1" /></label><label>كود الصنف<select id="balanceMatch_code"></select></label><label>وحدة القياس<select id="balanceMatch_unit"></select></label><label>الرصيد المرفوع<select id="balanceMatch_balance"></select></label><label>المصنع (اختياري)<select id="balanceMatch_plant"></select></label><label>المخزن (اختياري)<select id="balanceMatch_warehouse"></select></label></div>
+      <section id="balanceMatch_panel" role="tabpanel" aria-labelledby="balanceMatch_tab_opening"><div class="bm-upload"><label>تقرير Excel<input type="file" id="balanceMatch_file" accept=".xlsx,.xls" /></label><button type="button" id="balanceMatch_template">تنزيل قالب Excel</button><p>أعمدة الملف: كود الصنف / وصف الصنف / رصيد SAP. وحدة القياس من سيستم المراجعة؛ أدخل رصيد SAP بنفس وحدة الصنف المسجلة فيه. ارفع صفًا واحدًا لكل صنف للمخزن والتاريخ الموضّحين أعلاه. إذا تضمن الملف مخازن أخرى، حدّد أعمدة المصنع والمخزن.</p></div>
+      <div id="balanceMatch_mapping" class="bm-mapping" hidden><label>ورقة العمل<select id="balanceMatch_sheet"></select></label><label>رقم صف العناوين<input id="balanceMatch_header" type="number" min="1" max="100" value="1" /></label><label>كود الصنف<select id="balanceMatch_code"></select></label><label>وصف الصنف<select id="balanceMatch_name"></select></label><label>رصيد SAP<select id="balanceMatch_balance"></select></label><label>المصنع (اختياري)<select id="balanceMatch_plant"></select></label><label>المخزن (اختياري)<select id="balanceMatch_warehouse"></select></label></div>
       <div class="bm-action"><button id="balanceMatch_compare" type="button" disabled>مطابقة وحفظ الفروق</button><span>تُحفظ آخر نتيجة لكل تبويب؛ الصفوف المتطابقة وملف الرفع لا تُخزّن.</span></div>
       <p id="balanceMatch_notice" role="status" aria-live="polite"></p><p id="balanceMatch_warning" class="bm-warning" hidden></p><p id="balanceMatch_summary"></p>
-      <div class="bm-table-wrap" tabindex="0" aria-label="جدول فروق الأرصدة"><table id="balanceMatch_table" data-no-universal-table="1"><thead><tr><th scope="col">كود الصنف</th><th scope="col">وصف الصنف</th><th scope="col">وحدة القياس</th><th scope="col" id="balanceMatch_systemHeader">الرصيد الإفتتاحي</th><th scope="col">الرصيد المرفوع</th><th scope="col">الفرق (المرفوع − السيستم)</th></tr></thead><tbody id="balanceMatch_body"></tbody></table></div></section>`;
+      <div class="bm-table-wrap" tabindex="0" aria-label="جدول فروق الأرصدة"><table id="balanceMatch_table" data-no-universal-table="1"><thead><tr><th scope="col">كود الصنف</th><th scope="col">وصف الصنف</th><th scope="col">وحدة القياس</th><th scope="col" id="balanceMatch_systemHeader">الرصيد الإفتتاحي</th><th scope="col">رصيد SAP</th><th scope="col">الفرق (SAP − السيستم)</th></tr></thead><tbody id="balanceMatch_body"></tbody></table></div></section>`;
     section.appendChild(page);button.addEventListener('click',open);page.querySelector('[data-bm-back]').addEventListener('click',close);
     page.querySelectorAll('[data-bm-tab]').forEach(button=>{
       button.addEventListener('click',()=>tab(button.dataset.bmTab));
