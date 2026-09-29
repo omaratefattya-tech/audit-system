@@ -33,7 +33,7 @@ html[data-theme="light"] #inventoryBalanceMatchPage {
 #inventoryBalanceMatchPage .bm-action { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 18px 0; }
 #inventoryBalanceMatchPage .bm-action span { color: var(--bm-muted); font-size: 13px; }
 #inventoryBalanceMatchPage #balanceMatch_notice[data-error="true"] { color: var(--bm-negative); font-weight: 700; }
-#inventoryBalanceMatchPage .bm-warning { background: var(--bm-warning-bg); color: var(--bm-warning-text); padding: 12px; border-radius: 8px; }
+#inventoryBalanceMatchPage .bm-warning { background: var(--bm-warning-bg); color: var(--bm-warning-text); padding: 12px; border-radius: 8px; overflow-wrap: anywhere; }
 #inventoryBalanceMatchPage .bm-table-wrap { overflow: auto; max-height: 65vh; border: 1px solid var(--bm-border); border-radius: 12px; }
 #inventoryBalanceMatchPage table { width: 100%; min-width: 780px; border-collapse: separate; border-spacing: 0; margin: 0; background: var(--bm-bg); }
 #inventoryBalanceMatchPage th, #inventoryBalanceMatchPage td { padding: 13px 12px; text-align: right; color: var(--bm-text); background: var(--bm-bg); border: 0; border-bottom: 1px solid var(--bm-border); box-shadow: none; }

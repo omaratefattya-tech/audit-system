@@ -142,6 +142,16 @@
   action('inventory.count.finish', 'إنهاء الجرد', count, APP, '#finishInventoryCountBtn');
   action('inventory.count.post_close_adjust', 'تعديلات بعد إنهاء الجرد', count, APP, '#inventoryCountPostCloseInvoiceBtn');
   action('inventory.count.differences.create', 'إنشاء مستند فروق الجرد', count, APP, '#createInventoryDifferenceSnapshotBtn');
+  const balanceOwner = 'assets/js/inventory-balance-match.js';
+  const balanceMatch = subscreen('inventory.count.balance_match', 'مطابقة الأرصدة', count, balanceOwner, ['#inventoryBalanceMatchBtn', '#inventoryBalanceMatchPage']);
+  button('inventory.count.balance_match.back', 'الرجوع إلى الجرد', balanceMatch, balanceOwner, '#inventoryBalanceMatchPage [data-bm-back]');
+  [['opening', 'مطابقة الرصيد الإفتتاحي'], ['physical', 'مطابقة الرصيد الفعلي']].forEach(([kind, label]) => {
+    const parent = tab(`inventory.count.balance_match.${kind}`, label, balanceMatch, balanceOwner, `[data-bm-tab="${kind}"]`);
+    const page = `#inventoryBalanceMatchPage[data-bm-kind="${kind}"]`;
+    action(`inventory.count.balance_match.${kind}.upload`, 'اختيار ملف SAP وتحديد أعمدته', parent, balanceOwner, `${page} #balanceMatch_file, ${page} #balanceMatch_mapping`);
+    button(`inventory.count.balance_match.${kind}.download_template`, 'تنزيل قالب Excel', parent, balanceOwner, `${page} #balanceMatch_template`);
+    action(`inventory.count.balance_match.${kind}.compare`, 'مطابقة وحفظ الفروق', parent, balanceOwner, `${page} #balanceMatch_compare`);
+  });
   button('inventory.count.adjustment_notes.open', 'ملاحظات تعديل الجرد', count, APP, '#inventoryCountAdjustmentNotesBtn');
   const adjustmentNotes = subscreen('inventory.count.adjustment_notes', 'تقرير ملاحظات تعديل الجرد', count, APP, '#inventoryCountAdjustmentNotesView');
   button('inventory.count.adjustment_notes.back', 'عودة للصفحة السابقة', adjustmentNotes, APP, '#inventoryCountAdjustmentNotesBackBtn');
@@ -393,7 +403,7 @@
   action('settings.permission_settings.bundles.screen_permissions.save', 'حفظ اختيارات الشاشة', permissionBundles, 'assets/js/permission-settings.js', '#permissionEditorSaveBtn');
 
   const registry = Object.freeze({
-    version: 'IC-REFRESH-01-2026-09-13',
+    version: 'P15.5-R2-2026-09-29',
     phase: 'P3_PERMISSION_SETTINGS',
     enforcementEnabled: false,
     runtimeLoaded: true,

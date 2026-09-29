@@ -62,6 +62,7 @@
   }
   function allowed(node, element) {
     if (!runtime.isReady()) return false;
+    if (node.key.startsWith('inventory.count.balance_match.')) return runtime.can(node.key, scopeFor(node.key, element));
     if(node.key==='inventory.view') return ['inventory.count.view','inventory.differences.view','inventory.production_dates.view'].some(key=>runtime.any(key));
     if(node.key==='department_personnel.view') return ['storekeepers','weekly_leave','hr_reports','evaluations','loading_errors'].some(key=>runtime.any('department_personnel.'+key+'.view'));
     const personnelAction=node.key.match(/^settings\.department_personnel\.(create|edit|status\.toggle)$/);
@@ -183,6 +184,8 @@
           mark(element,!allowed(effective,element),hide);
           if (node.type === 'FILTER' && element.nextElementSibling?.classList.contains('enterprise-multiselect')) mark(element.nextElementSibling,!allowed(node,element),false);
           if (node.type === 'TAB' && element.getAttribute('aria-controls')) {
+            // Balance matching reuses one panel; an inactive denied tab must not hide the permitted active tab.
+            if (node.key.startsWith('inventory.count.balance_match.') && element.getAttribute('aria-selected') !== 'true') continue;
             const panel = doc.getElementById(element.getAttribute('aria-controls'));
             if (panel) mark(panel,!allowed(node,element),true);
           }
