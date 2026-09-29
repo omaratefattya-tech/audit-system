@@ -29,6 +29,26 @@ self.onmessage=event=>{
   try{
     if(!self.XLSX) throw new Error('مكتبة Excel غير متوفرة داخل المعالج الخلفي.');
     if(!(buffer instanceof ArrayBuffer)) throw new Error('ملف Excel غير صالح للقراءة.');
+    if(mode==='balance_match'){
+      const workbook=XLSX.read(buffer,{type:'array',cellDates:false,cellNF:true,sheetRows:20002});
+      const sheetName=options.sheetName || workbook.SheetNames[0];
+      const sheet=workbook.Sheets[sheetName];
+      if(!sheet?.['!ref']) throw new Error('ورقة Excel فارغة.');
+      const range=XLSX.utils.decode_range(sheet['!fullref'] || sheet['!ref']);
+      if(range.e.r>=20001 || range.e.c>=100) throw new Error('الحد الأقصى 20000 صف بيانات و100 عمود؛ احذف التنسيق الزائد إن وجد.');
+      const matrix=[];
+      for(let r=0;r<=range.e.r;r++){
+        const row=[];
+        for(let c=0;c<=range.e.c;c++){
+          const cell=sheet[XLSX.utils.encode_cell({r,c})];
+          // Preserve leading zeroes in formatted material codes, never evaluate formulas.
+          row.push(cell?.t==='e' ? '#EXCEL_ERROR!' : cell?.t==='n' && /^0+$/.test(cell.z||'') ? cell.w : cell?.v ?? '');
+        }
+        matrix.push(row);
+      }
+      self.postMessage({ok:true,result:{sheetNames:workbook.SheetNames,sheetName,matrix}});
+      return;
+    }
     if(mode==='rows'){
       const workbook=XLSX.read(buffer,{type:'array',cellDates:true});
       const sheet=workbook.Sheets[workbook.SheetNames[0]];

@@ -3320,7 +3320,7 @@ function initAuthPanel(){
   logoutBtn.onclick=async()=>{ await logSystemActivity('المستخدمين','تسجيل خروج',`تسجيل خروج: ${CURRENT_APP_PROFILE?.full_name || CURRENT_AUTH_USER?.email || 'المستخدم الحالي'}`); await window.AppSessionControl?.endCurrent?.('manual_logout').catch(()=>{}); await WarehouseDB.signOut('local'); updateAuthStatus(); };
   updateAuthStatus();
 }
-const EXCEL_UPLOAD_WORKER_URL='assets/js/excel-parser-worker.js?v=p10-f05-20260916-1';
+const EXCEL_UPLOAD_WORKER_URL='assets/js/excel-parser-worker.js?v=p15-5-20260929-1';
 function excelWorkerInfrastructureError(message,originalError){
   const error=new Error(message || 'تعذر تشغيل معالج Excel في الخلفية.');
   error.excelWorkerInfrastructure=true;
