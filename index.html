@@ -24,7 +24,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/img/favicon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon.png" />
-  <link rel="stylesheet" href="assets/css/style.css?v=p15-4-settlement-light-20260928-1" />
+  <link rel="stylesheet" href="assets/css/style.css?v=p15-6-20260929-1" />
   <link rel="stylesheet" href="assets/css/inventory-balance-match.css?v=p15-5-r2-20260929-1" />
   <link rel="stylesheet" href="assets/css/custom-date-picker.css?v=l10-department-light-20260920-1" />
   <link rel="stylesheet" href="assets/css/operation-progress.css?v=p14-9-hidden-loading-guard-20260926-1" />
@@ -1504,7 +1504,7 @@
               <label>رقم التليفون
                 <input type="tel" id="managedUserPhone" placeholder="01000000000" />
               </label>
-              <label>كلمة المرور المؤقتة
+              <label id="managedUserPasswordField">كلمة المرور المؤقتة
                 <input type="password" id="managedUserPassword" placeholder="مطلوبة عند إضافة مستخدم جديد" autocomplete="new-password" />
               </label>
               <label>دور الصلاحيات
@@ -1527,6 +1527,28 @@
               <button class="primary" id="saveManagedUserBtn" type="submit">حفظ المستخدم</button>
               <button class="secondary" id="resetManagedUserFormBtn" type="button">تفريغ النموذج</button>
               <button class="secondary" id="cancelUserModalBtn" type="button">إلغاء</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+
+      <div id="managedPasswordResetModal" class="modal-backdrop users-modal-backdrop app-liquid-modal-backdrop" aria-hidden="true">
+        <div class="modal-card users-modal-card app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="managedPasswordResetTitle" aria-describedby="managedPasswordResetTarget">
+          <div class="modal-head users-modal-head app-liquid-modal__header">
+            <div><h3 id="managedPasswordResetTitle">إعادة تعيين كلمة المرور</h3><p id="managedPasswordResetTarget" class="hint small-hint"></p></div>
+            <button type="button" class="modal-close app-liquid-modal__close" id="closeManagedPasswordResetBtn" aria-label="إغلاق إعادة تعيين كلمة المرور" data-app-modal-close>×</button>
+          </div>
+          <form id="managedPasswordResetForm" class="user-form-card users-modal-form" aria-busy="false">
+            <div class="users-form-grid">
+              <label>كلمة المرور الجديدة<input id="managedNewPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required /></label>
+              <label>تأكيد كلمة المرور<input id="managedConfirmPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required /></label>
+            </div>
+            <p class="hint small-hint">من 8 إلى 128 حرفًا. سلّم كلمة المرور للمستخدم بطريقة خاصة ليغيّرها من إعدادات حسابه.</p>
+            <p id="managedPasswordResetStatus" class="hint small-hint" role="status" aria-live="polite"></p>
+            <div class="form-actions users-form-actions">
+              <button type="submit" class="primary" id="submitManagedPasswordResetBtn">إعادة تعيين كلمة المرور</button>
+              <button type="button" class="secondary" id="cancelManagedPasswordResetBtn" data-app-modal-close>إلغاء</button>
             </div>
           </form>
         </div>
@@ -2301,9 +2323,9 @@
   <script src="assets/js/maintenance-control.js?v=maintenance-button-state-20260922-1"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/operation-progress.js?v=p14-9-hidden-loading-guard-20260926-1"></script>
-  <script src="assets/js/app.js?v=p15-5-balance-match-20260929-1"></script>
+  <script src="assets/js/app.js?v=p15-6-20260929-1"></script>
   <script src="assets/js/inventory-balance-match.js?v=p15-5-r2-20260929-1"></script>
-  <script src="assets/js/permission-registry.js?v=p15-5-r2-20260929-1"></script>
+  <script src="assets/js/permission-registry.js?v=p15-6-20260929-1"></script>
   <script src="assets/js/permissions.js?v=ic-refresh-01b-20260913-1"></script>
   <script src="assets/js/permission-ui.js?v=p15-5-r2-20260929-1"></script>
   <script src="assets/js/permission-data-loader.js?v=p6-complete-permissions-20260905-1"></script>

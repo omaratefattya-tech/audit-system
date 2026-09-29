@@ -309,6 +309,7 @@
   const users = screen('users', 'إدارة المستخدمين', APP, '#users');
   action('users.create', 'إضافة مستخدم', users, APP, '.users-open-create');
   action('users.edit', 'تعديل مستخدم', users, APP, '.edit-user-btn');
+  action('users.password.reset', 'إعادة تعيين كلمة المرور', users, APP, ['.reset-user-password-btn','#managedPasswordResetForm']);
   action('users.status.toggle', 'تفعيل أو تعطيل مستخدم', users, APP, '.toggle-user-btn');
   action('users.delete', 'حذف مستخدم نهائيًا', users, APP, '.delete-user-btn');
   action('users.details.view', 'عرض بيانات المستخدم', users, APP, '.view-user-btn');
@@ -403,7 +404,7 @@
   action('settings.permission_settings.bundles.screen_permissions.save', 'حفظ اختيارات الشاشة', permissionBundles, 'assets/js/permission-settings.js', '#permissionEditorSaveBtn');
 
   const registry = Object.freeze({
-    version: 'P15.5-R2-2026-09-29',
+    version: 'P15.6-2026-09-29',
     phase: 'P3_PERMISSION_SETTINGS',
     enforcementEnabled: false,
     runtimeLoaded: true,

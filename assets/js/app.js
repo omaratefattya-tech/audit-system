@@ -7078,6 +7078,7 @@ function setManagedUserLocks(){
   $('#userManagementForm')?.querySelectorAll('input,select,button').forEach(el=>{
     if(el.id!=='cancelUserModalBtn') el.disabled=USERS_SAVE_BUSY || !ready;
   });
+  if($('#managedUserPasswordField')) $('#managedUserPasswordField').hidden=!!current;
   if($('#managedUserEmail')) $('#managedUserEmail').disabled=USERS_SAVE_BUSY || !ready || !!current || !!USERS_PENDING_AUTH;
   if($('#managedUserPassword')) $('#managedUserPassword').disabled=USERS_SAVE_BUSY || !ready || !!current || !!USERS_PENDING_AUTH;
   if($('#managedUserPermissionRole')) $('#managedUserPermissionRole').disabled=USERS_SAVE_BUSY || !ready || !assign || owner || !!current?.is_current;
@@ -7183,6 +7184,7 @@ function renderUsersManagementTableBody(rows){
     const roleClass=(u.role||'viewer').replace(/[^a-z_]/g,'');
     const canToggle=!isSuper && !u.is_current;
     const canEdit=!isSuper || u.is_current;
+    const canReset=!isSuper && !u.is_current && u.id!==window.PermissionRuntime?.userId() && managedPermissionRole(u)?.role_key!=='super_admin';
     const avatar=u.avatar_url
       ? (isStorageAvatarRef(u.avatar_url)
           ? `<span>${escapeHtml(userInitial(u.full_name,u.email))}</span>`
@@ -7203,6 +7205,7 @@ function renderUsersManagementTableBody(rows){
         <div class="row-actions users-row-actions">
           <button type="button" class="icon-action view-user-btn" data-user-id="${escapeHtml(u.id)}" title="عرض">${modernIcon('eye')}</button>
           ${canEdit?`<button type="button" class="icon-action edit-user-btn" data-user-id="${escapeHtml(u.id)}" title="تعديل">${modernIcon('edit')}</button>`:`<button type="button" class="icon-action disabled" title="حساب منشئ النظام لا يتم تعديله من هنا">${modernIcon('lock')}</button>`}
+          ${canReset?`<button type="button" class="icon-action reset-user-password-btn" data-user-id="${escapeHtml(u.id)}" title="إعادة تعيين كلمة المرور" aria-label="إعادة تعيين كلمة المرور">${modernIcon('reset')}</button>`:''}
           ${canToggle?`<button type="button" class="icon-action ${u.is_active?'danger-icon':'ok-icon'} toggle-user-btn" data-user-id="${escapeHtml(u.id)}" data-active="${u.is_active?'1':'0'}" title="${u.is_active?'تعطيل':'تفعيل'}">${u.is_active?modernIcon('ban'):modernIcon('check')}</button>`:`<button type="button" class="icon-action disabled" title="لا يمكن تعطيل هذا الحساب">${modernIcon('lock')}</button>`}
           ${canToggle?`<button type="button" class="icon-action delete-user-btn hard-delete-icon" data-user-id="${escapeHtml(u.id)}" title="حذف نهائي من Auth">${modernIcon('trash')}</button>`:`<button type="button" class="icon-action disabled" title="لا يمكن حذف هذا الحساب">${modernIcon('lock')}</button>`}
         </div>
@@ -7336,7 +7339,7 @@ function fillUserFormForEdit(userId){
   if(u.role==='super_admin' && !u.is_current){ setUsersStatus('حساب منشئ النظام لا يتم تعديله من شاشة المستخدمين.','err'); return; }
   if($('#managedUserId')) $('#managedUserId').value=u.id;
   if($('#managedUserEmail')) { $('#managedUserEmail').value=u.email||''; $('#managedUserEmail').disabled=true; }
-  if($('#managedUserPassword')) { $('#managedUserPassword').value=''; $('#managedUserPassword').disabled=true; $('#managedUserPassword').placeholder='إعادة تعيين كلمة المرور تتم من Supabase Auth'; }
+  if($('#managedUserPassword')) { $('#managedUserPassword').value=''; $('#managedUserPassword').disabled=true; }
   if($('#managedUserFullName')) $('#managedUserFullName').value=u.full_name||'';
   if($('#managedUserJobTitle')) $('#managedUserJobTitle').value=u.job_title||'';
   if($('#managedUserPhone')) $('#managedUserPhone').value=u.phone||'';
@@ -7347,6 +7350,90 @@ function fillUserFormForEdit(userId){
   fillManagedRoleOptions(u);
   openUserManagementModal('edit');
 }
+let USERS_PASSWORD_RESET_TARGET=null;
+let USERS_PASSWORD_RESET_BUSY=false;
+function closeManagedPasswordReset(options={}){
+  const modal=$('#managedPasswordResetModal');
+  if(!modal) return;
+  USERS_PASSWORD_RESET_TARGET=null;
+  $('#managedPasswordResetForm')?.reset();
+  $('#managedPasswordResetTarget').textContent='';
+  $('#managedPasswordResetStatus').textContent='';
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden','true');
+  unlockAppModalScroll('managedPasswordResetModal');
+  const returnFocus=modal._appModalReturnFocus;
+  if(options.restoreFocus!==false && returnFocus?.isConnected) requestAnimationFrame(()=>returnFocus.focus({preventScroll:true}));
+}
+function openManagedPasswordReset(userId){
+  if(USERS_PASSWORD_RESET_BUSY || !hasCanonicalPermission('users.password.reset')) return;
+  if(!USERS_ROLE_CATALOG || USERS_ROLE_CATALOG.user_id!==window.PermissionRuntime?.userId()) return;
+  const user=USERS_MANAGEMENT_ROWS.find(u=>u.id===userId);
+  const role=managedPermissionRole(user);
+  if(!user || user.is_current || user.id===window.PermissionRuntime.userId() || user.role==='super_admin' || role?.is_super_admin || role?.role_key==='super_admin') return;
+  const modal=$('#managedPasswordResetModal');
+  if(!modal) return;
+  USERS_PASSWORD_RESET_TARGET={id:user.id,actor:window.PermissionRuntime.userId()};
+  $('#managedPasswordResetForm').reset();
+  $('#managedPasswordResetTarget').textContent=`${user.full_name||'المستخدم'} — ${user.email||''}`;
+  $('#managedPasswordResetStatus').textContent='';
+  modal._appModalClose=closeManagedPasswordReset;
+  modal._appModalReturnFocus=document.activeElement;
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+  lockAppModalScroll('managedPasswordResetModal',modal);
+  $('#managedNewPassword')?.focus({preventScroll:true});
+}
+async function submitManagedPasswordReset(event){
+  event?.preventDefault();
+  if(USERS_PASSWORD_RESET_BUSY) return;
+  const target=USERS_PASSWORD_RESET_TARGET;
+  if(!target || target.actor!==window.PermissionRuntime?.userId() || !hasCanonicalPermission('users.password.reset')){
+    closeManagedPasswordReset();return;
+  }
+  const password=$('#managedNewPassword').value;
+  if(password.length<8 || password.length>128){$('#managedPasswordResetStatus').textContent='كلمة المرور يجب أن تكون من 8 إلى 128 حرفًا.';return;}
+  if(password!==$('#managedConfirmPassword').value){$('#managedPasswordResetStatus').textContent='تأكيد كلمة المرور غير مطابق.';return;}
+  const form=$('#managedPasswordResetForm');
+  USERS_PASSWORD_RESET_BUSY=true;
+  form.setAttribute('aria-busy','true');
+  form.querySelectorAll('input,button[type="submit"]').forEach(el=>{el.disabled=true;});
+  $('#managedPasswordResetStatus').textContent='جاري إعادة تعيين كلمة المرور...';
+  try{
+    const {data,error}=await WarehouseDB.client.auth.getSession();
+    const session=data?.session;
+    if(error || !session?.access_token || session.user?.id!==target.actor) throw new Error('AUTH_REQUIRED');
+    if(USERS_PASSWORD_RESET_TARGET!==target || target.actor!==window.PermissionRuntime?.userId() || !hasCanonicalPermission('users.password.reset')) return;
+    const cfg=window.WAREHOUSE_SUPABASE_CONFIG||{};
+    if(!cfg.url || !cfg.anonKey) throw new Error('CONFIGURATION_ERROR');
+    const response=await fetch(`${cfg.url}/functions/v1/reset-user-password`,{
+      method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`,apikey:cfg.anonKey},
+      body:JSON.stringify({user_id:target.id,password}),cache:'no-store'
+    });
+    const result=await response.json().catch(()=>null);
+    if(!response.ok || result?.ok!==true || result.user_id!==target.id) throw new Error(result?.code||'RESET_FAILED');
+    if(USERS_PASSWORD_RESET_TARGET!==target || target.actor!==window.PermissionRuntime?.userId()) return;
+    closeManagedPasswordReset();
+    setUsersStatus('تم تعيين كلمة المرور الجديدة. يقدر المستخدم يسجل الدخول بها الآن.','ok');
+    void logSystemActivity('المستخدمين','إعادة تعيين كلمة المرور',`إعادة تعيين كلمة المرور للمستخدم: ${target.id}`);
+  }catch(error){
+    if(USERS_PASSWORD_RESET_TARGET!==target || target.actor!==window.PermissionRuntime?.userId()) return;
+    const messages={
+      AUTH_REQUIRED:'انتهت صلاحية تسجيل الدخول. سجّل الدخول مجددًا.',
+      RESET_DENIED:'العملية غير مسموحة. راجع صلاحيتك وحالة الحساب والجلسة أو وضع الصيانة.',
+      TARGET_NOT_FOUND:'حساب المستخدم غير موجود. حدّث قائمة المستخدمين.',
+      PASSWORD_REJECTED:'كلمة المرور لم تقبلها إعدادات الأمان. اختر كلمة أقوى ومختلفة عن القديمة.',
+      INVALID_INPUT:'راجع كلمة المرور والمستخدم المحدد.'
+    };
+    $('#managedPasswordResetStatus').textContent=messages[error.message]||'تعذر تأكيد إعادة التعيين. تحقق من الاتصال أو راجع مدير النظام. قبل إعادة المحاولة جرّب الدخول بالكلمة الجديدة.';
+  }finally{
+    form.reset();
+    USERS_PASSWORD_RESET_BUSY=false;
+    form.setAttribute('aria-busy','false');
+    form.querySelectorAll('input,button[type="submit"]').forEach(el=>{el.disabled=false;});
+  }
+}
+
 function viewManagedUser(userId){
   if(!hasCanonicalPermission('users.details.view')){ showPermissionDenied('users');return; }
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
@@ -7505,6 +7592,12 @@ async function exportUsersPanelPng(){
   }catch(err){ alert('تعذر تصدير صورة إدارة المستخدمين.'); }
 }
 function initUsersManagement(){
+  $('#managedPasswordResetForm')?.addEventListener('submit',submitManagedPasswordReset);
+  $('#closeManagedPasswordResetBtn')?.addEventListener('click',()=>closeManagedPasswordReset());
+  $('#cancelManagedPasswordResetBtn')?.addEventListener('click',()=>closeManagedPasswordReset());
+  window.addEventListener('audit-permission-runtime-updated',()=>{
+    if(USERS_PASSWORD_RESET_TARGET && (USERS_PASSWORD_RESET_TARGET.actor!==window.PermissionRuntime?.userId() || !hasCanonicalPermission('users.password.reset'))) closeManagedPasswordReset({restoreFocus:false});
+  });
   $('#managedUserPermissionRole')?.addEventListener('change',handleManagedRoleChange);
   $('#managedUserRole')?.addEventListener('change',()=>{
     if(USERS_ROLE_CATALOG && !USERS_ROLE_CATALOG.can_assign){
@@ -7532,10 +7625,12 @@ function initUsersManagement(){
     const edit=e.target.closest('.edit-user-btn');
     const toggle=e.target.closest('.toggle-user-btn');
     const del=e.target.closest('.delete-user-btn');
+    const resetPassword=e.target.closest('.reset-user-password-btn');
     if(view){ viewManagedUser(view.dataset.userId); }
     if(edit){ fillUserFormForEdit(edit.dataset.userId); }
     if(toggle){ toggleManagedUser(toggle.dataset.userId, toggle.dataset.active==='1'); }
     if(del){ deleteManagedUserForever(del.dataset.userId); }
+    if(resetPassword){ openManagedPasswordReset(resetPassword.dataset.userId); }
   });
 }
 
