@@ -11331,6 +11331,87 @@ async function refreshInventoryCountFromLatestClosing(){
     updateInventoryCountRefreshButton();
   }
 }
+
+const INVENTORY_COUNT_REPORT_QUANTITY_GUARD_COLUMNS = Object.freeze([
+  {key:'incoming_transfers',label:'التحويلات الواردة'},
+  {key:'actual_returns',label:'مرتجع فعلي'},
+  {key:'adjustment_increase_z22',label:'تسوية زيادة Z22'},
+  {key:'adjustment_shortage_z21',label:'تسوية عجز Z21'},
+  {key:'sales_quantity',label:'كمية البيع'},
+  {key:'outgoing_transfers',label:'التحويلات الصادرة'},
+  {key:'rework_311',label:'إعادة التصنيع 311'}
+]);
+function inventoryCountNegativeReportQuantityIssues(){
+  const issues=[];
+  (INVENTORY_COUNT_STATE.lines || []).forEach(row=>{
+    INVENTORY_COUNT_REPORT_QUANTITY_GUARD_COLUMNS.forEach(column=>{
+      const raw=row?.[column.key];
+      if(raw===null || raw===undefined || raw==='') return;
+      const value=Number(raw);
+      if(Number.isFinite(value) && value < -0.0005){
+        issues.push({
+          materialCode:String(row?.material_code || '—'),
+          materialName:String(row?.material_name || '—'),
+          columnLabel:column.label,
+          value
+        });
+      }
+    });
+  });
+  return issues;
+}
+function closeInventoryCountNegativeReportQuantityModal(){
+  const modal=$('#inventoryCountNegativeReportQuantityModal');
+  if(!modal) return;
+  unlockAppModalScroll('inventoryCountNegativeReportQuantityModal');
+  modal.remove();
+}
+function showInventoryCountNegativeReportQuantityModal(issues){
+  const rows=Array.isArray(issues) ? issues : inventoryCountNegativeReportQuantityIssues();
+  if(!rows.length) return false;
+  closeInventoryCountNegativeReportQuantityModal();
+  const modal=document.createElement('div');
+  modal.id='inventoryCountNegativeReportQuantityModal';
+  modal.className='app-liquid-modal';
+  modal.setAttribute('role','dialog');
+  modal.setAttribute('aria-modal','true');
+  modal.setAttribute('aria-labelledby','inventoryCountNegativeReportQuantityTitle');
+  modal.innerHTML=`<section class="app-liquid-modal__panel inventory-settlement-modal-panel">
+    <header class="app-liquid-modal__header">
+      <div>
+        <h2 id="inventoryCountNegativeReportQuantityTitle">لا يمكن استكمال عملية الجرد</h2>
+        <p>تم العثور على كميات سالبة في بيانات محتسبة من التقرير المرفوع.</p>
+      </div>
+      <button type="button" class="secondary" data-negative-report-close="1">إغلاق</button>
+    </header>
+    <div class="app-liquid-modal__body">
+      <div class="inventory-settlement-preview-table-wrap">
+        <table class="inventory-settlement-preview-table" data-no-universal-table="1">
+          <thead><tr><th>كود الصنف</th><th>وصف الصنف</th><th>العمود</th><th>الكمية السالبة</th></tr></thead>
+          <tbody>${rows.map(item=>`<tr><td dir="ltr">${escapeHtml(item.materialCode)}</td><td>${escapeHtml(item.materialName)}</td><td>${escapeHtml(item.columnLabel)}</td><td dir="ltr">${escapeHtml(formatInventorySettlementQuantity(item.value))}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+      <p class="inventory-settlement-error" role="alert">لا يمكن استكمال عملية الجرد في وجود كميات سالبة. الرجاء تعديل الصنف وإعادة رفع التقرير بعد التعديل ثم تحديث الجرد.</p>
+    </div>
+    <footer class="app-liquid-modal__footer">
+      <button type="button" class="primary" data-negative-report-close="1">حسنًا</button>
+    </footer>
+  </section>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click',event=>{
+    if(event.target.closest('[data-negative-report-close="1"]')) closeInventoryCountNegativeReportQuantityModal();
+  });
+  lockAppModalScroll('inventoryCountNegativeReportQuantityModal');
+  setTimeout(()=>modal.querySelector('[data-negative-report-close="1"]')?.focus({preventScroll:true}),0);
+  return true;
+}
+function inventoryCountBlockForNegativeReportQuantities(){
+  const issues=inventoryCountNegativeReportQuantityIssues();
+  if(!issues.length) return false;
+  showInventoryCountNegativeReportQuantityModal(issues);
+  return true;
+}
+
 function updateInventoryDifferenceSnapshotButton(){
   updateInventoryCountRefreshButton();
   const btn=$('#createInventoryDifferenceSnapshotBtn');
@@ -14190,6 +14271,7 @@ function syncInventoryCountSettlementModal(modal=$('#inventorySettlementModal'))
 }
 function openInventoryCountSettlementModalFromButton(button){
   if(!button || button.disabled) return;
+  if(inventoryCountBlockForNegativeReportQuantities()) return;
   const lineId=String(button.dataset.lineId || '');
   const versionId=String(button.dataset.versionId || '');
   const snapshotId=String(button.dataset.snapshotId || '');
@@ -16839,6 +16921,7 @@ async function createInventoryDifferenceSnapshotFromUi(){
   if(!WarehouseDB?.ready){ showInventoryCountToast('قاعدة البيانات غير متصلة.','error'); return; }
   if(inventoryCountSettlementPhaseStarted()){ showInventoryCountToast(inventoryCountSettlementPhaseLockMessage(),'warning',6000); return; }
   if(!INVENTORY_COUNT_STATE.versionId || !(INVENTORY_COUNT_STATE.lines || []).length){ showInventoryCountToast('افتح مستند جرد يحتوي على أصناف أولًا','warning'); return; }
+  if(inventoryCountBlockForNegativeReportQuantities()) return;
   const currentVersionId=String(INVENTORY_COUNT_STATE.versionId || '');
   const contextMatches=String(INVENTORY_COUNT_STATE.settlementContextVersionId || '')===currentVersionId;
   const hasCurrentSnapshot=contextMatches && !!String(INVENTORY_COUNT_STATE.settlementContextSnapshot?.snapshot_id || '');
