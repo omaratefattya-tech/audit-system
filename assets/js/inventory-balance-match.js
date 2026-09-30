@@ -78,7 +78,7 @@
       state.context=data.context;state.results[state.kind]=data.result;state.notes[state.kind]=[];
       field('context').textContent=`تاريخ الجرد: ${formatDisplayDate(data.context.inventory_date,'—')} · المصنع: ${data.context.plant_code} · المخزن: ${data.context.warehouse_code}`;
       render();notice('المطابقة للمراجعة فقط؛ لا تغيّر أي رصيد ولا توقف إجراءات الجرد.');
-    }catch(error){if(isCurrent(seq)){state.context=null;clearFile();state.results[state.kind]=null;field('context').textContent='تعذر التحقق من نطاق الجرد المفتوح.';render();notice(errorMessage(error),true);}}
+    }catch(error){if(isCurrent(seq)){state.context=null;clearFile();state.results[state.kind]=null;field('context').textContent='تعذر التحقق من نطاق مستند الجرد المحدد.';render();notice(errorMessage(error),true);}}
     finally{if(isCurrent(seq)) busy(false);}
   }
   async function open(){
@@ -91,7 +91,7 @@
     if(!window.WarehouseDB?.ready){showInventoryCountToast('قاعدة البيانات غير متصلة.','error');return;}
     state.versionId=String(INVENTORY_COUNT_STATE.versionId);state.kind=firstKind;state.results={};state.notes={};state.context=null;clearFile();render();
     byId('inventory_closing').classList.add('balance-match-open');byId('inventoryBalanceMatchPage').hidden=false;
-    field('context').textContent='جاري التحقق من الجرد المفتوح...';byId('balanceMatch_title').focus({preventScroll:true});
+    field('context').textContent='جاري التحقق من مستند الجرد المحدد...';byId('balanceMatch_title').focus({preventScroll:true});
     await load();
   }
   async function tab(kind){if(state.busy || kind===state.kind || !canView(kind)) return;state.kind=kind;clearFile();render();await load();}
