@@ -27,10 +27,10 @@
     state.busy=value;
     byId('inventoryBalanceMatchPage').setAttribute('aria-busy',String(value));
     byId('inventoryBalanceMatchPage').querySelectorAll('input,select,button:not([data-bm-back])').forEach(x=>x.disabled=value);
-    field('file').disabled=value || !canAction('upload');
+    field('file').disabled=value || !state.context || !canAction('upload');
     field('mapping').querySelectorAll('input,select').forEach(x=>x.disabled=value || !canAction('upload'));
     field('template').disabled=value || !canAction('download_template');
-    field('compare').disabled=value || !state.matrix || !canAction('upload') || !canAction('compare');
+    field('compare').disabled=value || !state.context || !state.matrix || !canAction('upload') || !canAction('compare');
   }
   function clearFile(){state.file=null;state.matrix=null;field('file').value='';field('mapping').hidden=true;field('compare').disabled=true;}
   function isCurrent(seq,version=state.versionId){
@@ -78,7 +78,7 @@
       state.context=data.context;state.results[state.kind]=data.result;state.notes[state.kind]=[];
       field('context').textContent=`تاريخ الجرد: ${formatDisplayDate(data.context.inventory_date,'—')} · المصنع: ${data.context.plant_code} · المخزن: ${data.context.warehouse_code}`;
       render();notice('المطابقة للمراجعة فقط؛ لا تغيّر أي رصيد ولا توقف إجراءات الجرد.');
-    }catch(error){if(isCurrent(seq)){state.results[state.kind]=null;render();notice(errorMessage(error),true);}}
+    }catch(error){if(isCurrent(seq)){state.context=null;clearFile();state.results[state.kind]=null;field('context').textContent='تعذر التحقق من نطاق الجرد المفتوح.';render();notice(errorMessage(error),true);}}
     finally{if(isCurrent(seq)) busy(false);}
   }
   async function open(){
@@ -109,6 +109,7 @@
     notice('راجع الأعمدة ثم اضغط «مطابقة وحفظ الفروق». كل رفع ناجح يستبدل نتيجة هذا التبويب فقط.');
   }
   async function parseFile(sheetName){
+    if(!state.context){notice('تعذر تجهيز نطاق الجرد للمطابقة. أعد فتح المطابقة؛ وإذا استمرت الرسالة راجع خطأ الاتصال الظاهر قبل رفع الملف.',true);return;}
     if(!state.file || state.busy || !requireAction('upload')) return;
     const seq=++state.sequence,selectedFile=state.file;busy(true);
     try{
