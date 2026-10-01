@@ -57,17 +57,37 @@
       return false;
     }finally{loading=false;}
   }
+
+  async function confirmMaintenanceChange(enabled){
+    const options=enabled
+      ? {
+          title:'تفعيل وضع الصيانة',
+          message:'سيتم تفعيل وضع الصيانة وإنهاء جميع جلسات المستخدمين الأخرى فورًا. هل تريد المتابعة؟',
+          confirmText:'تفعيل وضع الصيانة',
+          cancelText:'إلغاء',
+          tone:'danger'
+        }
+      : {
+          title:'إغلاق وضع الصيانة',
+          message:'سيتم إنهاء وضع الصيانة والسماح للمستخدمين بتسجيل الدخول مرة أخرى. هل تريد المتابعة؟',
+          confirmText:'إغلاق وضع الصيانة',
+          cancelText:'إلغاء',
+          tone:'danger'
+        };
+    if(typeof window.showAppLiquidConfirm==='function'){
+      return await window.showAppLiquidConfirm(options);
+    }
+    return window.confirm(enabled
+      ? 'سيتم تفعيل وضع الصيانة وإنهاء جميع جلسات المستخدمين الأخرى فورًا. هل تريد المتابعة؟'
+      : 'سيتم إنهاء وضع الصيانة والسماح للمستخدمين بتسجيل الدخول مرة أخرى. هل تريد المتابعة؟');
+  }
+
   async function setMaintenance(enabled){
     if(!isSuperAdmin()){setStatus('هذه الوظيفة متاحة للسوبر أدمن فقط.','err');return;}
     const input=$('#maintenanceMessageInput');
     const message=String(input?.value||'').trim()||'النظام في وضع الصيانة. يرجى المحاولة مرة أخرى لاحقًا.';
-    if(enabled){
-      const ok=window.confirm('سيتم تفعيل وضع الصيانة وإنهاء جميع جلسات المستخدمين الأخرى فورًا. هل تريد المتابعة؟');
-      if(!ok) return;
-    }else{
-      const ok=window.confirm('سيتم إنهاء وضع الصيانة والسماح للمستخدمين بتسجيل الدخول مرة أخرى. هل تريد المتابعة؟');
-      if(!ok) return;
-    }
+    const ok=await confirmMaintenanceChange(enabled);
+    if(!ok) return;
     const toggleBtn=$('#maintenanceToggleBtn'),refreshBtn=$('#refreshMaintenanceStatusBtn');
     [toggleBtn,refreshBtn].forEach(b=>{if(b)b.disabled=true;});
     setStatus(enabled?'جاري تفعيل وضع الصيانة وإنهاء الجلسات الأخرى...':'جاري إنهاء وضع الصيانة...');

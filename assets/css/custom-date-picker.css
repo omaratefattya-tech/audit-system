@@ -473,3 +473,18 @@ html[data-theme="dark"] body:has(#department_weekly_leave_schedule.active-sectio
 html[data-theme="dark"] body:has(#department_hr_reports.active-section) .custom-date-picker-weekdays span,
 html[data-theme="dark"] body:has(#department_evaluations.active-section) .custom-date-picker-weekdays span,
 html[data-theme="dark"] body:has(#department_loading_errors.active-section) .custom-date-picker-weekdays span{color:#b8d7bc}
+
+
+/* P15.8 owner tweak: keep the selected light-mode day clearly green across date-picker usages. */
+html[data-theme="light"] .custom-date-picker-day.is-selected,
+html[data-theme="light"] .custom-date-picker-day.is-selected:hover,
+html[data-theme="light"] .custom-date-picker-day.is-selected:focus-visible{
+  color:#ffffff;
+  background:linear-gradient(135deg,#69be4f,#1f8a43) !important;
+  border-color:#2d8e46 !important;
+  box-shadow:0 0 0 1px rgba(255,255,255,.32) inset,0 10px 22px rgba(49,127,70,.24),0 0 0 3px rgba(77,169,94,.12) !important;
+}
+html[data-theme="light"] .custom-date-picker-day.is-selected.is-today{
+  border-color:#1f7f3d !important;
+  box-shadow:0 0 0 1px rgba(255,255,255,.38) inset,0 10px 22px rgba(49,127,70,.24),0 0 0 3px rgba(77,169,94,.14) !important;
+}
