@@ -397,14 +397,36 @@ function fillPlantSelectFromCatalog(select,allLabel){
   getPlantsCatalog().forEach(p=>select.add(new Option(p.code+' - '+p.name,p.code)));
   select.value=[...select.options].some(o=>o.value===current)?current:'all';
 }
+function permissionScopedPlantSet(permissionKey){
+  const runtime=window.PermissionRuntime;
+  if(!runtime) return null;
+  if(!runtime.isReady?.()) return new Set();
+  return new Set((runtime.allowedPlants?.(permissionKey) || []).map(code=>String(code||'').trim().toUpperCase()).filter(Boolean));
+}
+function inboundReviewAllowedPlantSet(){
+  return permissionScopedPlantSet('inbound_review.view');
+}
+function salesReviewAllowedWarehouses(){
+  const runtime=window.PermissionRuntime;
+  if(!runtime) return [...SALES_WAREHOUSES];
+  if(!runtime.isReady?.()) return [];
+  return SALES_WAREHOUSES.filter(code=>{
+    const plant=String(warehouseMetaByCode(code)?.plant_code || '').trim().toUpperCase();
+    return !!plant
+      && runtime.can('sales_review.view',[plant])
+      && runtime.can('sales_review.filter.warehouse',[plant]);
+  });
+}
 function fillInboundPlantFilter(select){
   if(!select) return;
   const current=select.value||'all';
   const plants=getPlantsCatalog();
   const source=plants.length?plants:fallbackPlantsCatalog();
+  const allowed=inboundReviewAllowedPlantSet();
+  const visible=allowed===null ? source : source.filter(p=>allowed.has(String(p.code||'').trim().toUpperCase()));
   select.innerHTML='';
   select.add(new Option('\u0627\u0644\u0643\u0644','all'));
-  source.forEach(p=>select.add(new Option(`${p.code} - ${p.name}`,p.code)));
+  visible.forEach(p=>select.add(new Option(`${p.code} - ${p.name}`,p.code)));
   select.value=[...select.options].some(o=>o.value===current)?current:'all';
 }
 function refreshPlantsCatalogConsumers(){
@@ -420,9 +442,14 @@ function initFilters(){
   fillInboundPlantFilter(pf);
   function fillWh(){
     const old=wf.value || 'all';
+    const allowed=inboundReviewAllowedPlantSet();
     wf.innerHTML='<option value="all">الكل</option>';
     APP_DATA.plants
-      .filter(p=>pf.value==='all' || String(p.code).toUpperCase()===String(pf.value).toUpperCase())
+      .filter(p=>{
+        const code=String(p.code||'').trim().toUpperCase();
+        const permitted=allowed===null || allowed.has(code);
+        return permitted && (pf.value==='all' || code===String(pf.value).toUpperCase());
+      })
       .forEach(p=>p.warehouses.forEach(w=>{
         if(!typeFilter || typeFilter.value==='all' || String(w[2])===String(typeFilter.value)){
           wf.add(new Option(`${w[0]} - ${w[1]}`,w[0]));
@@ -437,7 +464,8 @@ function initFilters(){
   function restoreInboundFilters(){
     const saved=readSavedInboundFilters();
     if(!saved) return;
-    pf.value=inboundLegacySingleValue(saved.plant);
+    const savedPlant=inboundLegacySingleValue(saved.plant);
+    pf.value=[...pf.options].some(option=>option.value===savedPlant) ? savedPlant : 'all';
     if(typeFilter) typeFilter.value=inboundLegacySingleValue(saved.warehouseType);
     fillWh();
     const savedWarehouse=inboundLegacySingleValue(saved.warehouse);
@@ -455,6 +483,10 @@ function initFilters(){
   }
   pf.onchange=fillWh;
   if(typeFilter) typeFilter.onchange=fillWh;
+  window.addEventListener('audit-permission-runtime-updated',()=>{
+    fillInboundPlantFilter(pf);
+    fillWh();
+  });
   fillWh();
   fillIncomingMovements();
   restoreInboundFilters();
@@ -4754,15 +4786,39 @@ async function loadSalesReport(warehouseCode){
   },{scope:'#sales',controls:'#sales button,#sales input,#sales select'}).finally(syncSalesReviewPagination);
 }
 renderTabs = function(){
-  $('#salesTabs').innerHTML=SALES_WAREHOUSES.map((w,i)=>`<button class="${i===0?'active':''}" data-warehouse="${w}">${w}</button>`).join('');
-  $$('#salesTabs button').forEach(btn=>btn.onclick=()=>{ $$('#salesTabs button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); loadSalesReport(btn.dataset.warehouse); });
-  if($('#inboundTabs')) $('#inboundTabs').innerHTML=getPlantsCatalog().map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('');
+  const salesTabs=$('#salesTabs');
+  const allowedWarehouses=salesReviewAllowedWarehouses();
+  const previous=String(activeSalesWarehouse || '').trim().toUpperCase();
+  const selected=allowedWarehouses.includes(previous) ? previous : (allowedWarehouses[0] || '');
+  activeSalesWarehouse=selected;
+  if(salesTabs){
+    salesTabs.innerHTML=allowedWarehouses.map(w=>`<button class="${w===selected?'active':''}" data-warehouse="${w}">${w}</button>`).join('');
+    $$('#salesTabs button').forEach(btn=>btn.onclick=()=>{
+      const warehouse=String(btn.dataset.warehouse||'').trim().toUpperCase();
+      if(!warehouse || !allowedWarehouses.includes(warehouse)) return;
+      $$('#salesTabs button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      loadSalesReport(warehouse);
+    });
+  }
+  if($('#inboundTabs')) {
+    const allowedPlants=inboundReviewAllowedPlantSet();
+    const plants=(allowedPlants===null ? getPlantsCatalog() : getPlantsCatalog().filter(p=>allowedPlants.has(String(p.code||'').trim().toUpperCase())));
+    $('#inboundTabs').innerHTML=plants.map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('');
+  }
 };
 renderTables = function(){
   table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']));
   table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحميل'],[]);
   table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample);
 };
+window.addEventListener('audit-permission-runtime-updated',()=>{
+  const previous=String(activeSalesWarehouse || '').trim().toUpperCase();
+  renderTabs();
+  if($('#sales')?.classList.contains('active-section') && activeSalesWarehouse && activeSalesWarehouse!==previous){
+    loadSalesReport(activeSalesWarehouse);
+  }
+});
 document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initMobileUploadReportUI();initSalesUploader();initIncomingUploader();initScaleUploader();initFreightUploader();});
 
 // === Main Program Login Gate ===
@@ -11105,6 +11161,7 @@ function inventoryCountPhaseLockErrorMessage(error,fallback='حدث خطأ أث�
   if(message.includes('inventory_count_negative_production_not_allowed')) return 'الإنتاج لا يمكن أن يكون بقيمة سالبة.';
   if(message.includes('inventory_count_negative_physical_balance_not_allowed')) return 'الرصيد الفعلي لا يمكن أن يكون بقيمة سالبة.';
   if(message.includes('inventory_count_negative_oldest_quantity_not_allowed')) return 'كمية أقدم تاريخ لا يمكن أن تكون بقيمة سالبة.';
+  if(message.includes('inventory_count_negative_report_quantities')) return 'لا يمكن استكمال عملية الجرد في وجود كميات سالبة في بيانات محتسبة من التقرير المرفوع.';
   return message || fallback;
 }
 function inventoryCountManualControlLockAttributes(){
@@ -11332,6 +11389,126 @@ async function refreshInventoryCountFromLatestClosing(){
     updateInventoryCountRefreshButton();
   }
 }
+
+const INVENTORY_COUNT_REPORT_QUANTITY_GUARD_COLUMNS = Object.freeze([
+  {key:'incoming_transfers',label:'التحويلات الواردة'},
+  {key:'actual_returns',label:'مرتجع فعلي'},
+  {key:'adjustment_increase_z22',label:'تسوية زيادة Z22'},
+  {key:'adjustment_shortage_z21',label:'تسوية عجز Z21'},
+  {key:'sales_quantity',label:'كمية البيع'},
+  {key:'outgoing_transfers',label:'التحويلات الصادرة'},
+  {key:'rework_311',label:'إعادة التصنيع 311'}
+]);
+function inventoryCountNegativeReportQuantityIssues(){
+  const issues=[];
+  (INVENTORY_COUNT_STATE.lines || []).forEach(row=>{
+    INVENTORY_COUNT_REPORT_QUANTITY_GUARD_COLUMNS.forEach(column=>{
+      const raw=row?.[column.key];
+      if(raw===null || raw===undefined || raw==='') return;
+      const value=Number(raw);
+      if(Number.isFinite(value) && value < -0.0005){
+        issues.push({
+          materialCode:String(row?.material_code || '—'),
+          materialName:String(row?.material_name || '—'),
+          columnLabel:column.label,
+          value
+        });
+      }
+    });
+  });
+  return issues;
+}
+function closeInventoryCountNegativeReportQuantityModal(){
+  const modal=$('#inventoryCountNegativeReportQuantityModal');
+  if(!modal) return;
+  unlockAppModalScroll('inventoryCountNegativeReportQuantityModal');
+  modal.remove();
+}
+function inventoryCountNegativeReportQuantityIssuesFromError(error){
+  const message=String(error?.message || error || '').trim();
+  if(!message.includes('inventory_count_negative_report_quantities')) return [];
+  const rawDetail=String(error?.details || error?.detail || '').trim();
+  if(!rawDetail) return [];
+  try{
+    const parsed=JSON.parse(rawDetail);
+    if(!Array.isArray(parsed)) return [];
+    return parsed.map(item=>({
+      materialCode:String(item?.material_code || '—'),
+      materialName:String(item?.material_name || '—'),
+      columnLabel:String(item?.column_label || item?.column_key || '—'),
+      value:Number(item?.quantity)
+    })).filter(item=>item.materialCode!=='—' || item.materialName!=='—' || item.columnLabel!=='—' || Number.isFinite(item.value));
+  }catch(_err){
+    return [];
+  }
+}
+function showInventoryCountNegativeReportQuantityModal(issues){
+  const rows=(Array.isArray(issues) ? issues : []).length ? issues : inventoryCountNegativeReportQuantityIssues();
+  if(!rows.length) return false;
+  closeInventoryCountNegativeReportQuantityModal();
+  const modal=document.createElement('div');
+  modal.id='inventoryCountNegativeReportQuantityModal';
+  modal.className='inventory-settlement-modal app-liquid-modal-backdrop';
+  modal.setAttribute('aria-hidden','false');
+  modal.innerHTML=`
+    <div class="inventory-settlement-backdrop" aria-hidden="true"></div>
+    <section class="inventory-settlement-dialog app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="inventoryCountNegativeReportQuantityTitle" dir="rtl">
+      <header class="inventory-settlement-header app-liquid-modal__header">
+        <div>
+          <p class="inventory-settlement-eyebrow">الجرد وتوثيق المخزون</p>
+          <h2 id="inventoryCountNegativeReportQuantityTitle">لا يمكن استكمال عملية الجرد</h2>
+        </div>
+        <button type="button" class="inventory-settlement-close app-liquid-modal__close" data-negative-report-close="1" aria-label="إغلاق">×</button>
+      </header>
+      <div class="inventory-settlement-scroll app-liquid-modal__body">
+        <section class="inventory-settlement-preview" aria-labelledby="inventoryCountNegativeReportQuantityIssuesTitle">
+          <h3 id="inventoryCountNegativeReportQuantityIssuesTitle">الأصناف التي تحتوي على كميات سالبة</h3>
+          <div class="inventory-settlement-preview-table-wrap">
+            <table class="inventory-settlement-preview-table" data-no-universal-table="1">
+              <thead><tr><th>كود الصنف</th><th>وصف الصنف</th><th>العمود</th><th>الكمية السالبة</th></tr></thead>
+              <tbody>${rows.map(item=>`<tr><td dir="ltr">${escapeHtml(item.materialCode)}</td><td>${escapeHtml(item.materialName)}</td><td>${escapeHtml(item.columnLabel)}</td><td dir="ltr">${escapeHtml(formatInventorySettlementQuantity(item.value))}</td></tr>`).join('')}</tbody>
+            </table>
+          </div>
+          <p class="inventory-settlement-error" role="alert">لا يمكن استكمال عملية الجرد في وجود كميات سالبة. الرجاء تعديل الصنف وإعادة رفع التقرير بعد التعديل ثم تحديث الجرد.</p>
+        </section>
+      </div>
+      <footer class="inventory-settlement-actions app-liquid-modal__footer">
+        <button type="button" class="primary" data-negative-report-close="1">حسنًا</button>
+      </footer>
+    </section>`;
+  document.body.appendChild(modal);
+  const closeHandler=event=>{
+    if(event.type==='keydown'){
+      if(event.key==='Escape'){
+        event.preventDefault();
+        closeInventoryCountNegativeReportQuantityModal();
+      }
+      return;
+    }
+    if(event.target===modal || event.target.closest('.inventory-settlement-backdrop') || event.target.closest('[data-negative-report-close="1"]')){
+      event.preventDefault();
+      closeInventoryCountNegativeReportQuantityModal();
+    }
+  };
+  modal.addEventListener('click',closeHandler);
+  modal.addEventListener('keydown',closeHandler);
+  lockAppModalScroll('inventoryCountNegativeReportQuantityModal',modal);
+  setTimeout(()=>modal.querySelector('[data-negative-report-close="1"]')?.focus({preventScroll:true}),0);
+  return true;
+}
+function inventoryCountHandleNegativeReportQuantityError(error){
+  const issues=inventoryCountNegativeReportQuantityIssuesFromError(error);
+  if(!issues.length) return false;
+  showInventoryCountNegativeReportQuantityModal(issues);
+  return true;
+}
+function inventoryCountBlockForNegativeReportQuantities(){
+  const issues=inventoryCountNegativeReportQuantityIssues();
+  if(!issues.length) return false;
+  showInventoryCountNegativeReportQuantityModal(issues);
+  return true;
+}
+
 function updateInventoryDifferenceSnapshotButton(){
   updateInventoryCountRefreshButton();
   const btn=$('#createInventoryDifferenceSnapshotBtn');
@@ -14191,6 +14368,7 @@ function syncInventoryCountSettlementModal(modal=$('#inventorySettlementModal'))
 }
 function openInventoryCountSettlementModalFromButton(button){
   if(!button || button.disabled) return;
+  if(inventoryCountBlockForNegativeReportQuantities()) return;
   const lineId=String(button.dataset.lineId || '');
   const versionId=String(button.dataset.versionId || '');
   const snapshotId=String(button.dataset.snapshotId || '');
@@ -14316,6 +14494,7 @@ async function submitInventoryCountSettlement(){
     showInventoryCountToast('تم حفظ تسوية فرق الجرد بنجاح.','success');
   }catch(err){
     console.error('Inventory count line settlement failed',err);
+    if(inventoryCountHandleNegativeReportQuantityError(err)) return;
     const status=String(err?.inventorySettlementStatus || inventorySettlementStatusFromError(err));
     const message=status ? inventorySettlementStatusMessage(status,validation.reasonCode) : (err?.message || 'تعذر حفظ تسوية فرق الجرد.');
     if(modal.isConnected){
@@ -16829,7 +17008,7 @@ async function submitInventoryDifferenceReplacement(){
     }
     throw new Error('تعذر استبدال مستند فروق الجرد.');
   }catch(err){
-    showInventoryCountToast(inventoryCountPhaseLockErrorMessage(err,'تعذر استبدال مستند فروق الجرد.',sourceVersionId),'error',6000);
+    if(!inventoryCountHandleNegativeReportQuantityError(err)) showInventoryCountToast(inventoryCountPhaseLockErrorMessage(err,'تعذر استبدال مستند فروق الجرد.',sourceVersionId),'error',6000);
   }finally{
     INVENTORY_DIFFERENCE_STATE.replacing=false;
     syncInventoryDifferenceReplaceReason();
@@ -16840,6 +17019,7 @@ async function createInventoryDifferenceSnapshotFromUi(){
   if(!WarehouseDB?.ready){ showInventoryCountToast('قاعدة البيانات غير متصلة.','error'); return; }
   if(inventoryCountSettlementPhaseStarted()){ showInventoryCountToast(inventoryCountSettlementPhaseLockMessage(),'warning',6000); return; }
   if(!INVENTORY_COUNT_STATE.versionId || !(INVENTORY_COUNT_STATE.lines || []).length){ showInventoryCountToast('افتح مستند جرد يحتوي على أصناف أولًا','warning'); return; }
+  if(inventoryCountBlockForNegativeReportQuantities()) return;
   const currentVersionId=String(INVENTORY_COUNT_STATE.versionId || '');
   const contextMatches=String(INVENTORY_COUNT_STATE.settlementContextVersionId || '')===currentVersionId;
   const hasCurrentSnapshot=contextMatches && !!String(INVENTORY_COUNT_STATE.settlementContextSnapshot?.snapshot_id || '');
@@ -16877,7 +17057,7 @@ async function createInventoryDifferenceSnapshotFromUi(){
     }
     showInventoryCountToast('تعذر إنشاء مستند فروق الجرد.','error');
   }catch(err){
-    showInventoryCountToast(inventoryCountPhaseLockErrorMessage(err,'تعذر إنشاء مستند فروق الجرد.'),'error');
+    if(!inventoryCountHandleNegativeReportQuantityError(err)) showInventoryCountToast(inventoryCountPhaseLockErrorMessage(err,'تعذر إنشاء مستند فروق الجرد.'),'error');
   }finally{
     INVENTORY_COUNT_STATE.snapshotCreating=false;
     updateInventoryDifferenceSnapshotButton();
@@ -17039,6 +17219,7 @@ async function finishInventoryCountFromUi(){
     showInventoryCountToast(status==='already_finalized' ? 'تم إنهاء مستند الجرد بالفعل.' : 'تم إنهاء مستند الجرد بنجاح.','success',5000);
   }catch(err){
     console.error('Inventory count finalization failed',err);
+    if(inventoryCountHandleNegativeReportQuantityError(err)) return;
     const raw=String(err?.message || err || '');
     const message=raw.includes('inventory_count_source_not_ready_before_finalization')
       ? inventoryCountFinalizationStatusMessage('inventory_count_source_not_ready_before_finalization')

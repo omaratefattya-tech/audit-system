@@ -178,12 +178,10 @@
         for (const element of all(selector)) {
           // Keep table headers/cells in place; native business locks stay owned
           // by their component. Capture guards enforce pointer/keyboard actions.
-          const isSalesWarehouseTab=node.key==='sales_review.filter.warehouse' && element.matches('#salesTabs button[data-warehouse]');
-          const hide = ['SCREEN','SUBSCREEN','TAB'].includes(node.type) || isSalesWarehouseTab || (!element.matches('th,td,form,input,select,textarea') && node.type !== 'FILTER');
+          const hide = ['SCREEN','SUBSCREEN','TAB'].includes(node.type) || (!element.matches('th,td,form,input,select,textarea') && node.type !== 'FILTER');
           const dynamicKey=extraKey(element,{type:'click'});
           const effective=dynamicKey ? nodes.find(item=>item.key===dynamicKey) || node : node;
-          const salesWarehouseDenied=isSalesWarehouseTab && !runtime.can('sales_review.view',scopeFor('sales_review.view',element));
-          mark(element,!allowed(effective,element) || salesWarehouseDenied,hide);
+          mark(element,!allowed(effective,element),hide);
           if (node.type === 'FILTER' && element.nextElementSibling?.classList.contains('enterprise-multiselect')) mark(element.nextElementSibling,!allowed(node,element),false);
           if (node.type === 'TAB' && element.getAttribute('aria-controls')) {
             // Balance matching reuses one panel; an inactive denied tab must not hide the permitted active tab.
@@ -207,18 +205,6 @@
         for(const option of select.options) {
           const tab=all(selector).find(item=>item.dataset[dataKey]===option.value); const node=tab && nodeFor(tab);
           option.disabled=Boolean(node && !allowed(node,tab)); option.hidden=option.disabled;
-        }
-      }
-      // Sales warehouse buttons are permission-scoped filters rather than registry TAB nodes.
-      // If the previous active warehouse is denied, move to the first permitted visible warehouse.
-      if(runtime.isReady()){
-        const salesNode=nodes.find(item=>item.key==='sales_review.filter.warehouse');
-        const salesTabs=all('#salesTabs button[data-warehouse]');
-        const salesAllowed=tab=>Boolean(salesNode && allowed(salesNode,tab) && runtime.can('sales_review.view',scopeFor('sales_review.view',tab)));
-        const activeSales=salesTabs.find(tab=>tab.classList.contains('active'));
-        if((!activeSales || !salesAllowed(activeSales)) && salesTabs.length){
-          const firstSales=salesTabs.find(salesAllowed);
-          if(firstSales) firstSales.click();
         }
       }
       // The selected tab may belong to the previous user. Use the component's
