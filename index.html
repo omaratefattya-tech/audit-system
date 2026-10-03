@@ -1533,6 +1533,47 @@
       </div>
 
 
+      <div id="managedUserDetailsModal" class="modal-backdrop users-modal-backdrop app-liquid-modal-backdrop" aria-hidden="true">
+        <div class="modal-card users-modal-card app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="managedUserDetailsTitle">
+          <div class="modal-head users-modal-head app-liquid-modal__header">
+            <div>
+              <h3 id="managedUserDetailsTitle">بيانات المستخدم</h3>
+              <p class="hint small-hint">عرض بيانات الحساب ودور الصلاحيات الحالي.</p>
+            </div>
+            <button type="button" class="modal-close app-liquid-modal__close" id="closeManagedUserDetailsBtn" aria-label="إغلاق بيانات المستخدم" data-app-modal-close>×</button>
+          </div>
+          <div class="user-form-card users-modal-form app-liquid-modal__body">
+            <div class="users-form-grid">
+              <label>الاسم
+                <input id="managedUserDetailsName" type="text" readonly />
+              </label>
+              <label>البريد الإلكتروني
+                <input id="managedUserDetailsEmail" type="text" readonly dir="ltr" />
+              </label>
+              <label>دور الصلاحيات
+                <input id="managedUserDetailsPermissionRole" type="text" readonly />
+              </label>
+              <label>دور التشغيل الحالي
+                <input id="managedUserDetailsRuntimeRole" type="text" readonly />
+              </label>
+              <label>الحالة
+                <input id="managedUserDetailsStatus" type="text" readonly />
+              </label>
+              <label>الوظيفة
+                <input id="managedUserDetailsJobTitle" type="text" readonly />
+              </label>
+              <label>الهاتف
+                <input id="managedUserDetailsPhone" type="text" readonly dir="ltr" />
+              </label>
+            </div>
+          </div>
+          <div class="form-actions users-form-actions app-liquid-modal__footer">
+            <button type="button" class="primary" id="dismissManagedUserDetailsBtn" data-app-modal-close>إغلاق</button>
+          </div>
+        </div>
+      </div>
+
+
       <div id="managedPasswordResetModal" class="modal-backdrop users-modal-backdrop app-liquid-modal-backdrop" aria-hidden="true">
         <div class="modal-card users-modal-card app-liquid-modal" role="dialog" aria-modal="true" aria-labelledby="managedPasswordResetTitle" aria-describedby="managedPasswordResetTarget">
           <div class="modal-head users-modal-head app-liquid-modal__header">
@@ -2323,7 +2364,7 @@
   <script src="assets/js/maintenance-control.js?v=p15-8-maint-modal-20261001-1"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/operation-progress.js?v=p14-9-hidden-loading-guard-20260926-1"></script>
-  <script src="assets/js/app.js?v=p15-9-r3-sales-tab-permissions-20261003-1"></script>
+  <script src="assets/js/app.js?v=p15-10-user-details-modal-20261003-1"></script>
   <script src="assets/js/inventory-balance-match.js?v=p15-5-r2-20260929-1"></script>
   <script src="assets/js/permission-registry.js?v=p15-9-r3-sales-tab-permissions-20261003-1"></script>
   <script src="assets/js/permissions.js?v=ic-refresh-01b-20260913-1"></script>

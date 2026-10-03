@@ -7456,11 +7456,38 @@ async function submitManagedPasswordReset(event){
   }
 }
 
+function closeManagedUserDetails(options={}){
+  const modal=$('#managedUserDetailsModal');
+  if(!modal) return;
+  const returnFocus=modal._appModalReturnFocus;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden','true');
+  unlockAppModalScroll('managedUserDetailsModal');
+  if(options.restoreFocus!==false && returnFocus?.isConnected) requestAnimationFrame(()=>returnFocus.focus({preventScroll:true}));
+}
+function setManagedUserDetailsValue(id,value){
+  const input=$(id);
+  if(input) input.value=String(value ?? '--');
+}
 function viewManagedUser(userId){
   if(!hasCanonicalPermission('users.details.view')){ showPermissionDenied('users');return; }
   const u=USERS_MANAGEMENT_ROWS.find(x=>String(x.id)===String(userId));
   if(!u) return;
-  alert(`بيانات المستخدم\n\nالاسم: ${u.full_name||'--'}\nالبريد: ${u.email||'--'}\nدور الصلاحيات: ${managedRoleLabel(u)}\nدور التشغيل الحالي: ${roleLabel(u.role)}\nالحالة: ${u.is_active?'نشط':'معطل'}\nالوظيفة: ${u.job_title||'--'}\nالهاتف: ${u.phone||'--'}`);
+  const modal=$('#managedUserDetailsModal');
+  if(!modal) return;
+  setManagedUserDetailsValue('#managedUserDetailsName',u.full_name||'--');
+  setManagedUserDetailsValue('#managedUserDetailsEmail',u.email||'--');
+  setManagedUserDetailsValue('#managedUserDetailsPermissionRole',managedRoleLabel(u));
+  setManagedUserDetailsValue('#managedUserDetailsRuntimeRole',roleLabel(u.role));
+  setManagedUserDetailsValue('#managedUserDetailsStatus',u.is_active?'نشط':'معطل');
+  setManagedUserDetailsValue('#managedUserDetailsJobTitle',u.job_title||'--');
+  setManagedUserDetailsValue('#managedUserDetailsPhone',u.phone||'--');
+  modal._appModalClose=closeManagedUserDetails;
+  modal._appModalReturnFocus=document.activeElement;
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+  lockAppModalScroll('managedUserDetailsModal',modal);
+  requestAnimationFrame(()=>$('#closeManagedUserDetailsBtn')?.focus({preventScroll:true}));
 }
 async function createAuthUserWithIsolatedClient(email,password){
   const cfg=window.WAREHOUSE_SUPABASE_CONFIG || {};
@@ -7614,11 +7641,14 @@ async function exportUsersPanelPng(){
   }catch(err){ alert('تعذر تصدير صورة إدارة المستخدمين.'); }
 }
 function initUsersManagement(){
+  $('#closeManagedUserDetailsBtn')?.addEventListener('click',()=>closeManagedUserDetails());
+  $('#dismissManagedUserDetailsBtn')?.addEventListener('click',()=>closeManagedUserDetails());
   $('#managedPasswordResetForm')?.addEventListener('submit',submitManagedPasswordReset);
   $('#closeManagedPasswordResetBtn')?.addEventListener('click',()=>closeManagedPasswordReset());
   $('#cancelManagedPasswordResetBtn')?.addEventListener('click',()=>closeManagedPasswordReset());
   window.addEventListener('audit-permission-runtime-updated',()=>{
     if(USERS_PASSWORD_RESET_TARGET && (USERS_PASSWORD_RESET_TARGET.actor!==window.PermissionRuntime?.userId() || !hasCanonicalPermission('users.password.reset'))) closeManagedPasswordReset({restoreFocus:false});
+    if($('#managedUserDetailsModal')?.classList.contains('open') && !hasCanonicalPermission('users.details.view')) closeManagedUserDetails({restoreFocus:false});
   });
   $('#managedUserPermissionRole')?.addEventListener('change',handleManagedRoleChange);
   $('#managedUserRole')?.addEventListener('change',()=>{
