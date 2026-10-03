@@ -209,7 +209,7 @@
       }
       // The selected tab may belong to the previous user. Use the component's
       // existing tab handler to select a permitted tab and load its data.
-      if(runtime.isReady()) for(const selector of ['[data-report-tab]','[data-upload-tab]','[data-raw-materials-tab]','[data-inventory-expiry-tab]','[data-department-hr-tab]','#department_weekly_leave_schedule [data-weekly-tab]','#department_evaluations [data-weekly-tab]','[data-loading-errors-plant]']) {
+      if(runtime.isReady()) for(const selector of ['#salesTabs button[data-warehouse]','[data-report-tab]','[data-upload-tab]','[data-raw-materials-tab]','[data-inventory-expiry-tab]','[data-department-hr-tab]','#department_weekly_leave_schedule [data-weekly-tab]','#department_evaluations [data-weekly-tab]','[data-loading-errors-plant]']) {
         const tabs=all(selector); const active=tabs.find(tab=>tab.classList.contains('active'));
         if(active && nodeFor(active) && !allowed(nodeFor(active),active)) {
           const first=tabs.find(tab=>nodeFor(tab) && allowed(nodeFor(tab),tab));

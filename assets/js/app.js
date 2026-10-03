@@ -397,36 +397,14 @@ function fillPlantSelectFromCatalog(select,allLabel){
   getPlantsCatalog().forEach(p=>select.add(new Option(p.code+' - '+p.name,p.code)));
   select.value=[...select.options].some(o=>o.value===current)?current:'all';
 }
-function permissionScopedPlantSet(permissionKey){
-  const runtime=window.PermissionRuntime;
-  if(!runtime) return null;
-  if(!runtime.isReady?.()) return new Set();
-  return new Set((runtime.allowedPlants?.(permissionKey) || []).map(code=>String(code||'').trim().toUpperCase()).filter(Boolean));
-}
-function inboundReviewAllowedPlantSet(){
-  return permissionScopedPlantSet('inbound_review.view');
-}
-function salesReviewAllowedWarehouses(){
-  const runtime=window.PermissionRuntime;
-  if(!runtime) return [...SALES_WAREHOUSES];
-  if(!runtime.isReady?.()) return [];
-  return SALES_WAREHOUSES.filter(code=>{
-    const plant=String(warehouseMetaByCode(code)?.plant_code || '').trim().toUpperCase();
-    return !!plant
-      && runtime.can('sales_review.view',[plant])
-      && runtime.can('sales_review.filter.warehouse',[plant]);
-  });
-}
 function fillInboundPlantFilter(select){
   if(!select) return;
   const current=select.value||'all';
   const plants=getPlantsCatalog();
   const source=plants.length?plants:fallbackPlantsCatalog();
-  const allowed=inboundReviewAllowedPlantSet();
-  const visible=allowed===null ? source : source.filter(p=>allowed.has(String(p.code||'').trim().toUpperCase()));
   select.innerHTML='';
   select.add(new Option('\u0627\u0644\u0643\u0644','all'));
-  visible.forEach(p=>select.add(new Option(`${p.code} - ${p.name}`,p.code)));
+  source.forEach(p=>select.add(new Option(`${p.code} - ${p.name}`,p.code)));
   select.value=[...select.options].some(o=>o.value===current)?current:'all';
 }
 function refreshPlantsCatalogConsumers(){
@@ -442,14 +420,9 @@ function initFilters(){
   fillInboundPlantFilter(pf);
   function fillWh(){
     const old=wf.value || 'all';
-    const allowed=inboundReviewAllowedPlantSet();
     wf.innerHTML='<option value="all">الكل</option>';
     APP_DATA.plants
-      .filter(p=>{
-        const code=String(p.code||'').trim().toUpperCase();
-        const permitted=allowed===null || allowed.has(code);
-        return permitted && (pf.value==='all' || code===String(pf.value).toUpperCase());
-      })
+      .filter(p=>pf.value==='all' || String(p.code).toUpperCase()===String(pf.value).toUpperCase())
       .forEach(p=>p.warehouses.forEach(w=>{
         if(!typeFilter || typeFilter.value==='all' || String(w[2])===String(typeFilter.value)){
           wf.add(new Option(`${w[0]} - ${w[1]}`,w[0]));
@@ -464,8 +437,7 @@ function initFilters(){
   function restoreInboundFilters(){
     const saved=readSavedInboundFilters();
     if(!saved) return;
-    const savedPlant=inboundLegacySingleValue(saved.plant);
-    pf.value=[...pf.options].some(option=>option.value===savedPlant) ? savedPlant : 'all';
+    pf.value=inboundLegacySingleValue(saved.plant);
     if(typeFilter) typeFilter.value=inboundLegacySingleValue(saved.warehouseType);
     fillWh();
     const savedWarehouse=inboundLegacySingleValue(saved.warehouse);
@@ -483,10 +455,6 @@ function initFilters(){
   }
   pf.onchange=fillWh;
   if(typeFilter) typeFilter.onchange=fillWh;
-  window.addEventListener('audit-permission-runtime-updated',()=>{
-    fillInboundPlantFilter(pf);
-    fillWh();
-  });
   fillWh();
   fillIncomingMovements();
   restoreInboundFilters();
@@ -3251,6 +3219,25 @@ document.addEventListener('DOMContentLoaded',()=>{setDefaultDates();startCairoCl
 
 // === Supabase Sales Upload + Dynamic Sales Report ===
 const SALES_WAREHOUSES = ['W401','W402','N401','N402','N411','N412','E401','E402'];
+const SALES_WAREHOUSE_PERMISSION_KEYS = Object.freeze({
+  W401:'sales_review.warehouse.wf01.w401.view',
+  W402:'sales_review.warehouse.wf01.w402.view',
+  N401:'sales_review.warehouse.el01.n401.view',
+  N402:'sales_review.warehouse.el01.n402.view',
+  N411:'sales_review.warehouse.el01.n411.view',
+  N412:'sales_review.warehouse.el01.n412.view',
+  E401:'sales_review.warehouse.el02.e401.view',
+  E402:'sales_review.warehouse.el02.e402.view'
+});
+function salesWarehousePermissionKey(warehouseCode){
+  return SALES_WAREHOUSE_PERMISSION_KEYS[String(warehouseCode||'').trim().toUpperCase()] || '';
+}
+function canOpenSalesWarehouse(warehouseCode){
+  const code=String(warehouseCode||'').trim().toUpperCase();
+  const key=salesWarehousePermissionKey(code);
+  const plant=warehouseMetaByCode(code)?.plant_code;
+  return Boolean(key && plant && window.PermissionRuntime?.can?.(key,[plant]));
+}
 let activeSalesWarehouse = SALES_WAREHOUSES[0];
 let activeSalesReportDate = '';
 function todayISO(){const d=new Date();const c=new Date(d.toLocaleString('en-US',{timeZone:'Africa/Cairo'}));return `${c.getFullYear()}-${String(c.getMonth()+1).padStart(2,'0')}-${String(c.getDate()).padStart(2,'0')}`;}
@@ -4736,8 +4723,10 @@ async function loadSalesReport(warehouseCode){
   if(!applicationBusinessDataReady()) return;
   return window.AppOperationProgress.run('screen:sales','مراجعة البيع',async operation=>{
   if(!applicationBusinessDataReady()) return;
+  warehouseCode=String(warehouseCode||'').trim().toUpperCase();
   const plant=warehouseMetaByCode(warehouseCode)?.plant_code;
   if(!window.PermissionRuntime?.can('sales_review.view',plant || [])) return;
+  if(!canOpenSalesWarehouse(warehouseCode)) return;
   activeSalesWarehouse=warehouseCode;
   if(!WarehouseDB?.ready){ return; }
   const allVersions=!activeSalesReportDate,loadStart=allVersions?salesPerfNow():null;
@@ -4786,39 +4775,15 @@ async function loadSalesReport(warehouseCode){
   },{scope:'#sales',controls:'#sales button,#sales input,#sales select'}).finally(syncSalesReviewPagination);
 }
 renderTabs = function(){
-  const salesTabs=$('#salesTabs');
-  const allowedWarehouses=salesReviewAllowedWarehouses();
-  const previous=String(activeSalesWarehouse || '').trim().toUpperCase();
-  const selected=allowedWarehouses.includes(previous) ? previous : (allowedWarehouses[0] || '');
-  activeSalesWarehouse=selected;
-  if(salesTabs){
-    salesTabs.innerHTML=allowedWarehouses.map(w=>`<button class="${w===selected?'active':''}" data-warehouse="${w}">${w}</button>`).join('');
-    $$('#salesTabs button').forEach(btn=>btn.onclick=()=>{
-      const warehouse=String(btn.dataset.warehouse||'').trim().toUpperCase();
-      if(!warehouse || !allowedWarehouses.includes(warehouse)) return;
-      $$('#salesTabs button').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      loadSalesReport(warehouse);
-    });
-  }
-  if($('#inboundTabs')) {
-    const allowedPlants=inboundReviewAllowedPlantSet();
-    const plants=(allowedPlants===null ? getPlantsCatalog() : getPlantsCatalog().filter(p=>allowedPlants.has(String(p.code||'').trim().toUpperCase())));
-    $('#inboundTabs').innerHTML=plants.map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('');
-  }
+  $('#salesTabs').innerHTML=SALES_WAREHOUSES.map((w,i)=>`<button class="${i===0?'active':''}" data-warehouse="${w}">${w}</button>`).join('');
+  $$('#salesTabs button').forEach(btn=>btn.onclick=()=>{ $$('#salesTabs button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); loadSalesReport(btn.dataset.warehouse); });
+  if($('#inboundTabs')) $('#inboundTabs').innerHTML=getPlantsCatalog().map((p,i)=>`<button class="${i===0?'active':''}">${p.code} - ${p.name}</button>`).join('');
 };
 renderTables = function(){
   table('#movementsTable',['كود الحركة','وصف SAP','التصنيف','تعريف الحركة','الأثر على الرصيد'],APP_DATA.movements.map(m=>[m[0],m[1],m[2],m[3],m[4]==='in'?'تضيف رصيد':'تخصم من الرصيد']));
   table('#salesTable',['كود المادة','وصف المادة','وحدة القياس','كمية البيع','مرتجع فعلي','الإنتاج','التحويلات الصادرة','التحويلات الواردة','إجمالي التحميل'],[]);
   table('#inboundTable',['المصنع','المخزن','كود المادة','وصف المادة','وحدة القياس','الوارد','الإلغاء','الصافي'],APP_DATA.inboundReviewSample);
 };
-window.addEventListener('audit-permission-runtime-updated',()=>{
-  const previous=String(activeSalesWarehouse || '').trim().toUpperCase();
-  renderTabs();
-  if($('#sales')?.classList.contains('active-section') && activeSalesWarehouse && activeSalesWarehouse!==previous){
-    loadSalesReport(activeSalesWarehouse);
-  }
-});
 document.addEventListener('DOMContentLoaded',()=>{initAuthPanel();initMobileUploadReportUI();initSalesUploader();initIncomingUploader();initScaleUploader();initFreightUploader();});
 
 // === Main Program Login Gate ===

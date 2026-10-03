@@ -86,7 +86,17 @@
 
   const sales = screen('sales_review', 'مراجعة البيع', APP, '#sales', 'Canonical replacement candidate for legacy sales/sales_audit.');
   filter('sales_review.filter.report_date', 'تاريخ التقرير', sales, APP, '#salesReportDateSelect');
-  filter('sales_review.filter.warehouse', 'مخزن البيع', sales, APP, '#salesTabs button');
+  const salesWarehouseFilter = filter('sales_review.filter.warehouse', 'مخزن البيع', sales, APP, '#salesTabs button');
+  [
+    ['sales_review.warehouse.wf01.w401', 'W401 - المخزن الرئيسي منتج تام - الواحة', '#salesTabs button[data-warehouse="W401"]'],
+    ['sales_review.warehouse.wf01.w402', 'W402 - المخزن الفرعي منتج تام - الواحة', '#salesTabs button[data-warehouse="W402"]'],
+    ['sales_review.warehouse.el01.n401', 'N401 - الرئيسي منتج تام - السواقي', '#salesTabs button[data-warehouse="N401"]'],
+    ['sales_review.warehouse.el01.n402', 'N402 - الفرعي منتج تام - السواقي', '#salesTabs button[data-warehouse="N402"]'],
+    ['sales_review.warehouse.el01.n411', 'N411 - البحيرة منتج تام', '#salesTabs button[data-warehouse="N411"]'],
+    ['sales_review.warehouse.el01.n412', 'N412 - أسيوط منتج تام', '#salesTabs button[data-warehouse="N412"]'],
+    ['sales_review.warehouse.el02.e401', 'E401 - الرئيسي منتج تام - العامرية', '#salesTabs button[data-warehouse="E401"]'],
+    ['sales_review.warehouse.el02.e402', 'E402 - الفرعي منتج تام - العامرية', '#salesTabs button[data-warehouse="E402"]']
+  ].forEach(([key,label,selector]) => tab(key,label,salesWarehouseFilter,APP,selector,'صلاحية مستقلة لتبويب مخزن البيع.'));
   filter('sales_review.table.column_filter', 'بحث أعمدة الجدول', sales, APP, '#salesTable .col-filter', 'Injected by the universal table enhancer.');
   button('sales_review.table.sort', 'ترتيب أعمدة الجدول', sales, APP, '#salesTable .sort-btn');
   ['excel', 'pdf', 'png'].forEach(format => button(`sales_review.export_${format}`, `تصدير ${format.toUpperCase()}`, sales, APP, `#salesExport${format === 'excel' ? 'Excel' : format === 'pdf' ? 'Pdf' : 'Png'}Btn`));
