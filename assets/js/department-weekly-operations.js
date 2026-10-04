@@ -1397,7 +1397,38 @@
         +'<td>'+escapeHtml(row.restCount===null?'—':row.restCount)+'</td><td>'+escapeHtml(row.monthCount===null?'—':row.monthCount)+'</td><td>'+escapeHtml(row.eidCount===null?'—':row.eidCount)+'</td>'
         +'<td>'+escapeHtml(row.deductionCount===null?'—':row.deductionCount)+'</td><td>'+escapeHtml(row.absenceCount===null?'—':row.absenceCount)+'</td></tr>';
     }).join('');
-  }  async function loadDepartmentStorekeepers(){
+  }
+
+  async function loadDepartmentStorekeeperYearStatuses(personnelIds,range){
+    const ids=Array.isArray(personnelIds)?personnelIds.filter(Boolean):[];
+    if(!ids.length) return [];
+    const pageSize=500;
+    const rows=[];
+    let offset=0;
+    let total=null;
+    while(true){
+      const pageResult=await WarehouseDB.client.from(DAILY_STATUSES_TABLE)
+        .select('id,personnel_id,work_date,shift_code_snapshot,shift_description_snapshot,display_color_snapshot,is_voided',{count:'exact'})
+        .in('personnel_id',ids)
+        .gte('work_date',range.from)
+        .lte('work_date',range.to)
+        .order('work_date',{ascending:true})
+        .order('personnel_id',{ascending:true})
+        .order('id',{ascending:true})
+        .range(offset,offset+pageSize-1);
+      if(pageResult.error) throw pageResult.error;
+      const page=pageResult.data||[];
+      if(total===null && Number.isFinite(Number(pageResult.count))) total=Number(pageResult.count);
+      rows.push(...page);
+      if(!page.length) break;
+      if(total!==null && rows.length>=total) break;
+      if(page.length<pageSize && total===null) break;
+      offset+=page.length;
+    }
+    return rows;
+  }
+
+  async function loadDepartmentStorekeepers(){
     if(!window.PermissionRuntime?.any('department_personnel.storekeepers.view')) return false;
     const tbody=document.querySelector('#departmentStorekeepersTable tbody');
     const retry=document.getElementById('departmentStorekeepersRetryBtn');
@@ -1427,11 +1458,7 @@
       const ids=personnelResult.data.map(row=>row.id);
       let statuses=[];
       if(ids.length){
-        const statusResult=await WarehouseDB.client.from(DAILY_STATUSES_TABLE)
-          .select('personnel_id,work_date,shift_code_snapshot,shift_description_snapshot,display_color_snapshot,is_voided')
-          .in('personnel_id',ids).gte('work_date',range.from).lte('work_date',range.to);
-        if(statusResult.error) throw statusResult.error;
-        statuses=statusResult.data||[];
+        statuses=await loadDepartmentStorekeeperYearStatuses(ids,range);
       }
       const codesResult=await WarehouseDB.client.from(DEPARTMENT_STATUS_CODES_TABLE)
         .select('shift_code,description,is_active').order('shift_code',{ascending:true});
