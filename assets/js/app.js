@@ -3433,6 +3433,17 @@ function mapSalesRows(rows,batchId){
     r.transaction_date = parseArabicNumber(getRowValue(normalized,['التاريخ'])) && typeof getRowValue(normalized,['التاريخ']) === 'number'
       ? excelDateToISO(getRowValue(normalized,['التاريخ']))
       : excelDateToISO(getRowValue(normalized,['التاريخ','Date','Posting Date']));
+    // P15.13: classify 301 using its original sign before normalizing upload quantities.
+    if(r.movement_type==='301'){
+      if(r.quantity<0){
+        r.movement_type='Z51';
+        r.movement_text='ن.مخزون إلى م.منقول';
+      }else if(r.quantity>0){
+        r.movement_type='101';
+        r.movement_text='ا.بضائع لمخزون منقول';
+      }
+    }
+    r.quantity=Math.abs(r.quantity);
     return r;
   }).filter(r=>r.material_code && r.material_name && r.movement_type && r.movement_text && r.warehouse_code && r.plant_code);
 }
